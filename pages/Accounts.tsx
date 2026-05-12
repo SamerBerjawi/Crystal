@@ -105,7 +105,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           changesByDate[d] = (changesByDate[d] || 0) + convertToEur(tx.amount, tx.currency);
       });
 
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 90; i++) {
           const date = new Date();
           date.setDate(date.getDate() - i);
           const dateStr = toLocalISOString(date);
@@ -158,8 +158,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const checking = accountsToSum.filter(a => a.type === 'Checking').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
           const savings = accountsToSum.filter(a => a.type === 'Savings').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
           
-          // Calculate 30-day net flow for cash accounts
-          const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          // Calculate 90-day net flow for cash accounts
+          const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
           const cashIds = new Set(accountsToSum.map(a => a.id));
           const netFlow = transactions
             .filter(t => cashIds.has(t.accountId) && new Date(t.date) >= thirtyDaysAgo && !t.transferId)
@@ -423,9 +423,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <AnimatePresence mode="wait">
                     <motion.div 
                         key={activeSegment}
-                        initial={{ opacity: 0, x: -5 }}
+                        initial={{ opacity: 0, x: -1 }}
                         animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 5 }}
+                        exit={{ opacity: 0, x: 1 }}
                         className="flex flex-wrap items-center gap-x-8 gap-y-3"
                     >
                         {segmentMetrics.details.map((detail, i) => (

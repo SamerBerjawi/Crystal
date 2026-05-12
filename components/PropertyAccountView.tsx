@@ -213,8 +213,8 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                              </div>
                         </div>
                         
-                        <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-2">Estimated market value</p>
-                        <h2 className="text-5xl font-semibold tracking-tight tabular-nums drop-shadow-sm mb-12">
+                        <p className="text-[10px] font-black tracking-wider text-slate-400 mb-2">Estimated market value</p>
+                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(currentMarketValue, account.currency)}
                         </h2>
                         
@@ -375,6 +375,24 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
 
            {/* Debt & Cashflow Column */}
            <div className="xl:col-span-4 space-y-8">
+                {/* Infrastructure Configuration */}
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden">
+                     <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                     <div className="space-y-6">
+                         <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                              <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">Asset Genesis</span>
+                              <span className="text-xs font-black text-light-text dark:text-dark-text tracking-tight">{account.purchaseDate ? parseLocalDate(account.purchaseDate).toLocaleDateString() : '—'}</span>
+                         </div>
+                         <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                              <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">Settlement Engine</span>
+                              <span className="text-xs font-black text-light-text dark:text-dark-text tracking-tight">{account.currency}</span>
+                         </div>
+                         <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                              <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">Logical Serial</span>
+                              <span className="text-xs font-black text-light-text dark:text-dark-text tracking-tight font-mono opacity-60 break-all">{account.id.slice(0, 8)}</span>
+                         </div>
+                     </div>
+                </div>
                 {linkedLoan ? (
                     <motion.div 
                         initial={{ opacity: 0, x: 20 }}

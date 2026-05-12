@@ -111,6 +111,8 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statement
                     accountName={statement.accountName}
                     accountBalance={statement.accountBalance}
                     creditLimit={statement.creditLimit}
+                    cardNetwork={statement.cardNetwork}
+                    financialInstitution={statement.financialInstitution}
                     currency={statement.currency}
                     currentStatement={{
                         period: statement.current.period,
@@ -137,15 +139,15 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-4 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
+    <div className="bg-white dark:bg-dark-card p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm`}>
-            <span className="material-symbols-outlined text-2xl">{icon}</span>
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform`}>
+            <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div className="min-w-0 relative z-10">
-            <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">{title}</p>
-            <p className="text-xl font-semibold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight">{value}</p>
-            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium truncate opacity-40">{subtext}</p>
+            <p className="text-[12px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
+            <p className="text-2xl font-black text-light-text dark:text-dark-text privacy-blur tracking-tighter mt-1 leading-none">{value}</p>
+            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1.5 font-bold truncate opacity-60 uppercase tracking-tight">{subtext}</p>
         </div>
     </div>
 );
@@ -1001,6 +1003,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               currency: account.currency,
               accountBalance: account.balance,
               creditLimit: account.creditLimit,
+              cardNetwork: account.cardNetwork,
+              financialInstitution: account.financialInstitution,
               current: {
                   balance: currentBalance,
                   amountPaid: currentAmountPaid,
@@ -1105,7 +1109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     // Removed forecastChart
     { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie_chart', description: 'Spending distribution', defaultW: 6, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'donut_large', description: 'Assets vs Liabilities', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', icon: 'list_alt', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'recentActivity', name: 'Recent Activity', icon: 'list_alt', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
     { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'account_balance', description: 'Categorized asset values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'payments', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', icon: 'ad_group', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
@@ -1380,29 +1384,29 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 <div className="flex items-center gap-1 pr-2 mr-2 border-r border-black/5 dark:border-white/10 ml-1">
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)}
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all group ${isEditMode ? 'bg-primary-500 text-white' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
                         title={isEditMode ? "Finish Editing" : "Edit Layout"}
                     >
-                        <span className="material-symbols-outlined text-lg">{isEditMode ? 'done' : 'dashboard_customize'}</span>
+                        <span className="material-symbols-outlined text-xl">{isEditMode ? 'done' : 'dashboard_customize'}</span>
                     </button>
 
                     <button 
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-                        className="w-8 h-8 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all group"
+                        className="w-10 h-10 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all group"
                         title="Command Center"
                     >
-                        <span className="material-symbols-outlined text-lg group-hover:text-blue-500">terminal</span>
+                        <span className="material-symbols-outlined text-xl group-hover:text-blue-500">terminal</span>
                     </button>
                 </div>
 
                 {/* Main Actions Group */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 font-bold tracking-widest text-sm uppercase">
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-8 px-3 flex items-center gap-1.5 bg-black/5 dark:bg-white/5 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-all"
+                            className="h-12 px-6 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all font-black text-xs uppercase tracking-widest"
                         >
-                            <span className="material-symbols-outlined text-sm">add_circle</span>
+                            <span className="material-symbols-outlined text-lg">add_circle</span>
                             <span className="hidden sm:inline">Add Widget</span>
                         </button>
                     )}
@@ -1416,19 +1420,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className={`${BTN_SECONDARY_STYLE} !h-10 !px-4 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10`}
+                        className={`${BTN_SECONDARY_STYLE} !h-12 !px-7 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10`}
                         title="Sync Banks"
                     >
-                        <span className={`material-symbols-outlined text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
-                        <span className="hidden sm:inline">{isSyncingBanks ? 'Syncing...' : 'Sync banks'}</span>
+                        <span className={`material-symbols-outlined text-xl ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
+                        <span className="hidden sm:inline font-black text-xs tracking-widest">{isSyncingBanks ? 'Syncing...' : 'Sync Banks'}</span>
                     </button>
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className={`${BTN_PRIMARY_STYLE} !h-10 !px-4`}
+                        className={`${BTN_PRIMARY_STYLE} !h-12 !px-7`}
                     >
-                        <span className="material-symbols-outlined text-lg">add</span>
-                        <span className="hidden sm:inline">New transaction</span>
+                        <span className="material-symbols-outlined text-xl">add</span>
+                        <span className="hidden sm:inline font-black text-xs tracking-widest">New Transaction</span>
                     </button>
                 </div>
             </div>
@@ -1438,11 +1442,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
 
 
-      {/* Redesigned Controls Bar: Tabs & Filters */}
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-1 py-1 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
              {/* Redesigned Tabs (Accounts Style) */}
-             <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl">
+             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-[1.5rem]">
             {tabs.map((tab) => {
                 const tabConfig = {
                     overview: { icon: 'dashboard', label: 'Overview' },
@@ -1454,13 +1457,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 rounded-xl text-[11px] font-semibold tracking-wider transition-all duration-300 flex items-center gap-2.5 ${
+                        className={`px-8 h-8 rounded-[1.25rem] text-[12px] font-black tracking-widest transition-all duration-300 flex items-center gap-2.5 uppercase ${
                             activeTab === tab
-                            ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400 -translate-y-px'
+                            ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px'
                             : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
                         }`}
                     >
-                        <span className={`material-symbols-outlined text-base ${activeTab === tab ? 'filled-icon' : ''}`}>{tabConfig.icon}</span>
+                        <span className={`material-symbols-outlined text-xl ${activeTab === tab ? 'filled-icon' : 'opacity-60'}`}>{tabConfig.icon}</span>
                         <span>{tabConfig.label}</span>
                     </button>
                 );
@@ -1471,41 +1474,41 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-end">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
-                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-9`}>
+                  <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-1 rounded-[1.25rem] border border-black/5 dark:border-white/5 shadow-inner">
+                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-10`}>
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 text-[11px] font-semibold tracking-wider`}
+                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-5 text-[12px] font-black tracking-widest uppercase`}
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
                                  <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
                              ))}
                           </select>
-                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-base">expand_more</span></div>
                       </div>
                       
                       <div className="w-[1px] h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
                       
                        <button 
                         onClick={() => setShowForecast(!showForecast)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white'}`}
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
                         title={showForecast ? "Hide Forecast" : "Show Forecast"}
                       >
-                         <span className={`material-symbols-outlined text-lg ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
+                         <span className={`material-symbols-outlined text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
                       </button>
 
                       <button 
                         onClick={() => setShowGoals(!showGoals)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white'}`}
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
                         title={showGoals ? "Hide Goals" : "Show Goals"}
                       >
-                         <span className={`material-symbols-outlined text-lg ${showGoals ? 'filled-icon' : ''}`}>flag</span>
+                         <span className={`material-symbols-outlined text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
                       </button>
                   </div>
               )}
 
-              <div className="h-6 w-px bg-black/5 dark:bg-white/10 mx-1 hidden lg:block"></div>
+              <div className="h-8 w-px bg-black/5 dark:bg-white/10 mx-1 hidden lg:block"></div>
 
               <div className="flex items-center gap-3">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />

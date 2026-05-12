@@ -75,19 +75,19 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
                 
                 return (
                     <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold text-sm">{budget.categoryName}</span>
-                            <span className="text-sm font-semibold">{budget.progress.toFixed(0)}%</span>
+                        <div className="flex justify-between items-center mb-1.5">
+                            <span className="font-black text-base uppercase tracking-tight">{budget.categoryName}</span>
+                            <span className="text-base font-black tabular-nums">{budget.progress.toFixed(0)}%</span>
                         </div>
-                        <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2.5 shadow-inner">
+                        <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-3 shadow-inner">
                             <div
-                                className={`${progressBarColor} h-2.5 rounded-full transition-all duration-500`}
+                                className={`${progressBarColor} h-3 rounded-full transition-all duration-500`}
                                 style={{ width: `${Math.min(budget.progress, 100)}%` }}
                             ></div>
                         </div>
-                         <div className="flex justify-between text-xs mt-1 text-light-text-secondary dark:text-dark-text-secondary">
-                            <span>{formatCurrency(budget.spent, 'EUR')} spent</span>
-                            <span>{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
+                         <div className="flex justify-between text-sm mt-1.5 text-light-text-secondary dark:text-dark-text-secondary font-black tracking-tight">
+                            <span className="font-black">{formatCurrency(budget.spent, 'EUR')} spent</span>
+                            <span className="font-black">{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
                         </div>
                     </div>
                 );

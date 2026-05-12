@@ -6,7 +6,7 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
 
 interface AccountRowProps {
     account: Account;
@@ -179,7 +179,16 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         cardTheme = "colored";
     }
 
-    const logoUrl = account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 }) : null;
+    const logoUrl = useMemo(() => {
+        if (!brandfetchClientId) return null;
+        if (account.type === 'Credit Card' && account.cardNetwork) {
+            return getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId);
+        }
+        if (account.financialInstitution) {
+            return getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 });
+        }
+        return null;
+    }, [account, brandfetchClientId, merchantLogoOverrides]);
     const showLogo = !!logoUrl && !logoError;
 
     const colorConfig: Record<string, { bg: string, text: string, border: string, icon: string }> = {
@@ -285,17 +294,17 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             )}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate">
+                            <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate">
                                 {account.financialInstitution || account.type}
                             </p>
-                            <h3 className="text-lg font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
+                            <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
                                 {account.name}
                             </h3>
                         </div>
                     </div>
 
                     <div className="space-y-0.5">
-                        <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums privacy-blur">
+                        <p className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums privacy-blur">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         {account.currency !== 'EUR' && (

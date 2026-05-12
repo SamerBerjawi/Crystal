@@ -293,9 +293,10 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
 
            {/* Sidebar Logistics */}
            <div className="lg:col-span-4 space-y-8">
+                {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8 underline underline-offset-8 decoration-cyan-500/20">System configuration</h3>
-                    <div className="space-y-10 divide-y divide-black/5 dark:divide-white/5">
+                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <div className="space-y-6">
                         {[
                             { label: 'Source Account', value: sourceAccount?.name || 'External Link' },
                             { label: 'Accumulation Strategy', value: 'Dynamic Round-up' },
@@ -304,9 +305,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                             { label: 'Engine Integrity', value: 'Active' },
                             { label: 'Logical Serial', value: account.accountNumber, isMono: true }
                         ].filter(i => i.value).map((item, idx) => (
-                            <div key={idx} className="pt-8 first:pt-0">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-1">{item.label}</p>
-                                <p className={`text-base font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                            <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>
                             </div>

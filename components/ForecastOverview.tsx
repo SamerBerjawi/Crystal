@@ -53,18 +53,18 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                     return (
                         <div 
                             key={item.period} 
-                            className={`relative p-3 rounded-xl transition-all duration-300 ${statusColor}`}
+                            className={`p-3 rounded-xl border ${statusColor}`}
                         >
                             <div className="flex justify-between items-start mb-1.5">
                                 <span className="text-xs font-bold uppercase tracking-wider opacity-70">{item.period}</span>
                                 <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
                             </div>
 
-                            <p className={`text-xl font-extrabold tracking-tight privacy-blur ${amountColor}`}>
+                            <p className={`text-xl font-black tracking-tight privacy-blur ${amountColor}`}>
                                 {formatCurrency(item.lowestBalance, currency as Currency)}
                             </p>
                             
-                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-xs opacity-70">
+                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-[10px] opacity-70">
                                 <span className="material-symbols-outlined text-[14px]">event</span>
                                 <span>On {formattedDate}</span>
                             </div>

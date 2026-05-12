@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Account, DisplayTransaction, Category, Transaction } from '../types';
 import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, getPreferredTimeZone, toLocalISOString } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion } from 'motion/react';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
@@ -102,6 +104,15 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   isLinkedToEnableBanking,
   showBalanceAdjustments = true,
 }) => {
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const [logoError, setLogoError] = useState(false);
+
+  const logoUrl = useMemo(() => {
+    if (!brandfetchClientId || !account.financialInstitution || logoError) return null;
+    return getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 });
+  }, [account.financialInstitution, brandfetchClientId, merchantLogoOverrides, logoError]);
+
   const { recurringTransactions, billsAndPayments, loanPaymentOverrides, recurringTransactionOverrides } = useScheduleContext();
   const { financialGoals } = useGoalsContext();
   const { accounts } = useAccountsContext();
@@ -288,17 +299,21 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       {/* Hero Financial Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
            {/* Immersive Dynamic Card */}
-           <div className="lg:col-span-5 xl:col-span-4">
+           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-8">
                <div 
-                   className={`relative h-full min-h-[440px] rounded-[3rem] ${cardGradient} text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group`}
+                   className={`relative min-h-[440px] rounded-[3rem] ${cardGradient} text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group`}
                >
                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-[100px] animate-pulse"></div>
                    
                    <div className="relative z-10">
                         <div className="flex justify-between items-start mb-12">
-                             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg">
-                                  <span className="material-symbols-outlined text-3xl font-light">credit_card</span>
+                             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
+                                  {logoUrl ? (
+                                      <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+                                  ) : (
+                                      <span className="material-symbols-outlined text-3xl font-light">credit_card</span>
+                                  )}
                              </div>
                              <div className="text-right">
                                   <p className="text-[10px] font-bold tracking-wider text-white/60 mb-1">{account.financialInstitution || 'Crystal'}</p>
@@ -306,18 +321,41 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                              </div>
                         </div>
                         
-                        <p className="text-[10px] font-bold text-white/70 mb-2">Managed Capital</p>
-                        <h2 className="text-6xl font-semibold tracking-tighter tabular-nums drop-shadow-lg privacy-blur">
+                        <p className="text-[10px] font-black text-white/70 mb-2">Managed Capital</p>
+                        <h2 className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg privacy-blur">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                    </div>
 
                    <div className="relative z-10 pt-10 border-t border-white/5 flex justify-between items-end">
                        <div>
-                           <p className="text-[10px] tracking-wider text-white/50 font-bold mb-1">Verified Holder</p>
-                           <p className="font-semibold text-xs text-white tracking-widest">{account.cardholderName || account.name}</p>
+                           <p className="text-[11px] tracking-wider text-white/50 font-bold mb-1">Verified Holder</p>
+                           <p className="font-semibold text-sm text-white tracking-widest">{account.cardholderName || account.name}</p>
                        </div>
                        <span className="text-[10px] font-bold bg-white/10 px-2 py-1 rounded-lg border border-white/10">{account.currency}</span>
+                   </div>
+               </div>
+
+               {/* Infrastructure Configuration (Integrated with Card Context) */}
+               <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
+                   <h3 className="text-[11px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8 opacity-40 uppercase">Infrastructure Configuration</h3>
+                   <div className="space-y-6">
+                       {[
+                           { label: 'Clearing Institution', value: account.financialInstitution },
+                           { label: 'Asset Architecture', value: account.type },
+                           { label: 'Settlement Engine', value: account.currency },
+                           { label: 'Origin Epoch', value: account.openingDate ? parseLocalDate(account.openingDate).toLocaleDateString() : '—' },
+                           { label: 'Logical Serial', value: account.accountNumber, isMono: true },
+                           { label: 'Routing Directive', value: account.routingNumber, isMono: true },
+                           { label: 'Yield Maturity', value: account.apy ? `${account.apy}% APY` : '—' }
+                       ].filter(i => i.value).map((item, idx) => (
+                           <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                               <p className="text-[10px] font-bold tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                               <p className={`text-sm font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                   {item.value}
+                               </p>
+                           </div>
+                       ))}
                    </div>
                </div>
            </div>
@@ -418,15 +456,16 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                             allCategories={allCategories}
                             onTransactionClick={onTransactionClick}
                             density="high"
+                            maxItems={15}
                         />
                     </div>
                 </div>
            </div>
 
-           {/* Metrics & Metadata Sidebar */}
+            {/* Metrics & Metadata Sidebar */}
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Upcoming Obligations */}
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden h-full">
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden">
                     <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight mb-8">Upcoming Obligations</h3>
                     <div className="space-y-6">
                         {upcomingPayments.length > 0 ? (
@@ -452,7 +491,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                     </div>
                 </div>
 
-                {/* Linked Assets/Liabilities */}
+                {/* Interconnected Assets */}
                 {(linkedCreditCards.length > 0 || linkedGoals.length > 0) && (
                     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group overflow-hidden">
                         <h3 className="text-sm font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8 underline underline-offset-8 decoration-primary-500/20">Interconnected Assets</h3>
@@ -489,29 +528,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         </div>
                     </div>
                 )}
-
-                {/* Infrastructure Metadata */}
-                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
-                    <h3 className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8">Infrastructure Configuration</h3>
-                    <div className="space-y-8 divide-y divide-black/5 dark:divide-white/5">
-                        {[
-                            { label: 'Clearing Institution', value: account.financialInstitution },
-                            { label: 'Asset Architecture', value: account.type },
-                            { label: 'Settlement Engine', value: account.currency },
-                            { label: 'Origin Epoch', value: account.openingDate ? parseLocalDate(account.openingDate).toLocaleDateString() : '—' },
-                            { label: 'Logical Serial', value: account.accountNumber, isMono: true },
-                            { label: 'Routing Directive', value: account.routingNumber, isMono: true },
-                            { label: 'Yield Maturity', value: account.apy ? `${account.apy}% APY` : '—' }
-                        ].filter(i => i.value).map((item, idx) => (
-                            <div key={idx} className="pt-6 first:pt-0">
-                                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70 mb-1">{item.label}</p>
-                                <p className={`text-sm font-bold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
-                                    {item.value}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
            </div>
       </div>
     </div>

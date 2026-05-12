@@ -214,7 +214,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         </div>
                         
                         <p className="text-[10px] font-bold text-emerald-100/90 mb-2">Current Total Balance</p>
-                        <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
+                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                         
@@ -366,10 +366,11 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                     </div>
                     <div className="flex-grow overflow-hidden">
                         <TransactionList
-                            transactions={displayTransactionsList.slice(0, 20)}
+                            transactions={displayTransactionsList}
                             allCategories={allCategories}
                             onTransactionClick={onTransactionClick}
                             density="high"
+                            maxItems={15}
                         />
                     </div>
                 </div>
@@ -377,6 +378,28 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
 
            {/* Goals & Details Sidebar */}
            <div className="xl:col-span-4 flex flex-col gap-8">
+                {/* Infrastructure Configuration */}
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
+                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <div className="space-y-6">
+                        {[
+                            { label: 'Clearing Institution', value: account.financialInstitution },
+                            { label: 'Asset Architecture', value: account.type },
+                            { label: 'Settlement Engine', value: account.currency },
+                            { label: 'Origin Epoch', value: account.openingDate ? parseLocalDate(account.openingDate).toLocaleDateString() : '—' },
+                            { label: 'Logical Reference', value: account.accountNumber, isMono: true },
+                            { label: 'Routing Directive', value: account.routingNumber, isMono: true }
+                        ].filter(i => i.value).map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                    {item.value}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Linked Financial Goals */}
                 {linkedGoals.length > 0 && (
                     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 h-full flex flex-col group">
@@ -410,28 +433,6 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         </div>
                     </div>
                 )}
-
-                {/* Account Logistics */}
-                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
-                    <h3 className="text-sm font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8">Metadata configuration</h3>
-                    <div className="space-y-10 divide-y divide-black/5 dark:divide-white/5">
-                        {[
-                            { label: 'Clearing Institution', value: account.financialInstitution },
-                            { label: 'Account Architecture', value: account.type },
-                            { label: 'Settlement Engine', value: account.currency },
-                            { label: 'Established', value: account.openingDate ? parseLocalDate(account.openingDate).toLocaleDateString() : '—' },
-                            { label: 'Account Reference', value: account.accountNumber, isMono: true },
-                            { label: 'Routing Directive', value: account.routingNumber, isMono: true }
-                        ].filter(i => i.value).map((item, idx) => (
-                            <div key={idx} className="pt-6 first:pt-0">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70 mb-1">{item.label}</p>
-                                <p className={`text-sm font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-80' : ''}`}>
-                                    {item.value}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
            </div>
       </div>
     </div>

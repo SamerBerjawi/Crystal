@@ -52,18 +52,18 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
         onMouseUp={onMouseUp}
         onTouchEnd={onTouchEnd}
     >
-      <Card className={`flex flex-col h-full transition-all duration-200 !rounded-[2rem] ${isCompact ? '!p-3' : '!p-4'} ${isEditMode ? 'border-dashed border-primary-500/50 ring-2 ring-primary-500/20' : ''}`}>
-        <header className={`flex items-start justify-between ${isCompact ? 'mb-2' : 'mb-3.5'} drag-handle ${isEditMode ? 'cursor-move' : ''}`}>
+      <Card className={`flex flex-col h-full transition-all duration-200 !rounded-[2rem] ${isCompact ? '!p-3' : '!p-5'} ${isEditMode ? 'border-dashed border-primary-500/50 ring-2 ring-primary-500/20' : ''}`}>
+        <header className={`flex items-start justify-between ${isCompact ? 'mb-2' : 'mb-4'} drag-handle ${isEditMode ? 'cursor-move' : ''}`}>
           <div className="flex items-center gap-2.5 overflow-hidden">
             {icon && (
-               <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} bg-primary-100 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/10`}>
+               <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-10 h-10 rounded-xl'} bg-primary-100 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/10`}>
                   <span className={`material-symbols-outlined ${isCompact ? 'text-[18px]' : 'text-[18px]'}`}>{icon}</span>
                </div>
             )}
             <div className="overflow-hidden">
-              <h3 className={`${isCompact ? 'text-[11px]' : 'text-[12px]'} font-black text-light-text dark:text-dark-text truncate leading-tight tracking-tight uppercase`}>{title}</h3>
+              <h2 className={`${isCompact ? 'text-[11px]' : 'text-[14px]'} font-black text-light-text dark:text-dark-text tracking-tight uppercase`}>{title}</h2>
               {subtitle && (
-                <p className={`${isCompact ? 'text-[9px]' : 'text-[9px]'} text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-bold opacity-40 uppercase tracking-wider`}>{subtitle}</p>
+                <p className={`${isCompact ? 'text-[10px]' : 'text-[11px]'} text-light-text dark:text-dark-text tracking-wider`}>{subtitle}</p>
               )}
             </div>
           </div>

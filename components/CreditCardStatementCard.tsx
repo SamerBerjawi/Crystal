@@ -3,6 +3,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import Card from './Card';
 import { formatCurrency } from '../utils';
 import { Currency } from '../types';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
 
 interface StatementInfo {
     period: string;
@@ -16,6 +18,8 @@ interface CreditCardStatementCardProps {
     accountName: string;
     accountBalance: number;
     creditLimit?: number;
+    cardNetwork?: string;
+    financialInstitution?: string;
     currency: Currency;
     currentStatement: StatementInfo;
     nextStatement: StatementInfo;
@@ -26,6 +30,8 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
     accountName, 
     accountBalance, 
     creditLimit, 
+    cardNetwork,
+    financialInstitution,
     currency, 
     currentStatement, 
     nextStatement,
@@ -33,6 +39,19 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(0);
+    const [logoError, setLogoError] = useState(false);
+    const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+
+    const logoUrl = React.useMemo(() => {
+        if (logoError || !brandfetchClientId) return null;
+        if (cardNetwork) {
+            return getCardNetworkLogoUrl(cardNetwork, brandfetchClientId);
+        }
+        if (financialInstitution) {
+            return getMerchantLogoUrl(financialInstitution, brandfetchClientId);
+        }
+        return null;
+    }, [cardNetwork, financialInstitution, brandfetchClientId, logoError]);
 
     useEffect(() => {
         if (!containerRef.current) return;

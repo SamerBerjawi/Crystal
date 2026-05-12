@@ -83,3 +83,32 @@ export const getMerchantLogoUrl = (
 
   return `https://cdn.brandfetch.io/${encodeURIComponent(identifier)}?${params.toString()}`;
 };
+
+export const getCardNetworkLogoUrl = (
+  network: string | undefined,
+  clientId: string | undefined,
+): string | null => {
+  if (!clientId || !network) return null;
+  const net = network.toLowerCase();
+  let domain = null;
+  if (net.includes('visa')) domain = 'visa.com';
+  else if (net.includes('mastercard')) domain = 'mastercard.com';
+  else if (net.includes('amex') || net.includes('american express')) domain = 'americanexpress.com';
+  else if (net.includes('discover')) domain = 'discover.com';
+  else if (net.includes('diners')) domain = 'dinersclub.com';
+  else if (net.includes('jcb')) domain = 'jcb.comp.jp';
+
+  if (!domain) return null;
+
+  const today = new Date().toISOString().split('T')[0];
+  const params = new URLSearchParams({
+    c: clientId,
+    type: 'icon',
+    fallback: 'transparent',
+    h: '80',
+    w: '80',
+    v: today,
+  });
+
+  return `https://cdn.brandfetch.io/${domain}?${params.toString()}`;
+};

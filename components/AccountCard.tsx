@@ -7,6 +7,7 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
+import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
 
 interface AccountCardProps {
     account: Account;
@@ -42,7 +43,21 @@ const AccountCard: React.FC<AccountCardProps> = ({
 }) => {
     const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as Currency);
     const conversionRates = usePreferencesSelector(p => p.conversionRates);
+    const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
     const { loanPaymentOverrides } = useScheduleContext();
+    
+    const [logoError, setLogoError] = React.useState(false);
+
+    const logoUrl = React.useMemo(() => {
+        if (logoError || !brandfetchClientId) return null;
+        if (account.type === 'Credit Card' && account.cardNetwork) {
+            return getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId);
+        }
+        if (account.financialInstitution) {
+            return getMerchantLogoUrl(account.financialInstitution, brandfetchClientId);
+        }
+        return null;
+    }, [account, brandfetchClientId, logoError]);
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card's onClick from firing
@@ -186,14 +201,23 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 />
                 
                 <div className="flex items-center flex-1 min-w-0 relative z-10">
-                    <div className={`text-4xl mr-4 flex items-center justify-center w-14 h-14 shrink-0 rounded-2xl bg-black/5 dark:bg-white/10 ${style.color} shadow-inner`}>
-                        <span className="material-symbols-outlined text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '32px' }}>
-                            {account.icon || style.icon}
-                        </span>
+                    <div className={`text-4xl mr-4 flex items-center justify-center w-14 h-14 shrink-0 rounded-2xl bg-black/5 dark:bg-white/10 ${style.color} shadow-inner overflow-hidden`}>
+                        {logoUrl ? (
+                            <img 
+                                src={logoUrl} 
+                                alt="" 
+                                className="w-full h-full object-contain p-2" 
+                                onError={() => setLogoError(true)}
+                            />
+                        ) : (
+                            <span className="material-symbols-outlined text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '32px' }}>
+                                {account.icon || style.icon}
+                            </span>
+                        )}
                     </div>
                     <div className="min-w-0">
-                        <p className="font-semibold text-lg text-light-text dark:text-dark-text truncate leading-tight">{account.name}</p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-light-text-secondary/90 dark:text-dark-text-secondary font-medium">
+                        <p className="font-bold text-xl text-light-text dark:text-dark-text truncate leading-tight uppercase tracking-tight">{account.name}</p>
+                        <div className="flex items-center gap-2 mt-1 text-base text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wide uppercase">
                            <span>{secondaryText} {account.last4 ? `•••• ${account.last4}` : ''}</span>
                         </div>
                     </div>
@@ -208,11 +232,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         </ResponsiveContainer>
                     </div>
                     <div className="text-right shrink-0">
-                        <p className={`font-semibold text-2xl tracking-tighter tabular-nums ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-rose-500'}`}>
+                        <p className={`font-black text-2xl tracking-tighter tabular-nums ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-rose-500'}`}>
                             {formatCurrency(convertCurrency(displayBalance, account.currency, preferredCurrency, conversionRates), preferredCurrency)}
                         </p>
                          {account.currency !== preferredCurrency && (
-                            <p className="text-[10px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/50 tabular-nums tracking-wider">
+                            <p className="text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-widest uppercase opacity-40">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>
                         )}

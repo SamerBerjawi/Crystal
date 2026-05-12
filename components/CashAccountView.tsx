@@ -297,24 +297,56 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       </div>
 
       {/* Ledger Section */}
-      <div className="grid grid-cols-1 gap-8">
-            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                 <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                     <div>
                         <h3 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Reserve journal</h3>
                         <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-widest">Complete history of manual flow logs</p>
                     </div>
-                    <button className="text-[10px] font-black tracking-[0.2em] px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-                        Reconcile Ledger
-                    </button>
                 </div>
                 <div className="flex-grow min-h-[400px]">
                     <TransactionList
-                        transactions={displayTransactionsList}
+                        transactions={displayTransactionsList.slice(0, 15)}
                         allCategories={allCategories}
                         onTransactionClick={onTransactionClick}
                         density="high"
                     />
+                </div>
+           </div>
+
+           {/* Sidebar */}
+           <div className="lg:col-span-4 space-y-8">
+                {/* Infrastructure Configuration */}
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
+                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <div className="space-y-6">
+                        {[
+                            { label: 'Settlement Engine', value: account.currency },
+                            { label: 'Establishment Date', value: account.openingDate ? new Date(account.openingDate).toLocaleDateString() : '—' },
+                            { label: 'Engine Integrity', value: 'Verified' },
+                            { label: 'Logical Serial', value: account.id.slice(0, 8), isMono: true }
+                        ].map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                    {item.value}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="mt-12 p-8 rounded-[2rem] bg-emerald-500/5 border border-emerald-500/10">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-lg">verified_user</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-emerald-500 tracking-wider">Physical Reserve</p>
+                        </div>
+                        <p className="text-xs font-medium text-light-text-secondary/70 dark:text-dark-text-secondary/90 leading-relaxed uppercase tracking-tighter">
+                            Assets are verified through periodic manual reconciliation procedures.
+                        </p>
+                    </div>
                 </div>
            </div>
       </div>

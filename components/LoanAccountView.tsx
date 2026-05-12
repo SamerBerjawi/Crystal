@@ -184,7 +184,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                         <p className="text-[10px] font-semibold tracking-wider text-slate-400 mb-2">
                             {isLending ? 'Remaining receivable' : 'Total payoff balance'}
                         </p>
-                        <h2 className="text-5xl font-semibold tracking-tight tabular-nums drop-shadow-sm mb-12">
+                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(loanDetails.totalOutstanding, account.currency)}
                         </h2>
                         

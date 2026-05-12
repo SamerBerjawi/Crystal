@@ -237,8 +237,8 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                    
                    <div className="relative z-10 flex flex-col md:flex-row justify-between gap-12">
                         <div className="flex-grow">
-                             <p className="text-[10px] font-bold tracking-wider text-indigo-200/80 mb-2">Total Pot Capitalization</p>
-                             <h2 className="text-6xl md:text-7xl font-bold tracking-tighter tabular-nums drop-shadow-lg mb-8">
+                             <p className="text-[10px] font-black tracking-wider text-indigo-200/80 mb-2">Total Pot Capitalization</p>
+                             <h2 className="text-6xl md:text-7xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-8">
                                  {formatCurrency(account.balance, account.currency)}
                              </h2>
                              <div className="flex gap-10">
@@ -355,21 +355,22 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
 
            {/* Sidebar Logistics */}
            <div className="lg:col-span-4 space-y-8">
+                {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8 underline underline-offset-8 decoration-primary-500/20">Financial Logistics</h3>
-                    <div className="space-y-10 divide-y divide-black/5 dark:divide-white/5">
+                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <div className="space-y-6">
                         {[
                             { label: 'Clearing Institution', value: account.financialInstitution },
                             { label: 'Pot Architecture', value: account.type },
                             { label: 'Settlement Engine', value: account.currency },
                             { label: 'Establishment Date', value: account.openingDate ? parseLocalDate(account.openingDate).toLocaleDateString() : '—' },
-                            { label: 'Growth Vector (APY)', value: `${account.apy || 5}% Calculated` },
+                            { label: 'Growth Vector', value: account.apy ? `${account.apy}% APY` : '—' },
                             { label: 'Target Epoch', value: retirementYear },
                             { label: 'Internal Serial', value: account.accountNumber, isMono: true }
                         ].filter(i => i.value).map((item, idx) => (
-                            <div key={idx} className="pt-8 first:pt-0">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70 mb-1">{item.label}</p>
-                                <p className={`text-base font-bold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                            <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>
                             </div>

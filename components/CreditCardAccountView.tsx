@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, getPreferredTimeZone } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
 import { motion } from 'motion/react';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getCardNetworkLogoUrl } from '../utils/brandfetch';
 
 interface CreditCardAccountViewProps {
   account: Account;
@@ -53,9 +55,9 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
-                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                <p className="text-[11px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <h4 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                {subValue && <p className="text-xs font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -74,6 +76,13 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   showBalanceAdjustments = true,
 }) => {
   const timeZone = getPreferredTimeZone();
+  const [logoError, setLogoError] = useState(false);
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+
+  const logoUrl = useMemo(() => {
+    if (logoError || !brandfetchClientId || !account.cardNetwork) return null;
+    return getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId);
+  }, [account.cardNetwork, brandfetchClientId, logoError]);
 
   // --- Metrics ---
   const { totalSpent, totalPayments, utilization, availableCredit } = useMemo(() => {
@@ -153,11 +162,15 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Credit Line</span>
                   </div>
-                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5 overflow-hidden">
+                        {logoUrl ? (
+                            <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+                        ) : (
+                            <span className="material-symbols-outlined text-primary-500 text-2xl">credit_card</span>
+                        )}
+                      </div>
                       {account.name}
-                      <span className="text-[10px] font-bold tracking-wider bg-gray-100 dark:bg-white/10 px-2 py-1 rounded text-gray-400">
-                          {account.cardNetwork || 'CREDIT'}
-                      </span>
                   </h1>
               </div>
           </div>
@@ -188,38 +201,45 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent"></div>
                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                    <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]"></div>
-                   
-                   <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-12">
-                             <div className="w-14 h-10 rounded-lg bg-gradient-to-br from-amber-400/80 to-amber-200/40 p-[2px] backdrop-blur-sm shadow-inner">
+                                     <div className="relative z-10 h-full flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                             <div className="w-14 h-10 rounded-lg bg-gradient-to-br from-amber-400/80 to-amber-200/40 p-[2px] backdrop-blur-sm shadow-inner relative overflow-hidden group/chip">
                                   <div className="w-full h-full bg-amber-400/30 rounded-[6px] relative overflow-hidden">
                                        <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_4px,rgba(0,0,0,0.1)_4px,rgba(0,0,0,0.1)_8px)]"></div>
                                   </div>
                              </div>
-                             <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm">{account.cardNetwork || 'PLATINUM'}</span>
+                             
+                             {logoUrl ? (
+                                <img src={logoUrl} alt="" className="h-10 object-contain" onError={() => setLogoError(true)} />
+                             ) : (
+                                <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm uppercase">{account.cardNetwork || 'PLATINUM'}</span>
+                             )}
                         </div>
                         
-                        <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-2">Total Outstanding Liability</p>
-                        <h2 className={`text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12 ${account.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {formatCurrency(account.balance, account.currency)}
-                        </h2>
-                        
-                        {account.last4 && (
-                            <p className="text-lg font-bold tracking-[0.3em] text-slate-200 drop-shadow-md font-mono mb-8 opacity-80 decoration-slate-500/50 underline-offset-8">
-                                •••• •••• •••• {account.last4}
-                            </p>
-                        )}
+                        <div>
+                            <p className="text-[11px] font-bold tracking-wider text-slate-400 mb-2">Total Outstanding Liability</p>
+                            <h2 className={`text-6xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12 ${account.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {formatCurrency(account.balance, account.currency)}
+                            </h2>
+                            
+                            {account.last4 && (
+                                <p className="text-lg font-bold tracking-[0.3em] text-slate-200 drop-shadow-md font-mono mb-8 opacity-80 decoration-slate-500/50 underline-offset-8">
+                                    •••• •••• •••• {account.last4}
+                                </p>
+                            )}
+                        </div>
+
                      <div className="relative z-10 pt-10 border-t border-white/5 space-y-6">
                        <div className="flex justify-between items-end">
                             <div className="space-y-1">
-                                <p className="text-[10px] tracking-wider text-slate-500 font-bold">Credit Limit Utilization</p>
-                                <p className={`text-3xl font-bold tabular-nums leading-none ${utilization > 80 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                    {utilization.toFixed(0)}%
+                                <p className="text-[11px] tracking-wider text-slate-500 font-bold">Credit Limit Utilization</p>
+                                <p className={`text-4xl font-bold tabular-nums leading-none ${utilization > 80 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                    {utilization.toFixed(1)}%
                                 </p>
                             </div>
                             <div className="text-right">
-                                <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Limit</p>
-                                <p className="font-bold text-xl text-white tabular-nums opacity-60 decoration-slate-500/50 underline-offset-4">{formatCurrency(account.creditLimit || 0, account.currency)}</p>
+                                <p className="text-[11px] tracking-wider text-slate-500 font-bold mb-1">Limit</p>
+                                <p className="font-bold text-2xl text-white tabular-nums opacity-60 decoration-slate-500/50 underline-offset-4">{formatCurrency(account.creditLimit || 0, account.currency)}</p>
                             </div>
                        </div>
                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
@@ -369,17 +389,15 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                             <h3 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Statement activity</h3>
                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Active billing cycle transactions</p>
                         </div>
-                        <button className="text-xs font-bold tracking-wider text-primary-500 hover:text-primary-600 transition-colors underline underline-offset-8">
-                            Export Statements
-                        </button>
                     </div>
                     <div className="flex-grow min-h-[400px]">
                         {displayTransactionsList.length > 0 ? (
                             <TransactionList
-                                transactions={displayTransactionsList.slice(0, 20)}
+                                transactions={displayTransactionsList}
                                 allCategories={allCategories}
                                 onTransactionClick={onTransactionClick}
                                 density="high"
+                                maxItems={15}
                             />
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-20 grayscale opacity-20">

@@ -193,8 +193,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{description}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-                                        <span className="privacy-blur">
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 font-black">
+                                        <span className="privacy-blur font-black">
                                             {formatCurrency(amount, currency)}
                                         </span>
                                     </p>

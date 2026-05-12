@@ -32,7 +32,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     const flowIntensity = income > 0 ? (expenses / income) * 100 : (expenses > 0 ? 100 : 0);
 
     return (
-        <div className="!p-0 overflow-hidden group h-full">
+        <div className="!p- overflow-hidden group h-full">
             <div className="flex flex-col h-full">
                 
                 {/* --- TOP: POSITION & WEALTH --- */}
@@ -43,7 +43,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 <span className="material-symbols-outlined text-primary-500 text-sm">account_balance</span>
                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Net worth</span>
                             </div>
-                            <h2 className="text-3xl sm:text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">
+                            <h2 className="text-3xl sm:text-4xl font-black text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">
                                 {formatCurrency(netWorth, currency as Currency)}
                             </h2>
                             <div className="flex items-center gap-2 mt-1">
@@ -66,7 +66,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                      {/* Flow */}
                      <div className="p-4 flex flex-col justify-center">
                          <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>
-                         <h3 className={`text-xl font-semibold tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
+                         <h3 className={`text-xl font-black tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
                              {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })}
                          </h3>
                          <div className="mt-2 flex items-center gap-1.5">
@@ -87,7 +87,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 </span>
                              )}
                         </div>
-                        <p className="text-xl font-semibold text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
+                        <p className="text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
                             {formatCurrency(income, currency as Currency, { compact: true })}
                         </p>
                         <div className="h-6 w-full mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
@@ -109,7 +109,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 </span>
                              )}
                         </div>
-                        <p className="text-xl font-semibold text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
+                        <p className="text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
                             {formatCurrency(expenses, currency as Currency, { compact: true })}
                         </p>
                         <div className="h-6 w-full mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">

@@ -379,12 +379,12 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                              <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight font-mono truncate">{account.vin || '—'}</p>
                         </div>
                         <div className="space-y-1">
-                             <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Make / Model</p>
-                             <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight">{account.make} {account.model}</p>
+                             <p className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">Make / Model</p>
+                             <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">{account.make} {account.model}</p>
                         </div>
                         <div className="space-y-1">
-                             <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Registration</p>
-                             <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight">
+                             <p className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">Registration</p>
+                             <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">
                                  {account.registrationCountryCode ? `${account.registrationCountryCode} • ` : ''}{account.licensePlate || 'Unregistered'}
                              </p>
                         </div>
@@ -393,14 +393,31 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                         <VehicleMileageChart logs={sortedMileageLogs} />
                     </div>
                 </div>
-           </div>
+                 {/* Mileage Journal Sidebar */}
+            <div className="xl:col-span-4 flex flex-col gap-8">
+                {/* Infrastructure Configuration */}
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden">
+                     <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                     <div className="space-y-6">
+                         <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                               <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 uppercase">Asset Genesis</span>
+                               <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tight">{account.purchaseDate ? parseLocalDate(account.purchaseDate).toLocaleDateString() : '—'}</span>
+                          </div>
+                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                               <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 uppercase">Settlement Engine</span>
+                               <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tight">{account.currency}</span>
+                          </div>
+                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
+                               <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 uppercase">Logical Serial</span>
+                               <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tight font-mono opacity-80 break-all">{account.id.slice(0, 8)}</span>
+                          </div>
+                     </div>
+                </div>
 
-           {/* Mileage Journal Sidebar */}
-           <div className="xl:col-span-4 flex flex-col gap-8">
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col group h-full">
                     <div className="flex justify-between items-center mb-8">
-                         <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Mileage Journal</h3>
-                         <span className="material-symbols-outlined text-slate-300">history</span>
+                         <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight uppercase">Mileage Journal</h3>
+                         <span className="material-symbols-outlined text-slate-400">history</span>
                     </div>
                     
                     <div className="flex-grow overflow-y-auto space-y-4 max-h-[500px] pr-2 custom-scrollbar">
@@ -409,38 +426,38 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                 const nextLog = arr[idx + 1];
                                 const diff = nextLog ? log.reading - nextLog.reading : 0;
                                 return (
-                                    <div key={log.id} className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-transparent hover:border-black/5 dark:hover:border-white/10 transition-all group/item">
+                                    <div key={log.id} className="p-5 rounded-2xl bg-black/5 dark:bg-white/10 border border-transparent hover:border-black/10 dark:hover:border-white/20 transition-all group/item">
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/40">
+                                            <span className="text-xs font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">
                                                 {parseLocalDate(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </span>
                                             <div className="flex gap-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
                                                 <button onClick={() => onEditLog(log)} className="text-primary-500 hover:text-primary-600">
-                                                    <span className="material-symbols-outlined text-xs">edit</span>
+                                                    <span className="material-symbols-outlined text-sm">edit</span>
                                                 </button>
                                                 <button onClick={() => onDeleteLog(log.id)} className="text-rose-500 hover:text-rose-600">
-                                                    <span className="material-symbols-outlined text-xs">delete</span>
+                                                    <span className="material-symbols-outlined text-sm">delete</span>
                                                 </button>
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-end">
-                                            <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{log.reading.toLocaleString()} km</p>
+                                            <p className="text-2xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{log.reading.toLocaleString()} <span className="text-xs opacity-60 ml-1">km</span></p>
                                             {diff > 0 && (
-                                                <span className="text-[10px] font-black text-emerald-500">+{diff.toLocaleString()} km</span>
+                                                <span className="text-[11px] font-black text-emerald-500 tabular-nums">+{diff.toLocaleString()} km</span>
                                             )}
                                         </div>
                                     </div>
                                 );
                             })
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-8 grayscale opacity-20">
-                                 <span className="material-symbols-outlined text-4xl mb-2">auto_stories</span>
-                                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/60">No Logs recorded</p>
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                                 <span className="material-symbols-outlined text-4xl mb-2 text-light-text-secondary/20 font-light">auto_stories</span>
+                                 <p className="text-[10px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/60 uppercase">No Logs recorded</p>
                             </div>
                         )}
                     </div>
                 </div>
-           </div>
+           </div>        </div>
       </div>
     </div>
   );

@@ -10,6 +10,8 @@ interface TransactionListProps {
   allCategories: Category[];
   onTransactionClick?: (transaction: DisplayTransaction) => void;
   density?: 'default' | 'high';
+  maxItems?: number;
+  className?: string;
 }
 
 const buildCategoryDetailsMap = (categories: Category[]) => {
@@ -28,7 +30,14 @@ const buildCategoryDetailsMap = (categories: Category[]) => {
   return detailsMap;
 };
 
-const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick, density = 'default' }) => {
+const TransactionList: React.FC<TransactionListProps> = ({ 
+  transactions, 
+  allCategories, 
+  onTransactionClick, 
+  density = 'default',
+  maxItems,
+  className = ""
+}) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
@@ -57,8 +66,9 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   const categoryDetailsMap = useMemo(() => buildCategoryDetailsMap(allCategories), [allCategories]);
 
   const preparedTransactions = useMemo(
-    () =>
-      transactions.map((tx) => {
+    () => {
+      const listToPrepare = maxItems ? transactions.slice(0, maxItems) : transactions;
+      return listToPrepare.map((tx) => {
         const isTransfer = tx.isTransfer;
         const description = isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.description;
         const amountDisplay = isTransfer
@@ -93,8 +103,9 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           merchantLogoUrl,
           merchantInitial
         };
-      }),
-    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides]
+      });
+    },
+    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, maxItems]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,7 +140,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   const visibleTransactions = preparedTransactions.slice(startIndex, endIndex);
 
   return (
-      <div ref={containerRef} className="space-y-2 h-full w-full overflow-y-auto relative p-2" role="list">
+      <div 
+        ref={containerRef} 
+        className={`space-y-2 w-full overflow-y-auto relative p-2 ${className} ${maxItems ? '' : 'h-full'}`}
+        style={maxItems ? { maxHeight: `${maxItems * ROW_HEIGHT + 24}px` } : {}}
+        role="list"
+      >
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />
         <ul className="absolute inset-0" style={{ transform: `translateY(${offsetY}px)` }}>
           {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, accentColor, isTransfer, spareAmountEur, merchantLogoUrl, merchantInitial }) => {
