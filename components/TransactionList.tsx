@@ -142,7 +142,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   return (
       <div 
         ref={containerRef} 
-        className={`space-y-2 w-full overflow-y-auto relative p-1 ${className} ${maxItems ? '' : 'h-full'}`}
+        className={`space-y-2 w-full overflow-y-auto relative p-2 ${className} ${maxItems ? '' : 'h-full'}`}
         style={maxItems ? { maxHeight: `${maxItems * ROW_HEIGHT + 24}px` } : {}}
         role="list"
       >
@@ -165,7 +165,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     <div 
                         className="absolute inset-0"
                         style={{ 
-                            background: `radial-gradient(circle at 100% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
+                            background: `radial-gradient(circle at 0% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
                         }}
                     />
                 </div>
