@@ -167,16 +167,16 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             x={x} y={y} width={width} height={height}
             fill={payload.color}
             fillOpacity={0.9}
-            rx={6} ry={6} // Increased roundness for nodes
+            rx={4} ry={4}
           />
           <text
             x={textX}
             y={y + height / 2}
             textAnchor={textAnchor}
-            fontSize={11}
+            fontSize={10}
             fontWeight={isCenter ? 800 : 600}
             fill="currentColor"
-            className="dark:fill-gray-200 fill-gray-700"
+            className="dark:fill-gray-300 fill-gray-700"
           >
             {payload.name}
           </text>
@@ -188,31 +188,45 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       const { sourceX, sourceY, targetX, targetY, linkWidth, payload } = props;
       if (linkWidth < 1) return null;
 
-      // Calculate deep curves using half the horizontal distance as control offset
-      const curvature = (targetX - sourceX) / 2;
-      
-      const path = `
-        M${sourceX},${sourceY + linkWidth / 2}
-        C${sourceX + curvature},${sourceY + linkWidth / 2}
-         ${targetX - curvature},${targetY + linkWidth / 2}
-         ${targetX},${targetY + linkWidth / 2}
-        L${targetX},${targetY - linkWidth / 2}
-        C${targetX - curvature},${targetY - linkWidth / 2}
-         ${sourceX + curvature},${sourceY - linkWidth / 2}
-         ${sourceX},${sourceY - linkWidth / 2}
-        Z
-      `;
+      const curvature = 0.5;
+      const x0 = sourceX;
+      const y0 = sourceY + linkWidth / 2;
+      const x1 = targetX;
+      const y1 = targetY + linkWidth / 2;
+      const xi = (x0 + x1) / 2;
+      const x2 = xi;
+      const y2 = y0;
+      const x3 = xi;
+      const y3 = y1;
 
       return (
         <Layer key={`link-${props.index}`}>
           <path 
-            d={path} 
-            fill={`url(#${payload.gradientId})`} 
-            fillOpacity={0.35}
-            className="transition-all duration-300 hover:fill-opacity-70"
+            d={`M${x0},${y0}C${x2},${y2} ${x3},${y3} ${x1},${y1}`}
+            fill="none"
+            stroke={`url(#${payload.gradientId})`} 
+            strokeWidth={linkWidth}
+            strokeOpacity={0.3}
+            className="transition-all duration-300 hover:stroke-opacity-60"
           />
         </Layer>
       );
+  };
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const { value, name } = payload[0].payload;
+      const pct = ((value / totalFlow) * 100).toFixed(1);
+      return (
+        <div className="bg-white/90 dark:bg-dark-card/90 p-4 rounded-2xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+          <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary mb-2 tracking-[0.1em] uppercase">{name}</p>
+          <p className="text-sm font-black text-indigo-500 tabular-nums">
+            {formatCurrency(value, 'EUR')} <span className="text-[10px] opacity-60 ml-1">({pct}%)</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   if (totalFlow === 0) {
@@ -245,13 +259,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
                 nodePadding={24}
                 margin={{ left: 100, right: 100, top: 20, bottom: 20 }}
             >
-                <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                    formatter={(value: number) => {
-                        const pct = ((value / totalFlow) * 100).toFixed(1);
-                        return [`${formatCurrency(value, 'EUR')} (${pct}%)`, 'Volume'];
-                    }}
-                />
+                <Tooltip content={<CustomTooltip />} />
             </Sankey>
         </ResponsiveContainer>
     </div>

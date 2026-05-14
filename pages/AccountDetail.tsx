@@ -146,6 +146,17 @@ const AccountDetail: React.FC<{
         setValuationModalOpen(false);
     };
 
+    const handleDeleteValuation = (date: string) => {
+        const updatedHistory = (account.priceHistory || []).filter(h => h.date !== date);
+        const lastEntry = updatedHistory.length > 0 ? [...updatedHistory].sort((a,b) => a.date.localeCompare(b.date))[updatedHistory.length - 1] : null;
+
+        saveAccount({
+            ...account,
+            balance: lastEntry ? lastEntry.price : (account.purchasePrice || account.balance),
+            priceHistory: updatedHistory
+        });
+    };
+
     const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string, isMarketAdjustment?: boolean) => {
         const txData: Omit<Transaction, 'id'> = {
             accountId: account.id,
@@ -467,6 +478,7 @@ const AccountDetail: React.FC<{
                 <PropertyValuationModal
                     onClose={() => setValuationModalOpen(false)}
                     onSave={handleSaveValuation}
+                    onDeleteEntry={handleDeleteValuation}
                     account={account}
                 />
             )}

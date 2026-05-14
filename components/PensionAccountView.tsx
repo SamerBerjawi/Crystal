@@ -325,9 +325,17 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                                 />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} width={40} />
                                 <Tooltip 
-                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                    itemStyle={{ fontSize: '14px', fontWeight: '900' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
+                                    contentStyle={{ 
+                                        backgroundColor: 'rgba(30, 41, 59, 0.7)', 
+                                        backdropFilter: 'blur(16px)', 
+                                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                        borderRadius: '24px', 
+                                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                                        padding: '16px' 
+                                    }}
+                                    itemStyle={{ color: '#fff', fontSize: '18px', fontWeight: '900' }}
+                                    labelStyle={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Value']}
                                 />
                                 <Legend verticalAlign="bottom" iconType="circle" />
                                 <Area type="monotone" dataKey="balance" name="Market Value" stroke="#6366F1" fill="url(#pensionBalGradient)" strokeWidth={4} />
@@ -357,7 +365,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
            <div className="lg:col-span-4 space-y-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Clearing Institution', value: account.financialInstitution },

@@ -1640,8 +1640,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                   </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary opacity-40">Net worth</span>
-                                  <span className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight privacy-blur leading-tight">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-gray-400 opacity-60">Net worth</span>
+                                  <span className="text-2xl font-black text-light-text dark:text-white tracking-tight privacy-blur leading-tight">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                               </div>
                           </div>
                           <div className="w-full mt-10 grid grid-cols-2 gap-4">
@@ -1658,7 +1658,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                       <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-10">
                           <div>
-                              <h4 className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-6 opacity-60">Assets breakdown</h4>
+                              <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 uppercase tracking-widest">Assets breakdown</h4>
                               <div className="space-y-5">
                                   {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
@@ -1677,7 +1677,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                                 <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
                                             </div>
                                             <div className="flex justify-end mt-1">
-                                                <span className="text-[9px] font-bold text-light-text-secondary opacity-0 group-hover:opacity-40 transition-opacity">
+                                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
                                                     {((group.value / globalTotalAssets) * 100).toFixed(1)}%
                                                 </span>
                                             </div>
@@ -1689,7 +1689,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           </div>
 
                           <div>
-                              <h4 className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-6 opacity-60">Liabilities breakdown</h4>
+                              <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 uppercase tracking-widest">Liabilities breakdown</h4>
                               <div className="space-y-5">
                                   {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
@@ -1708,7 +1708,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                                   <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
                                               </div>
                                               <div className="flex justify-end mt-1">
-                                                <span className="text-[9px] font-bold text-light-text-secondary opacity-0 group-hover:opacity-40 transition-opacity">
+                                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
                                                     {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
                                                 </span>
                                               </div>

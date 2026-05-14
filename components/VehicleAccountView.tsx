@@ -182,13 +182,38 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
               )}
               <button 
                   onClick={onAddLog} 
-                  className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}
+                  className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card flex items-center gap-2 hover:bg-primary-500 hover:text-white transition-all`}
               >
-                  <span className="material-symbols-outlined text-lg mr-2">speed</span>
+                  <span className="material-symbols-outlined text-lg">speed</span>
                   Add Log
               </button>
+              {!isClosed && onCloseAsset && (
+                    <button onClick={onCloseAsset} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">event_busy</span>
+                        Retire Vehicle
+                    </button>
+              )}
           </div>
       </header>
+
+      {isClosed && account.closureDetails && (
+        <motion.div 
+           initial={{ opacity: 0, scale: 0.95 }}
+           animate={{ opacity: 1, scale: 1 }}
+           className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/40 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center gap-10"
+        >
+            <div className="w-20 h-20 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-xl shadow-rose-500/20">
+                <span className="material-symbols-outlined text-4xl text-white">lock</span>
+            </div>
+            <div className="flex-grow text-center md:text-left">
+                <h3 className="text-2xl font-black text-rose-900 dark:text-rose-100 mb-2 tracking-tight">Vehicle retired from inventory</h3>
+                <p className="text-sm text-rose-700/80 dark:text-rose-300/60 font-black leading-relaxed max-w-2xl tracking-tight">
+                    Finalized as <span className="text-rose-900 dark:text-white px-2 py-0.5 rounded-lg bg-rose-200/50 dark:bg-rose-500/20">{account.closureDetails.closureType}</span> on {parseLocalDate(account.closureDetails.date).toLocaleDateString(undefined, { dateStyle: 'long' })}. 
+                    Asset valuation at exit was {formatCurrency(account.closureDetails.value || 0, account.currency)}.
+                </p>
+            </div>
+        </motion.div>
+      )}
 
       {/* Hero Financial Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -304,11 +329,12 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                         tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.3, fontWeight: 700 }}
                                         tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
                                     />
-                                    <Tooltip 
-                                        contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                        itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#06B6D4' }}
-                                        labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.1em' }}
-                                    />
+                                     <Tooltip 
+                                         contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                                         itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#06B6D4' }}
+                                         labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                         formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Value']}
+                                     />
                                     <Area type="monotone" dataKey="price" stroke="#06B6D4" strokeWidth={4} fill="url(#vehValGradient)" />
                                 </AreaChart>
                             </ResponsiveContainer>
@@ -372,7 +398,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                 )}
                 
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group">
-                    <h3 className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8">Technical Configuration</h3>
+                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Technical Configuration</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-10">
                         <div className="space-y-1">
                              <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">VIN / Serial</p>
@@ -397,7 +423,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
             <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden">
-                     <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                     <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
                                <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 uppercase">Asset Genesis</span>
@@ -415,7 +441,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                 </div>
 
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col group h-full">
-                    <div className="flex justify-between items-center mb-8">
+                    <div className="flex justify-between items-center mb-6">
                          <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight uppercase">Mileage Journal</h3>
                          <span className="material-symbols-outlined text-slate-400">history</span>
                     </div>

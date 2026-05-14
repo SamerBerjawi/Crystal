@@ -283,9 +283,17 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
-                                    contentStyle={{ backgroundColor: 'white', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                    itemStyle={{ fontSize: '14px', fontWeight: '900' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
+                                    contentStyle={{ 
+                                        backgroundColor: 'rgba(30, 41, 59, 0.7)', 
+                                        backdropFilter: 'blur(16px)', 
+                                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                        borderRadius: '24px', 
+                                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                                        padding: '16px' 
+                                    }}
+                                    itemStyle={{ color: '#fff', fontSize: '18px', fontWeight: '900' }}
+                                    labelStyle={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    formatter={(value: number, name: string) => [`${formatCurrency(value, account.currency)}`, name]}
                                 />
                                 <Bar dataKey="income" name="Intake" stackId="a" fill="#10B981" radius={[0, 0, 12, 12]} />
                                 <Bar dataKey="expense" name="Spend" stackId="a" fill="#F43F5E" radius={[12, 12, 0, 0]} />
@@ -301,8 +309,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
             <div className="lg:col-span-8 bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                 <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                     <div>
-                        <h3 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Reserve journal</h3>
-                        <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-widest">Complete history of manual flow logs</p>
+                        <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Reserve journal</h3>
+                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Complete history of manual flow logs</p>
                     </div>
                 </div>
                 <div className="flex-grow min-h-[400px]">
@@ -319,7 +327,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
            <div className="lg:col-span-4 space-y-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Settlement Engine', value: account.currency },

@@ -27,9 +27,9 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} ${iconColor}`}>
                         <span className="material-symbols-outlined text-xl">{iconName}</span>
                     </div>
-                    <div className="text-right">
-                        <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{title}</p>
-                        <h3 className="text-2xl font-extrabold text-light-text dark:text-dark-text">{formatCurrency(totalValue, 'EUR')}</h3>
+                        <div className="text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
+                        <h3 className="text-2xl font-black text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</h3>
                     </div>
                 </div>
                 
@@ -62,9 +62,9 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                         <div key={item.name} className="flex items-center justify-between text-xs group">
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
-                                <span className="text-light-text-secondary dark:text-dark-text-secondary truncate group-hover:text-light-text dark:group-hover:text-dark-text transition-colors max-w-[80px]">{item.name}</span>
+                                <span className="text-light-text-secondary dark:text-gray-300 truncate group-hover:text-light-text dark:group-hover:text-white transition-colors max-w-[80px]">{item.name}</span>
                             </div>
-                            <span className="font-semibold text-light-text dark:text-dark-text opacity-80">{percentage.toFixed(0)}%</span>
+                            <span className="font-bold text-light-text dark:text-white">{percentage.toFixed(0)}%</span>
                         </div>
                     );
                 })}

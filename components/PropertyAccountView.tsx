@@ -317,11 +317,12 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                                         tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.3, fontWeight: 700 }}
                                         tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
                                     />
-                                    <Tooltip 
-                                        contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                        itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#6366F1' }}
-                                        labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.1em' }}
-                                    />
+                                     <Tooltip 
+                                         contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                                         itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#6366F1' }}
+                                         labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                         formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Value']}
+                                     />
                                     <Area type="monotone" dataKey="price" stroke="#6366F1" strokeWidth={4} fill="url(#propValGradient)" animationDuration={1500} />
                                 </AreaChart>
                             </ResponsiveContainer>
@@ -340,7 +341,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
            {/* Detailed Specs */}
            <div className="xl:col-span-8 space-y-8">
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group">
-                    <h3 className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8">Property architecture</h3>
+                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Property architecture</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
                         <div className="space-y-1">
                              <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Lot size</p>
@@ -375,9 +376,8 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
 
            {/* Debt & Cashflow Column */}
            <div className="xl:col-span-4 space-y-8">
-                {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden">
-                     <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                     <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
                               <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">Asset Genesis</span>

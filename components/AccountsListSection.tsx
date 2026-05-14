@@ -163,8 +163,8 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                     <div className="flex items-center gap-3">
                         {headerIcon}
                         <div>
-                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
-                            {headerSubtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">{headerSubtitle}</p>}
+                            <h3 className="text-xl font-black uppercase tracking-[0.3em] text-light-text dark:text-dark-text">{title}</h3>
+                            {headerSubtitle && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-black opacity-100 mt-1">{headerSubtitle}</p>}
                         </div>
                     </div>
                     {showCollapseAll && groupOrder.length > 1 && (

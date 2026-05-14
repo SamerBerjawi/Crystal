@@ -306,9 +306,10 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 10 }}
-                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                    itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#f97316' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
+                                    contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                    itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#f97316' }}
+                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                    formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Spending']}
                                 />
                                 <Bar dataKey="value" radius={[12, 12, 12, 12]}>
                                     {spendingHistory.map((entry, index) => (
@@ -384,10 +385,10 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
 
            <div className="xl:col-span-8 flex flex-col gap-8">
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
-                    <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
+                    <div className="py-2 px-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Statement activity</h3>
-                            <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Active billing cycle transactions</p>
+                            <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Statement activity</h3>
+                            <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Active billing cycle transactions</p>
                         </div>
                     </div>
                     <div className="flex-grow min-h-[400px]">

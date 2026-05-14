@@ -26,15 +26,15 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></div>
                     <div className="text-sm">
-                        <p className="text-light-text-secondary dark:text-dark-text-secondary">Assets</p>
-                        <p className="font-semibold">{formatCurrency(assets, 'EUR')}</p>
+                        <p className="text-light-text-secondary dark:text-gray-300">Assets</p>
+                        <p className="font-semibold text-light-text dark:text-white">{formatCurrency(assets, 'EUR')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                      <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0"></div>
                      <div className="text-sm">
-                        <p className="text-light-text-secondary dark:text-dark-text-secondary">Liabilities</p>
-                        <p className="font-semibold">{formatCurrency(Math.abs(debt), 'EUR')}</p>
+                        <p className="text-light-text-secondary dark:text-gray-300">Liabilities</p>
+                        <p className="font-semibold text-light-text dark:text-white">{formatCurrency(Math.abs(debt), 'EUR')}</p>
                     </div>
                 </div>
             </div>
@@ -62,8 +62,8 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-light-text-secondary dark:text-dark-text-secondary text-sm">Net Worth</span>
-            <span className="text-2xl lg:text-3xl font-bold text-light-text dark:text-dark-text text-center">{formatCurrency(netWorth, 'EUR')}</span>
+            <span className="text-light-text-secondary dark:text-gray-300 text-[10px] uppercase tracking-widest font-black">Net Worth</span>
+            <span className="text-2xl lg:text-3xl font-black text-light-text dark:text-white text-center tracking-tight">{formatCurrency(netWorth, 'EUR')}</span>
         </div>
       </div>
     </div>

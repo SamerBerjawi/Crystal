@@ -264,8 +264,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                     </div>
                     <div className="flex justify-between items-center mb-6 relative z-10">
                         <div>
-                             <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Amortization trajectory</h3>
-                             <p className="text-xs font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Principal vs interest distribution</p>
+                             <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase">Amortization trajectory</h3>
+                             <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase mt-1">Principal vs interest distribution</p>
                         </div>
                     </div>
                     <div className="flex-grow w-full h-[300px] relative z-10">
@@ -280,9 +280,15 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-           {/* Schedule Table */}
-           <div className="xl:col-span-8">
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden shadow-sm">
+            {/* Schedule Table */}
+           <div className="xl:col-span-8 space-y-6">
+                <div className="flex justify-between items-center px-4">
+                    <div>
+                        <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase">Upcoming Obligations</h3>
+                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase mt-1">Structured repayment itinerary</p>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden shadow-sm p-4">
                     <PaymentPlanTable 
                         account={account} 
                         transactions={transactions} 
@@ -304,8 +310,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                     >
                          <div className="flex justify-between items-start mb-8">
                              <div>
-                                 <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Collateral asset</h3>
-                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
+                                 <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase mb-2">Interconnected Assets</h3>
+                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
                                      Asset portfolio <span className="material-symbols-outlined text-[12px]">arrow_forward</span>
                                  </button>
                              </div>
@@ -333,7 +339,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                 )}
 
                 <div className="bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5">
-                     <h3 className="text-[10px] font-semibold tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 mb-6">Loan configuration</h3>
+                     <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Loan configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between">
                              <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Term length</span>

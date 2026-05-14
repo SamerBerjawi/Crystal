@@ -305,12 +305,12 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                     tickFormatter={(val) => parseLocalDate(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                    itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#10B981' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
-                                    formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
-                                />
+                                 <Tooltip 
+                                     contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                                     itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#10B981' }}
+                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                     formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Balance']}
+                                 />
                                 <Area type="monotone" dataKey="value" stroke="#10B981" strokeWidth={4} fill="url(#savValGradient)" />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -337,12 +337,13 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} stroke="currentColor" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
-                                <Tooltip 
-                                    cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
-                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                                    itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#10B981' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
-                                />
+                                 <Tooltip 
+                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
+                                     contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                                     itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#10B981' }}
+                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                     formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Interest']}
+                                 />
                                 <Bar dataKey="value" radius={[12, 12, 12, 12]} barSize={24}>
                                     {interestHistory.map((entry, index) => (
                                         <Cell 
@@ -358,9 +359,9 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 </div>
 
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-[600px]">
-                    <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
+                    <div className="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-2xl font-black tracking-tight text-light-text dark:text-dark-text italic">Active Ledger</h3>
+                            <h3 className="text-xl font-black tracking-tight text-light-text dark:text-dark-text italic">Active Ledger</h3>
                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Recent savings activity</p>
                         </div>
                     </div>
@@ -380,7 +381,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
-                    <h3 className="text-[10px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Clearing Institution', value: account.financialInstitution },

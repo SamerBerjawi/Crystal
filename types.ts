@@ -47,7 +47,7 @@ export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
 export type VehicleOwnership = 'Owned' | 'Leased';
 
 export interface AssetClosureDetails {
-  closureType: 'Sold' | 'Returned' | 'Gifted' | 'Written Off';
+  closureType: 'Sold' | 'Returned' | 'Gifted' | 'Written Off' | 'Retired';
   date: string;
   value: number;
   incomeAccountId?: string; // Where the money goes if sold

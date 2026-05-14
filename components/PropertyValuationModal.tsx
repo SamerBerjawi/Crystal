@@ -3,15 +3,16 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { Account, PriceHistoryEntry } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { formatCurrency, toLocalISOString } from '../utils';
+import { formatCurrency, toLocalISOString, parseLocalDate } from '../utils';
 
 interface PropertyValuationModalProps {
   onClose: () => void;
   onSave: (newValue: number, date: string) => void;
+  onDeleteEntry?: (date: string) => void;
   account: Account;
 }
 
-const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose, onSave, account }) => {
+const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose, onSave, onDeleteEntry, account }) => {
   const [newValue, setNewValue] = useState(String(account.balance));
   const [date, setDate] = useState(toLocalISOString(new Date()));
   
@@ -77,6 +78,45 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
           <button type="submit" className={BTN_PRIMARY_STYLE}>Confirm New Valuation</button>
         </div>
       </form>
+
+      {account.priceHistory && account.priceHistory.length > 0 && (
+          <div className="mt-8 pt-8 border-t border-black/5 dark:border-white/5">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/40 mb-6">Valuation Archive</h3>
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                  {[...account.priceHistory].reverse().map((entry, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-4 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 group/entry">
+                          <div>
+                              <p className="text-sm font-black text-light-text dark:text-dark-text tracking-tight">{formatCurrency(entry.price, account.currency)}</p>
+                              <p className="text-[10px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/50">{parseLocalDate(entry.date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                              <button 
+                                  type="button"
+                                  onClick={() => {
+                                      setNewValue(String(entry.price));
+                                      setDate(entry.date);
+                                  }}
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center text-primary-500 hover:bg-primary-500 hover:text-white transition-all"
+                                  title="Edit entry"
+                              >
+                                  <span className="material-symbols-outlined text-sm">edit</span>
+                              </button>
+                              {onDeleteEntry && (
+                                  <button 
+                                      type="button"
+                                      onClick={() => onDeleteEntry(entry.date)}
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
+                                      title="Delete entry"
+                                  >
+                                      <span className="material-symbols-outlined text-sm">delete</span>
+                                  </button>
+                              )}
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
     </Modal>
   );
 };

@@ -58,15 +58,26 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
                     {data.map(entry => <Cell key={entry.name} fill={entry.color} stroke={entry.color} />)}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                {showLegend && <Legend iconType="circle" iconSize={8} layout="vertical" verticalAlign="middle" align="right" />}
+                {showLegend && (
+                    <Legend 
+                        iconType="circle" 
+                        iconSize={8} 
+                        layout="vertical" 
+                        verticalAlign="middle" 
+                        align="right" 
+                        formatter={(value: string) => (
+                            <span className="text-[10px] font-bold text-light-text-secondary dark:text-gray-300 uppercase tracking-widest">{value}</span>
+                        )}
+                    />
+                )}
             </PieChart>
         </ResponsiveContainer>
         <div 
             className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none"
             style={{ left: textLeft }}
         >
-            <span className="text-light-text-secondary dark:text-dark-text-secondary text-sm">Total Value</span>
-            <span className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalValue, 'EUR')}</span>
+            <span className="text-light-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest leading-none mb-1">Total Value</span>
+            <span className="text-2xl font-black text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</span>
         </div>
     </div>
   );
