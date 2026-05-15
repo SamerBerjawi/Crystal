@@ -190,126 +190,136 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
     const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
     
     return (
-        <Modal onClose={onClose} title={isEditing ? 'Edit Recurring Rule' : 'New Recurring Rule'} size="lg">
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <Modal onClose={onClose} title={isEditing ? 'Renewal Policies' : 'New Service'} size="lg">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[80px] rounded-full" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
 
                 {/* Type Segmented Control */}
-                <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
+                <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-2xl border border-black/5 dark:border-white/5">
                     <button
                         type="button"
                         onClick={() => setType('expense')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-red-600 dark:text-red-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Expense
                     </button>
                     <button
                         type="button"
                         onClick={() => setType('income')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-green-600 dark:text-green-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Income
                     </button>
                     <button
                         type="button"
                         onClick={() => setType('transfer')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Transfer
                     </button>
                 </div>
 
                 {/* Main Inputs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="rec-amount" className={labelStyle}>Amount</label>
-                        <input id="rec-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+                <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="md:col-span-1">
+                            <label htmlFor="rec-amount" className={labelStyle}>Amount</label>
+                            <div className="relative">
+                                <input id="rec-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={`${INPUT_BASE_STYLE} !pl-10 !text-xl font-black h-14 tabular-nums`} placeholder="0.00" required />
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-light-text-secondary select-none">€</span>
+                            </div>
+                        </div>
+                        {type !== 'transfer' ? (
+                            <div>
+                                <label htmlFor="rec-category" className={labelStyle}>Category</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-14`} required>
+                                        <CategoryOptions categories={activeCategories} />
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                        ) : (
+                             <div>
+                                <label htmlFor="rec-description" className={labelStyle}>Description</label>
+                                <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-bold`} placeholder="e.g., Savings" required />
+                            </div>
+                        )}
                     </div>
-                    {type !== 'transfer' ? (
-                        <div>
-                            <label htmlFor="rec-category" className={labelStyle}>Category</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={SELECT_STYLE} required>
-                                    <CategoryOptions categories={activeCategories} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    
+                    {/* Description & Merchant for non-transfers */}
+                    {type !== 'transfer' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="rec-merchant" className={labelStyle}>Merchant</label>
+                                <input id="rec-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-bold`} placeholder="e.g., Netflix" />
+                            </div>
+                            <div>
+                                <label htmlFor="rec-description" className={labelStyle}>Internal Description</label>
+                                <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-14`} placeholder="e.g., Monthly Subscription" required />
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Account Selection */}
+                    {type === 'transfer' ? (
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                                <label htmlFor="rec-from-account" className={labelStyle}>From</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-bold`} required>
+                                        <option value="" disabled>Select account</option>
+                                        <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                            <div className="pt-6 text-gray-400">
+                                 <span className="material-symbols-outlined">sync_alt</span>
+                            </div>
+                            <div className="flex-1">
+                                <label htmlFor="rec-to-account" className={labelStyle}>To</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-bold`} required>
+                                        <option value="" disabled>Select account</option>
+                                        <AccountOptions accounts={availableAccounts.filter(a => a.id !== accountId)} />
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
                             </div>
                         </div>
                     ) : (
-                         <div>
-                            <label htmlFor="rec-description" className={labelStyle}>Description</label>
-                            <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Savings" required />
+                        <div>
+                            <label htmlFor="rec-account" className={labelStyle}>Payment Method / Account</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="rec-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-bold`} required>
+                                    <option value="" disabled>Select an account</option>
+                                    <AccountOptions accounts={availableAccounts} />
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
                         </div>
                     )}
                 </div>
                 
-                {/* Description & Merchant for non-transfers */}
-                {type !== 'transfer' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="rec-merchant" className={labelStyle}>Merchant</label>
-                            <input id="rec-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Netflix" />
-                        </div>
-                        <div>
-                            <label htmlFor="rec-description" className={labelStyle}>Description</label>
-                            <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Monthly Subscription" required />
-                        </div>
-                    </div>
-                )}
-                
-                {/* Account Selection */}
-                {type === 'transfer' ? (
-                    <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                            <label htmlFor="rec-from-account" className={labelStyle}>From</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={SELECT_STYLE} required>
-                                    <option value="" disabled>Select account</option>
-                                    <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </div>
-                        <div className="pt-5 text-gray-400">
-                             <span className="material-symbols-outlined">arrow_forward</span>
-                        </div>
-                        <div className="flex-1">
-                            <label htmlFor="rec-to-account" className={labelStyle}>To</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={SELECT_STYLE} required>
-                                    <option value="" disabled>Select account</option>
-                                    <AccountOptions accounts={availableAccounts.filter(a => a.id !== accountId)} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div>
-                        <label htmlFor="rec-account" className={labelStyle}>Account</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="rec-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={SELECT_STYLE} required>
-                                <option value="" disabled>Select an account</option>
-                                <AccountOptions accounts={availableAccounts} />
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                        </div>
-                    </div>
-                )}
-                
                 {/* Schedule Rules Card */}
-                <div className="p-5 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
-                    <h4 className="text-sm font-bold text-light-text dark:text-dark-text flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-primary-500">calendar_month</span>
-                        Schedule Rules
+                <div className="p-6 bg-white dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">event_repeat</span>
+                        Schedule Configuration
                     </h4>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div>
                             <label htmlFor="rec-frequency" className={labelStyle}>Repeats Every</label>
-                            <div className="flex items-center gap-2">
-                                {frequency !== 'daily' && <input type="number" value={frequencyInterval} onChange={e => setFrequencyInterval(e.target.value)} className={`${INPUT_BASE_STYLE} w-20 text-center font-bold`} min="1" />}
+                            <div className="flex items-center gap-3">
+                                {frequency !== 'daily' && <input type="number" value={frequencyInterval} onChange={e => setFrequencyInterval(e.target.value)} className={`${INPUT_BASE_STYLE} w-24 text-center font-black h-12`} min="1" />}
                                 <div className={`${SELECT_WRAPPER_STYLE} flex-1`}>
-                                    <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} font-medium`}>
+                                    <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} font-bold h-12`}>
                                         {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                     </select>
                                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -317,9 +327,9 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             </div>
                         </div>
                          <div>
-                            <label htmlFor="rec-weekend-adjustment" className={labelStyle}>Weekend Behavior</label>
+                            <label htmlFor="rec-weekend-adjustment" className={labelStyle}>Weekend Logic</label>
                              <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-weekend-adjustment" value={weekendAdjustment} onChange={e => setWeekendAdjustment(e.target.value as WeekendAdjustment)} className={SELECT_STYLE}>
+                                <select id="rec-weekend-adjustment" value={weekendAdjustment} onChange={e => setWeekendAdjustment(e.target.value as WeekendAdjustment)} className={`${SELECT_STYLE} h-12`}>
                                     {WEEKEND_ADJUSTMENTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -327,33 +337,33 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                         </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label htmlFor="rec-start-date" className={labelStyle}>First Occurrence</label>
-                            <input id="rec-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} required />
+                            <label htmlFor="rec-start-date" className={labelStyle}>Lifecycle Start</label>
+                            <input id="rec-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required />
                         </div>
                         <div>
-                            <label htmlFor="rec-end-date" className={labelStyle}>End Date (Optional)</label>
-                            <input id="rec-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
+                            <label htmlFor="rec-end-date" className={labelStyle}>Automatic Termination</label>
+                            <input id="rec-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} placeholder="Optional" />
                         </div>
                     </div>
 
                     {(frequency === 'monthly' || frequency === 'yearly') && (
-                        <div className="bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5">
-                            <label htmlFor="rec-due-date" className={labelStyle}>Specific Day of Month</label>
-                            <div className="flex items-center gap-3">
-                                <input id="rec-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={`${INPUT_BASE_STYLE} w-20 text-center`} placeholder="Day" />
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex-1">
-                                    Leave empty to use the same day as the "First Occurrence".
-                                </p>
+                        <div className="bg-light-fill dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 flex items-center gap-4">
+                            <div className="shrink-0">
+                                <label htmlFor="rec-due-date" className={labelStyle}>Day of Month</label>
+                                <input id="rec-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={`${INPUT_BASE_STYLE} w-24 text-center font-black h-12`} placeholder="Day" />
                             </div>
+                            <p className="text-xs font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/60 leading-relaxed">
+                                Explicit billing day. If left empty, we'll sync it with the start date of the first occurrence.
+                            </p>
                         </div>
                     )}
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
-                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Create Rule'}</button>
+                <div className="flex justify-end gap-4 pt-4 border-t border-black/5 dark:border-white/5">
+                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Dismiss</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} px-8 animate-glow`}>{isEditing ? 'Update Policy' : 'Confirm Policy'}</button>
                 </div>
             </form>
         </Modal>

@@ -92,53 +92,59 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
   return (
     <>
       {isIconPickerOpen && <IconPicker onClose={() => setIconPickerOpen(false)} onSelect={setIcon} iconList={CATEGORY_ICON_LIST} />}
-      <Modal onClose={onClose} title={isEditing ? 'Edit Membership' : 'Add Membership'}>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <Modal onClose={onClose} title={isEditing ? 'Asset Management' : 'New Identity Asset'}>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+            <div className="absolute -top-24 -right-24 w-64 h-64 blur-[100px] rounded-full opacity-20 transition-colors" style={{ backgroundColor: color }} />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-amber-500/10 blur-[100px] rounded-full" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="relative z-10 space-y-8">
           
           {/* Header Section: Icon, Color, Provider Name */}
-          <div className="flex items-center gap-5">
-               <div className="relative group">
+          <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-[2rem] border border-black/5 dark:border-white/5">
+            <div className="flex items-center gap-6">
+                <div className="relative group shrink-0">
                     <button
                         type="button"
                         onClick={() => setIconPickerOpen(true)}
-                        className="w-20 h-20 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform transform hover:scale-105"
+                        className="w-24 h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl transition-all transform hover:scale-105 active:scale-95 border-4 border-white dark:border-dark-card"
                         style={{ backgroundColor: color }}
                     >
-                        <span className="material-symbols-outlined text-4xl">{icon}</span>
+                        <span className="material-symbols-outlined text-5xl">{icon}</span>
                     </button>
-                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white dark:border-dark-card overflow-hidden shadow-sm cursor-pointer hover:scale-110 transition-transform">
+                    <label className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-white dark:bg-dark-card border-2 border-primary-500 flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform overflow-hidden">
                         <input
                             type="color"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
                             className="w-full h-full opacity-0 cursor-pointer absolute inset-0 z-10"
                         />
-                        <div className="w-full h-full" style={{ backgroundColor: color }}></div>
-                        <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-[10px] text-white pointer-events-none bg-black/20">palette</span>
-                    </div>
-               </div>
-               
-               <div className="flex-grow">
-                    <label htmlFor="provider" className={labelStyle}>Provider Name</label>
+                        <span className="material-symbols-outlined text-primary-500 text-lg">palette</span>
+                    </label>
+                </div>
+                
+                <div className="flex-grow">
+                    <label htmlFor="provider" className={labelStyle}>Provider / Issuer</label>
                     <input 
                         id="provider" 
                         type="text" 
                         value={provider} 
                         onChange={e => setProvider(e.target.value)} 
-                        className={`${INPUT_BASE_STYLE} !text-lg !h-12 font-bold`} 
+                        className={`${INPUT_BASE_STYLE} !text-2xl !h-14 font-black tracking-tight uppercase`} 
                         placeholder="e.g. Starbucks" 
                         required 
                         autoFocus 
                     />
-               </div>
+                </div>
+            </div>
           </div>
 
           {/* Core Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="category" className={labelStyle}>Category</label>
+                <label htmlFor="category" className={labelStyle}>Industry Category</label>
                 <div className={SELECT_WRAPPER_STYLE}>
-                    <select id="category" value={category} onChange={e => setCategory(e.target.value)} className={SELECT_STYLE}>
+                    <select id="category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-12 font-bold`}>
                         {MEMBERSHIP_CATEGORIES.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -147,42 +153,44 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                 </div>
               </div>
               <div>
-                <label htmlFor="memberId" className={labelStyle}>Member ID</label>
-                <input id="memberId" type="text" value={memberId} onChange={e => setMemberId(e.target.value)} className={INPUT_BASE_STYLE} required placeholder="Card Number" />
+                <label htmlFor="memberId" className={labelStyle}>Identification Number</label>
+                <input id="memberId" type="text" value={memberId} onChange={e => setMemberId(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-mono font-bold tracking-wider`} required placeholder="•••• •••• ••••" />
               </div>
           </div>
 
           {/* Additional Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <div className="md:col-span-2">
-                  <label htmlFor="holderName" className={labelStyle}>Card Holder Name</label>
-                  <input id="holderName" type="text" value={holderName} onChange={e => setHolderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on card" />
-               </div>
-               <div>
-                  <label htmlFor="tier" className={labelStyle}>Tier / Status</label>
-                  <input id="tier" type="text" value={tier} onChange={e => setTier(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. Gold" />
-               </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-               <div>
-                  <label htmlFor="points" className={labelStyle}>Balance / Points</label>
-                  <input id="points" type="text" value={points} onChange={e => setPoints(e.target.value)} className={INPUT_BASE_STYLE} placeholder="500 pts" />
-               </div>
-               <div>
-                  <label htmlFor="memberSince" className={labelStyle}>Member Since</label>
-                  <input id="memberSince" type="text" value={memberSince} onChange={e => setMemberSince(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Year or Date" />
-               </div>
-               <div>
-                  <label htmlFor="expiryDate" className={labelStyle}>Expiry Date</label>
-                  <input id="expiryDate" type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className={INPUT_BASE_STYLE} />
-               </div>
+          <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   <div className="md:col-span-2">
+                      <label htmlFor="holderName" className={labelStyle}>Holder Name</label>
+                      <input id="holderName" type="text" value={holderName} onChange={e => setHolderName(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-bold`} placeholder="Jane Doe" />
+                   </div>
+                   <div>
+                      <label htmlFor="tier" className={labelStyle}>Tier Status</label>
+                      <input id="tier" type="text" value={tier} onChange={e => setTier(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-bold`} placeholder="e.g. Platinum" />
+                   </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                   <div>
+                      <label htmlFor="points" className={labelStyle}>Digital Balance</label>
+                      <input id="points" type="text" value={points} onChange={e => setPoints(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-black tabular-nums`} placeholder="0 pts" />
+                   </div>
+                   <div className="hidden md:block">
+                      <label htmlFor="memberSince" className={labelStyle}>Loyalty Start</label>
+                      <input id="memberSince" type="text" value={memberSince} onChange={e => setMemberSince(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} placeholder="Year" />
+                   </div>
+                   <div className="col-span-1">
+                      <label htmlFor="expiryDate" className={labelStyle}>Expiration</label>
+                      <input id="expiryDate" type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} />
+                   </div>
+              </div>
           </div>
 
-          {/* Additional Info Section */}
-          <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
+          {/* Metadata Section */}
+          <div className="bg-gray-50 dark:bg-black/20 p-6 rounded-[2.5rem] border border-black/5 dark:border-white/5 space-y-6">
               <div>
-                <label htmlFor="website" className={labelStyle}>Website</label>
+                <label htmlFor="website" className={labelStyle}>Online Portal</label>
                 <div className="relative">
                     <input 
                         id="website" 
@@ -190,22 +198,22 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                         value={website} 
                         onChange={e => setWebsite(e.target.value)} 
                         onBlur={handleWebsiteBlur}
-                        className={`${INPUT_BASE_STYLE} pl-9`} 
-                        placeholder="www.example.com" 
+                        className={`${INPUT_BASE_STYLE} pl-12 h-12`} 
+                        placeholder="https://..." 
                     />
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">public</span>
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">public</span>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="notes" className={labelStyle}>Notes</label>
-                <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} className={INPUT_BASE_STYLE} rows={2} placeholder="PIN, benefits, login details..." />
+                <label htmlFor="notes" className={labelStyle}>Private Notes</label>
+                <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} className={`${INPUT_BASE_STYLE} p-4`} rows={3} placeholder="Add PIN or special benefits..." />
               </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
-            <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-            <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Add Card'}</button>
+          <div className="flex justify-end gap-4 pt-4 border-t border-black/5 dark:border-white/5">
+            <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Dismiss</button>
+            <button type="submit" className={`${BTN_PRIMARY_STYLE} px-10 animate-glow`}>{isEditing ? 'Sync Changes' : 'Store Asset'}</button>
           </div>
         </form>
       </Modal>

@@ -75,31 +75,38 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
     const [isOpen, setIsOpen] = useState(defaultOpen);
     
     return (
-        <div className="mb-6 last:mb-0">
+        <div className="mb-10 last:mb-0">
             <div 
-                className="flex justify-between items-center p-2 mb-2 cursor-pointer rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors select-none"
+                className="flex justify-between items-center px-4 py-3 mb-4 cursor-pointer rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all group/hdr"
                 onClick={() => setIsOpen(!isOpen)}
             >
-                <div className="flex items-center gap-3">
-                     <div className={`p-1 rounded-md transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`}>
-                         <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">expand_more</span>
+                <div className="flex items-center gap-4">
+                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                         <span className={`material-symbols-outlined text-xl transition-transform duration-300 ${isOpen ? '' : '-rotate-90'}`}>expand_more</span>
                      </div>
-                     <h3 className={`text-base font-bold ${title === 'Overdue' ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
-                        {title}
-                     </h3>
-                     <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
-                        {items.length}
-                     </span>
+                     <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <h3 className={`text-base font-black uppercase tracking-widest ${title === 'Overdue' ? 'text-rose-600' : 'text-light-text dark:text-dark-text'}`}>
+                                {title}
+                            </h3>
+                            <span className="text-[10px] font-black text-light-text-secondary/90 dark:text-dark-text-secondary/90 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full tabular-nums">
+                                {items.length}
+                            </span>
+                        </div>
+                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                     <span className={`text-sm font-mono font-bold ${totalAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {formatCurrency(totalAmount, 'EUR', { showPlusSign: true })}
-                    </span>
+                     <div className="text-right">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/90 dark:text-dark-text-secondary/90">Projected Delta</div>
+                        <span className={`text-lg font-black tabular-nums tracking-tighter ${totalAmount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {formatCurrency(totalAmount, 'EUR', { showPlusSign: true })}
+                        </span>
+                     </div>
                 </div>
             </div>
             
             {isOpen && (
-                <div className="space-y-3 pl-2">
+                <div className="space-y-2 pl-4 border-l-2 border-black/5 dark:border-white/5 ml-8">
                      {items.map((item: any) => (
                         <ScheduledItemRow 
                             key={item.id} 
@@ -120,6 +127,10 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
 
 // --- Main Page Component ---
 
+import { motion, AnimatePresence } from 'motion/react';
+
+type ScheduleSegment = 'all' | 'timeline' | 'calendar' | 'rules';
+
 const SchedulePage: React.FC = () => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction } = useTransactionsContext();
@@ -139,7 +150,7 @@ const SchedulePage: React.FC = () => {
         loanPaymentOverrides,
     } = useScheduleContext();
 
-    const [viewMode, setViewMode] = useState<'timeline' | 'list' | 'calendar'>('calendar');
+    const [activeSegment, setActiveSegment] = useState<ScheduleSegment>('calendar');
     const [searchQuery, setSearchQuery] = useState('');
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -615,274 +626,331 @@ const SchedulePage: React.FC = () => {
     }, [itemToPost]);
 
     const PIE_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
+    const segments: { id: ScheduleSegment; label: string; icon: string; color: string }[] = [
+        { id: 'calendar', label: 'Calendar', icon: 'calendar_month', color: 'indigo' },
+        { id: 'timeline', label: 'Timeline', icon: 'view_timeline', color: 'rose' },
+        { id: 'rules', label: 'Rules', icon: 'repeat', color: 'amber' },
+    ];
+
+    const heroGradient = activeSegment === 'timeline'
+        ? 'from-rose-500 via-rose-600 to-pink-700'
+        : activeSegment === 'rules'
+            ? 'from-amber-500 via-orange-600 to-yellow-600'
+            : 'from-primary-600 via-violet-700 to-purple-800';
 
     return (
-        <div className="space-y-8 pb-8 animate-fade-in-up">
-            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
-            {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
-            {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
-            {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
-            {isTransactionModalOpen && itemToPost && (
-                <AddTransactionModal
-                    onClose={() => { setIsTransactionModalOpen(false); setItemToPost(null); }}
-                    onSave={handleSavePostedTransaction}
-                    accounts={accounts}
-                    incomeCategories={incomeCategories}
-                    expenseCategories={expenseCategories}
-                    tags={tags}
-                    initialType={initialModalData.initialType}
-                    initialFromAccountId={initialModalData.initialFromAccountId}
-                    initialToAccountId={initialModalData.initialToAccountId}
-                    initialCategory={initialModalData.initialCategory}
-                    initialDetails={initialModalData.initialDetails}
-                />
-            )}
-            
-            <ConfirmationModal
-                isOpen={confirmConfig.isOpen}
-                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={confirmConfig.onConfirm}
-                title={confirmConfig.title}
-                message={confirmConfig.message}
-                confirmButtonText="Confirm"
-            />
-            
-            <PageHeader
-                markerIcon="calendar_month"
-                markerLabel="Cash Calendar"
-                title="Schedule & Bills"
-                subtitle="Upcoming payments, autopay windows, and reminders to keep your runway safe."
-                actions={
-                    <div className="flex gap-3">
-                        <button onClick={() => handleOpenBillModal()} className={BTN_SECONDARY_STYLE}>
-                            <span className="material-symbols-outlined mr-2">receipt</span> Add Bill
-                        </button>
-                        <button onClick={() => handleOpenRecurringModal()} className={BTN_PRIMARY_STYLE}>
-                            <span className="material-symbols-outlined mr-2">update</span> Add Recurring
-                        </button>
-                    </div>
-                }
-            />
-
-            <div className="space-y-6">
-                <ScheduleHeatmap items={allUpcomingForHeatmap} />
+        <div className="relative">
+            <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
+                {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
+                {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
+                {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
+                {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
+                {isTransactionModalOpen && itemToPost && (
+                    <AddTransactionModal
+                        onClose={() => { setIsTransactionModalOpen(false); setItemToPost(null); }}
+                        onSave={handleSavePostedTransaction}
+                        accounts={accounts}
+                        incomeCategories={incomeCategories}
+                        expenseCategories={expenseCategories}
+                        tags={tags}
+                        initialType={initialModalData.initialType}
+                        initialFromAccountId={initialModalData.initialFromAccountId}
+                        initialToAccountId={initialModalData.initialToAccountId}
+                        initialCategory={initialModalData.initialCategory}
+                        initialDetails={initialModalData.initialDetails}
+                    />
+                )}
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="flex flex-col justify-between relative overflow-hidden">
-                        <div className="flex justify-between items-start z-10 mb-4">
-                            <h3 className="text-base font-bold text-light-text dark:text-dark-text">Expense Breakdown (30d)</h3>
-                            <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                                Total: {formatCurrency(summaryMetrics.expense, 'EUR')}
-                            </span>
+                <ConfirmationModal
+                    isOpen={confirmConfig.isOpen}
+                    onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={confirmConfig.onConfirm}
+                    title={confirmConfig.title}
+                    message={confirmConfig.message}
+                    confirmButtonText="Confirm"
+                />
+
+                {/* --- Consolidated Header & Portfolio --- */}
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
+                    <div className={`absolute -top-24 -right-24 w-80 h-80 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
+                    
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-10">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-10 flex-1">
+                            <div className="group/val cursor-pointer">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="material-symbols-outlined text-primary-500 text-sm">payments</span>
+                                    <span className="text-[10px] font-black tracking-[0.2em] uppercase text-light-text-secondary dark:text-dark-text-secondary">Next 30 Days Outflow</span>
+                                </div>
+                                <div className="flex items-baseline gap-3">
+                                    <h2 className="text-5xl font-black tracking-tighter text-light-text dark:text-dark-text transition-colors group-hover/val:text-primary-500">
+                                        {formatCurrency(summaryMetrics.expense, 'EUR')}
+                                    </h2>
+                                    <motion.div layoutId="active-indicator-main" className="w-2 h-2 rounded-full bg-primary-500 shadow-[0_0_12px_rgba(99,102,241,1)]" />
+                                </div>
+                                <div className="flex items-center gap-3 mt-3 opacity-60">
+                                     <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.1em]">{summaryMetrics.expCount} Operations Pending</span>
+                                </div>
+                            </div>
+
+                            <div className="hidden lg:block w-px h-20 bg-black/5 dark:bg-white/10" />
+
+                            {/* View Switcher Grid */}
+                            <div className="flex-[2] grid grid-cols-3 gap-4">
+                                {segments.map(seg => {
+                                    const isActive = activeSegment === seg.id;
+                                    return (
+                                        <div 
+                                            key={seg.id} 
+                                            onClick={() => setActiveSegment(seg.id)} 
+                                            className={`group cursor-pointer p-5 rounded-3xl transition-all duration-300 border ${isActive ? 'bg-primary-500/5 border-primary-500/20 shadow-inner' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                                    <span className="material-symbols-outlined text-xl">{seg.icon}</span>
+                                                </div>
+                                                {isActive && <motion.div layoutId="active-dot" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>{seg.label}</span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-                            {categoryBreakdown.length > 0 ? (
+
+                        {/* Actions */}
+                        <div className="shrink-0 flex flex-col gap-3">
+                             <button onClick={() => handleOpenRecurringModal()} className={`${BTN_PRIMARY_STYLE} px-8 py-4 !rounded-2xl flex items-center justify-center gap-3 group/btn animate-glow`}>
+                                <span className="material-symbols-outlined text-2xl transition-transform group-hover/btn:rotate-90">update</span>
+                                <span className="font-black uppercase tracking-widest text-[11px]">New Recurring</span>
+                            </button>
+                            <button onClick={() => handleOpenBillModal()} className={`${BTN_SECONDARY_STYLE} px-8 py-4 !rounded-2xl flex items-center justify-center gap-3 group/btn`}>
+                                <span className="material-symbols-outlined text-2xl transition-transform group-hover/btn:scale-110">receipt_long</span>
+                                <span className="font-black uppercase tracking-widest text-[11px]">Add One-time</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Integrated Detail Tray */}
+                    <div className="mt-8 pt-8 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-8">
+                         <div className="flex flex-wrap items-center gap-x-12 gap-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-emerald-500/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-emerald-500/70">arrow_downward</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 uppercase">Expected Income</span>
+                                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(summaryMetrics.income, 'EUR')}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-rose-500/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-rose-500/70">warning</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 uppercase">Overdue</span>
+                                    <span className="text-base font-black text-rose-600 dark:text-rose-400 tabular-nums">{groupedItems['Overdue']?.length || 0}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-indigo-500/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-indigo-500/70">event_repeat</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 uppercase">Active Rules</span>
+                                    <span className="text-base font-black text-light-text dark:text-dark-text tabular-nums">{recurringTransactions.length}</span>
+                                </div>
+                            </div>
+                         </div>
+
+                         {/* Search Integrated */}
+                         <div className="relative flex-grow max-w-[280px]">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">search</span>
+                            <input 
+                                type="text" 
+                                placeholder="Global Search..." 
+                                value={searchQuery} 
+                                onChange={(e) => setSearchQuery(e.target.value)} 
+                                className="w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl py-3 pl-10 pr-4 text-xs font-bold focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-light-text-secondary/60 dark:text-dark-text-secondary/60"
+                            />
+                         </div>
+                    </div>
+                </div>
+
+                {/* --- Analytics Bento Grid --- */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div className="md:col-span-12">
+                        <ScheduleHeatmap items={allUpcomingForHeatmap} />
+                    </div>
+
+                    <div className="md:col-span-4 bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm">
+                         <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-s font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exp. Breakdown</h3>
+                            <span className="text-[11px] font-bold text-primary-500">30d Horizon</span>
+                        </div>
+                        <div className="space-y-4">
+                             {categoryBreakdown.length > 0 ? (
                                 categoryBreakdown.map((cat, index) => {
                                     const percent = summaryMetrics.expense > 0 ? (cat.value / summaryMetrics.expense) * 100 : 0;
                                     const color = PIE_COLORS[index % PIE_COLORS.length];
                                     return (
-                                        <div key={cat.name} className="group">
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="font-medium text-light-text dark:text-dark-text truncate max-w-[120px]">{cat.name}</span>
-                                                <span className="text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(cat.value, 'EUR')}</span>
+                                        <div key={cat.name} className="group cursor-default">
+                                            <div className="flex justify-between text-[11px] font-black uppercase tracking-tight mb-2">
+                                                <span className="text-light-text dark:text-dark-text opacity-70 truncate max-w-[140px]">{cat.name}</span>
+                                                <span className="tabular-nums">{formatCurrency(cat.value, 'EUR')}</span>
                                             </div>
-                                            <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
-                                                 <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }}></div>
+                                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                                 <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} className="h-full rounded-full" style={{ backgroundColor: color }} />
                                             </div>
                                         </div>
                                     )
                                 })
                             ) : (
-                                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary text-center mt-4">No scheduled expenses.</p>
+                                <div className="py-8 text-center text-s text-light-text-secondary/40 italic">No scheduled data</div>
                             )}
                         </div>
-                    </Card>
+                    </div>
 
-                    <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-100 dark:border-emerald-800/30">
-                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <div className="md:col-span-4 group bg-gradient-to-br from-emerald-500/5 to-teal-500/5 dark:bg-emerald-900/10 rounded-[2rem] p-6 border border-emerald-500/10 dark:border-emerald-500/20 relative overflow-hidden">
+                         <div className="absolute top-0 right-0 p-8 opacity-5">
                             <span className="material-symbols-outlined text-8xl text-emerald-500">savings</span>
                         </div>
                         <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1">Next Major Inflow</p>
+                            <div className="space-y-2">
+                                <span className="text-s  font-black uppercase tracking-widest text-emerald-600">Dominant Inflow</span>
                                 {majorInflow ? (
                                     <>
-                                        <h3 className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-300">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
-                                        <p className="font-bold text-sm text-emerald-900/80 dark:text-emerald-200/80 mt-1 truncate">{majorInflow.description}</p>
-                                        <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70 mt-0.5">Due {parseLocalDate(majorInflow.date).toLocaleDateString()}</p>
+                                        <h3 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
+                                        <div className="flex items-center gap-2 pt-2">
+                                            <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-sm text-emerald-500">download</span>
+                                            </div>
+                                            <p className="font-bold text-xs truncate opacity-70">{majorInflow.description}</p>
+                                        </div>
                                     </>
                                 ) : (
-                                    <p className="text-sm text-emerald-700/60 dark:text-emerald-400/60 mt-2">No upcoming income found.</p>
+                                    <p className="text-[11px] font-bold opacity-40 italic">No major inflow detected</p>
                                 )}
                             </div>
-                            <div className="mt-2">
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold uppercase">
-                                    <span className="material-symbols-outlined text-sm">arrow_downward</span> Income
-                                </span>
+                            <div className="pt-6">
+                                <div className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">
+                                    {majorInflow ? `Expected ${parseLocalDate(majorInflow.date).toLocaleDateString()}` : 'Forecast Clean'}
+                                </div>
                             </div>
                         </div>
-                    </Card>
+                    </div>
 
-                    <Card className="relative overflow-hidden bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 border-rose-100 dark:border-rose-800/30">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <div className="md:col-span-4 group bg-gradient-to-br from-rose-500/5 to-pink-500/5 dark:bg-rose-900/10 rounded-[2rem] p-6 border border-rose-500/10 dark:border-rose-500/20 relative overflow-hidden">
+                         <div className="absolute top-0 right-0 p-8 opacity-5">
                             <span className="material-symbols-outlined text-8xl text-rose-500">payments</span>
                         </div>
-                         <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1">Next Major Outflow</p>
+                        <div className="relative z-10 flex flex-col h-full justify-between">
+                             <div className="space-y-2">
+                                <span className="text-s font-black uppercase tracking-widest text-rose-600">Critical Outflow</span>
                                 {majorOutflow ? (
                                     <>
-                                        <h3 className="text-2xl font-extrabold text-rose-800 dark:text-rose-300">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
-                                        <p className="font-bold text-sm text-rose-900/80 dark:text-rose-200/80 mt-1 truncate">{majorOutflow.description}</p>
-                                        <p className="text-xs text-rose-700/70 dark:text-rose-400/70 mt-0.5">Due {parseLocalDate(majorOutflow.date).toLocaleDateString()}</p>
+                                        <h3 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
+                                        <div className="flex items-center gap-2 pt-2">
+                                            <div className="w-5 h-5 rounded-md bg-rose-500/10 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-sm text-rose-500">upload</span>
+                                            </div>
+                                            <p className="font-bold text-xs truncate opacity-70">{majorOutflow.description}</p>
+                                        </div>
                                     </>
                                 ) : (
-                                    <p className="text-sm text-rose-700/60 dark:text-rose-400/60 mt-2">No upcoming large expenses.</p>
+                                    <p className="text-[11px] font-bold opacity-40 italic">No major outflow detected</p>
                                 )}
                             </div>
-                             <div className="mt-2">
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-rose-100 dark:bg-rose-800/40 text-rose-700 dark:text-rose-300 text-[10px] font-bold uppercase">
-                                    <span className="material-symbols-outlined text-sm">arrow_upward</span> Expense
-                                </span>
+                            <div className="pt-6">
+                                <div className="text-[10px] font-black text-rose-600/60 uppercase tracking-widest">
+                                    {majorOutflow ? `Due ${parseLocalDate(majorOutflow.date).toLocaleDateString()}` : 'Safe Horizon'}
+                                </div>
                             </div>
                         </div>
-                    </Card>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ScheduleSummaryCard title="Scheduled Income (30d)" value={summaryMetrics.income} type="income" count={summaryMetrics.incCount} />
-                <ScheduleSummaryCard title="Scheduled Expenses (30d)" value={summaryMetrics.expense} type="expense" count={summaryMetrics.expCount} />
-                <ScheduleSummaryCard title="Net Forecast (30d)" value={summaryMetrics.net} type="net" />
-            </div>
-
-            <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
-                        <button 
-                            onClick={() => setViewMode('calendar')} 
-                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'calendar' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                        >
-                            <span className="material-symbols-outlined text-base">calendar_month</span>
-                            Calendar
-                        </button>
-                        <button 
-                            onClick={() => setViewMode('timeline')} 
-                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'timeline' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                        >
-                            <span className="material-symbols-outlined text-base">calendar_view_day</span>
-                            Timeline
-                        </button>
-                        <button 
-                            onClick={() => setViewMode('list')} 
-                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                        >
-                            <span className="material-symbols-outlined text-base">list</span>
-                            Recurring Rules
-                        </button>
                     </div>
-                    <div className="relative flex-grow max-w-md">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                            <input 
-                            type="text" 
-                            placeholder={viewMode === 'timeline' ? "Search upcoming..." : "Search rules..."} 
-                            value={searchQuery} 
-                            onChange={(e) => setSearchQuery(e.target.value)} 
-                            className={`${INPUT_BASE_STYLE} pl-10 w-full !h-10 !bg-transparent border-none focus:ring-0`}
+                </div>
+
+                {/* --- Dynamic Segment Content --- */}
+                <AnimatePresence mode="wait">
+                    {activeSegment === 'calendar' && (
+                        <motion.div key="calendar" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                            <CalendarView 
+                                items={allUpcomingForHeatmap} 
+                                goals={financialGoals} 
+                                accounts={accounts} 
+                                onEditItem={handleEditItem} 
+                                onPostItem={handleOpenPostModal} 
                             />
-                    </div>
-                </div>
+                        </motion.div>
+                    )}
 
-                {viewMode === 'timeline' ? (
-                        <div className="space-y-8">
-                        {sortedGroupKeys.map(groupKey => {
-                            const items = groupedItems[groupKey];
-                            if (!items || items.length === 0) return null;
-                            const groupTotal = items.filter(i => !i.isSkipped).reduce((sum, item) => {
-                                if (item.type === 'transfer') return sum;
-                                return sum + convertToEur(item.amount, (item.originalItem as any).currency);
-                            }, 0);
+                    {activeSegment === 'timeline' && (
+                        <motion.div key="timeline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+                             {sortedGroupKeys.map(groupKey => {
+                                const items = groupedItems[groupKey];
+                                if (!items || items.length === 0) return null;
+                                const groupTotal = items.filter(i => !i.isSkipped).reduce((sum, item) => {
+                                    if (item.type === 'transfer') return sum;
+                                    return sum + convertToEur(item.amount, (item.originalItem as any).currency);
+                                }, 0);
 
-                            return (
-                                <ScheduleGroup 
-                                    key={groupKey} 
-                                    title={groupKey} 
-                                    items={items} 
-                                    accounts={accounts} 
-                                    onEdit={handleEditItem} 
-                                    onDelete={handleDeleteItem} 
-                                    onPost={handleOpenPostModal}
-                                    onEndSeries={handleEndSeries}
-                                    totalAmount={groupTotal}
-                                    defaultOpen={['Today', 'Next 7 Days', 'Overdue'].includes(groupKey)}
-                                />
-                            );
-                        })}
-                        
-                        {sortedGroupKeys.length === 0 && (
-                                <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                                <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">event_busy</span>
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary">No upcoming items found.</p>
-                                </div>
-                        )}
-                    </div>
-                ) : viewMode === 'calendar' ? (
-                    <CalendarView 
-                        items={allUpcomingForHeatmap} 
-                        goals={financialGoals} 
-                        accounts={accounts} 
-                        onEditItem={handleEditItem} 
-                        onPostItem={handleOpenPostModal} 
-                    />
-                ) : (
-                    <div className="space-y-4">
+                                return (
+                                    <ScheduleGroup 
+                                        key={groupKey} 
+                                        title={groupKey} 
+                                        items={items} 
+                                        accounts={accounts} 
+                                        onEdit={handleEditItem} 
+                                        onDelete={handleDeleteItem} 
+                                        onPost={handleOpenPostModal}
+                                        onEndSeries={handleEndSeries}
+                                        totalAmount={groupTotal}
+                                        defaultOpen={['Today', 'Next 7 Days', 'Overdue'].includes(groupKey)}
+                                    />
+                                );
+                            })}
+                        </motion.div>
+                    )}
+
+                    {activeSegment === 'rules' && (
+                        <motion.div key="rules" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {recurringList.map((rt) => (
-                            <div key={rt.id} className="flex items-center justify-between p-4 bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-light-text dark:text-dark-text">{rt.description}</h4>
-                                        {rt.isSynthetic && (
-                                            <span className="text-[10px] font-bold bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded uppercase">Auto</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                        <span className="capitalize bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">{rt.frequency}</span>
-                                        <span>Next: {parseLocalDate(rt.nextDueDate).toLocaleDateString()}</span>
-                                        <span className="truncate max-w-[150px]">{rt.accountName}</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className={`font-bold font-mono ${rt.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>
-                                        {formatCurrency(rt.amount, rt.currency)}
-                                    </p>
-                                    <div className="flex justify-end gap-2 mt-2">
-                                        <button 
-                                            onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} 
-                                            className="text-light-text-secondary hover:text-primary-500 transition-colors disabled:opacity-30"
-                                            disabled={rt.isSynthetic}
-                                            title="Edit"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">edit</span>
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteItem(rt.id, true)} 
-                                            className="text-light-text-secondary hover:text-red-500 transition-colors disabled:opacity-30"
-                                            disabled={rt.isSynthetic}
-                                            title="Delete"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">delete</span>
-                                        </button>
+                                <div key={rt.id} className="group relative bg-white dark:bg-dark-card p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300">
+                                    <div className="absolute inset-0 pointer-events-none rounded-[2rem] overflow-hidden" style={{ background: `radial-gradient(circle at 100% 0%, ${rt.type === 'income' ? 'rgba(16, 185, 129, 0.05)' : rt.type === 'expense' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(59, 130, 246, 0.05)'} 0%, transparent 60%)` }} />
+                                    
+                                    <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${rt.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                                    <span className="material-symbols-outlined text-xl">{rt.type === 'transfer' ? 'sync_alt' : rt.type === 'income' ? 'download' : 'upload'}</span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-bold text-base truncate pr-8">{rt.description}</h4>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/60">{rt.frequency} cycle</span>
+                                                </div>
+                                            </div>
+                                            {rt.isSynthetic && (
+                                                <span className="absolute top-6 right-6 text-[9px] font-black bg-primary-500/10 text-primary-500 px-2 py-0.5 rounded-full uppercase tracking-widest">Synthetic</span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
+                                            <div className="flex flex-col">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary/40">Expected Value</span>
+                                                <span className={`text-lg font-black tabular-nums ${rt.type === 'income' ? 'text-emerald-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(rt.amount, rt.currency)}</span>
+                                            </div>
+                                            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} disabled={rt.isSynthetic} className="p-2 hover:bg-primary-500/10 text-primary-500 rounded-xl disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-lg">settings</span></button>
+                                                <button onClick={() => handleDeleteItem(rt.id, true)} disabled={rt.isSynthetic} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-xl disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-lg">delete</span></button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                             ))}
-                            {recurringList.length === 0 && (
-                                <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary">No recurring transactions found.</p>
-                                </div>
-                            )}
-                    </div>
-                )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

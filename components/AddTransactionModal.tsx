@@ -663,356 +663,376 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const labelStyle = "block text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-2";
 
   return (
-    <Modal onClose={onClose} title={modalTitle} size="lg">
-      <form onSubmit={handleSubmit} className="space-y-6 pb-2">
-        
-        {/* 1. Type Selector */}
-        <div className="flex justify-center -mt-2">
-            <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-2xl inline-flex relative shadow-inner border border-black/5 dark:border-white/5">
-                 {['expense', 'income', 'transfer'].map(t => (
-                     <button
-                        key={t}
+        <Modal onClose={onClose} title={modalTitle} size="lg">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[80px] rounded-full" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-6 pb-2">
+                
+                {/* 1. Type Selector Segmented Control */}
+                <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-2xl border border-black/5 dark:border-white/5">
+                    <button
                         type="button"
-                        onClick={() => setType(t as any)}
-                        className={`px-6 py-2 rounded-xl text-sm font-bold capitalize transition-all duration-200 z-10 ${type === t ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                     >
-                         {t}
-                     </button>
-                 ))}
-            </div>
-        </div>
-        
-        {/* 2. Hero Amount */}
-        <div className="flex flex-col items-center justify-center pt-2 pb-4">
-            <div className="relative w-full max-w-[320px] group">
-                <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-5xl font-light text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-all duration-300 ${amount ? 'opacity-100 -translate-x-2' : 'opacity-40'}`}>
-                    {currencySymbol}
-                </span>
-                <input 
-                    id="tx-amount"
-                    type="number" 
-                    step="0.01" 
-                    value={amount} 
-                    onChange={e => setAmount(e.target.value)} 
-                    className="w-full bg-transparent border-none text-center text-7xl font-bold text-light-text dark:text-dark-text placeholder-gray-200 dark:placeholder-gray-800 focus:ring-0 py-4 pl-10 tracking-tighter" 
-                    placeholder="0.00" 
-                    autoFocus
-                    required 
-                    inputMode="decimal"
-                    autoComplete="off"
-                />
-            </div>
-             {isLoanPayment && (
-                 <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full mt-1 border border-blue-100 dark:border-blue-800/30">
-                     <span className="material-symbols-outlined text-[18px]">account_balance</span>
-                     <span className="text-[11px] font-bold tracking-wider">Loan Payment detected</span>
-                 </div>
-             )}
-        </div>
-        
-        {/* 3. Main Form Grid */}
-        <div className="space-y-6">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Basic Info Section */}
-                 <div className="md:col-span-2 bg-gray-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
-                     <div className="absolute -top-3 left-6 px-2 bg-light-card dark:bg-dark-card text-[10px] font-bold text-gray-400 tracking-[0.2em] border border-black/5 dark:border-white/5 rounded-md">Transaction Details</div>
-                     
-                     <div>
-                        <label className={labelStyle}>Date</label>
-                        <div className="relative group">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg transition-colors group-focus-within:text-primary-500">calendar_today</span>
-                            <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} required />
+                        onClick={() => setType('expense')}
+                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Expense
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setType('income')}
+                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Income
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setType('transfer')}
+                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Transfer
+                    </button>
+                </div>
+                
+                {/* 2. Hero Amount */}
+                <div className="flex flex-col items-center justify-center pt-2 pb-4">
+                    <div className="relative w-full max-w-[320px] group">
+                        <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-5xl font-light text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-all duration-300 ${amount ? 'opacity-100 -translate-x-4' : 'opacity-40'}`}>
+                            {currencySymbol}
+                        </span>
+                        <input 
+                            id="tx-amount"
+                            type="number" 
+                            step="0.01" 
+                            value={amount} 
+                            onChange={e => setAmount(e.target.value)} 
+                            className="w-full bg-transparent border-none text-center text-8xl font-black text-light-text dark:text-dark-text placeholder-black/5 dark:placeholder-white/5 focus:ring-0 py-4 pl-10 tracking-tighter tabular-nums" 
+                            placeholder="0.00" 
+                            autoFocus
+                            required 
+                            inputMode="decimal"
+                            autoComplete="off"
+                        />
+                    </div>
+                    {isLoanPayment && (
+                        <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-4 py-1.5 rounded-full mt-2 border border-blue-100 dark:border-blue-800/30 animate-pulse">
+                            <span className="material-symbols-outlined text-lg">account_balance</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Loan Logistics Detect</span>
                         </div>
-                     </div>
-                     <div ref={merchantContainerRef}>
-                        <label className={labelStyle}>Merchant / Payee</label>
-                        <div className="relative group">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg transition-colors group-focus-within:text-primary-500">store</span>
-                            <div className="relative">
-                                <input
-                                    id="tx-merchant"
-                                    type="text"
-                                    value={merchant}
-                                    onChange={handleMerchantChange}
-                                    onFocus={() => setShowMerchantSuggestions(true)}
-                                    className={`${INPUT_BASE_STYLE} pl-10 h-11`}
-                                    placeholder="Where did you spend?"
-                                    autoComplete="off"
-                                    autoCorrect="off"
-                                    spellCheck="false"
-                                    inputMode="text"
-                                />
-                                {showMerchantSuggestions && filteredSuggestions.length > 0 && (
-                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-[60] max-h-60 overflow-y-auto animate-fade-in-up py-1">
-                                        {filteredSuggestions.map((name, index) => (
-                                            <button
-                                                key={name}
-                                                type="button"
-                                                onClick={() => {
-                                                    setMerchant(name);
-                                                    applyMerchantRules(name);
-                                                    setShowMerchantSuggestions(false);
-                                                }}
-                                                className="w-full text-left px-4 py-3 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 text-light-text dark:text-dark-text flex items-center gap-3 transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-gray-400 text-lg">history</span>
-                                                <span className="truncate font-medium">{name}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                    )}
+                </div>
+                
+                {/* 3. Main Form Sections */}
+                <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className={labelStyle}>Execution Date</label>
+                            <div className="relative group">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">calendar_today</span>
+                                <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-14 font-bold`} required />
                             </div>
                         </div>
-                     </div>
 
-                     <div className="sm:col-span-2">
-                         <div className="flex flex-col sm:flex-row items-center gap-4">
-                             <div className="flex-1 w-full">
-                                <label className={labelStyle}>{type === 'income' ? 'Recipient Account' : 'Source Account'}</label>
+                        <div ref={merchantContainerRef}>
+                            <label className={labelStyle}>Counterparty / Merchant</label>
+                            <div className="relative group">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">store</span>
+                                <div className="relative">
+                                    <input
+                                        id="tx-merchant"
+                                        type="text"
+                                        value={merchant}
+                                        onChange={handleMerchantChange}
+                                        onFocus={() => setShowMerchantSuggestions(true)}
+                                        className={`${INPUT_BASE_STYLE} pl-10 h-14 font-bold`}
+                                        placeholder="Where did this happen?"
+                                        autoComplete="off"
+                                    />
+                                    {showMerchantSuggestions && filteredSuggestions.length > 0 && (
+                                        <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl z-[60] max-h-60 overflow-y-auto py-2 animate-glow">
+                                            {filteredSuggestions.map((name, index) => (
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setMerchant(name);
+                                                        applyMerchantRules(name);
+                                                        setShowMerchantSuggestions(false);
+                                                    }}
+                                                    className="w-full text-left px-5 py-3.5 text-sm hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text flex items-center justify-between transition-colors group"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="material-symbols-outlined text-gray-400 text-lg group-hover:text-primary-500 transition-colors">history</span>
+                                                        <span className="font-bold tracking-tight">{name}</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className={type === 'transfer' ? 'md:col-span-2' : ''}>
+                             <div className="flex flex-col sm:flex-row items-center gap-4">
+                                 <div className="flex-1 w-full">
+                                    <label className={labelStyle}>{type === 'income' ? 'Holding Account' : 'From Account'}</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-bold`} required>
+                                            <option value="" disabled>Select account</option>
+                                            <AccountOptions accounts={accounts} />
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                 </div>
+                                 
+                                 {type === 'transfer' && (
+                                     <>
+                                        <div className="mt-6 text-primary-500 bg-primary-500/10 p-2 rounded-xl">
+                                            <span className="material-symbols-outlined rotate-90 sm:rotate-0">sync_alt</span>
+                                        </div>
+                                        <div className="flex-1 w-full">
+                                            <label className={labelStyle}>To Account</label>
+                                            <div className={SELECT_WRAPPER_STYLE}>
+                                                <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-bold`} required>
+                                                    <option value="" disabled>Select account</option>
+                                                    <AccountOptions accounts={accounts.filter(a => a.id !== fromAccountId)} />
+                                                </select>
+                                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                            </div>
+                                        </div>
+                                     </>
+                                 )}
+                             </div>
+                        </div>
+
+                        {type !== 'transfer' && (
+                            <div>
+                                <label className={labelStyle}>Category</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={SELECT_STYLE} required>
-                                        <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="" disabled>Select account</option>
-                                        <AccountOptions accounts={accounts} />
+                                    <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-14 font-bold`} required>
+                                        <CategoryOptions categories={activeCategories} />
                                     </select>
                                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                 </div>
-                             </div>
-                             
-                             {type === 'transfer' && (
-                                 <>
-                                    <div className="mt-6 flex items-center justify-center p-2 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 shadow-sm border border-primary-100 dark:border-primary-800/30">
-                                        <span className="material-symbols-outlined rotate-90 sm:rotate-0">sync_alt</span>
-                                    </div>
-                                    <div className="flex-1 w-full">
-                                        <label className={labelStyle}>Destination Account</label>
-                                        <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={SELECT_STYLE} required>
-                                                <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="" disabled>Select account</option>
-                                                <AccountOptions accounts={accounts.filter(a => a.id !== fromAccountId)} />
-                                            </select>
-                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                        </div>
-                                    </div>
-                                 </>
-                             )}
-                         </div>
-                     </div>
-
-                     {type !== 'transfer' && (
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="space-y-6">
                         <div>
-                             <label className={labelStyle}>Category</label>
-                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={SELECT_STYLE} required>
-                                    <CategoryOptions categories={activeCategories} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <label className={labelStyle}>Internal Memo / Description</label>
+                            <div className="relative group">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
+                                <input 
+                                  id="tx-description" 
+                                  type="text" 
+                                  value={description} 
+                                  onChange={e => setDescription(e.target.value)} 
+                                  onBlur={handleDescriptionBlur} 
+                                  className={`${INPUT_BASE_STYLE} pl-10 h-14 font-medium`} 
+                                  placeholder={type === 'transfer' ? 'Purpose of transfer' : 'What was this for?'} 
+                                  required 
+                                />
                             </div>
                         </div>
-                     )}
-                     
-                     <div className={type !== 'transfer' ? '' : 'sm:col-span-2'}>
-                        <label className={labelStyle}>Description / Note</label>
-                        <div className="relative group">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg transition-colors group-focus-within:text-primary-500">description</span>
-                            <input 
-                              id="tx-description" 
-                              type="text" 
-                              value={description} 
-                              onChange={e => setDescription(e.target.value)} 
-                              onBlur={handleDescriptionBlur} 
-                              className={`${INPUT_BASE_STYLE} pl-10 h-11`} 
-                              placeholder={type === 'transfer' ? 'Reason for transfer' : 'Memo...'} 
-                              required 
-                            />
-                        </div>
-                     </div>
+                    </div>
+                </div>
 
-                     <div className="sm:col-span-2">
-                        <label className={labelStyle}>Detailed Notes</label>
-                        <textarea
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            className={`${INPUT_BASE_STYLE} min-h-[80px] py-3 resize-none`}
-                            placeholder="Add any extra details or context about this transaction..."
-                        />
-                     </div>
-                 </div>
+                {/* Advanced Configuration Container */}
+                <div className="p-6 bg-white dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="flex items-center justify-between">
+                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                             <span className="material-symbols-outlined text-primary-500 text-lg">settings_input_component</span>
+                             Advanced Logistics
+                         </h4>
+                    </div>
 
-                 {/* Advanced Sections */}
-                 <div className="md:col-span-2 space-y-4">
-                     {/* Loan Split Info */}
-                     {isLoanPayment && (
-                         <div className="bg-blue-50/50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/30 animate-fade-in-up">
-                            <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2 tracking-wider">
-                                    <span className="material-symbols-outlined text-lg">payments</span>
-                                    Repayment Split
-                                </h4>
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    {/* Loan Repayment Split */}
+                    {isLoanPayment && (
+                        <div className="bg-blue-500/5 dark:bg-blue-500/10 p-5 rounded-2xl border border-blue-500/10 space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Amortization Split</span>
+                                <label className="flex items-center gap-2 cursor-pointer group">
                                     <input type="checkbox" checked={useAutoLoanSplit} onChange={e => setUseAutoLoanSplit(e.target.checked)} className={CHECKBOX_STYLE} />
-                                    <span className="text-xs font-semibold text-blue-800 dark:text-blue-400">Auto-Calculate</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-500 transition-colors">Auto-Calc</span>
                                 </label>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1 block">Principal</label>
-                                    <div className="relative group">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 dark:text-blue-600 font-bold text-sm">{currencySymbol}</span>
-                                        <input type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className="w-full h-10 bg-white dark:bg-gray-900 rounded-lg pl-8 pr-3 text-sm font-bold text-blue-900 dark:text-blue-100 border border-blue-200 dark:border-blue-800 focus:ring-2 focus:ring-blue-500 transition-all" />
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Principal</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500/40 font-bold text-xs">{currencySymbol}</span>
+                                        <input type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className="w-full h-12 bg-white dark:bg-black/20 rounded-xl pl-8 pr-3 text-sm font-black text-blue-600 tabular-nums border border-blue-500/5 focus:ring-2 focus:ring-blue-500 transition-all" />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1 block">Interest</label>
-                                    <div className="relative group">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 dark:text-blue-600 font-bold text-sm">{currencySymbol}</span>
-                                        <input type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className="w-full h-10 bg-white dark:bg-gray-900 rounded-lg pl-8 pr-3 text-sm font-bold text-blue-900 dark:text-blue-100 border border-blue-200 dark:border-blue-800 focus:ring-2 focus:ring-blue-500 transition-all" />
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-blue-400">Interest</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500/40 font-bold text-xs">{currencySymbol}</span>
+                                        <input type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className="w-full h-12 bg-white dark:bg-black/20 rounded-xl pl-8 pr-3 text-sm font-black text-rose-600 tabular-nums border border-blue-500/5 focus:ring-2 focus:ring-blue-500 transition-all" />
                                     </div>
                                 </div>
                             </div>
-                         </div>
-                     )}
+                        </div>
+                    )}
 
-                     {/* Round Up / Spare Change */}
-                     {linkedSpareChangeAccount && (type === 'expense' || type === 'transfer') && (
-                         <div className={`p-6 rounded-2xl border transition-all duration-300 ${enableRoundUp ? 'bg-cyan-50 dark:bg-cyan-900/10 border-cyan-100 dark:border-cyan-800/30' : 'bg-transparent border-black/5 dark:border-white/5 opacity-60'}`}>
-                             <div className="flex items-center justify-between mb-4">
+                    {/* Spare Change Configuration */}
+                    {linkedSpareChangeAccount && (type === 'expense' || type === 'transfer') && (
+                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${enableRoundUp ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-black/5 dark:bg-white/5 border-transparent opacity-60'}`}>
+                            <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${enableRoundUp ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
                                         <span className="material-symbols-outlined">savings</span>
                                     </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-cyan-900 dark:text-cyan-300">Spare Change Round-Up</h4>
-                                        <p className="text-[10px] text-cyan-700 dark:text-cyan-500 font-medium tracking-wide">linked to {linkedSpareChangeAccount.name}</p>
+                                    <div className="flex flex-col">
+                                        <h4 className={`text-[10px] font-black uppercase tracking-widest ${enableRoundUp ? 'text-cyan-600' : 'text-gray-500'}`}>Spare Change Round-Up</h4>
+                                        <span className="text-[10px] font-bold text-gray-400">Target: {linkedSpareChangeAccount.name}</span>
                                     </div>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer select-none">
+                                <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" checked={enableRoundUp} onChange={e => setEnableRoundUp(e.target.checked)} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 dark:peer-focus:ring-cyan-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-cyan-600"></div>
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                                 </label>
-                             </div>
+                            </div>
 
-                             {enableRoundUp && (
-                                 <div className="space-y-4 animate-fade-in">
-                                     <div className="grid grid-cols-2 gap-6 pt-2">
-                                         <div>
-                                             <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 mb-2 block">Rounding Strategy</label>
-                                             <div className="flex bg-white dark:bg-gray-900 p-1 rounded-xl border border-cyan-100 dark:border-cyan-800 shadow-inner">
-                                                 <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg tracking-wider transition-all duration-200 ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>Skip Whole</button>
-                                                 <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg tracking-wider transition-all duration-200 ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>+1.00 if Exact</button>
-                                             </div>
-                                         </div>
-                                         <div>
-                                             <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 mb-2 block">Multiplier</label>
-                                             <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className={`${INPUT_BASE_STYLE} !h-9 !px-3 font-bold text-cyan-900 dark:text-cyan-100 border border-cyan-100 dark:border-cyan-800 focus:ring-cyan-500`} />
-                                         </div>
-                                     </div>
-                                     <div className="flex items-center justify-between p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-                                         <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-400">Transfer Amount</span>
-                                         <span className="text-lg font-bold text-cyan-700 dark:text-cyan-300">{formatCurrency(adjustedRoundUpAmount, activeAccount?.currency || 'EUR')}</span>
-                                     </div>
-                                 </div>
-                             )}
-                         </div>
-                     )}
+                            {enableRoundUp && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-cyan-600/60">Strategy</label>
+                                            <div className="flex bg-white dark:bg-black/20 p-1 rounded-xl border border-cyan-500/10">
+                                                <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:bg-cyan-500/5'}`}>Skip Whole</button>
+                                                <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:bg-cyan-500/5'}`}>Unit Push</button>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-cyan-600/60">Multiplier</label>
+                                            <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className={`${INPUT_BASE_STYLE} !h-11 font-black text-cyan-600 border-cyan-500/10 focus:ring-cyan-500`} />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/10">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-cyan-600">Calculated Sweep</span>
+                                        <span className="text-xl font-black text-cyan-600 tabular-nums">{formatCurrency(adjustedRoundUpAmount, activeAccount?.currency || 'EUR')}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                     {/* Extra Details Accordion */}
-                     <div className="bg-transparent rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden">
-                         <button type="button" onClick={() => setShowDetails(!showDetails)} className="w-full flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <span className={`material-symbols-outlined text-gray-400 transition-transform ${showDetails ? 'rotate-90' : ''}`}>chevron_right</span>
-                                <span className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Advanced Details</span>
+                    {/* Metadata Accordion */}
+                    <div className="bg-black/5 dark:bg-white/5 rounded-2xl overflow-hidden border border-black/5 dark:border-white/5">
+                        <button type="button" onClick={() => setShowDetails(!showDetails)} className="w-full flex items-center justify-between p-5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${showDetails ? 'bg-primary-500 text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-500'}`}>
+                                    <span className={`material-symbols-outlined text-lg transition-transform duration-300 ${showDetails ? 'rotate-90' : ''}`}>chevron_right</span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Metadata & Context</span>
                             </div>
                             <div className="flex gap-2">
-                                {tagIds.length > 0 && <span className="text-[10px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full">{tagIds.length} Tags</span>}
-                                {locationString && <span className="text-[10px] font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full">Location</span>}
+                                {tagIds.length > 0 && <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-primary-500/10 text-primary-500 border border-primary-500/10">{tagIds.length} Tags</span>}
+                                {locationString && <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-500 border border-orange-500/10">GEO</span>}
                             </div>
-                         </button>
+                        </button>
 
-                         {showDetails && (
-                             <div className="p-6 pt-2 border-t border-black/5 dark:border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-6 animate-fade-in-down">
-                                  <div>
-                                      <label className={labelStyle}>Categorical Tags</label>
-                                      <div className="relative" ref={tagSelectorRef}>
-                                            <div
-                                                onClick={() => setIsTagSelectorOpen(prev => !prev)}
-                                                className={`${INPUT_BASE_STYLE} flex items-center flex-wrap gap-1.5 cursor-pointer min-h-[44px] py-2 pl-3 transition-shadow`}
-                                            >
-                                                {tagIds.length > 0 ? (
-                                                    tagIds.map(id => {
-                                                        const tag = tags.find(t => t.id === id);
-                                                        if (!tag) return null;
-                                                        return (
-                                                            <span key={tag.id} className="flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold border border-black/5 dark:border-white/10" style={{ backgroundColor: `${tag.color}25`, color: tag.color }}>
-                                                                {tag.name}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => { e.stopPropagation(); handleTagToggle(tag.id); }}
-                                                                    className="hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-0.5 ml-1 leading-none"
-                                                                >
-                                                                    &times;
-                                                                </button>
-                                                            </span>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <span className="text-sm text-gray-400">Add tags...</span>
-                                                )}
-                                                <span className="material-symbols-outlined ml-auto text-gray-400 pointer-events-none">label</span>
-                                            </div>
-                                            {isTagSelectorOpen && (
-                                                <div className="absolute bottom-full mb-2 left-0 w-full bg-light-card dark:bg-dark-card rounded-xl shadow-2xl border border-black/10 dark:border-white/10 z-[60] max-h-56 overflow-y-auto p-2">
-                                                    {tags.length > 0 ? tags.map(tag => (
-                                                        <label key={tag.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors group">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={tagIds.includes(tag.id)}
-                                                                onChange={() => handleTagToggle(tag.id)}
-                                                                className={CHECKBOX_STYLE}
-                                                            />
-                                                            <div className="flex-1 flex items-center justify-between">
-                                                                <span className="text-sm font-medium group-hover:text-primary-600 transition-colors">{tag.name}</span>
-                                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: tag.color }} />
-                                                            </div>
-                                                        </label>
-                                                    )) : (
-                                                      <div className="p-4 text-center text-sm text-gray-500">No tags found.</div>
-                                                    )}
-                                                </div>
-                                            )}
-                                      </div>
-                                  </div>
+                        {showDetails && (
+                            <div className="p-6 pt-2 space-y-6 animate-fade-in-down">
+                                 <div>
+                                     <label className={labelStyle}>Categorical Tags</label>
+                                     <div className="relative" ref={tagSelectorRef}>
+                                           <div
+                                               onClick={() => setIsTagSelectorOpen(prev => !prev)}
+                                               className={`${INPUT_BASE_STYLE} flex items-center flex-wrap gap-2 cursor-pointer min-h-[56px] p-3 transition-shadow font-bold`}
+                                           >
+                                               {tagIds.length > 0 ? (
+                                                   tagIds.map(id => {
+                                                       const tag = tags.find(t => t.id === id);
+                                                       if (!tag) return null;
+                                                       return (
+                                                           <span key={tag.id} className="flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-lg font-black uppercase tracking-tight border border-black/5 dark:border-white/10" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
+                                                               {tag.name}
+                                                               <button
+                                                                   type="button"
+                                                                   onClick={(e) => { e.stopPropagation(); handleTagToggle(tag.id); }}
+                                                                   className="hover:scale-125 transition-transform"
+                                                               >
+                                                                   <span className="material-symbols-outlined text-xs">close</span>
+                                                               </button>
+                                                           </span>
+                                                       );
+                                                   })
+                                               ) : (
+                                                   <span className="text-xs text-gray-400 font-medium">No tags applied...</span>
+                                               )}
+                                               <span className="material-symbols-outlined ml-auto text-gray-400 group-hover:text-primary-500 transition-colors">label</span>
+                                           </div>
+                                           {isTagSelectorOpen && (
+                                               <div className="absolute bottom-full mb-3 left-0 w-full bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 z-[60] max-h-56 overflow-y-auto p-2 animate-glow">
+                                                   {tags.length > 0 ? tags.map(tag => (
+                                                       <label key={tag.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-all group">
+                                                           <input
+                                                               type="checkbox"
+                                                               checked={tagIds.includes(tag.id)}
+                                                               onChange={() => handleTagToggle(tag.id)}
+                                                               className={CHECKBOX_STYLE}
+                                                           />
+                                                           <div className="flex-1 flex items-center justify-between">
+                                                               <span className="text-sm font-bold group-hover:text-primary-600 transition-colors tracking-tight">{tag.name}</span>
+                                                               <div className="w-1.5 h-1.5 rounded-full shadow-sm" style={{ backgroundColor: tag.color }} />
+                                                           </div>
+                                                       </label>
+                                                   )) : (
+                                                     <div className="p-4 text-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">Library Empty</div>
+                                                   )}
+                                               </div>
+                                           )}
+                                     </div>
+                                 </div>
 
-                                  <div>
-                                      <label className={labelStyle}>Location</label>
-                                      <LocationAutocomplete
-                                          value={locationString}
-                                          onChange={(val, data) => {
-                                              setLocationString(val);
-                                              if (data) {
-                                                setLocationData({
-                                                    city: data.city,
-                                                    country: data.country,
-                                                    lat: data.lat,
-                                                    lon: data.lon
-                                                });
-                                              }
-                                          }}
-                                      />
-                                  </div>
-                             </div>
-                         )}
-                     </div>
-                 </div>
-             </div>
-        </div>
+                                 <div>
+                                     <label className={labelStyle}>Geographic Location</label>
+                                     <LocationAutocomplete
+                                         value={locationString}
+                                         onChange={(val, data) => {
+                                             setLocationString(val);
+                                             if (data) {
+                                               setLocationData({
+                                                   city: data.city,
+                                                   country: data.country,
+                                                   lat: data.lat,
+                                                   lon: data.lon
+                                               });
+                                             }
+                                         }}
+                                     />
+                                 </div>
 
-        <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-black/5 dark:border-white/5">
-            <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Discard</button>
-            <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-8`}>{saveButtonText}</button>
-        </div>
-      </form>
-    </Modal>
-  );
+                                 <div>
+                                    <label className={labelStyle}>Extended Narratives / Notes</label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={e => setNotes(e.target.value)}
+                                        className={`${INPUT_BASE_STYLE} min-h-[100px] p-4 text-sm font-medium resize-none border-dashed bg-transparent`}
+                                        placeholder="Add contextual layers to this transaction..."
+                                    />
+                                 </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 mt-4 border-t border-black/5 dark:border-white/5">
+                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Dismiss</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} px-10 animate-glow`}>{isEditing ? 'Sync Changes' : 'Confirm Transaction'}</button>
+                </div>
+            </form>
+        </Modal>
+    );
 };
 
 export default AddTransactionModal;

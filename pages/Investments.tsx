@@ -1,20 +1,21 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import EditAccountModal from '../components/EditAccountModal';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
 import { buildHoldingsOverview } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Modal from '../components/Modal';
+import { motion, AnimatePresence } from 'motion/react';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -41,6 +42,8 @@ interface InvestmentsProps {
     transactions: Transaction[];
     onViewAccount?: (accountId: string) => void;
 }
+
+type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant';
 
 // Investments main component
 const Investments: React.FC<InvestmentsProps> = ({
@@ -75,6 +78,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
     const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
+    const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
@@ -87,20 +91,43 @@ const Investments: React.FC<InvestmentsProps> = ({
     const closedInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status === 'closed'), [investmentAccounts]);
     const [showInactiveHoldings, setShowInactiveHoldings] = useState(false);
 
-    const activeOverview = useMemo(() => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices), [activeInvestmentAccounts, investmentTransactions, warrants, prices]);
+    // Filter accounts and warrants based on active segment
+    const filteredInvestmentAccounts = useMemo(() => {
+        if (activeSegment === 'all') return activeInvestmentAccounts;
+        if (activeSegment === 'Warrant') return [];
+        return activeInvestmentAccounts.filter(a => a.subType === activeSegment);
+    }, [activeInvestmentAccounts, activeSegment]);
+
+    const filteredWarrants = useMemo(() => {
+        if (activeSegment === 'all' || activeSegment === 'Warrant') return warrants;
+        return [];
+    }, [warrants, activeSegment]);
+
+    const activeOverview = useMemo(() => buildHoldingsOverview(filteredInvestmentAccounts, investmentTransactions, filteredWarrants, prices), [filteredInvestmentAccounts, investmentTransactions, filteredWarrants, prices]);
     const { holdings: allActiveHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
     const activeHoldings = useMemo(() => allActiveHoldings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant'), [allActiveHoldings]);
 
+    // Global overview for sparkline and summary
+    const globalOverview = useMemo(() => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices), [activeInvestmentAccounts, investmentTransactions, warrants, prices]);
+
     const displayHoldings = useMemo(
         () => {
-            const allHoldings = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices).holdings;
+            const overview = activeSegment === 'all' 
+                ? buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices)
+                : buildHoldingsOverview(
+                    activeSegment === 'Warrant' ? [] : investmentAccounts.filter(a => a.subType === (activeSegment as any)),
+                    investmentTransactions,
+                    activeSegment === 'Warrant' ? warrants : [],
+                    prices
+                );
+            
+            const allHoldings = overview.holdings;
             if (showInactiveHoldings) {
                 return allHoldings;
             }
-            // By default only show things we currently own or are active warrants
             return allHoldings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant');
         },
-        [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings]
+        [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings, activeSegment]
     );
 
     const accountBySymbol = useMemo(() => {
@@ -320,157 +347,259 @@ const Investments: React.FC<InvestmentsProps> = ({
         return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }, [displayHoldings]);
 
+    // Segment Values for Header
+    const segmentValues = useMemo(() => {
+        const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
+        const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
+        const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
+        const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
+        
+        return {
+            all: globalOverview.totalValue,
+            Stock: stocks.totalValue,
+            ETF: etfs.totalValue,
+            Crypto: crypto.totalValue,
+            Warrant: warrantsOnly.totalValue
+        };
+    }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, globalOverview.totalValue]);
+
+    const segmentMetrics = useMemo(() => {
+        const totalGainLoss = totalValue - totalCostBasis;
+        const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+        
+        let details = [
+            { label: 'Invested Capital', value: formatCurrency(investedCapital, 'EUR'), icon: 'payments' },
+            { label: 'Gain/Loss', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'show_chart' },
+            { label: 'Performance', value: `${totalGainLossPercent >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(1)}%`, icon: 'trending_up' },
+        ];
+
+        if (activeSegment === 'Warrant') {
+            details = [
+                { label: 'Granted Value', value: formatCurrency(grantedCapital, 'EUR'), icon: 'card_membership' },
+                { label: 'Active Grants', value: activeHoldings.length.toString(), icon: 'list_alt' },
+                { label: 'Unrealized PnL', value: formatCurrency(totalGainLoss, 'EUR'), icon: 'show_chart' },
+            ];
+        }
+
+        return { totalValue, details };
+    }, [activeOverview, activeSegment, grantedCapital, activeHoldings.length]);
+
+    const trendData = useMemo(() => {
+        // Mock trend data for investments since we don't have historical snapshots here
+        // We'll base it on current value with some random fluctuations for the sparkline effect
+        const data = [];
+        const baseValue = globalOverview.totalValue;
+        for (let i = 0; i < 30; i++) {
+            data.push({
+                date: i.toString(),
+                value: baseValue * (1 + (Math.sin(i / 2) * 0.05) + (Math.random() * 0.02))
+            });
+        }
+        return data;
+    }, [globalOverview.totalValue]);
+
+    const segments: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
+        { id: 'all', label: 'All Assets', icon: 'dashboard', color: 'indigo' },
+        { id: 'Stock', label: 'Stocks', icon: 'show_chart', color: 'blue' },
+        { id: 'ETF', label: 'ETFs', icon: 'account_tree', color: 'teal' },
+        { id: 'Crypto', label: 'Crypto', icon: 'currency_bitcoin', color: 'amber' },
+        { id: 'Warrant', label: 'Warrants', icon: 'card_membership', color: 'rose' },
+    ];
+
+    const heroGradient = activeSegment === 'Stock'
+        ? 'from-blue-500 via-blue-600 to-indigo-700'
+        : activeSegment === 'ETF'
+            ? 'from-teal-500 via-emerald-600 to-cyan-700'
+            : activeSegment === 'Crypto'
+                ? 'from-amber-500 via-orange-600 to-yellow-700'
+                : activeSegment === 'Warrant'
+                    ? 'from-rose-500 via-rose-600 to-pink-700'
+                    : 'from-indigo-600 via-violet-700 to-purple-800';
+
     return (
-        <div className="space-y-8 pb-12 animate-fade-in-up">
-            {isModalOpen && (
-                <AddInvestmentTransactionModal
-                    onClose={() => setIsModalOpen(false)}
-                    onSave={saveInvestmentTransaction}
-                    accounts={accounts}
-                    cashAccounts={cashAccounts}
-                    transactionToEdit={editingTransaction}
-                    holdings={activeHoldings}
-                />
-            )}
-            {isWarrantModalOpen && (
-                <WarrantModal 
-                    onClose={() => setWarrantModalOpen(false)} 
-                    onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} 
-                    warrantToEdit={editingWarrant} 
-                />
-            )}
-            {isAccountModalOpen && editingAccount && (
-                <EditAccountModal
-                    onClose={() => setAccountModalOpen(false)}
-                    onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
-                    onDelete={(accountId) => {
-                        const acc = accounts.find(a => a.id === accountId);
-                        if (acc) setAccountToDelete(acc);
-                        setAccountModalOpen(false);
-                    }}
-                    account={editingAccount}
-                    accounts={accounts}
-                    warrants={warrants}
-                    onToggleStatus={onToggleAccountStatus}
-                />
-            )}
-            {isPriceModalOpen && editingPriceItem && (
-                <WarrantPriceModal
-                    onClose={() => setIsPriceModalOpen(false)}
-                    onSave={onManualPriceChange}
-                    isin={editingPriceItem.symbol}
-                    name={editingPriceItem.name}
-                    manualPrice={manualPrices[editingPriceItem.symbol]}
-                />
-            )}
+        <div className="relative">
+            <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
+                {isModalOpen && (
+                    <AddInvestmentTransactionModal
+                        onClose={() => setIsModalOpen(false)}
+                        onSave={saveInvestmentTransaction}
+                        accounts={accounts}
+                        cashAccounts={cashAccounts}
+                        transactionToEdit={editingTransaction}
+                        holdings={activeHoldings}
+                    />
+                )}
+                {isWarrantModalOpen && (
+                    <WarrantModal 
+                        onClose={() => setWarrantModalOpen(false)} 
+                        onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} 
+                        warrantToEdit={editingWarrant} 
+                    />
+                )}
+                {isAccountModalOpen && editingAccount && (
+                    <EditAccountModal
+                        onClose={() => setAccountModalOpen(false)}
+                        onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
+                        onDelete={(accountId) => {
+                            const acc = accounts.find(a => a.id === accountId);
+                            if (acc) setAccountToDelete(acc);
+                            setAccountModalOpen(false);
+                        }}
+                        account={editingAccount}
+                        accounts={accounts}
+                        warrants={warrants}
+                        onToggleStatus={onToggleAccountStatus}
+                    />
+                )}
+                {isPriceModalOpen && editingPriceItem && (
+                    <WarrantPriceModal
+                        onClose={() => setIsPriceModalOpen(false)}
+                        onSave={onManualPriceChange}
+                        isin={editingPriceItem.symbol}
+                        name={editingPriceItem.name}
+                        manualPrice={manualPrices[editingPriceItem.symbol]}
+                    />
+                )}
 
-            <ConfirmationModal
-                isOpen={!!accountToDelete}
-                onClose={() => setAccountToDelete(null)}
-                onConfirm={() => {
-                    if (accountToDelete) {
-                        deleteAccount(accountToDelete.id);
-                        setAccountToDelete(null);
-                    }
-                }}
-                title="Delete Account"
-                message={`Are you sure you want to delete ${accountToDelete?.name}? This will remove all associated transactions and data. This action cannot be undone.`}
-                confirmButtonText="Delete Account"
-            />
-            
-            <ConfirmationModal
-                isOpen={!!itemToDelete}
-                onClose={() => setItemToDelete(null)}
-                onConfirm={() => {
-                    if (itemToDelete) {
-                        if (itemToDelete.isWarrant) {
-                            deleteWarrant(itemToDelete.id);
-                        } else {
-                            deleteInvestmentTransaction(itemToDelete.id);
+                <ConfirmationModal
+                    isOpen={!!accountToDelete}
+                    onClose={() => setAccountToDelete(null)}
+                    onConfirm={() => {
+                        if (accountToDelete) {
+                            deleteAccount(accountToDelete.id);
+                            setAccountToDelete(null);
                         }
-                        setItemToDelete(null);
-                    }
-                }}
-                title="Delete Activity"
-                message="Are you sure you want to delete this activity? This will recalculate your holdings basis."
-                confirmButtonText="Delete"
-            />
+                    }}
+                    title="Delete Account"
+                    message={`Are you sure you want to delete ${accountToDelete?.name}? This will remove all associated transactions and data. This action cannot be undone.`}
+                    confirmButtonText="Delete Account"
+                />
+                
+                <ConfirmationModal
+                    isOpen={!!itemToDelete}
+                    onClose={() => setItemToDelete(null)}
+                    onConfirm={() => {
+                        if (itemToDelete) {
+                            if (itemToDelete.isWarrant) {
+                                deleteWarrant(itemToDelete.id);
+                            } else {
+                                deleteInvestmentTransaction(itemToDelete.id);
+                            }
+                            setItemToDelete(null);
+                        }
+                    }}
+                    title="Delete Activity"
+                    message="Are you sure you want to delete this activity? This will recalculate your holdings basis."
+                    confirmButtonText="Delete"
+                />
 
-            <PageHeader
-                markerIcon="finance_chip"
-                markerLabel="Investment Dashboard"
-                title="Portfolio"
-                subtitle="High-density overview of your holdings, performance metrics, and market exposure."
-                actions={
-                    <div className="flex gap-3">
-                        <button onClick={() => handleUpdateAllPrices()} disabled={isUpdatingAllPrices} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                             <span className={`material-symbols-outlined text-lg ${isUpdatingAllPrices ? 'animate-spin' : ''}`}>sync</span>
-                             Update Prices
-                        </button>
-                        <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                             <span className="material-symbols-outlined text-lg">card_membership</span>
-                             Add Grant
-                        </button>
-                        <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                            <span className="material-symbols-outlined text-lg">add</span>
-                            Trade
-                        </button>
-                    </div>
-                }
-            />
+                {/* --- Consolidated Header & Portfolio --- */}
+                <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
+                    <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
-            {/* Performance Bar */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="!p-4 border-l-4 border-primary-500">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Portfolio Value</p>
-                    <div className="flex items-baseline gap-2">
-                        <h4 className="text-2xl font-bold dark:text-white privacy-blur">{formatCurrency(totalValue, 'EUR')}</h4>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${totalGainLoss >= 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
-                            {totalGainLossPercent >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(1)}%
-                        </span>
-                    </div>
-                </Card>
-                <Card className="!p-4 overflow-hidden">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Net Flow / PnL</p>
-                    <h4 className={`text-2xl font-bold privacy-blur ${totalGainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss, 'EUR')}
-                    </h4>
-                </Card>
-                <Card className="!p-4">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Invested Capital</p>
-                    <h4 className="text-2xl font-bold dark:text-white privacy-blur">{formatCurrency(investedCapital, 'EUR')}</h4>
-                </Card>
-                <Card className="!p-4">
-                    <div className="flex justify-between items-center mb-1">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Holdings</p>
-                        <span className="material-symbols-outlined text-sm text-primary-500">data_thresholding</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <h4 className="text-2xl font-bold dark:text-white">{activeHoldings.length}</h4>
-                        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Active positions</span>
-                    </div>
-                </Card>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-                {/* Main Table Column */}
-                <div className="xl:col-span-8 space-y-8">
-                    <Card className="!p-0 overflow-hidden border-none shadow-sm">
-                        <div className="px-6 py-5 flex justify-between items-center border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                            <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-primary-500">list_alt</span>
-                                <h3 className="font-bold text-light-text dark:text-dark-text">Assets & Holdings</h3>
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-8 flex-1">
+                            <div onClick={() => setActiveSegment('all')} className="cursor-pointer group/nw">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="material-symbols-outlined text-primary-500 text-sm">candlestick_chart</span>
+                                    <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Assets</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <h2 className="text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                                        {formatCurrency(segmentValues.all, 'EUR')}
+                                    </h2>
+                                    {activeSegment === 'all' && (
+                                        <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                                    )}
+                                </div>
+                                <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={trendData}>
+                                            <Area type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={2000} />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </div>
-                            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:opacity-80">
-                                <input
-                                    type="checkbox"
-                                    checked={showInactiveHoldings}
-                                    onChange={(event) => setShowInactiveHoldings(event.target.checked)}
-                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                />
-                                Show inactive
+
+                            <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
+
+                            {/* Segment Grid - High Density Tiles */}
+                            <div className="flex-[2] grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {segments.filter(s => s.id !== 'all').map(seg => {
+                                    const isActive = activeSegment === seg.id;
+                                    const val = segmentValues[seg.id as keyof typeof segmentValues];
+                                    return (
+                                        <div key={seg.id} onClick={() => setActiveSegment(seg.id)} className={`group cursor-pointer p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                                    <span className="material-symbols-outlined text-lg">{seg.icon}</span>
+                                                </div>
+                                                {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={`text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                                <span className={`text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                                    {formatCurrency(val, 'EUR')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="shrink-0 flex gap-3">
+                            <button onClick={() => handleUpdateAllPrices()} disabled={isUpdatingAllPrices} className={`${BTN_SECONDARY_STYLE} !px-4 flex items-center gap-2`} title="Sync Market Prices">
+                                 <span className={`material-symbols-outlined text-lg ${isUpdatingAllPrices ? 'animate-spin' : ''}`}>sync</span>
+                            </button>
+                            <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} !px-4 hidden sm:flex items-center gap-2`} title="Add Equity Grant">
+                                 <span className="material-symbols-outlined text-lg">card_membership</span>
+                            </button>
+                            <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 animate-glow`}>
+                                <span className="material-symbols-outlined text-xl">add</span>
+                                <span>Trade</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Integrated Details Tray */}
+                    <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-6">
+                        <AnimatePresence mode="wait">
+                            <motion.div key={activeSegment} initial={{ opacity: 0, x: -1 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 1 }} className="flex flex-wrap items-center gap-x-8 gap-y-3">
+                                {segmentMetrics.details.map((detail, i) => (
+                                     <div key={i} className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-base text-primary-500/70">{detail.icon}</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">{detail.label}</span>
+                                            <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
+                                        </div>
+                                     </div>
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+
+                        <div className="flex items-center gap-3 flex-wrap">
+                             <label className="flex items-center gap-2 text-[10px] bg-light-fill dark:bg-dark-fill px-4 h-9 rounded-xl font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                                <span>Inactive</span>
                             </label>
                         </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                    {/* Main Table Column */}
+                    <div className="xl:col-span-8 space-y-8">
+                        <Card className="!p-0 overflow-hidden border-none shadow-sm">
+                            <div className="px-6 py-5 flex justify-between items-center border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                                <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
+                                    <span className="material-symbols-outlined text-primary-500">list_alt</span>
+                                    <span>{activeSegment === 'all' ? 'All Holdings' : `${segments.find(s => s.id === activeSegment)?.label} Positions`}</span>
+                                </div>
+                            </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-white dark:bg-dark-card">
@@ -704,7 +833,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             </div>
 
             {/* Closed Accounts Section */}
-            {closedInvestmentAccounts.length > 0 && (
+            {closedInvestmentAccounts.length > 0 && activeSegment === 'all' && (
                 <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
                     <AccountsListSection 
                         title="Closed Portfolios"
@@ -725,7 +854,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             )}
         </div>
-    );
+    </div>
+);
 };
 
 export default Investments;

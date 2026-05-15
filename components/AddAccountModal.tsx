@@ -352,42 +352,57 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   return (
     <>
       {isIconPickerOpen && <IconPicker onClose={() => setIconPickerOpen(false)} onSelect={setIcon} iconList={ACCOUNT_ICON_LIST} />}
-      <Modal onClose={onClose} title="Add New Account" size="3xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex items-center gap-6">
+      <Modal onClose={onClose} title="Establish New Account" size="3xl">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+            <div className="absolute -top-24 -right-24 w-80 h-80 bg-primary-500/10 blur-[100px] rounded-full" />
+            <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-500/10 blur-[100px] rounded-full" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="relative z-10 space-y-8 pb-4">
+          {/* Identity Section */}
+          <div className="flex flex-col sm:flex-row items-center gap-8 py-4">
             <button
               type="button"
               onClick={() => setIconPickerOpen(true)}
-              className={`flex-shrink-0 flex items-center justify-center w-20 h-20 bg-light-bg dark:bg-dark-bg rounded-full shadow-lg border border-black/5 dark:border-white/5 hover:scale-105 transition-transform duration-200 group`}
+              className="relative group transition-all"
             >
-              <span className={`material-symbols-outlined ${iconColorClass} group-hover:scale-110 transition-transform`} style={{ fontSize: '40px' }}>
-                {icon}
-              </span>
+              <div className="absolute inset-0 bg-primary-500/20 blur-xl rounded-full group-hover:bg-primary-500/30 transition-all opacity-0 group-hover:opacity-100" />
+              <div className={`relative flex items-center justify-center w-24 h-24 bg-white dark:bg-dark-card rounded-full shadow-2xl border border-black/5 dark:border-white/5 transition-transform group-hover:scale-105 active:scale-95 z-10`}>
+                <span className={`material-symbols-outlined ${iconColorClass} transition-transform group-hover:scale-110`} style={{ fontSize: '44px' }}>
+                  {icon}
+                </span>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary-500 border-4 border-white dark:border-dark-card rounded-full flex items-center justify-center shadow-lg">
+                   <span className="material-symbols-outlined text-white text-xs">edit</span>
+                </div>
+              </div>
             </button>
-            <div className="flex-grow">
-              <label htmlFor="account-name" className={labelStyle}>Account Name</label>
-              <input
-                id="account-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={`${INPUT_BASE_STYLE} !text-lg font-semibold`}
-                placeholder="e.g. Main Checking"
-                required
-                autoFocus
-              />
+            
+            <div className="flex-grow w-full space-y-4">
+              <div>
+                <label htmlFor="account-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary mb-2 block">Ledger Identifier</label>
+                <input
+                    id="account-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-transparent border-none text-4xl sm:text-5xl font-black text-light-text dark:text-dark-text placeholder-black/5 dark:placeholder-white/5 focus:ring-0 p-0 tracking-tight"
+                    placeholder="Account Name"
+                    required
+                    autoFocus
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5">
             <div>
-              <label htmlFor="account-type" className={labelStyle}>Account Type</label>
+              <label htmlFor="account-type" className={labelStyle}>Categorical Type</label>
               <div className={SELECT_WRAPPER_STYLE}>
                  <select
                     id="account-type"
                     value={type}
                     onChange={(e) => setType(e.target.value as AccountType)}
-                    className={SELECT_STYLE}
+                    className={`${SELECT_STYLE} h-14 font-black`}
                   >
                     {ALL_ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -396,7 +411,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             </div>
             {type !== 'Loan' && type !== 'Lending' && (
                 <div>
-                  <label htmlFor="account-balance" className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Current Value' : 'Current Balance'}</label>
+                  <label htmlFor="account-balance" className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Appraisal Value' : 'Current Liquidity'}</label>
                   <div className="relative flex">
                     <input
                       id="account-balance"
@@ -404,14 +419,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                       step="0.01"
                       value={balance}
                       onChange={(e) => setBalance(e.target.value)}
-                      className={`${INPUT_BASE_STYLE} rounded-r-none border-r-0`}
+                      className={`${INPUT_BASE_STYLE} rounded-r-none border-r-0 h-14 font-black !text-lg tabular-nums`}
                       required
                     />
-                    <div className={`${SELECT_WRAPPER_STYLE} w-28`}>
+                    <div className={`${SELECT_WRAPPER_STYLE} w-32`}>
                         <select
                           value={currency}
                           onChange={(e) => setCurrency(e.target.value as Currency)}
-                          className={`${SELECT_STYLE} rounded-l-none bg-gray-50 dark:bg-white/5 border-l border-black/10 dark:border-white/10`}
+                          className={`${SELECT_STYLE} rounded-l-none bg-gray-50/50 dark:bg-white/5 border-l border-black/10 dark:border-white/10 h-14 font-black`}
                         >
                           {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
@@ -427,43 +442,51 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             
             {/* General Banking Details Group */}
             {(showBankingDetails || ['Checking', 'Savings', 'Credit Card'].includes(type)) && (
-                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                    <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">account_balance</span>
-                        Banking Details
-                    </h4>
-                    <div className="space-y-4">
+                <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">account_balance</span>
+                            Banking Core
+                        </h4>
+                    </div>
+                    <div className="space-y-6">
                         {['Checking', 'Savings', 'Credit Card'].includes(type) && (
                             <div>
-                                <label htmlFor="financial-institution" className={labelStyle}>Financial Institution</label>
-                                <input
-                                    id="financial-institution"
-                                    type="text"
-                                    value={financialInstitution}
-                                    onChange={(e) => setFinancialInstitution(e.target.value)}
-                                    className={INPUT_BASE_STYLE}
-                                    placeholder="e.g., Chase, Bank of America"
-                                />
+                                <label htmlFor="financial-institution" className={labelStyle}>Primary Institution</label>
+                                <div className="relative group">
+                                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">assured_workload</span>
+                                     <input
+                                         id="financial-institution"
+                                         type="text"
+                                         value={financialInstitution}
+                                         onChange={(e) => setFinancialInstitution(e.target.value)}
+                                         className={`${INPUT_BASE_STYLE} pl-10 h-14 font-black`}
+                                         placeholder="e.g., Chase, Goldman Sachs"
+                                     />
+                                </div>
                             </div>
                         )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label htmlFor="accountNumber" className={labelStyle}>Account Number / IBAN</label>
-                                <input id="accountNumber" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
+                                <label htmlFor="accountNumber" className={labelStyle}>Account / IBAN</label>
+                                <input id="accountNumber" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="**** ****" />
                             </div>
                             <div>
-                                <label htmlFor="routingNumber" className={labelStyle}>Routing / BIC / Sort Code</label>
-                                <input id="routingNumber" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
+                                <label htmlFor="routingNumber" className={labelStyle}>Routing / BIC</label>
+                                <input id="routingNumber" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="CODE" />
                             </div>
                             {['Checking', 'Savings', 'Investment'].includes(type) && (
                                 <div>
-                                    <label htmlFor="apy" className={labelStyle}>APY / Interest Rate (%)</label>
-                                    <input id="apy" type="number" step="0.01" value={apy} onChange={e => setApy(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 4.5" />
+                                    <label htmlFor="apy" className={labelStyle}>APY Yield (%)</label>
+                                    <div className="relative">
+                                         <input id="apy" type="number" step="0.01" value={apy} onChange={e => setApy(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-emerald-500`} placeholder="0.00" />
+                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black">%</span>
+                                    </div>
                                 </div>
                             )}
                             <div>
-                                <label htmlFor="openingDate" className={labelStyle}>Opening Date</label>
-                                <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={INPUT_BASE_STYLE} />
+                                <label htmlFor="openingDate" className={labelStyle}>Onboarding Date</label>
+                                <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} />
                             </div>
                         </div>
                     </div>
@@ -471,65 +494,77 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             )}
             
             {/* Card Details Group */}
-            <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                 <div className="flex items-center justify-between cursor-pointer" onClick={() => setHasCard(!hasCard)}>
-                    <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">credit_card</span>
-                        <h4 className="text-sm font-bold text-light-text dark:text-dark-text">Linked Card</h4>
-                    </div>
-                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasCard ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${hasCard ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </div>
-                </div>
-
-                {hasCard && (
-                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={SELECT_STYLE}>
-                                    <option value="">Select Network</option>
-                                    {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+            {type !== 'Loan' && type !== 'Lending' && type !== 'Vehicle' && type !== 'Property' && (
+                <div className={`p-6 rounded-3xl border transition-all duration-300 ${hasCard ? 'bg-white dark:bg-black/20 border-black/5 dark:border-white/5' : 'bg-black/5 dark:bg-white/5 border-transparent opacity-60'}`}>
+                    <div className="flex items-center justify-between cursor-pointer" onClick={() => setHasCard(!hasCard)}>
+                        <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${hasCard ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
+                                <span className="material-symbols-outlined">credit_card</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <h4 className={`text-[10px] font-black uppercase tracking-widest ${hasCard ? 'text-indigo-600' : 'text-gray-500'}`}>Physical/Virtual Card</h4>
+                                <span className="text-[10px] font-bold text-gray-400">Toggle card logistics</span>
                             </div>
                         </div>
-                        <div>
-                            <label htmlFor="last-4" className={labelStyle}>Last 4 Digits</label>
-                            <input
-                                id="last-4"
-                                type="text"
-                                maxLength={4}
-                                value={last4}
-                                onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
-                                className={INPUT_BASE_STYLE}
-                                placeholder="****"
-                            />
-                        </div>
-                         <div>
-                            <label htmlFor="expirationDate" className={labelStyle}>Expiration Date</label>
-                            <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
-                        </div>
-                        <div>
-                            <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
-                            <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
-                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={hasCard} onChange={e => setHasCard(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
                     </div>
-                )}
-            </div>
+
+                    {hasCard && (
+                        <div className="mt-8 space-y-6 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label htmlFor="cardNetwork" className={labelStyle}>Payment Rail</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                            <option value="">Select Network</option>
+                                            {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="last-4" className={labelStyle}>Last 4 Digits</label>
+                                    <input
+                                        id="last-4"
+                                        type="text"
+                                        maxLength={4}
+                                        value={last4}
+                                        onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
+                                        className={`${INPUT_BASE_STYLE} h-14 font-black tracking-[0.3em]`}
+                                        placeholder="0000"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="expirationDate" className={labelStyle}>Expirations</label>
+                                    <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="MM / YY" />
+                                </div>
+                                <div>
+                                    <label htmlFor="cardholderName" className={labelStyle}>Embossed Name</label>
+                                    <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} placeholder="Cardholder" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Investment Specific */}
             {type === 'Investment' && (
-              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500">trending_up</span>
-                    Investment Details
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-lg">trending_up</span>
+                        Market Logistics
+                    </h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="subType" className={labelStyle}>Investment Type</label>
+                      <label htmlFor="subType" className={labelStyle}>Vehicle Class</label>
                       <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="subType" value={subType} onChange={e => setSubType(e.target.value as InvestmentSubType)} className={SELECT_STYLE}>
+                        <select id="subType" value={subType} onChange={e => setSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-14 font-black`}>
                           {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -538,22 +573,22 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                     {/* Show Symbol input for standard investment types */}
                     {['Stock', 'ETF', 'Crypto'].includes(subType) && (
                         <div>
-                             <label htmlFor="symbol" className={labelStyle}>Ticker / Symbol</label>
-                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} uppercase`} placeholder="e.g. AAPL" />
+                             <label htmlFor="symbol" className={labelStyle}>Ticker Symbol</label>
+                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest`} placeholder="AAPL" />
                         </div>
                     )}
                     {subType === 'Pension Fund' && (
                          <div>
-                            <label htmlFor="retirementYear" className={labelStyle}>Expected Retirement Year</label>
-                            <input id="retirementYear" type="number" value={expectedRetirementYear} onChange={e => setExpectedRetirementYear(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 2055" />
+                            <label htmlFor="retirementYear" className={labelStyle}>Retirement Target</label>
+                            <input id="retirementYear" type="number" value={expectedRetirementYear} onChange={e => setExpectedRetirementYear(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="2050" />
                         </div>
                     )}
                      {subType === 'Spare Change' && (
-                        <div>
-                          <label htmlFor="linkedAccountId" className={labelStyle}>Source Account (Round-ups)</label>
+                        <div className="col-span-1 md:col-span-2">
+                          <label htmlFor="linkedAccountId" className={labelStyle}>Source Ledger (Round-ups)</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={SELECT_STYLE}>
-                                  <option value="">None</option>
+                              <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                  <option value="">Detached</option>
                                   {ALL_ACCOUNT_TYPES.map(type => {
                                       const group = groupedDebitAccounts[type];
                                       if (!group || group.length === 0) return null;
@@ -574,34 +609,36 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
             {/* Other Assets */}
             {type === 'Other Assets' && (
-                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                   <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">category</span>
-                        Asset Details
-                    </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                   <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">category</span>
+                            Asset Specifications
+                        </h4>
+                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label htmlFor="otherAssetSubType" className={labelStyle}>Sub-Type</label>
+                        <label htmlFor="otherAssetSubType" className={labelStyle}>Categorical Sub-Type</label>
                         <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={SELECT_STYLE}>
+                        <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={`${SELECT_STYLE} h-14 font-black`}>
                             {OTHER_ASSET_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="counterparty" className={labelStyle}>Counterparty (Optional)</label>
-                        <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., John Doe" />
+                        <label htmlFor="counterparty" className={labelStyle}>Associated Entity</label>
+                        <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="Owner / Source" />
                     </div>
                   </div>
-                   <div className="grid grid-cols-2 gap-4 mt-4">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label htmlFor="location" className={labelStyle}>Location (Optional)</label>
-                        <input id="location" type="text" value={location} onChange={e => setLocation(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Safe Box" />
+                        <label htmlFor="location" className={labelStyle}>Geographic / Store Location</label>
+                        <input id="location" type="text" value={location} onChange={e => setLocation(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="e.g., Vault" />
                     </div>
                      <div>
-                        <label htmlFor="assetCondition" className={labelStyle}>Condition (Optional)</label>
-                        <input id="assetCondition" type="text" value={assetCondition} onChange={e => setAssetCondition(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Mint" />
+                        <label htmlFor="assetCondition" className={labelStyle}>Verified Condition</label>
+                        <input id="assetCondition" type="text" value={assetCondition} onChange={e => setAssetCondition(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="State of Asset" />
                     </div>
                    </div>
                 </div>
@@ -609,30 +646,35 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
             {/* Other Liabilities */}
             {type === 'Other Liabilities' && (
-                 <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                    <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">money_off</span>
-                        Liability Details
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">money_off</span>
+                            Liability Metrics
+                        </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label htmlFor="otherLiabilitySubType" className={labelStyle}>Sub-Type</label>
+                            <label htmlFor="otherLiabilitySubType" className={labelStyle}>Sub-Categorization</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={SELECT_STYLE}>
+                            <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={`${SELECT_STYLE} h-14 font-black`}>
                                 {OTHER_LIABILITY_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="counterparty" className={labelStyle}>Owed To (Optional)</label>
-                            <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Tax Authority" />
+                            <label htmlFor="counterparty" className={labelStyle}>Owed Entity</label>
+                            <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="Creditor" />
                         </div>
                     </div>
-                     <div className="grid grid-cols-2 gap-4 mt-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div>
-                            <label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label>
-                            <input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} />
+                            <label htmlFor="interestRate" className={labelStyle}>Interest Burden (%)</label>
+                            <div className="relative">
+                                <input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-rose-500`} placeholder="0.00" />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-500 font-black">%</span>
+                            </div>
                         </div>
                      </div>
                  </div>
@@ -640,144 +682,197 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
             {/* Loan/Lending */}
             {(type === 'Loan' || type === 'Lending') && (
-                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                    <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">request_quote</span>
-                        Loan Details
-                    </h4>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4 bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5">
-                        Enter any two values to calculate the third automatically.
-                    </p>
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div><label htmlFor="totalAmount" className={labelStyle}>Total Amount</label><input id="totalAmount" type="number" step="0.01" value={totalAmount} onFocus={() => setLastEditedLoanField('total')} onChange={e=>{setTotalAmount(e.target.value); setLastEditedLoanField('total');}} className={INPUT_BASE_STYLE} /></div>
-                        <div><label htmlFor="principalAmount" className={labelStyle}>Principal</label><input id="principalAmount" type="number" step="0.01" value={principalAmount} onFocus={() => setLastEditedLoanField('principal')} onChange={e=>{setPrincipalAmount(e.target.value); setLastEditedLoanField('principal');}} className={INPUT_BASE_STYLE} /></div>
-                        <div><label htmlFor="interestAmount" className={labelStyle}>Interest</label><input id="interestAmount" type="number" step="0.01" value={interestAmount} onFocus={() => setLastEditedLoanField('interest')} onChange={e=>{setInterestAmount(e.target.value); setLastEditedLoanField('interest');}} className={INPUT_BASE_STYLE} /></div>
+                <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">request_quote</span>
+                            Financial Obligation
+                        </h4>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label><input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                        <div><label htmlFor="duration" className={labelStyle}>Duration (months)</label><input id="duration" type="number" value={duration} onChange={e=>setDuration(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    
+                    <div className="bg-primary-500/5 p-4 rounded-2xl border border-primary-500/10 mb-2">
+                        <p className="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1 italic">Computational Logic Active</p>
+                        <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">Input any dual values; the tertiary will resolve automatically.</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div><label htmlFor="loanStartDate" className={labelStyle}>Start Date</label><input id="loanStartDate" type="date" value={loanStartDate} onChange={e=>setLoanStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                        {type === 'Loan' && <div><label htmlFor="downPayment" className={labelStyle}>Down Payment</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={INPUT_BASE_STYLE} /></div>}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div><label htmlFor="totalAmount" className={labelStyle}>Total Principal</label><input id="totalAmount" type="number" step="0.01" value={totalAmount} onFocus={() => setLastEditedLoanField('total')} onChange={e=>{setTotalAmount(e.target.value); setLastEditedLoanField('total');}} className={`${INPUT_BASE_STYLE} h-14 font-black !text-lg tabular-nums`} /></div>
+                        <div><label htmlFor="principalAmount" className={labelStyle}>Net Capital</label><input id="principalAmount" type="number" step="0.01" value={principalAmount} onFocus={() => setLastEditedLoanField('principal')} onChange={e=>{setPrincipalAmount(e.target.value); setLastEditedLoanField('principal');}} className={`${INPUT_BASE_STYLE} h-14 font-black !text-lg tabular-nums`} /></div>
+                        <div><label htmlFor="interestAmount" className={labelStyle}>Accumulated Interest</label><input id="interestAmount" type="number" step="0.01" value={interestAmount} onFocus={() => setLastEditedLoanField('interest')} onChange={e=>{setInterestAmount(e.target.value); setLastEditedLoanField('interest');}} className={`${INPUT_BASE_STYLE} h-14 font-black !text-lg tabular-nums`} /></div>
                     </div>
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10 mt-4 space-y-4">
-                        <h5 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Repayment Schedule</h5>
-                        <div className="grid grid-cols-2 gap-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-black/5 dark:border-white/5">
+                        <div>
+                            <label htmlFor="interestRate" className={labelStyle}>Annual Percentage Rate (%)</label>
+                            <div className="relative">
+                                <input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-primary-500`} />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-primary-500 font-black">%</span>
+                            </div>
+                        </div>
+                        <div><label htmlFor="duration" className={labelStyle}>Term Horizon (Months)</label><input id="duration" type="number" value={duration} onChange={e=>setDuration(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="e.g., 48" /></div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label htmlFor="loanStartDate" className={labelStyle}>Effective Start</label><input id="loanStartDate" type="date" value={loanStartDate} onChange={e=>setLoanStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
+                        {type === 'Loan' && (
+                            <div><label htmlFor="downPayment" className={labelStyle}>Initial Equity (Down Payment)</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
+                        )}
+                    </div>
+
+                    <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-6">
+                        <div className="flex items-center gap-2">
+                             <span className="material-symbols-outlined text-primary-500">event_repeat</span>
+                             <h5 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Amortization Schedule</h5>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label htmlFor="monthlyPayment" className={labelStyle}>Monthly Payment (Optional)</label>
-                                <input id="monthlyPayment" type="number" step="0.01" value={monthlyPayment} onChange={e=>setMonthlyPayment(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Auto-calculated if empty" />
+                                <label htmlFor="monthlyPayment" className={labelStyle}>Installment Amount</label>
+                                <input id="monthlyPayment" type="number" step="0.01" value={monthlyPayment} onChange={e=>setMonthlyPayment(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black !text-lg tabular-nums`} placeholder="Calculated if null" />
                             </div>
                             <div>
-                                <label htmlFor="paymentDayOfMonth" className={labelStyle}>Payment Day</label>
-                                <input id="paymentDayOfMonth" type="number" min="1" max="31" value={paymentDayOfMonth} onChange={e=>setPaymentDayOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 1st of month" />
+                                <label htmlFor="paymentDayOfMonth" className={labelStyle}>Ordinal Due Day</label>
+                                <input id="paymentDayOfMonth" type="number" min="1" max="31" value={paymentDayOfMonth} onChange={e=>setPaymentDayOfMonth(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="Day (1-31)" />
                             </div>
                         </div>
                     </div>
-                    <div className="mt-4">
-                        <label htmlFor="linkedAccountId" className={labelStyle}>Linked Payment Account</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={SELECT_STYLE}>
-                                <option value="">None</option>
-                                {ALL_ACCOUNT_TYPES.map(type => {
-                                    const group = groupedDebitAccounts[type];
-                                    if (!group || group.length === 0) return null;
-                                    return (
-                                        <optgroup key={type} label={type}>
-                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                        </optgroup>
-                                    );
-                                })}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                        </div>
-                    </div>
-                    {type === 'Loan' && (
-                        <div className="mt-4">
-                            <label htmlFor="linkedAssetId" className={labelStyle}>Associated Asset (Property/Vehicle)</label>
+
+                    <div className="space-y-6 pt-6 border-t border-black/10 dark:border-white/10">
+                        <div>
+                            <label htmlFor="linkedAccountId" className={labelStyle}>Settlement Disbursement Account</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="linkedAssetId" value={linkedAssetId} onChange={e => setLinkedAssetId(e.target.value)} className={SELECT_STYLE}>
-                                    <option value="">None</option>
-                                    {assetAccounts.map(acc => (
-                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
-                                    ))}
+                                <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                    <option value="">No Link</option>
+                                    {ALL_ACCOUNT_TYPES.map(type => {
+                                        const group = groupedDebitAccounts[type];
+                                        if (!group || group.length === 0) return null;
+                                        return (
+                                            <optgroup key={type} label={type}>
+                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            </optgroup>
+                                        );
+                                    })}
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
                         </div>
-                    )}
+                        {type === 'Loan' && (
+                            <div>
+                                <label htmlFor="linkedAssetId" className={labelStyle}>Collateral Asset Association</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="linkedAssetId" value={linkedAssetId} onChange={e => setLinkedAssetId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                        <option value="">Unsecured</option>
+                                        {assetAccounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                                        ))}
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
              {/* Vehicle Details */}
              {type === 'Vehicle' && (
-                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                  <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">directions_car</span>
-                        Vehicle Info
-                    </h4>
-                  <div className="flex justify-center mb-6">
-                      <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                          <div className="w-24 h-24 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center overflow-hidden border-2 border-dashed border-black/10 dark:border-white/10 hover:border-primary-500 transition-colors">
-                              {vehicleImage ? (
-                                  <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
-                              ) : (
-                                  <span className="material-symbols-outlined text-4xl text-gray-400">add_a_photo</span>
-                              )}
-                          </div>
+                <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
+                  <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">directions_car</span>
+                            Automotive Registry
+                        </h4>
+                    </div>
+
+                  <div className="flex flex-col items-center">
+                      <button 
+                        type="button" 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="relative group w-full max-w-sm aspect-video bg-light-fill dark:bg-dark-fill rounded-[2rem] flex flex-col items-center justify-center overflow-hidden border-2 border-dashed border-black/10 dark:border-white/10 hover:border-primary-500 hover:bg-primary-500/5 transition-all duration-300"
+                      >
+                          {vehicleImage ? (
+                              <>
+                                <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <p className="text-white text-[10px] font-black uppercase tracking-widest text-center">Replace Profile Image</p>
+                                </div>
+                              </>
+                          ) : (
+                              <div className="flex flex-col items-center gap-3 animate-glow">
+                                  <div className="w-16 h-16 bg-white dark:bg-dark-card rounded-full flex items-center justify-center shadow-2xl">
+                                      <span className="material-symbols-outlined text-3xl text-primary-500">add_a_photo</span>
+                                  </div>
+                                  <div className="text-center">
+                                      <p className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Asset Visualization</p>
+                                      <p className="text-[10px] font-bold text-gray-400">Secure image upload</p>
+                                  </div>
+                              </div>
+                          )}
                           <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                      </div>
+                      </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div><label htmlFor="make" className={labelStyle}>Make</label><input id="make" type="text" value={make} onChange={e=>setMake(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                    <div><label htmlFor="model" className={labelStyle}>Model</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                    <div><label htmlFor="year" className={labelStyle}>Year</label><input id="year" type="number" value={year} onChange={e=>setYear(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div><label htmlFor="make" className={labelStyle}>Manufacturer</label><input id="make" type="text" value={make} onChange={e=>setMake(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} placeholder="e.g., Porsche" /></div>
+                    <div><label htmlFor="model" className={labelStyle}>Designation</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} placeholder="e.g., 911 GT3" /></div>
+                    <div><label htmlFor="year" className={labelStyle}>Model Year</label><input id="year" type="number" value={year} onChange={e=>setYear(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="2024" /></div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 mt-4">
-                    <div className="col-span-1"><label htmlFor="regCode" className={labelStyle}>Reg. Code</label><input id="regCode" type="text" value={registrationCountryCode} onChange={e=>setRegistrationCountryCode(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. B" /></div>
-                    <div className="col-span-1"><label htmlFor="plate" className={labelStyle}>License Plate</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                    <div className="col-span-1"><label htmlFor="vin" className={labelStyle}>VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div><label htmlFor="regCode" className={labelStyle}>Jurisdiction</label><input id="regCode" type="text" value={registrationCountryCode} onChange={e=>setRegistrationCountryCode(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase text-center tracking-widest`} placeholder="EU" /></div>
+                    <div><label htmlFor="plate" className={labelStyle}>License Identity</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest text-center`} placeholder="PLATE" /></div>
+                    <div><label htmlFor="vin" className={labelStyle}>Chassis VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase text-center text-xs`} placeholder="IDENTIFIER" /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div>
-                        <label htmlFor="fuel" className={labelStyle}>Fuel Type</label>
+                        <label htmlFor="fuel" className={labelStyle}>Propulsion Core</label>
                         <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={SELECT_STYLE}>
+                            <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={`${SELECT_STYLE} h-14 font-black`}>
                                 {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>
                      </div>
-                     <div><label htmlFor="mileage" className={labelStyle}>Current Mileage (km)</label><input id="mileage" type="number" value={currentMileage} onChange={e=>setCurrentMileage(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="mileage" className={labelStyle}>Odometer Reading (KM)</label><input id="mileage" type="number" value={currentMileage} onChange={e=>setCurrentMileage(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
                   </div>
-                  <div className="mt-4">
-                        <label className={labelStyle}>Ownership Status</label>
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl shadow-inner border border-black/5 dark:border-white/5">
+
+                  <div className="space-y-4">
+                        <label className={labelStyle}>Legal Ownership Status</label>
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1.5 rounded-2xl shadow-inner border border-black/5 dark:border-white/5">
                              {VEHICLE_OWNERSHIP_TYPES.map(o => (
-                                 <button key={o} type="button" onClick={() => setVehicleOwnership(o)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{o}</button>
+                                 <button 
+                                    key={o} 
+                                    type="button" 
+                                    onClick={() => setVehicleOwnership(o)} 
+                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-xl text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                 >
+                                    {o}
+                                 </button>
                              ))}
                         </div>
                    </div>
+
                    {vehicleOwnership === 'Owned' && (
-                        <div className="grid grid-cols-2 gap-4 mt-4 animate-fade-in-up">
-                            <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                            <div><label htmlFor="purchaseDate" className={labelStyle}>Purchase Date</label><input id="purchaseDate" type="date" value={purchaseDate} onChange={e=>setPurchaseDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
+                            <div><label htmlFor="purchasePrice" className={labelStyle}>Acquisition Capital</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
+                            <div><label htmlFor="purchaseDate" className={labelStyle}>Acquisition Date</label><input id="purchaseDate" type="date" value={purchaseDate} onChange={e=>setPurchaseDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
                         </div>
                    )}
+
                    {vehicleOwnership === 'Leased' && (
-                       <div className="space-y-4 mt-4 animate-fade-in-up">
-                            <div><label htmlFor="leaseProvider" className={labelStyle}>Lease Provider</label><input id="leaseProvider" type="text" value={leaseProvider} onChange={e=>setLeaseProvider(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. LeasePlan" /></div>
-                           <div className="grid grid-cols-2 gap-4">
-                                <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Limit (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 15000" /></div>
-                                <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Lease Payment</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                <div><label htmlFor="leasePaymentDay" className={labelStyle}>Due Day</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                <div className="col-span-2">
-                                    <label htmlFor="leasePaymentAccountId" className={labelStyle}>Payment Account</label>
+                       <div className="space-y-6 animate-fade-in-up bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5">
+                            <div><label htmlFor="leaseProvider" className={labelStyle}>Disbursement Provider</label><input id="leaseProvider" type="text" value={leaseProvider} onChange={e=>setLeaseProvider(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="Provider Entity" /></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label htmlFor="leaseStart" className={labelStyle}>Commencement</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
+                                <div><label htmlFor="leaseEnd" className={labelStyle}>Termination</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
+                                <div className="col-span-1 md:col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Utilization Limit (KM)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="Limit" /></div>
+                                <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Periodic Obligation</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
+                                <div><label htmlFor="leasePaymentDay" className={labelStyle}>Due Ordinal Day</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="1-31" /></div>
+                                <div className="col-span-1 md:col-span-2">
+                                    <label htmlFor="leasePaymentAccountId" className={labelStyle}>Settlement Ledger</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={SELECT_STYLE}>
-                                            <option value="">None</option>
+                                        <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                            <option value="">Detached</option>
                                             {ALL_ACCOUNT_TYPES.map(type => {
                                                 const group = groupedDebitAccounts[type];
                                                 if (!group || group.length === 0) return null;
@@ -791,93 +886,107 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                     </div>
                                 </div>
-                           </div>
+                            </div>
                        </div>
                    )}
                 </div>
             )}
             
-            {/* Property Details */}
-            {type === 'Property' && (
-                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up space-y-6">
-                   <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-2 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">home</span>
-                        Property Specs
-                   </h4>
-                  <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+             {/* Property Details */}
+             {type === 'Property' && (
+                <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8 animate-fade-in-up">
+                   <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">home</span>
+                            Real Estate Specifications
+                        </h4>
+                    </div>
+                   <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                          <label htmlFor="propertyType" className={labelStyle}>Property Type</label>
+                          <label htmlFor="propertyType" className={labelStyle}>Estate Classification</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={SELECT_STYLE}>
+                            <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={`${SELECT_STYLE} h-14 font-black`}>
                               {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                             </select>
                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                           </div>
                         </div>
-                         <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} /></div>
+                         <div><label htmlFor="purchasePrice" className={labelStyle}>Acquisition Capital</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} disabled={isLoanForPropertyLinked} /></div>
                       </div>
-                      <div><label htmlFor="address" className={labelStyle}>Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      <div><label htmlFor="address" className={labelStyle}>Geospatial Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black placeholder-black/20 dark:placeholder-white/20 uppercase text-xs`} placeholder="STREET, CITY, ZIP" /></div>
                       
-                      <div className="grid grid-cols-3 gap-4">
-                         <div><label htmlFor="propertySize" className={labelStyle}>Size (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                         <div><label htmlFor="yearBuilt" className={labelStyle}>Year Built</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                         <div><label htmlFor="floors" className={labelStyle}>Floors</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      <div className="grid grid-cols-3 gap-6">
+                         <div><label htmlFor="propertySize" className={labelStyle}>Internal (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-center`} /></div>
+                         <div><label htmlFor="yearBuilt" className={labelStyle}>Erection Year</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center tracking-widest`} /></div>
+                         <div><label htmlFor="floors" className={labelStyle}>Total Levels</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center`} /></div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                         <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      <div className="grid grid-cols-2 gap-6">
+                         <div><label htmlFor="bedrooms" className={labelStyle}>Sleeping Quarters</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center`} /></div>
+                         <div><label htmlFor="bathrooms" className={labelStyle}>Sanitary Labs</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center`} /></div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                         <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                            <input type="checkbox" checked={hasBasement} onChange={e => setHasBasement(e.target.checked)} className={CHECKBOX_STYLE} />
-                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Basement</span>
-                         </label>
-                         <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                            <input type="checkbox" checked={hasAttic} onChange={e => setHasAttic(e.target.checked)} className={CHECKBOX_STYLE} />
-                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Attic</span>
-                         </label>
+                      <div className="grid grid-cols-2 gap-6">
+                         <button 
+                            type="button" 
+                            onClick={() => setHasBasement(!hasBasement)}
+                            className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasBasement ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
+                         >
+                            <span className="material-symbols-outlined">{hasBasement ? 'check_box' : 'check_box_outline_blank'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Basement</span>
+                         </button>
+                         <button 
+                            type="button" 
+                            onClick={() => setHasAttic(!hasAttic)}
+                            className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasAttic ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
+                         >
+                            <span className="material-symbols-outlined">{hasAttic ? 'check_box' : 'check_box_outline_blank'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Attic</span>
+                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                         <div><label htmlFor="indoorParking" className={labelStyle}>Indoor Parking</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Cars" /></div>
-                         <div><label htmlFor="outdoorParking" className={labelStyle}>Outdoor Parking</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Cars" /></div>
+                      <div className="grid grid-cols-2 gap-6">
+                         <div><label htmlFor="indoorParking" className={labelStyle}>Garaged Vehicle Capacity</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center`} placeholder="Count" /></div>
+                         <div><label htmlFor="outdoorParking" className={labelStyle}>External Surface Parking</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center`} placeholder="Count" /></div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 items-end">
-                         <div className="mb-2">
-                             <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                <input type="checkbox" checked={hasGarden} onChange={e => setHasGarden(e.target.checked)} className={CHECKBOX_STYLE} />
-                                <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Garden</span>
-                             </label>
-                         </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                         <button 
+                            type="button" 
+                            onClick={() => setHasGarden(!hasGarden)}
+                            className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasGarden ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
+                         >
+                            <span className="material-symbols-outlined">{hasGarden ? 'psychology' : 'check_box_outline_blank'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Garden Zone</span>
+                         </button>
                          <div>
-                            <label htmlFor="gardenSize" className={labelStyle}>Garden Size (m²)</label>
-                            <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasGarden} />
+                            <label htmlFor="gardenSize" className={labelStyle}>Exterior Area (m²)</label>
+                            <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-center`} disabled={!hasGarden} />
                          </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 items-end">
-                         <div className="mb-2">
-                             <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                <input type="checkbox" checked={hasTerrace} onChange={e => setHasTerrace(e.target.checked)} className={CHECKBOX_STYLE} />
-                                <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Terrace</span>
-                             </label>
-                         </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                         <button 
+                            type="button" 
+                            onClick={() => setHasTerrace(!hasTerrace)}
+                            className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasTerrace ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
+                         >
+                            <span className="material-symbols-outlined">{hasTerrace ? 'deck' : 'check_box_outline_blank'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Terrace / Balcony</span>
+                         </button>
                          <div>
-                            <label htmlFor="terraceSize" className={labelStyle}>Terrace Size (m²)</label>
-                            <input id="terraceSize" type="number" value={terraceSize} onChange={e=>setTerraceSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasTerrace} />
+                            <label htmlFor="terraceSize" className={labelStyle}>Refined Exterior (m²)</label>
+                            <input id="terraceSize" type="number" value={terraceSize} onChange={e=>setTerraceSize(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-center`} disabled={!hasTerrace} />
                          </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-black/10 dark:border-white/10 pt-6">
                           <div>
-                            <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan</label>
+                            <label htmlFor="linkedLoanId" className={labelStyle}>Financial Linkage (Loan)</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={SELECT_STYLE}>
-                                    <option value="">None</option>
+                                <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                    <option value="">Detached</option>
                                     {ALL_ACCOUNT_TYPES.map(type => {
                                         const group = groupedLoanAccounts[type];
                                         if (!group || group.length === 0) return null;
@@ -892,74 +1001,92 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             </div>
                           </div>
                            <div>
-                            <label htmlFor="principalOwned" className={labelStyle}>Principal Owned</label>
-                            <input id="principalOwned" type="number" step="0.01" value={principalOwned} onChange={e=>setPrincipalOwned(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} />
+                            <label htmlFor="principalOwned" className={labelStyle}>Owned Equity (Principal)</label>
+                            <input id="principalOwned" type="number" step="0.01" value={principalOwned} onChange={e=>setPrincipalOwned(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} disabled={isLoanForPropertyLinked} />
                         </div>
                       </div>
-                  </div>
-                  
-                  {/* Recurring Expenses & Income Section */}
-                  <div className="pt-4 border-t border-black/10 dark:border-white/10">
-                        <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4">Recurring Costs & Income</h4>
-                        <div className="space-y-6">
+                   </div>
+                   
+                   {/* Recurring Expenses & Income Section */}
+                   <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-8">
+                        <div className="flex items-center gap-2">
+                             <span className="material-symbols-outlined text-primary-500">sync_alt</span>
+                             <h4 className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Recurring Obligations & Cashflow</h4>
+                        </div>
+                        
+                        <div className="space-y-8">
                             {/* Property Tax */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label htmlFor="propTaxAmt" className={labelStyle}>Property Tax (Annual)</label><input id="propTaxAmt" type="number" step="0.01" value={propertyTaxAmount} onChange={e=>setPropertyTaxAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
-                                <div><label htmlFor="propTaxDate" className={labelStyle}>Next Due Date</label><input id="propTaxDate" type="date" value={propertyTaxDate} onChange={e=>setPropertyTaxDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary-600 block mb-2">Municipal Assessments</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div><label htmlFor="propTaxAmt" className={labelStyle}>Annual Assessment</label><input id="propTaxAmt" type="number" step="0.01" value={propertyTaxAmount} onChange={e=>setPropertyTaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-rose-500`} placeholder="0.00" /></div>
+                                    <div><label htmlFor="propTaxDate" className={labelStyle}>Ordinal Maturity Date</label><input id="propTaxDate" type="date" value={propertyTaxDate} onChange={e=>setPropertyTaxDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
+                                </div>
                             </div>
 
                              {/* Home Insurance */}
-                             <div className="space-y-2">
-                                <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Home Insurance</p>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><label htmlFor="insProvider" className={labelStyle}>Provider</label><input id="insProvider" type="text" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                    <div><label htmlFor="insPolicy" className={labelStyle}>Policy No.</label><input id="insPolicy" type="text" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                             <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary-600 block mb-2">Asset Indemnity</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div><label htmlFor="insProvider" className={labelStyle}>Underwriting Entity</label><input id="insProvider" type="text" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
+                                    <div><label htmlFor="insPolicy" className={labelStyle}>Policy Instrument No.</label><input id="insPolicy" type="text" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} /></div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div><label htmlFor="insAmount" className={labelStyle}>Amount</label><input id="insAmount" type="number" step="0.01" value={insuranceAmount} onChange={e=>setInsuranceAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div><label htmlFor="insAmount" className={labelStyle}>Periodic Premium</label><input id="insAmount" type="number" step="0.01" value={insuranceAmount} onChange={e=>setInsuranceAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
                                     <div>
-                                        <label htmlFor="insFreq" className={labelStyle}>Frequency</label>
+                                        <label htmlFor="insFreq" className={labelStyle}>Payment Frequency</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
+                                            <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black`}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                         </div>
                                     </div>
-                                    <div><label htmlFor="insDate" className={labelStyle}>Next Payment</label><input id="insDate" type="date" value={insurancePaymentDate} onChange={e=>setInsurancePaymentDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                    <div><label htmlFor="insDate" className={labelStyle}>Maturity Event</label><input id="insDate" type="date" value={insurancePaymentDate} onChange={e=>setInsurancePaymentDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
                                 </div>
                             </div>
                             
                             {/* HOA Fees */}
-                             <div className="grid grid-cols-2 gap-4">
-                                <div><label htmlFor="hoaAmount" className={labelStyle}>HOA/Syndic Fees</label><input id="hoaAmount" type="number" step="0.01" value={hoaFeeAmount} onChange={e=>setHoaFeeAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                <div>
-                                    <label htmlFor="hoaFreq" className={labelStyle}>Frequency</label>
-                                    <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
-                                            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                                        </select>
-                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                             <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-primary-600 block mb-2">Commonhold Contribution</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div><label htmlFor="hoaAmount" className={labelStyle}>Levy Amount</label><input id="hoaAmount" type="number" step="0.01" value={hoaFeeAmount} onChange={e=>setHoaFeeAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
+                                    <div>
+                                        <label htmlFor="hoaFreq" className={labelStyle}>Billing Cycle</label>
+                                        <div className={SELECT_WRAPPER_STYLE}>
+                                            <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                                {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                            </select>
+                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Rental Income */}
-                            <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-800/30">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h5 className="text-sm font-bold text-green-800 dark:text-green-300">Rental Income</h5>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={isRental} onChange={e => setIsRental(e.target.checked)} className={CHECKBOX_STYLE} />
-                                        <span className="text-xs font-medium text-green-700 dark:text-green-400">Is Rental</span>
+                            <div className={`p-6 rounded-3xl border transition-all duration-300 ${isRental ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20 shadow-xl shadow-emerald-500/5' : 'bg-black/5 dark:bg-white/5 border-transparent opacity-60'}`}>
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isRental ? 'bg-emerald-500 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
+                                            <span className="material-symbols-outlined">real_estate_agent</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <h4 className={`text-[10px] font-black uppercase tracking-widest ${isRental ? 'text-emerald-600' : 'text-gray-500'}`}>Rental Monetization</h4>
+                                            <span className="text-[10px] font-bold text-gray-400">Generate inward cashflow</span>
+                                        </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={isRental} onChange={e => setIsRental(e.target.checked)} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                                     </label>
                                 </div>
                                 {isRental && (
-                                    <div className="grid grid-cols-2 gap-4 animate-fade-in-up">
-                                        <div><label htmlFor="rentAmount" className={labelStyle}>Income Amount</label><input id="rentAmount" type="number" step="0.01" value={rentalIncomeAmount} onChange={e=>setRentalIncomeAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                                        <div><label htmlFor="rentAmount" className={labelStyle}>Periodic Yield</label><input id="rentAmount" type="number" step="0.01" value={rentalIncomeAmount} onChange={e=>setRentalIncomeAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-emerald-500 tabular-nums`} /></div>
                                         <div>
-                                            <label htmlFor="rentFreq" className={labelStyle}>Frequency</label>
+                                            <label htmlFor="rentFreq" className={labelStyle}>Collection Cycle</label>
                                             <div className={SELECT_WRAPPER_STYLE}>
-                                                <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
+                                                <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black text-emerald-600`}>
                                                     {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                                 </select>
                                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -969,86 +1096,103 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                 )}
                             </div>
                         </div>
-                  </div>
+                   </div>
                 </div>
             )}
+
             {(type === 'Other Assets' || type === 'Other Liabilities') && (
-              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5">
-                <label htmlFor="notes" className={labelStyle}>Notes</label>
-                <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={`${INPUT_BASE_STYLE} !h-auto !py-2`} rows={2} placeholder="Additional details..."></textarea>
+              <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5">
+                <label htmlFor="notes" className={labelStyle}>Descriptive Annotations</label>
+                <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={`${INPUT_BASE_STYLE} !h-auto !py-4 font-black text-xs leading-relaxed`} rows={3} placeholder="Supplementary asset/liability intelligence..."></textarea>
               </div>
             )}
 
             {type === 'Credit Card' && (
-              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                  <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">credit_card</span>
-                        Credit Configuration
-                    </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label htmlFor="statement-start" className={labelStyle}>Statement Start Day</label><input id="statement-start" type="number" min="1" max="31" value={statementStartDate} onChange={(e) => setStatementStartDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="1-31" /></div>
-                       <div><label htmlFor="payment-date" className={labelStyle}>Payment Due Day</label><input id="payment-date" type="number" min="1" max="31" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="1-31" /></div>
+              <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
+                   <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">credit_card</span>
+                            Credit Architecture
+                        </h4>
+                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div><label htmlFor="statement-start" className={labelStyle}>Cycle Commencement Day</label><input id="statement-start" type="number" min="1" max="31" value={statementStartDate} onChange={(e) => setStatementStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest text-center`} placeholder="1-31" /></div>
+                       <div><label htmlFor="payment-date" className={labelStyle}>Maturity / Due Day</label><input id="payment-date" type="number" min="1" max="31" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest text-center`} placeholder="1-31" /></div>
                   </div>
-                  <div className="mt-4">
-                      <label htmlFor="settlement-account" className={labelStyle}>Settlement Account</label>
-                      <div className={SELECT_WRAPPER_STYLE}>
-                           <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={SELECT_STYLE}>
-                              <option value="">Select an account</option>
-                              {ALL_ACCOUNT_TYPES.map(type => {
-                                  const group = groupedDebitAccounts[type];
-                                  if (!group || group.length === 0) return null;
-                                  return (
-                                    <optgroup key={type} label={type}>
-                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                    </optgroup>
-                                  );
-                              })}
-                          </select>
-                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  <div className="space-y-6">
+                      <div>
+                          <label htmlFor="settlement-account" className={labelStyle}>Liquid Settlement Ledger</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                               <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                  <option value="">Detached</option>
+                                  {ALL_ACCOUNT_TYPES.map(type => {
+                                      const group = groupedDebitAccounts[type];
+                                      if (!group || group.length === 0) return null;
+                                      return (
+                                        <optgroup key={type} label={type}>
+                                          {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                        </optgroup>
+                                      );
+                                  })}
+                              </select>
+                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
                       </div>
+                      <div><label htmlFor="credit-limit" className={labelStyle}>Authorized Credit Threshold</label><input id="credit-limit" type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-rose-500 tabular-nums`} /></div>
                   </div>
-                  <div className="mt-4"><label htmlFor="credit-limit" className={labelStyle}>Credit Limit</label><input id="credit-limit" type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} className={INPUT_BASE_STYLE} /></div>
               </div>
             )}
           </div>
 
-          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-xl flex flex-col gap-4">
+          <div className="p-6 bg-black/5 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
               <button
                 type="button"
                 onClick={() => setIsPrimary(!isPrimary)}
-                className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                className="flex justify-between items-center w-full group focus:outline-none p-4 rounded-2xl hover:bg-white dark:hover:bg-dark-card transition-all duration-300 shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5"
               >
                   <div className="text-left">
-                      <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Account</p>
-                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this type.</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Designation</p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1">Set as the apex default for this category</p>
                   </div>
-                  <div
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <div className={`w-11 h-6 rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <div className={`absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white transition-transform ${isPrimary ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </div>
                   </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
-                className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                className="flex justify-between items-center w-full group focus:outline-none p-4 rounded-2xl hover:bg-white dark:hover:bg-dark-card transition-all duration-300 shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5"
               >
                   <div className="text-left">
-                      <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Include in Analytics</p>
-                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from assets, liabilities, and reports when off.</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Analytical Integration</p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1">Include in systemic net-worth & fiscal reporting</p>
                   </div>
-                  <div
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-1'}`} />
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <div className={`w-11 h-6 rounded-full transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <div className={`absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white transition-transform ${includeInAnalytics ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </div>
                   </div>
               </button>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
-            <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-            <button type="submit" className={BTN_PRIMARY_STYLE}>Add Account</button>
+          <div className="flex justify-end gap-4 pt-6 mt-6 border-t border-black/5 dark:border-white/5">
+            <button 
+                type="button" 
+                onClick={onClose} 
+                className={`${BTN_SECONDARY_STYLE}`}
+            >
+                Retract
+            </button>
+            <button 
+                type="submit" 
+                className={`${BTN_PRIMARY_STYLE} px-10 gap-2 group animate-glow`}
+            >
+                Initialize Account
+                <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
+            </button>
           </div>
         </form>
       </Modal>
