@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip, Layer, Rectangle } from 'recharts';
 import { Transaction, Category } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
@@ -9,14 +9,6 @@ interface CashflowSankeyProps {
   incomeCategories: Category[];
   expenseCategories: Category[];
 }
-
-const FLOW_DEPTH = {
-    subIn: 0,
-    catIn: 1,
-    net: 2,
-    catOut: 3,
-    subOut: 4
-};
 
 const OTHER_LABEL = 'Misc';
 const MAX_SUBS_PER_CAT = 5;
@@ -32,11 +24,21 @@ const getCategoryColor = (name: string, categories: Category[]) => {
 };
 
 const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCategories, expenseCategories }) => {
+  const [viewMode, setViewMode] = useState<'detailed' | 'category'>('category');
   
   const { nodes, links, gradients, totalFlow } = useMemo(() => {
     const nodes: { id: string; name: string; color: string; depth: number }[] = [];
     const links: { source: number; target: number; value: number; gradientId: string }[] = [];
     const gradients: { id: string; start: string; end: string }[] = [];
+
+    const isDetailed = viewMode === 'detailed';
+    const FLOW_DEPTH = {
+        subIn: 0,
+        catIn: isDetailed ? 1 : 0,
+        net: isDetailed ? 2 : 1,
+        catOut: isDetailed ? 3 : 2,
+        subOut: 4
+    };
 
     const addNode = (id: string, displayName: string, color: string, depth: number) => {
       const existingIndex = nodes.findIndex(n => n.id === id);
@@ -100,17 +102,21 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         const topSubs = sortedSubs.slice(0, MAX_SUBS_PER_CAT);
         const otherSubs = sortedSubs.slice(MAX_SUBS_PER_CAT);
 
-        topSubs.forEach(([subName, val]) => {
-            const sNodeIdx = addNode(`inc_s_${parentName}_${subName}`, subName, pColor, FLOW_DEPTH.subIn);
-            addLink(sNodeIdx, pNodeIdx, val, pColor, pColor);
-            pTotal += val;
-        });
+        if (isDetailed) {
+            topSubs.forEach(([subName, val]) => {
+                const sNodeIdx = addNode(`inc_s_${parentName}_${subName}`, subName, pColor, FLOW_DEPTH.subIn);
+                addLink(sNodeIdx, pNodeIdx, val, pColor, pColor);
+                pTotal += val;
+            });
 
-        if (otherSubs.length > 0) {
-            const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
-            const sNodeIdx = addNode(`inc_s_${parentName}_other`, OTHER_LABEL, pColor, FLOW_DEPTH.subIn);
-            addLink(sNodeIdx, pNodeIdx, otherVal, pColor, pColor);
-            pTotal += otherVal;
+            if (otherSubs.length > 0) {
+                const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
+                const sNodeIdx = addNode(`inc_s_${parentName}_other`, OTHER_LABEL, pColor, FLOW_DEPTH.subIn);
+                addLink(sNodeIdx, pNodeIdx, otherVal, pColor, pColor);
+                pTotal += otherVal;
+            }
+        } else {
+            pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
         }
 
         addLink(pNodeIdx, hubIdx, pTotal, pColor, COLOR_HUB);
@@ -130,17 +136,21 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         const topSubs = sortedSubs.slice(0, MAX_SUBS_PER_CAT);
         const otherSubs = sortedSubs.slice(MAX_SUBS_PER_CAT);
 
-        topSubs.forEach(([subName, val]) => {
-            const sNodeIdx = addNode(`exp_s_${parentName}_${subName}`, subName, pColor, FLOW_DEPTH.subOut);
-            addLink(pNodeIdx, sNodeIdx, val, pColor, pColor);
-            pTotal += val;
-        });
+        if (isDetailed) {
+            topSubs.forEach(([subName, val]) => {
+                const sNodeIdx = addNode(`exp_s_${parentName}_${subName}`, subName, pColor, FLOW_DEPTH.subOut);
+                addLink(pNodeIdx, sNodeIdx, val, pColor, pColor);
+                pTotal += val;
+            });
 
-        if (otherSubs.length > 0) {
-            const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
-            const sNodeIdx = addNode(`exp_s_${parentName}_other`, OTHER_LABEL, pColor, FLOW_DEPTH.subOut);
-            addLink(pNodeIdx, sNodeIdx, otherVal, pColor, pColor);
-            pTotal += otherVal;
+            if (otherSubs.length > 0) {
+                const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
+                const sNodeIdx = addNode(`exp_s_${parentName}_other`, OTHER_LABEL, pColor, FLOW_DEPTH.subOut);
+                addLink(pNodeIdx, sNodeIdx, otherVal, pColor, pColor);
+                pTotal += otherVal;
+            }
+        } else {
+            pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
         }
 
         addLink(hubIdx, pNodeIdx, pTotal, COLOR_HUB, pColor);
@@ -152,12 +162,13 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     }
 
     return { nodes, links, gradients, totalFlow: flowVolume };
-  }, [transactions, incomeCategories, expenseCategories]);
+  }, [transactions, incomeCategories, expenseCategories, viewMode]);
 
   const SankeyNode = ({ x, y, width, height, index, payload }: any) => {
       if (payload.value < 0.01) return null;
-      const isRight = payload.depth > 2;
-      const isCenter = payload.depth === 2;
+      const isDetailed = viewMode === 'detailed';
+      const isRight = payload.depth > (isDetailed ? 2 : 1);
+      const isCenter = payload.depth === (isDetailed ? 2 : 1);
       const textAnchor = isCenter ? 'middle' : (isRight ? 'start' : 'end');
       const textX = isCenter ? x + width / 2 : (isRight ? x + width + 8 : x - 8);
 
@@ -167,16 +178,16 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             x={x} y={y} width={width} height={height}
             fill={payload.color}
             fillOpacity={0.9}
-            rx={4} ry={4}
+            rx={6} ry={6} // Increased roundness for nodes
           />
           <text
             x={textX}
             y={y + height / 2}
             textAnchor={textAnchor}
-            fontSize={10}
+            fontSize={11}
             fontWeight={isCenter ? 800 : 600}
             fill="currentColor"
-            className="dark:fill-gray-300 fill-gray-700"
+            className="dark:fill-gray-200 fill-gray-700"
           >
             {payload.name}
           </text>
@@ -188,45 +199,31 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       const { sourceX, sourceY, targetX, targetY, linkWidth, payload } = props;
       if (linkWidth < 1) return null;
 
-      const curvature = 0.5;
-      const x0 = sourceX;
-      const y0 = sourceY + linkWidth / 2;
-      const x1 = targetX;
-      const y1 = targetY + linkWidth / 2;
-      const xi = (x0 + x1) / 2;
-      const x2 = xi;
-      const y2 = y0;
-      const x3 = xi;
-      const y3 = y1;
+      // Calculate deep curves using half the horizontal distance as control offset
+      const curvature = (targetX - sourceX) / 2;
+      
+      const path = `
+        M${sourceX},${sourceY + linkWidth / 2}
+        C${sourceX + curvature},${sourceY + linkWidth / 2}
+         ${targetX - curvature},${targetY + linkWidth / 2}
+         ${targetX},${targetY + linkWidth / 2}
+        L${targetX},${targetY - linkWidth / 2}
+        C${targetX - curvature},${targetY - linkWidth / 2}
+         ${sourceX + curvature},${sourceY - linkWidth / 2}
+         ${sourceX},${sourceY - linkWidth / 2}
+        Z
+      `;
 
       return (
         <Layer key={`link-${props.index}`}>
           <path 
-            d={`M${x0},${y0}C${x2},${y2} ${x3},${y3} ${x1},${y1}`}
-            fill="none"
-            stroke={`url(#${payload.gradientId})`} 
-            strokeWidth={linkWidth}
-            strokeOpacity={0.3}
-            className="transition-all duration-300 hover:stroke-opacity-60"
+            d={path} 
+            fill={`url(#${payload.gradientId})`} 
+            fillOpacity={0.35}
+            className="transition-all duration-300 hover:fill-opacity-70"
           />
         </Layer>
       );
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const { value, name } = payload[0].payload;
-      const pct = ((value / totalFlow) * 100).toFixed(1);
-      return (
-        <div className="bg-white/90 dark:bg-dark-card/90 p-4 rounded-2xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
-          <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary mb-2 tracking-[0.1em] uppercase">{name}</p>
-          <p className="text-sm font-black text-indigo-500 tabular-nums">
-            {formatCurrency(value, 'EUR')} <span className="text-[10px] opacity-60 ml-1">({pct}%)</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
   };
 
   if (totalFlow === 0) {
@@ -239,7 +236,30 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
   }
 
   return (
-    <div className="h-full w-full" style={{ minHeight: '600px' }}>
+    <div className="h-full w-full relative" style={{ minHeight: '600px' }}>
+        <div className="absolute top-0 right-0 z-20 flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
+            <button
+                onClick={() => setViewMode('category')}
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all ${
+                    viewMode === 'category' 
+                    ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm' 
+                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                }`}
+            >
+                Categories
+            </button>
+            <button
+                onClick={() => setViewMode('detailed')}
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all ${
+                    viewMode === 'detailed' 
+                    ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm' 
+                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                }`}
+            >
+                Subcategories
+            </button>
+        </div>
+
         <svg width="0" height="0" style={{ position: 'absolute' }}>
             <defs>
                 {gradients.map(g => (
@@ -256,10 +276,20 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
                 data={{ nodes, links }}
                 node={<SankeyNode />}
                 link={<SankeyLink />}
-                nodePadding={24}
+                nodePadding={viewMode === 'detailed' ? 24 : 48}
                 margin={{ left: 100, right: 100, top: 20, bottom: 20 }}
             >
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    // Add itemStyle to dynamically color the inner text/values
+                    itemStyle={{ color: 'var(--text-main)' }} 
+                    // Add labelStyle if your tooltip displays a title/label at the top
+                    labelStyle={{ color: 'var(--text-main)' }}
+                    formatter={(value: number) => {
+                        const pct = ((value / totalFlow) * 100).toFixed(1);
+                        return [`${formatCurrency(value, 'EUR')} (${pct}%)`, 'Volume'];
+                    }}
+                />
             </Sankey>
         </ResponsiveContainer>
     </div>

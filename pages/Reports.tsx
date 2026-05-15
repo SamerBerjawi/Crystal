@@ -111,15 +111,15 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
             
             <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
+                    <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
                         <span className="material-symbols-outlined text-lg">{icon}</span>
                     </div>
-                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+                    <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
                 </div>
                 
                 <div className="flex flex-col">
-                    <p className={`text-xl font-bold tracking-tight ${colorClass}`}>{value}</p>
-                    {subtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-bold opacity-60">{subtitle}</p>}
+                    <p className={`text-2xl font-bold tracking-tight ${colorClass}`}>{value}</p>
+                    {subtitle && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1 font-bold opacity-60">{subtitle}</p>}
                 </div>
             </div>
             
@@ -772,8 +772,8 @@ const Reports: React.FC = () => {
           
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 relative z-10">
             <div>
-              <h2 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Configuration</h2>
-              <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Configuration</h2>
+              <p className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
             </div>
             
             <div className="flex flex-wrap gap-2">
@@ -819,8 +819,8 @@ const Reports: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Account</label>
-              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`}>
+              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Account</label>
+              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`}>
                 <option value="all">All Accounts</option>
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -828,20 +828,20 @@ const Reports: React.FC = () => {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Start date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`} />
+              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Start date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`} />
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">End date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`} />
+              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">End date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`} />
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Merchant</label>
-              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`} />
+              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Merchant</label>
+              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`} />
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`}>
+              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Category</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`}>
                 <option value="all">All Categories</option>
                 <optgroup label="Expenses">
                   {expenseCategories.map(cat => (
@@ -856,8 +856,8 @@ const Reports: React.FC = () => {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Group by</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`}>
+              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Group by</label>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`}>
                 <option value="merchant">Merchant</option>
                 <option value="category">Category</option>
               </select>
@@ -867,14 +867,14 @@ const Reports: React.FC = () => {
 
         <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full space-y-2">
-            <label className="block text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Save report settings</label>
+            <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Save report settings</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
               <input 
                 type="text" 
                 value={reportName} 
                 onChange={(e) => setReportName(e.target.value)} 
-                className={`${INPUT_BASE_STYLE} !pl-12 !bg-black/5 dark:!bg-white/5 !border-none !rounded-xl !text-[12px] font-bold tracking-tight h-12`} 
+                className={`${INPUT_BASE_STYLE} !pl-12 !bg-black/5 dark:!bg-white/5 !border-none !rounded-xl !text-sm font-bold tracking-tight h-12`} 
                 placeholder="Name this report view to save it..." 
               />
             </div>
@@ -892,8 +892,8 @@ const Reports: React.FC = () => {
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
             <div>
-              <h2 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spending Velocity</h2>
-              <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Daily intensity vs previous period</p>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spending Velocity</h2>
+              <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Daily intensity vs previous period</p>
             </div>
             <div className="flex items-center gap-6 bg-black/5 dark:bg-white/5 p-3 rounded-2xl border border-black/5 dark:border-white/5">
               <div className="flex items-center gap-2">
@@ -937,8 +937,8 @@ const Reports: React.FC = () => {
           <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -ml-32 -mt-32 pointer-events-none group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
           
           <div className="mb-6 relative z-10">
-            <h2 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Allocation</h2>
-            <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Top categories by volume</p>
+            <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Allocation</h2>
+            <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Top categories by volume</p>
           </div>
 
           <div className="h-[240px] w-full relative z-10">
@@ -984,20 +984,20 @@ const Reports: React.FC = () => {
       </section>
 
       {/* Behavioral Insights & Merchant Loyalty */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
-          
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div>
-              <h2 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Needs vs. wants</h2>
-              <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">50/30/20 Rule Analysis</p>
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <Card className="h-fit flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
+            
+            <div className="flex items-center justify-between mb-6 relative z-10">
+              <div>
+                <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Needs vs. wants</h2>
+                <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">50/30/20 Rule Analysis</p>
+              </div>
+              <div className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-[0.15em] border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
+                {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
+              </div>
             </div>
-            <div className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-[0.15em] border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
-              {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
-            </div>
-          </div>
-          <div className="space-y-8 relative z-10">
+          <div className="space-y-6 relative z-10">
             {needsWantsData.map(item => {
               const share = totals.totalSpendEur > 0 ? (item.value / totals.totalSpendEur) * 100 : 0;
               const isOver = share > item.target && item.name !== 'Others';
@@ -1062,8 +1062,8 @@ const Reports: React.FC = () => {
           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
           
           <div className="mb-10 relative z-10">
-            <h2 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant loyalty</h2>
-            <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
+            <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant loyalty</h2>
+            <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
           </div>
           
           <div className="space-y-5 relative z-10">
@@ -1114,18 +1114,18 @@ const Reports: React.FC = () => {
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl">
             <div className="p-8 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
               <div>
-                <h2 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spend breakdown</h2>
-                <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">By {groupBy}</p>
+                <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spend breakdown</h2>
+                <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">By {groupBy}</p>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                    <th className="py-5 px-8 font-bold text-[10px] tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">{groupBy === 'merchant' ? 'Merchant' : 'Category'}</th>
-                    <th className="py-5 px-8 font-bold text-[10px] tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Qty</th>
-                    <th className="py-5 px-8 font-bold text-[10px] tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Total</th>
-                    <th className="py-5 px-8 font-bold text-[10px] tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Share</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">{groupBy === 'merchant' ? 'Merchant' : 'Category'}</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Qty</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Total</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Share</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -1190,8 +1190,8 @@ const Reports: React.FC = () => {
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -ml-24 -mb-24"></div>
             
             <div className="mb-4 relative z-10">
-              <h2 className="text-[10px] font-bold tracking-[0.2em] text-white/60 mb-1">Smart Engine</h2>
-              <p className="text-sm font-bold tracking-tight text-white">AI-powered insights</p>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-white/60 mb-1">Smart Engine</h2>
+              <p className="text-base font-bold tracking-tight text-white">AI-powered insights</p>
             </div>
             
             <div className="space-y-2 relative z-10">
@@ -1212,7 +1212,7 @@ const Reports: React.FC = () => {
 
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
             <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Month-end forecast</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Month-end forecast</p>
               <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse shadow-sm shadow-primary-500/50"></div>
             </div>
             <div className="p-5 relative">
@@ -1257,7 +1257,7 @@ const Reports: React.FC = () => {
 
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
             <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Anomalies & outliers</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Anomalies & outliers</p>
               <div className="w-10 h-1 rounded-full bg-rose-500/20"></div>
             </div>
             <div className="p-4 space-y-2">
@@ -1289,7 +1289,7 @@ const Reports: React.FC = () => {
 
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
             <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Recurring patterns</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Recurring patterns</p>
               <span className="material-symbols-outlined text-base opacity-20">autorenew</span>
             </div>
             <div className="p-5 space-y-4">
@@ -1322,8 +1322,8 @@ const Reports: React.FC = () => {
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
             <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
                <div className="relative z-10">
-                <p className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">Performance</p>
-                <h2 className="text-xs font-bold tracking-tight">Budget vs actual</h2>
+                <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">Performance</p>
+                <h2 className="text-sm font-bold tracking-tight">Budget vs actual</h2>
               </div>
               <button 
                 onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} 
@@ -1336,10 +1336,10 @@ const Reports: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                    <th className="py-2 px-4 font-bold text-[9px] tracking-[0.15em] text-light-text-secondary opacity-60">Category</th>
-                    <th className="py-2 px-4 font-bold text-[9px] tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Limit</th>
-                    <th className="py-2 px-4 font-bold text-[9px] tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Actual</th>
-                    <th className="py-2 px-4 font-bold text-[9px] tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Delta</th>
+                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60">Category</th>
+                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Limit</th>
+                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Actual</th>
+                    <th className="py-2 px-4 font-bold text-xs tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Delta</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">

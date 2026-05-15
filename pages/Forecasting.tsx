@@ -1252,30 +1252,30 @@ const Forecasting: React.FC = () => {
                                             <div key={month.monthKey} className="space-y-3 group/date text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-30" />
-                                                    <p className="text-[10px] font-bold tracking-widest text-light-text dark:text-dark-text opacity-80 group-hover/date:opacity-100 transition-opacity">{month.monthName}</p>
+                                                    <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase group-hover/date:text-primary-500 transition-colors">{month.monthName}</p>
                                                 </div>
                                                 
                                                 <div className="space-y-1">
                                                     {month.accounts.map((account) => (
                                                         <div key={account.id} className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                                                            <span className="text-[10px] font-bold tracking-widest text-light-text-secondary dark:text-neutral-300 opacity-70 group-hover/item:opacity-100 transition-opacity">{account.name}</span>
+                                                            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors uppercase">{account.name}</span>
                                                             <div className="flex items-center gap-4">
                                                                 {account.income > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[7px] font-bold text-emerald-500/60 leading-none mb-0.5">Income</span>
-                                                                        <span className="text-[11px] font-bold text-emerald-500 tracking-tighter">{formatCurrency(account.income, account.currency)}</span>
+                                                                        <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5 uppercase tracking-tighter">Income</span>
+                                                                        <span className="text-[13px] font-black text-emerald-500 tracking-tighter tabular-nums">{formatCurrency(account.income, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.savings > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[7px] font-bold text-primary-500/60 leading-none mb-0.5">Savings</span>
-                                                                        <span className="text-[11px] font-bold text-primary-500 tracking-tighter">{formatCurrency(account.savings, account.currency)}</span>
+                                                                        <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5 uppercase tracking-tighter">Savings</span>
+                                                                        <span className="text-[13px] font-black text-primary-500 tracking-tighter tabular-nums">{formatCurrency(account.savings, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.expense > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[7px] font-bold text-rose-500/60 leading-none mb-0.5">Expense</span>
-                                                                        <span className="text-[11px] font-bold text-rose-500 tracking-tighter">{formatCurrency(account.expense, account.currency)}</span>
+                                                                        <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5 uppercase tracking-tighter">Expense</span>
+                                                                        <span className="text-[13px] font-black text-rose-500 tracking-tighter tabular-nums">{formatCurrency(account.expense, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                             </div>
