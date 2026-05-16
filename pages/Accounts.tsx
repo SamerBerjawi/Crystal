@@ -321,7 +321,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         {deletingAccount && <FinalConfirmationModal isOpen={!!deletingAccount} onClose={() => setDeletingAccount(null)} onConfirm={handleConfirmDelete} title="Delete Account" message={<><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">You are about to permanently delete the account <strong className="text-light-text dark:text-dark-text">{deletingAccount.name}</strong>.</p><div className="p-3 bg-red-500/10 rounded-lg text-red-700 dark:text-red-300 text-sm"><p className="font-bold">This action cannot be undone.</p><p>All associated transactions will also be permanently deleted.</p></div></>} requiredText="DELETE" confirmButtonText="Delete Account" />}
         
         {contextMenu && (
-            <div ref={contextMenuRef} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up">
+            <div ref={contextMenuRef} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed z-50 w-56 ios-regular rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up">
                 <ul className="text-sm">
                     <li><button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">visibility</span><span>View Account</span></button></li>
                     <li><button onClick={() => { onNavigateToTransactions({ accountName: contextMenu.account.name }); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">filter_list</span><span>Filter Transactions</span></button></li>
@@ -339,19 +339,19 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             {/* Subtle background glow based on active segment */}
             <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-6 lg:gap-8">
                 {/* Left Side: Portfolio Display */}
-                <div className="flex flex-col xl:flex-row xl:items-center gap-8 flex-1">
+                <div className="flex flex-col xl:flex-row xl:items-center gap-6 lg:gap-8 flex-1">
                     <div 
                         onClick={() => setActiveSegment('all')}
                         className="cursor-pointer group/nw w-full sm:w-auto"
                     >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                             <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
                             <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
                                 {formatCurrency(segmentValues.all, 'EUR')}
                             </h2>
                             {activeSegment === 'all' && (
@@ -359,7 +359,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             )}
                         </div>
                         {/* Compact Sparkline */}
-                        <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity max-w-[200px]">
+                        <div className="h-6 mt-2 sm:mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity max-w-[150px] sm:max-w-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={globalMetrics.trendData}>
                                     <Area 
@@ -444,12 +444,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
                 {/* Consolidated Controls */}
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5">
-                        <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5 overflow-x-auto no-scrollbar max-w-full">
+                        <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
                             <span className="material-symbols-outlined text-[16px]">vertical_split</span>
                             <span className="hidden md:inline">Split</span>
                         </button>
-                        <button onClick={() => setSplitAssetsLiabilities(false)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all ${!splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Combined View">
+                        <button onClick={() => setSplitAssetsLiabilities(false)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${!splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Combined View">
                             <span className="material-symbols-outlined text-[16px]">view_agenda</span>
                             <span className="hidden md:inline">Combined</span>
                         </button>

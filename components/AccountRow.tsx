@@ -235,7 +235,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             className={`
                 relative group cursor-pointer
                 w-full bg-white dark:bg-dark-card rounded-[2rem] border-l-4 border-y border-r border-black/5 dark:border-white/5
-                p-4 sm:p-6 flex flex-col justify-between min-h-[190px] sm:h-[210px]
+                p-4 sm:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] sm:h-[210px]
                 transition-all duration-300 hover:-translate-y-1
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
                 ${dragClasses} ${dragOverClasses}

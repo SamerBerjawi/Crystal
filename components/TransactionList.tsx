@@ -115,7 +115,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(640);
+  const [viewportHeight, setViewportHeight] = useState(800);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -125,7 +125,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const ROW_HEIGHT = isMobile ? (density === 'high' ? 88 : 100) : (density === 'high' ? 68 : 80);
+  const ROW_HEIGHT = isMobile ? (density === 'high' ? 96 : 110) : (density === 'high' ? 76 : 90);
   const OVERSCAN = 8;
 
   const handleScroll = useThrottledCallback((position: number) => setScrollTop(position), 100);

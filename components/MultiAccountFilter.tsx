@@ -105,7 +105,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
         <span className="material-symbols-outlined text-sm">expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-fade-in-up">
+        <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] ios-regular rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-fade-in-up">
           {/* Quick Filters */}
           <div className="p-4 bg-black/5 dark:bg-white/5">
             <h4 className="px-1 pb-3 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest">Quick filters</h4>

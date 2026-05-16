@@ -862,25 +862,25 @@ const Forecasting: React.FC = () => {
                 title="Financial Forecast"
                 subtitle="Projected cash, income, and obligations so you can plan moves weeks and months ahead."
                 actions={
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto flex-wrap">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto flex-wrap">
                         <button 
                             onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)} 
-                            className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 ${isPlaygroundOpen ? 'bg-primary-500/10 text-primary-600 border-primary-500/30' : ''}`}
+                            className={`${BTN_SECONDARY_STYLE} flex items-center justify-center gap-2 ${isPlaygroundOpen ? 'bg-primary-500/10 text-primary-600 border-primary-500/30' : ''}`}
                         >
                             <span className="material-symbols-outlined text-xl">science</span>
-                            {isPlaygroundOpen ? 'Close Playground' : 'Scenario Playground'}
+                            <span className="truncate">{isPlaygroundOpen ? 'Close Playground' : 'Playground'}</span>
                         </button>
-                        <div className="w-full sm:w-auto">
+                        <div className="w-full sm:w-auto min-w-[200px]">
                              <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                         </div>
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar justify-between sm:justify-start">
                             {durationOptions.map(opt => (
-                                <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive}`}>
+                                <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive} !px-3 sm:!px-4`}>
                                     {opt.label}
                                 </button>
                             ))}
                         </div>
-                        <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
+                        <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10 flex items-center justify-center`}>
                             <span className="material-symbols-outlined text-xl mr-2">add</span>
                             Add Goal
                         </button>

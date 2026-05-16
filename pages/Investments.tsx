@@ -604,12 +604,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-white dark:bg-dark-card">
                                     <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5">
-                                        <th className="py-4 pl-6">Instrument</th>
+                                        <th className="py-4 pl-4 sm:pl-6">Instrument</th>
                                         <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
-                                        <th className="py-4 text-right hidden lg:table-cell">Quantity</th>
-                                        <th className="py-4 text-right hidden md:table-cell">Cost Basis</th>
-                                        <th className="py-4 text-right">Market Value</th>
-                                        <th className="py-4 text-right pr-6">Gain/Loss</th>
+                                        <th className="py-4 text-right hidden lg:table-cell">Qty</th>
+                                        <th className="py-4 text-right hidden md:table-cell">Cost</th>
+                                        <th className="py-4 text-right">Market</th>
+                                        <th className="py-4 text-right pr-4 sm:pr-6">G/L</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">

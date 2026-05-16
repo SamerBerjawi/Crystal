@@ -574,8 +574,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     (index: number) => {
         const row = virtualRows[index];
         if (row && row.type === 'header') return 40; 
-        if (isMobile) return density === 'high' ? 100 : 120;
-        return density === 'high' ? 64 : 80;
+        if (isMobile) return density === 'high' ? 110 : 130;
+        return density === 'high' ? 76 : 96;
     },
     [virtualRows, isMobile, density]
   );
@@ -1229,9 +1229,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       />
 
       {/* Metrics Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <div 
-            className="group relative bg-primary-600 dark:bg-primary-700 p-5 rounded-2xl shadow-lg shadow-primary-500/20 border-none text-white overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-0.5"
+            className="group relative bg-primary-600 dark:bg-primary-700 p-4 sm:p-5 rounded-2xl shadow-lg shadow-primary-500/20 border-none text-white overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-0.5"
         >
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
             {/* Texture Overlay */}
@@ -1247,20 +1247,20 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             />
 
             <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
-                        <span className="material-symbols-outlined text-lg">receipt_long</span>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
+                        <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
                     </div>
-                    <p className="text-[10px] font-semibold text-white/80">Total transactions</p>
+                    <p className="text-[9px] sm:text-[10px] font-semibold text-white/80">Total transactions</p>
                 </div>
                 
                 <div className="flex flex-col">
-                    <p className="text-2xl font-black tracking-tight">{filteredTransactions.length}</p>
-                    <p className="text-[10px] text-white/70 mt-1 font-semibold">in selected period</p>
+                    <p className="text-xl sm:text-2xl font-black tracking-tight">{filteredTransactions.length}</p>
+                    <p className="text-[9px] sm:text-[10px] text-white/70 mt-0.5 sm:mt-1 font-semibold">in selected period</p>
                 </div>
             </div>
             
-            <div className="absolute -right-4 -bottom-4 text-white opacity-10 transition-transform group-hover:scale-110 duration-500">
+            <div className="absolute -right-4 -bottom-4 text-white opacity-10 transition-transform group-hover:scale-110 duration-500 hidden sm:block">
                 <span className="material-symbols-outlined text-8xl">receipt_long</span>
             </div>
         </div>
@@ -1494,7 +1494,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 <div
                   ref={listContainerRef}
                   className="flex-grow bg-white dark:bg-dark-card"
-                  style={{ height: '60vh', minHeight: '400px' }}
+                  style={{ height: '75vh', minHeight: '600px' }}
                 >
                   {virtualRows.length > 0 ? (
                     <VirtualizedList
@@ -1654,14 +1654,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                                 {tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}
                                             </span>
                                             {/* Mobile Secondary Info - Balanced Polish */}
-                                            <div className="lg:hidden flex flex-wrap items-center gap-1.5 mt-1.5">
+                                            <div className="lg:hidden flex flex-wrap items-center gap-1 mt-1">
                                                 <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60">
-                                                    <span className="material-symbols-outlined text-[10px]">account_balance_wallet</span>
-                                                    <span className="text-[9px] font-medium truncate max-w-[60px] sm:max-w-[80px]">{accountName}</span>
+                                                    <span className="material-symbols-outlined text-[9px]">account_balance_wallet</span>
+                                                    <span className="text-[8px] sm:text-[9px] font-medium truncate max-w-[50px] sm:max-w-[80px]">{accountName}</span>
                                                 </div>
-                                                <span className="text-[9px] px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
+                                                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-lg font-bold uppercase tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
                                                     <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}></span>
-                                                    <span className="truncate max-w-[70px]">{tx.category || 'Unset'}</span>
+                                                    <span className="truncate max-w-[60px] sm:max-w-[70px]">{tx.category || 'Unset'}</span>
                                                 </span>
                                             </div>
                                         </div>

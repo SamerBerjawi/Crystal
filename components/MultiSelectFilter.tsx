@@ -65,7 +65,7 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
         <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 p-3 animate-fade-in-up">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] ios-regular rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 p-3 animate-fade-in-up">
           <input
             type="text"
             value={searchTerm}

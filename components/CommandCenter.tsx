@@ -144,7 +144,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-xl bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl z-[101] border border-black/5 dark:border-white/10 overflow-hidden"
+            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-xl ios-regular rounded-2xl shadow-2xl z-[101] border border-black/5 dark:border-white/10 overflow-hidden"
           >
             <div className="p-3 sm:p-4 border-b border-black/5 dark:border-white/10 flex items-center gap-3">
               <span className="material-symbols-outlined text-gray-400">search</span>

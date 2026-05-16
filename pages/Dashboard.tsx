@@ -1379,7 +1379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           title="Dashboard"
           subtitle="Real-time financial pulse across accounts, investments, and commitments."
           actions={
-            <div className="flex flex-row items-center gap-1 p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar">
+            <div className="flex flex-row items-center gap-1 p-1 ios-regular rounded-xl border border-black/5 dark:border-white/5 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar">
                 {/* Global Controls Group */}
                 <div className="flex items-center gap-0.5 pr-1 border-r border-black/5 dark:border-white/10 shrink-0">
                     <button 
@@ -1442,7 +1442,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       </div>
 
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-1 py-1 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 ios-regular px-1 py-1 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
              {/* Redesigned Tabs (Accounts Style) */}
              <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar">
                 {tabs.map((tab) => {
@@ -1539,7 +1539,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
       {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   <AnalysisStatCard 
                     title="Liquidity Ratio" 
                     value={`${liquidityRatio.toFixed(1)} months`} 
@@ -1582,7 +1582,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     isResizable={isEditMode}
                     onLayoutChange={handleLayoutChange}
                     draggableHandle=".drag-handle"
-                    margin={[24, 24]}
+                    margin={window.innerWidth < 768 ? [12, 12] : [24, 24]}
                     containerPadding={[0, 0]}
                 >
                     {widgets
@@ -1746,7 +1746,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 isResizable={isEditMode}
                 onLayoutChange={handleLayoutChange}
                 draggableHandle=".drag-handle"
-                margin={[24, 24]}
+                margin={window.innerWidth < 768 ? [12, 12] : [24, 24]}
                 containerPadding={[0, 0]}
             >
                 {widgets
