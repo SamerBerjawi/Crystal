@@ -32,12 +32,12 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     const flowIntensity = income > 0 ? (expenses / income) * 100 : (expenses > 0 ? 100 : 0);
 
     return (
-        <div className="!p- overflow-hidden group h-full">
+        <div className="!p-0 overflow-hidden group h-full">
             <div className="flex flex-col h-full">
                 
                 {/* --- TOP: POSITION & WEALTH --- */}
                 <div className="p-4 sm:p-6 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.02]">
-                    <div className="flex justify-between items-center gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-1">
                              <div className="flex items-center gap-2 mb-1">
                                 <span className="material-symbols-outlined text-primary-500 text-sm">account_balance</span>
@@ -52,7 +52,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                             </div>
                         </div>
 
-                        <div className={`px-3 py-2 rounded-2xl border backdrop-blur-xl flex flex-col items-center justify-center min-w-[75px] shadow-sm ${isPositiveNet ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
+                        <div className={`px-3 py-2 rounded-2xl border backdrop-blur-xl flex flex-col items-center justify-center min-w-[75px] shadow-sm self-end sm:self-auto ${isPositiveNet ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
                             <span className="text-xl font-semibold leading-none">{Math.abs(savingsRate).toFixed(0)}%</span>
                             <span className="text-[8px] font-semibold tracking-wider mt-1 opacity-80 whitespace-nowrap">
                                 {savingsRate >= 0 ? 'Savings' : 'Burn'} rate
@@ -62,35 +62,30 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 </div>
 
                 {/* --- MIDDLE: PERFORMANCE GRID --- */}
-                 <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-black/5 dark:divide-white/5 border-b border-black/5 dark:border-white/5 flex-grow min-h-[100px]">
+                 <div className="grid grid-cols-3 divide-x divide-black/5 dark:divide-white/5 border-b border-black/5 dark:border-white/5 flex-grow min-h-[100px]">
                      {/* Flow */}
-                     <div className="p-4 flex flex-col justify-center">
-                         <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>
-                         <h3 className={`text-xl font-black tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
+                     <div className="p-3 sm:p-4 flex flex-col justify-center">
+                         <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>
+                         <h3 className={`text-sm sm:text-xl font-black tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
                              {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })}
                          </h3>
                          <div className="mt-2 flex items-center gap-1.5">
-                             <span className={`material-symbols-outlined text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
+                             <span className={`material-symbols-outlined text-[10px] sm:text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
                                  {isPositiveNet ? 'trending_up' : 'trending_down'}
                              </span>
-                             <span className="text-[8px] font-semibold tracking-wider opacity-40">{isPositiveNet ? 'Surplus' : 'Deficit'}</span>
+                             <span className="text-[7px] sm:text-[8px] font-semibold tracking-wider opacity-40">{isPositiveNet ? 'Surplus' : 'Deficit'}</span>
                          </div>
                      </div>
                      
                      {/* Income */}
-                     <div className="p-4 flex flex-col justify-center group/stat hover:bg-emerald-500/[0.02] transition-colors relative overflow-hidden">
+                     <div className="p-3 sm:p-4 flex flex-col justify-center group/stat hover:bg-emerald-500/[0.02] transition-colors relative overflow-hidden">
                         <div className="flex justify-between items-center mb-1.5 relative z-10">
-                             <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Revenue</span>
-                             {incomeChange && (
-                                <span className={`text-[9px] font-semibold ${incomeChange.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                    {incomeChange}
-                                </span>
-                             )}
+                             <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Revenue</span>
                         </div>
-                        <p className="text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
+                        <p className="text-sm sm:text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
                             {formatCurrency(income, currency as Currency, { compact: true })}
                         </p>
-                        <div className="h-6 w-full mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
+                        <div className="h-4 sm:h-6 w-full mt-2 sm:mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{v:10}, {v:15}, {v:12}, {v:20}, {v:18}]}>
                                     <Line type="monotone" dataKey={incomeSparkline.length > 0 ? "value" : "v"} stroke="#10b981" strokeWidth={1.5} dot={false} />
@@ -100,19 +95,14 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                      </div>
 
                      {/* Expenses */}
-                     <div className="p-4 flex flex-col justify-center group/stat hover:bg-rose-500/[0.02] transition-colors relative overflow-hidden">
+                     <div className="p-3 sm:p-4 flex flex-col justify-center group/stat hover:bg-rose-500/[0.02] transition-colors relative overflow-hidden">
                         <div className="flex justify-between items-center mb-1.5 relative z-10">
-                             <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Outflow</span>
-                             {expenseChange && (
-                                <span className={`text-[9px] font-semibold ${expenseChange.startsWith('+') ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                    {expenseChange}
-                                </span>
-                             )}
+                             <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Outflow</span>
                         </div>
-                        <p className="text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
+                        <p className="text-sm sm:text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
                             {formatCurrency(expenses, currency as Currency, { compact: true })}
                         </p>
-                        <div className="h-6 w-full mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
+                        <div className="h-4 sm:h-6 w-full mt-2 sm:mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{v:20}, {v:12}, {v:25}, {v:15}, {v:22}]}>
                                     <Line type="monotone" dataKey={expenseSparkline.length > 0 ? "value" : "v"} stroke="#f43f5e" strokeWidth={1.5} dot={false} />

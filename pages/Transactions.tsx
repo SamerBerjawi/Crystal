@@ -213,6 +213,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [density, setDensity] = useState<'default' | 'high'>('default');
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -563,10 +573,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const getRowSize = useCallback(
     (index: number) => {
         const row = virtualRows[index];
-        if (row && row.type === 'header') return 40; // Smaller height for date headers
-        return 80;
+        if (row && row.type === 'header') return 40; 
+        if (isMobile) return density === 'high' ? 100 : 120;
+        return density === 'high' ? 64 : 80;
     },
-    [virtualRows]
+    [virtualRows, isMobile, density]
   );
 
   const getRowKey = useCallback(
@@ -1638,14 +1649,20 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                             {tx.recurringSourceId && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500">repeat</span>}
                                             {tx.notes && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500/40 shrink-0">notes</span>}
                                         </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-x-2">
-                                            <span className="text-[11px] sm:text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-100">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-x-2">
+                                            <span className="text-[11px] sm:text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-60 truncate max-w-[150px]">
                                                 {tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}
                                             </span>
-                                            {/* Mobile Secondary Info */}
-                                            <div className="lg:hidden flex flex-wrap items-center gap-1.5 mt-1">
-                                                <span className="text-[10px] text-light-text-secondary truncate max-w-[100px]">{accountName}</span>
-                                                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>{tx.category || 'Unset'}</span>
+                                            {/* Mobile Secondary Info - Balanced Polish */}
+                                            <div className="lg:hidden flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60">
+                                                    <span className="material-symbols-outlined text-[10px]">account_balance_wallet</span>
+                                                    <span className="text-[9px] font-medium truncate max-w-[60px] sm:max-w-[80px]">{accountName}</span>
+                                                </div>
+                                                <span className="text-[9px] px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
+                                                    <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}></span>
+                                                    <span className="truncate max-w-[70px]">{tx.category || 'Unset'}</span>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

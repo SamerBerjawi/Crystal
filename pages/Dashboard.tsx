@@ -1379,35 +1379,35 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           title="Dashboard"
           subtitle="Real-time financial pulse across accounts, investments, and commitments."
           actions={
-            <div className="flex flex-wrap items-center gap-2 p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-sm">
+            <div className="flex flex-row items-center gap-1 p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar">
                 {/* Global Controls Group */}
-                <div className="flex items-center gap-1 pr-2 mr-1 border-r border-black/5 dark:border-white/10 ml-1">
+                <div className="flex items-center gap-0.5 pr-1 border-r border-black/5 dark:border-white/10 shrink-0">
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg sm:rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
                         title={isEditMode ? "Finish Editing" : "Edit Layout"}
                     >
-                        <span className="material-symbols-outlined text-lg sm:text-xl">{isEditMode ? 'done' : 'dashboard_customize'}</span>
+                        <span className="material-symbols-outlined text-[16px] sm:text-lg">{isEditMode ? 'done' : 'dashboard_customize'}</span>
                     </button>
 
                     <button 
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-                        className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all group"
+                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg sm:rounded-xl transition-all group"
                         title="Command Center"
                     >
-                        <span className="material-symbols-outlined text-lg sm:text-xl group-hover:text-blue-500">terminal</span>
+                        <span className="material-symbols-outlined text-[16px] sm:text-lg group-hover:text-blue-500">terminal</span>
                     </button>
                 </div>
 
                 {/* Main Actions Group */}
-                <div className="flex items-center gap-1 sm:gap-1.5 font-bold tracking-widest text-sm uppercase">
+                <div className="flex items-center gap-1 flex-1 min-w-0 py-0.5">
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-9 sm:h-12 px-3 sm:px-6 flex items-center gap-1 sm:gap-2 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all font-black text-[9px] sm:text-xs uppercase tracking-widest"
+                            className="h-8 sm:h-9 px-2 sm:px-3 flex items-center gap-1 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-lg sm:rounded-xl transition-all font-black text-[8px] sm:text-[9px] uppercase tracking-widest shrink-0"
                         >
-                            <span className="material-symbols-outlined text-base sm:text-lg">add_circle</span>
-                            <span className="hidden sm:inline">Add Widget</span>
+                            <span className="material-symbols-outlined text-[14px] sm:text-base">add_circle</span>
+                            <span className="hidden xs:inline">Widget</span>
                         </button>
                     )}
 
@@ -1420,20 +1420,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className={`${BTN_SECONDARY_STYLE} !h-9 sm:!h-12 !px-3 sm:!px-7 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10 text-[9px] sm:text-xs`}
+                        className={`${BTN_SECONDARY_STYLE} !h-8 sm:!h-9 !px-2 sm:!px-3 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10 text-[8px] sm:text-[9px] shrink-0 font-black tracking-widest uppercase flex items-center gap-1`}
                         title="Sync Banks"
                     >
-                        <span className={`material-symbols-outlined text-lg sm:text-xl ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
-                        <span className="hidden sm:inline font-black text-xs tracking-widest">{isSyncingBanks ? 'Syncing...' : 'Sync Banks'}</span>
+                        <span className={`material-symbols-outlined text-[16px] sm:text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
+                        <span className="hidden xs:inline">{isSyncingBanks ? 'Sync...' : 'Sync'}</span>
                     </button>
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className={`${BTN_PRIMARY_STYLE} !h-9 sm:!h-12 !px-3 sm:!px-7 text-[9px] sm:text-xs`}
+                        className={`${BTN_PRIMARY_STYLE} !h-8 sm:!h-9 !px-2 sm:!px-3 text-[8px] sm:text-[9px] shrink-0 font-black tracking-widest uppercase flex items-center gap-1`}
                     >
-                        <span className="material-symbols-outlined text-lg sm:text-xl">add</span>
-                        <span className="hidden sm:inline font-black text-xs tracking-widest">New Transaction</span>
-                        <span className="sm:hidden ml-1 font-black">Add</span>
+                        <span className="material-symbols-outlined text-[16px] sm:text-lg">add</span>
+                        <span className="hidden xs:inline text-[8px] sm:text-[9px]">Transact</span>
+                        <span className="xs:hidden font-black">Add</span>
                     </button>
                 </div>
             </div>

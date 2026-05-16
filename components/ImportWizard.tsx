@@ -894,7 +894,71 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
         );
     };
 
-    return (<div className="max-w-7xl mx-auto"><h2 className="text-3xl font-bold mb-2 text-center">Review & Clean Data</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8 text-center">Correct any errors and exclude rows you don't want to import.</p><div className="overflow-x-auto bg-light-card dark:bg-dark-card p-4 rounded-lg"><table className="w-full text-sm table-fixed"><thead><tr className="border-b border-black/10 dark:border-white/10"><th className="p-2 font-semibold text-left w-12">Skip</th>{headers.map(h => <th key={h} className="p-2 font-semibold text-left capitalize">{h}</th>)}</tr><tr className="border-b border-black/10 dark:border-white/10"><th className="p-1"></th>{headers.map(h => (<th key={h} className="p-1 align-top font-normal"><div className="relative">{h==='date'?<button onClick={()=>setActivePopover(h)} className={`${INPUT_BASE_STYLE} text-xs py-1 text-left w-full flex justify-between items-center`}><span>{filters[h]?`${filters[h].type}: ${filters[h].value}`:'Filter date...'}</span><span className="material-symbols-outlined text-sm">filter_list</span></button> : (h==='amount' || h === 'balance')?<div className="flex"><select value={filters[h]?.type||'eq'} onChange={e=>handleFilterChange(h, e.target.value, filters[h]?.value||'')} className={`${SELECT_STYLE} text-xs py-1 rounded-r-none w-1/3`}><option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option></select><input type="number" placeholder="Value" value={filters[h]?.value||''} onChange={e=>handleFilterChange(h, filters[h]?.type||'eq', e.target.value)} className={`${INPUT_BASE_STYLE} text-xs py-1 rounded-l-none`}/></div>:<input type="text" placeholder={`Filter ${h}...`} value={filters[h]?.value||''} onChange={e=>handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} text-xs py-1`}/>}{activePopover === h && h === 'date' && <DateFilterPopover header={h}/>}</div></th>))}</tr></thead><tbody>{filteredData.map(row => (<tr key={row.originalIndex} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 ${excludedRows.has(row.originalIndex) ? 'opacity-40 bg-gray-100 dark:bg-gray-800' : ''}`}><td className="p-2 text-center"><input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" /></td>{headers.map(header => { const hasError = errors[row.originalIndex]?.[header]; return <td key={header} className="p-0"><input value={row[header]} onChange={e => handleCellChange(row.originalIndex, header, e.target.value)} className={`w-full h-full p-2 bg-transparent focus:outline-none focus:bg-primary-500/10 ${hasError ? 'bg-red-500/20 text-red-800 dark:text-red-200' : ''}`} title={hasError || ''} /></td> })}</tr>))}</tbody></table></div></div>);
+    return (
+        <div className="max-w-7xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-center">Review & Clean Data</h2>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6 sm:mb-8 text-center text-sm sm:text-base">Correct any errors and exclude rows you don't want to import.</p>
+            
+            <div className="overflow-x-auto bg-light-card dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm no-scrollbar">
+                <table className="w-full text-xs sm:text-sm table-fixed min-w-[600px]">
+                    <thead>
+                        <tr className="border-b border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5">
+                            <th className="p-3 font-bold text-center w-12 sm:w-16">Skip</th>
+                            {headers.map(h => <th key={h} className="p-3 font-bold text-left capitalize tracking-wider">{h}</th>)}
+                        </tr>
+                        <tr className="border-b border-black/10 dark:border-white/10">
+                            <th className="p-1"></th>
+                            {headers.map(h => (
+                                <th key={h} className="p-1 align-top font-normal">
+                                    <div className="relative">
+                                        {h === 'date' ? (
+                                            <button onClick={() => setActivePopover(h)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1.5 text-left w-full flex justify-between items-center`}>
+                                                <span className="truncate">{filters[h] ? `${filters[h].type}: ${filters[h].value}` : 'Filter...'}</span>
+                                                <span className="material-symbols-outlined text-sm">filter_list</span>
+                                            </button>
+                                        ) : (h === 'amount' || h === 'balance') ? (
+                                            <div className="flex h-8 sm:h-9">
+                                                <select value={filters[h]?.type || 'eq'} onChange={e => handleFilterChange(h, e.target.value, filters[h]?.value || '')} className={`${SELECT_STYLE} !text-[10px] sm:text-xs py-1 rounded-r-none w-[45%]`}>
+                                                    <option value="eq">=</option>
+                                                    <option value="gt">&gt;</option>
+                                                    <option value="lt">&lt;</option>
+                                                </select>
+                                                <input type="number" placeholder="Val" value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, filters[h]?.type || 'eq', e.target.value)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1 rounded-l-none w-[55%]`} />
+                                            </div>
+                                        ) : (
+                                            <input type="text" placeholder={`Filter...`} value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1.5`} />
+                                        )}
+                                        {activePopover === h && h === 'date' && <DateFilterPopover header={h} />}
+                                    </div>
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredData.map(row => (
+                            <tr key={row.originalIndex} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 transition-opacity ${excludedRows.has(row.originalIndex) ? 'opacity-40 bg-gray-100 dark:bg-gray-800' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'}`}>
+                                <td className="p-2 sm:p-3 text-center">
+                                    <input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className="w-5 h-5 rounded cursor-pointer text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" />
+                                </td>
+                                {headers.map(header => {
+                                    const hasError = errors[row.originalIndex]?.[header];
+                                    return (
+                                        <td key={header} className="p-0 border-r border-black/[0.03] dark:border-white/[0.03] last:border-r-0">
+                                            <input 
+                                                value={row[header]} 
+                                                onChange={e => handleCellChange(row.originalIndex, header, e.target.value)} 
+                                                className={`w-full h-full p-3 bg-transparent focus:outline-none focus:bg-primary-500/10 text-[11px] sm:text-sm font-medium ${hasError ? 'bg-red-500/10 text-red-800 dark:text-red-200' : 'text-light-text dark:text-dark-text'}`} 
+                                                title={hasError || ''} 
+                                            />
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>);
 };
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {

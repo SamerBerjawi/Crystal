@@ -54,17 +54,17 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
             </div>
 
             {/* Legend Grid */}
-            <div className="grid grid-cols-2 gap-x-2 gap-y-2">
-                {breakdownData.slice(0, 6).map(item => {
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                {breakdownData.slice(0, 4).map(item => {
                     const percentage = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
                     if (percentage < 1) return null;
                     return (
-                        <div key={item.name} className="flex items-center justify-between text-xs group">
+                        <div key={item.name} className="flex items-center justify-between text-[10px] group">
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
-                                <span className="text-light-text-secondary dark:text-gray-300 truncate group-hover:text-light-text dark:group-hover:text-white transition-colors max-w-[80px]">{item.name}</span>
+                                <span className="text-light-text-secondary dark:text-gray-300 truncate group-hover:text-light-text dark:group-hover:text-white transition-colors max-w-[60px]">{item.name}</span>
                             </div>
-                            <span className="font-bold text-light-text dark:text-white">{percentage.toFixed(0)}%</span>
+                            <span className="font-bold text-light-text dark:text-white shrink-0">{percentage.toFixed(0)}%</span>
                         </div>
                     );
                 })}

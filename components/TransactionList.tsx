@@ -116,7 +116,16 @@ const TransactionList: React.FC<TransactionListProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(640);
-  const ROW_HEIGHT = density === 'high' ? 68 : 80;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const ROW_HEIGHT = isMobile ? (density === 'high' ? 88 : 100) : (density === 'high' ? 68 : 80);
   const OVERSCAN = 8;
 
   const handleScroll = useThrottledCallback((position: number) => setScrollTop(position), 100);
@@ -160,7 +169,9 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 key={tx.id}
                 className="flex items-center justify-between group cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] p-3 rounded-[1.5rem] transition-all duration-300 border border-transparent hover:border-black/5 dark:hover:border-white/5 relative"
                 style={{ 
-                    height: density === 'high' ? '60px' : '72px',
+                    minHeight: density === 'high' ? '60px' : '72px',
+                    height: 'auto',
+                    marginBottom: '8px',
                     boxShadow: `hover: 0 10px 30px -10px ${accentColor.replace('0.4', '0.15')}`
                 }}
                 onClick={() => onTransactionClick?.(tx)}
@@ -177,7 +188,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 
                 <div className="flex items-center min-w-0 flex-1 relative z-10">
                   <div 
-                    className={`flex-shrink-0 ${density === 'high' ? 'h-9 w-9' : 'h-11 w-11'} rounded-2xl flex items-center justify-center overflow-hidden shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${showMerchantLogo ? 'bg-white' : ''}`}
+                    className={`flex-shrink-0 ${density === 'high' ? 'h-9 w-9 sm:h-9 sm:w-9' : 'h-11 w-11 sm:h-11 sm:w-11'} rounded-2xl flex items-center justify-center overflow-hidden shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${showMerchantLogo ? 'bg-white' : ''}`}
                     style={showMerchantLogo ? undefined : { backgroundColor: isTransfer ? undefined : categoryColor }}
                   >
                     {showMerchantLogo && merchantLogoUrl ? (
@@ -189,71 +200,47 @@ const TransactionList: React.FC<TransactionListProps> = ({
                         onError={() => handleLogoError(merchantLogoUrl)}
                       />
                     ) : (
-                      <span className={`material-symbols-outlined text-2xl ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-white'}`}>
+                      <span className={`material-symbols-outlined ${density === 'high' ? 'text-xl' : 'text-2xl'} ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-white'}`}>
                         {icon}
                       </span>
                     )}
                   </div>
-                  <div className="ml-4 min-w-0 overflow-hidden flex-1">
-                    <div className="flex items-center gap-2">
-                        <p className={`${density === 'high' ? 'text-[14px]' : 'text-[16px]'} font-medium text-light-text dark:text-dark-text truncate tracking-tight`}>
+                  <div className="ml-3 sm:ml-4 min-w-0 overflow-hidden flex-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <p className={`${density === 'high' ? 'text-[13px] sm:text-[14px]' : 'text-[15px] sm:text-[16px]'} font-bold text-light-text dark:text-dark-text truncate tracking-tight`}>
                             {description}
                         </p>
-                        {tx.isMarketAdjustment && <span className="text-[9px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded-full shrink-0">Market</span>}
+                        {tx.isMarketAdjustment && <span className="text-[8px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1 py-0.5 rounded-full shrink-0">MARKET</span>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                        <span className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-lg font-medium tracking-tight flex items-center gap-1 shrink-0" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
-                            <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}></span>
+                    <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                        <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
                             {tx.category}
                         </span>
-                        {txTags && txTags.length > 0 && (
-                            <div className="flex items-center gap-1 overflow-hidden shrink-0 max-w-[100px] sm:max-w-none">
-                                {txTags.slice(0, 1).map(tag => (
-                                    <span 
-                                        key={tag.id}
-                                        className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-lg font-bold tracking-tight border border-current shadow-sm truncate"
-                                        style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
-                                    >
-                                        {tag.name}
-                                    </span>
-                                ))}
-                                {txTags.length > 1 && (
-                                    <span className="text-[9px] sm:text-[10px] bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary px-1.5 sm:px-2 py-0.5 rounded-lg font-medium tracking-tight whitespace-nowrap">
-                                        +{txTags.length - 1}
-                                    </span>
-                                )}
-                            </div>
-                        )}
                         {tx.accountName && (
-                            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60 shrink-0">
-                                <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight truncate max-w-[80px]">
-                                    {tx.accountName}
-                                </span>
-                            </div>
+                            <span className="text-[9px] sm:text-[10px] font-medium text-light-text-secondary/40 dark:text-dark-text-secondary/40 tracking-tight truncate max-w-[80px]">
+                                • {tx.accountName}
+                            </span>
                         )}
-                        {tx.notes && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500/50 shrink-0">description</span>}
+                        {tx.notes && <span className="material-symbols-outlined text-[12px] text-primary-500/30 shrink-0">description</span>}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-right shrink-0 relative z-10">
+                <div className="flex items-center gap-2 sm:gap-4 text-right shrink-0 relative z-10 pl-2">
                   <div className="flex flex-col items-end">
                     <p
-                      className={`${density === 'high' ? 'text-[15px]' : 'text-[17px]'} font-medium tracking-tighter privacy-blur ${
-                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')
+                      className={`${density === 'high' ? 'text-[14px] sm:text-[15px]' : 'text-[16px] sm:text-[17px]'} font-black tracking-tighter privacy-blur ${
+                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500')
                       }`}
                     >
                       {amountDisplay}
                     </p>
                     {spareAmountEur && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className="material-symbols-outlined text-[12px] text-emerald-500">savings</span>
-                        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
+                      <div className="flex items-center gap-0.5 mt-0.5">
+                        <span className="material-symbols-outlined text-[10px] text-emerald-500">savings</span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 tracking-tight">{spareAmountEur}</span>
                       </div>
                     )}
                   </div>
-                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-40 transition-opacity">
-                    chevron_right
-                  </span>
                 </div>
               </li>
             )
