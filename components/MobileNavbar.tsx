@@ -52,14 +52,10 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
   return (
     <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-sm">
       <nav 
-        className="flex items-center justify-around p-1.5 gap-1"
+        className="flex items-center justify-around p-1.5 gap-1 ios-regular shadow-xl"
         style={{
-          backgroundColor: 'var(--light-card)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: '24px',
-          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.2)'
         }}
       >
         {navItems.map((item) => {

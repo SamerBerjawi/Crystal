@@ -103,8 +103,28 @@
         border-bottom: 2px solid rgba(0,0,0,0.4);
       }
       .dark .react-grid-item > .react-resizable-handle::after {
-        border-right-color: rgba(255,255,255,0.4);
-        border-bottom-color: rgba(255,255,255,0.4);
+        border-right-color: rgba(255, 255, 255, 0.4);
+        border-bottom-color: rgba(255, 255, 255, 0.4);
+      }
+
+      /* iOS Style Blur */
+      .ios-regular {
+        background-color: rgba(255, 255, 255, 0.6) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(105%) !important;
+        backdrop-filter: blur(20px) saturate(180%) brightness(105%) !important;
+      }
+      .dark .ios-regular {
+        background-color: rgba(0, 0, 0, 0.6) !important;
+      }
+
+      /* Unified Glass/Blur Style (Sankey Tooltip inspired) */
+      .glass-blur {
+        background-color: var(--light-card) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: none !important;
+        border-radius: 16px !important;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
       }
     </style>
     <script>
