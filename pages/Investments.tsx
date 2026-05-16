@@ -605,9 +605,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <thead className="bg-white dark:bg-dark-card">
                                     <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5">
                                         <th className="py-4 pl-6">Instrument</th>
-                                        <th className="py-4 text-right">Last Price</th>
-                                        <th className="py-4 text-right">Quantity</th>
-                                        <th className="py-4 text-right">Cost Basis</th>
+                                        <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
+                                        <th className="py-4 text-right hidden lg:table-cell">Quantity</th>
+                                        <th className="py-4 text-right hidden md:table-cell">Cost Basis</th>
                                         <th className="py-4 text-right">Market Value</th>
                                         <th className="py-4 text-right pr-6">Gain/Loss</th>
                                     </tr>
@@ -641,44 +641,22 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                     >
                                                         <td className="py-4 pl-6">
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
+                                                                <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
                                                                     {holding.symbol.substring(0, 2)}
                                                                 </div>
                                                                 <div className="min-w-0 flex-1">
                                                                     <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
                                                                     <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
                                                                 </div>
-                                                                <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <button
-                                                                        onClick={(event) => { event.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
-                                                                        className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
-                                                                        title="Update price"
-                                                                        aria-label={`Update price for ${holding.symbol}`}
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-base">payments</span>
-                                                                    </button>
-                                                                    {holdingAccount && (
-                                                                        <>
-                                                                            <button
-                                                                                onClick={(event) => { event.stopPropagation(); handleOpenAccountModal(holdingAccount); }}
-                                                                                className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
-                                                                                title="Edit account"
-                                                                                aria-label={`Edit ${holding.symbol} account`}
-                                                                            >
-                                                                                <span className="material-symbols-outlined text-base">edit</span>
-                                                                            </button>
-                                                                        </>
-                                                                    )}
-                                                                </div>
                                                             </div>
                                                         </td>
-                                                        <td className="py-4 text-right">
+                                                        <td className="py-4 text-right hidden sm:table-cell">
                                                             <span className="text-sm font-mono dark:text-white privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
                                                         </td>
-                                                        <td className="py-4 text-right">
+                                                        <td className="py-4 text-right hidden lg:table-cell">
                                                             <span className="text-sm font-medium dark:text-gray-300">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                                                         </td>
-                                                        <td className="py-4 text-right">
+                                                        <td className="py-4 text-right hidden md:table-cell">
                                                             <span className="text-sm font-mono text-gray-500 privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
                                                         </td>
                                                         <td className="py-4 text-right">
@@ -688,7 +666,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                             <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                                 {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
                                                             </div>
-                                                            <div className="text-[10px] text-gray-400 privacy-blur">
+                                                            <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
                                                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                                                             </div>
                                                         </td>

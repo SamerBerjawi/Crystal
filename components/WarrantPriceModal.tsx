@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE } from '../constants';
 import { toLocalISOString } from '../utils';
@@ -390,237 +391,255 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     
     return (
         <Modal onClose={onClose} title={title}>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-8 pb-4">
                 
+                {/* 1. Modal Hero */}
                 {!initialEntry && (
-                    <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-lg mb-4">
-                        <button
-                            type="button"
-                            onClick={() => setMode('single')}
-                            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${mode === 'single' ? 'bg-white dark:bg-dark-card shadow text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            Single Entry
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setMode('bulk')}
-                            className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${mode === 'bulk' ? 'bg-white dark:bg-dark-card shadow text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            Bulk Import
-                        </button>
+                    <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 flex flex-col items-center gap-6 shadow-sm">
+                        <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 space-x-1 w-full max-w-sm">
+                            <button
+                                type="button"
+                                onClick={() => setMode('single')}
+                                className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${mode === 'single' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
+                            >
+                                Single Entry
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMode('bulk')}
+                                className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${mode === 'bulk' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
+                            >
+                                Bulk Manifest
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-center">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-amber-500">analytics</span>
+                            </div>
+                            <div className="space-y-0.5 text-left">
+                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400 opacity-70">Current Asset</span>
+                                <p className="text-lg font-black text-light-text dark:text-dark-text uppercase tracking-tight truncate max-w-[240px]">{name}</p>
+                            </div>
+                        </div>
                     </div>
                 )}
 
                 {mode === 'single' ? (
-                    <>
-                        <div>
-                            <label htmlFor="price-date" className={labelStyle}>Date</label>
-                            <input
-                                id="price-date"
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className={INPUT_BASE_STYLE}
-                                required
-                                disabled={!!initialEntry}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="manual-price" className={labelStyle}>Price per Unit (€)</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
-                                <input
-                                    id="manual-price"
-                                    type="number"
-                                    step="any"
-                                    value={newPrice}
-                                    onChange={(e) => setNewPrice(normalizeDecimalString(e.target.value))}
-                                    className={`${INPUT_BASE_STYLE} pl-8`}
-                                    placeholder="0.00"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2 mt-3">
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleFetchLatestPrice}
-                                        className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
-                                        disabled={isFetching}
-                                    >
-                                        <span className="material-symbols-outlined text-lg">cloud_download</span>
-                                        {isFetching ? 'Fetching…' : 'Fetch from Twelve Data'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsSmartFetcherOpen(prev => !prev)}
-                                        className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
-                                    >
-                                        <span className="material-symbols-outlined text-lg">travel_explore</span>
-                                        {isSmartFetcherOpen ? 'Hide Smart Fetcher' : 'Smart Fetch from Website'}
-                                    </button>
+                    <div className="space-y-8 animate-fade-in">
+                        {/* Entry Card */}
+                        <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500 text-lg">payments</span>
+                                Valuation Parameters
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                <div className="space-y-2">
+                                    <label htmlFor="price-date" className={labelStyle}>Observation Date</label>
+                                    <input
+                                        id="price-date"
+                                        type="date"
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest`}
+                                        required
+                                        disabled={!!initialEntry}
+                                    />
                                 </div>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                    Uses your saved Twelve Data API key or a custom web page scan for hard-to-find warrant prices.
-                                </p>
+                                <div className="space-y-2">
+                                    <label htmlFor="manual-price" className={labelStyle}>Unit Price</label>
+                                    <div className="relative group">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400 transition-colors group-focus-within:text-primary-500">€</span>
+                                        <input
+                                            id="manual-price"
+                                            type="number"
+                                            step="any"
+                                            value={newPrice}
+                                            onChange={(e) => setNewPrice(normalizeDecimalString(e.target.value))}
+                                            className={`${INPUT_BASE_STYLE} pl-10 h-14 !text-3xl font-black tabular-nums`}
+                                            placeholder="0.00"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            {fetchError && (
-                                <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-base">error</span>
-                                    {fetchError}
-                                </p>
-                            )}
-                            {isSmartFetcherOpen && (
-                                <div className="mt-3 space-y-3 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5">
-                                    <div className="space-y-2">
-                                        <label className={labelStyle}>Page URL to scan</label>
-                                        <input
-                                            type="url"
-                                            value={smartFetcherUrl}
-                                            onChange={(e) => setSmartFetcherUrl(e.target.value)}
-                                            placeholder="https://example.com/your-warrant"
-                                            className={INPUT_BASE_STYLE}
-                                        />
-                                        <label className={labelStyle}>Optional cookies (useful for T&C or disclaimer gates)</label>
-                                        <input
-                                            type="text"
-                                            value={smartFetcherCookies}
-                                            onChange={(e) => setSmartFetcherCookies(e.target.value)}
-                                            placeholder="consent=true; disclaimerAccepted=1"
-                                            className={INPUT_BASE_STYLE}
-                                        />
-                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                            Paste cookies after accepting any T&C or disclaimer in your browser so the proxy can reuse that session and reach the real price data.
-                                        </p>
-                                        {smartFetcherBinding && (
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                Saved selector for this holding: <span className="font-mono break-all">{smartFetcherBinding.selector}</span>
-                                            </p>
-                                        )}
-                                        <div className="flex flex-wrap gap-2">
+
+                            {/* Smart Tools Sub-Card */}
+                            <div className="pt-6 border-t border-black/5 dark:border-white/5 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-lg">auto_fix</span>
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 dark:text-indigo-400">Autonomous Retrieval</span>
+                                    </div>
+                                    <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
+                                        <button
+                                            type="button"
+                                            onClick={handleFetchLatestPrice}
+                                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${!isFetching ? 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card' : 'opacity-50'}`}
+                                            disabled={isFetching}
+                                        >
+                                            {isFetching ? 'Syncing...' : 'Twelve Data'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsSmartFetcherOpen(prev => !prev)}
+                                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${isSmartFetcherOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card'}`}
+                                        >
+                                            Smart Fetch
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {isSmartFetcherOpen && (
+                                    <div className="p-6 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-200/30 dark:border-indigo-800/20 space-y-6 animate-fade-in">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[9px] font-black uppercase tracking-widest text-indigo-900/40 dark:text-indigo-300/40 px-1">Source URL</label>
+                                                <input
+                                                    type="url"
+                                                    value={smartFetcherUrl}
+                                                    onChange={(e) => setSmartFetcherUrl(e.target.value)}
+                                                    placeholder="Target landing page..."
+                                                    className={`${INPUT_BASE_STYLE} h-11 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[9px] font-black uppercase tracking-widest text-indigo-900/40 dark:text-indigo-300/40 px-1">Session Data (Cookies)</label>
+                                                <input
+                                                    type="text"
+                                                    value={smartFetcherCookies}
+                                                    onChange={(e) => setSmartFetcherCookies(e.target.value)}
+                                                    placeholder="Optional session tokens..."
+                                                    className={`${INPUT_BASE_STYLE} h-11 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => handleSmartFetcher()}
-                                                className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                                className="flex-1 h-12 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                                                 disabled={smartFetcherStatus === 'loading'}
                                             >
-                                                <span className="material-symbols-outlined text-lg">search</span>
-                                                {smartFetcherStatus === 'loading' ? 'Scanning…' : 'Scan page for prices'}
+                                                <span className="material-symbols-outlined text-lg">{smartFetcherStatus === 'loading' ? 'sync' : 'radar'}</span>
+                                                {smartFetcherStatus === 'loading' ? 'Extracting Data...' : 'Scan Webpage'}
                                             </button>
                                             {smartFetcherBinding && (
                                                 <button
                                                     type="button"
                                                     onClick={() => handleSmartFetcher({ useSavedSelector: true })}
-                                                    className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                                    className="w-12 h-12 flex items-center justify-center bg-white dark:bg-dark-card text-indigo-600 rounded-xl hover:shadow-md transition-all border border-indigo-200/50 dark:border-indigo-800/50 shadow-sm"
+                                                    title="Refresh from saved binding"
                                                     disabled={smartFetcherStatus === 'loading'}
                                                 >
                                                     <span className="material-symbols-outlined text-lg">refresh</span>
-                                                    Refresh from saved selector
                                                 </button>
                                             )}
                                         </div>
-                                    </div>
 
-                                    {smartFetcherStatus === 'loading' && (
-                                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
-                                            Looking for price-like values on the page…
-                                        </p>
-                                    )}
-
-                                    {smartFetcherCandidates.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
-                                                <span className="material-symbols-outlined text-lg">radar</span>
-                                                Select the correct price below
-                                            </p>
-                                            <div className="space-y-2 max-h-48 overflow-auto pr-1">
-                                                {smartFetcherCandidates.map(candidate => (
-                                                    <label key={candidate.id} className="flex items-start gap-2 p-2 rounded-lg border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card">
-                                                        <input
-                                                            type="radio"
-                                                            name="smart-fetcher-price"
-                                                            checked={smartFetcherSelection === candidate.id}
-                                                            onChange={() => setSmartFetcherSelection(candidate.id)}
-                                                            className="mt-1"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <p className="font-bold text-light-text dark:text-dark-text">€{candidate.value}</p>
-                                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary break-words">{candidate.context}</p>
-                                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Selector: <span className="font-mono break-all">{candidate.selector}</span></p>
-                                                        </div>
-                                                    </label>
-                                                ))}
+                                        {smartFetcherCandidates.length > 0 && (
+                                            <div className="space-y-4 pt-2">
+                                                <div className="flex items-center justify-between px-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="material-symbols-outlined text-sm text-indigo-600">center_focus_strong</span>
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</p>
+                                                    </div>
+                                                    <span className="text-[9px] font-black text-indigo-600/50 px-2 py-0.5 rounded-full bg-indigo-600/5 uppercase">Select Binding</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-auto pr-2 custom-scrollbar">
+                                                    {smartFetcherCandidates.map(candidate => (
+                                                        <label key={candidate.id} className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer relative group ${smartFetcherSelection === candidate.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 text-light-text dark:text-dark-text hover:border-indigo-300/50'}`}>
+                                                            <input
+                                                                type="radio"
+                                                                name="smart-fetcher-price"
+                                                                checked={smartFetcherSelection === candidate.id}
+                                                                onChange={() => setSmartFetcherSelection(candidate.id)}
+                                                                className="sr-only"
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-black text-xl tabular-nums mb-1 tracking-tight">€{candidate.value}</p>
+                                                                <p className="text-[9px] font-black opacity-60 truncate uppercase tracking-tighter">{candidate.context}</p>
+                                                            </div>
+                                                            {smartFetcherSelection === candidate.id && <span className="material-symbols-outlined text-base absolute top-3 right-3 text-white/50">check_circle</span>}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={applySmartSelection}
+                                                    className="w-full h-12 bg-white dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-xl border border-indigo-600/20 hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
+                                                    disabled={!smartFetcherSelection}
+                                                >
+                                                    Finalize & Bind Selector
+                                                </button>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={applySmartSelection}
-                                                className={`${BTN_PRIMARY_STYLE} !py-2 w-full`}
-                                                disabled={!smartFetcherSelection}
-                                            >
-                                                Use selected price and remember this location
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {smartFetcherError && (
-                                        <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-base">error</span>
-                                            {smartFetcherError}
-                                        </p>
-                                    )}
-
-                                    {smartFetcherBinding && smartFetcherStatus === 'ready' && !smartFetcherError && (
-                                        <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-base">check_circle</span>
-                                            Saved price location for quick refreshes.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </>
+                    </div>
                 ) : (
-                    <div className="space-y-3">
-                         <div>
-                            <label htmlFor="bulk-data" className={labelStyle}>Data (YYYY-MM-DD Price)</label>
+                    <div className="space-y-8 animate-fade-in">
+                        <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary-500 text-lg">description</span>
+                                    Input Stream
+                                </h4>
+                                <div className="text-[9px] font-black text-primary-500/50 px-2 py-0.5 rounded-full bg-primary-500/5 uppercase tracking-widest">TSV/CSV Format</div>
+                            </div>
                             <textarea
                                 id="bulk-data"
                                 value={bulkData}
                                 onChange={(e) => setBulkData(e.target.value)}
-                                className={`${INPUT_BASE_STYLE} font-mono text-sm`}
-                                rows={6}
-                                placeholder={`2023-01-01 150.00\n2023-02-01 155.50\n2023-03-01 162.25`}
+                                className={`${INPUT_BASE_STYLE} font-mono !text-xs h-64 p-6 leading-relaxed bg-white dark:bg-black/20 border-black/5 dark:border-white/5 focus:ring-1 focus:ring-primary-500/20`}
+                                placeholder={`YYYY-MM-DD VALUE\n2024-05-10 1282.50\n2024-05-11 1290.10`}
                                 autoFocus
                             />
-                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                 Paste dates and prices separated by space, comma or tab.
-                             </p>
+                            <AnimatePresence>
+                                {bulkPreview.length > 0 && (
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-emerald-500 text-base">task_alt</span>
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">{bulkPreview.length} Validated Data Points Detected</span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
-                        {bulkPreview.length > 0 && (
-                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-900/30">
-                                <p className="text-sm text-green-700 dark:text-green-300 font-semibold flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-lg">check_circle</span>
-                                    {bulkPreview.length} entries recognized
-                                </p>
-                            </div>
-                        )}
                     </div>
                 )}
                 
-                <div className="flex justify-between items-center pt-4 border-t border-black/5 dark:border-white/5">
-                     {mode === 'single' ? (
-                        <button type="button" onClick={handleClear} className={BTN_DANGER_STYLE}>
-                            {initialEntry ? 'Delete Entry' : 'Clear Value'}
-                        </button>
-                     ) : (
-                         <div /> // Spacer
-                     )}
+                <div className="flex justify-between items-center pt-8 border-t border-black/5 dark:border-white/5">
+                     <div className="w-32">
+                        {mode === 'single' ? (
+                            <button type="button" onClick={handleClear} className="h-12 px-6 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all active:scale-95">
+                                {initialEntry ? 'Purge Record' : 'Reset Inputs'}
+                            </button>
+                        ) : (
+                            <button type="button" onClick={() => setBulkData('')} className="h-12 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 rounded-xl transition-all">Clear All</button>
+                        )}
+                     </div>
                     <div className="flex gap-3">
-                        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                        <button type="submit" className={BTN_PRIMARY_STYLE} disabled={mode === 'bulk' && bulkPreview.length === 0}>
-                            {mode === 'bulk' ? 'Import Prices' : 'Save Price'}
+                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
+                        <button 
+                            type="submit" 
+                            className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-widest text-[10px] font-black disabled:opacity-50`} 
+                            disabled={mode === 'bulk' && bulkPreview.length === 0}
+                        >
+                            {mode === 'bulk' ? 'Commit Batch' : 'Log Valuation'}
+                            <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">save</span>
                         </button>
                     </div>
                 </div>

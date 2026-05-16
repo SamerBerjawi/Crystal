@@ -81,179 +81,205 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
     
     return (
         <Modal onClose={onClose} title={modalTitle}>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[80px] rounded-full" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-8 pb-4">
                 
-                {/* Asset Info Section */}
-                <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
-                    <h4 className="font-bold text-sm text-light-text dark:text-dark-text flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">token</span>
-                        Asset Information
-                    </h4>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="col-span-1">
-                            <label htmlFor="isin" className={labelStyle}>Ticker / ISIN</label>
-                            <input id="isin" type="text" value={isin} onChange={e => setIsin(e.target.value)} className={`${INPUT_BASE_STYLE} uppercase font-mono`} placeholder="AAPL" required autoFocus />
-                        </div>
-                        <div className="col-span-2">
-                            <label htmlFor="name" className={labelStyle}>Asset Name</label>
-                            <input id="name" type="text" value={name} onChange={e => setName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. Apple Inc." required />
-                        </div>
+                {/* Hero Target Section */}
+                <div className="bg-white dark:bg-black/20 p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 flex flex-col items-center gap-2 shadow-sm">
+                    <label className={labelStyle}>Total Grant Valuation</label>
+                    <div className="relative group w-full max-w-[320px] flex justify-center py-4">
+                         <div className="text-7xl font-black tracking-tighter tabular-nums flex items-baseline gap-3 text-light-text dark:text-dark-text">
+                             <span className="text-3xl text-gray-300 dark:text-gray-700 font-medium">€</span>
+                             {totalGrantValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                         </div>
                     </div>
+                    <div className="h-1 w-20 bg-primary-500/20 rounded-full" />
                 </div>
 
-                {/* Grant Details Section */}
-                <div>
-                     <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">contract</span>
-                        Grant Details
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="quantity" className={labelStyle}>Quantity</label>
-                            <input id="quantity" type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} className={`${INPUT_BASE_STYLE} font-mono`} placeholder="0" required />
-                        </div>
-                        <div>
-                            <label htmlFor="grantPrice" className={labelStyle}>Strike Price (€)</label>
-                            <input id="grantPrice" type="number" step="0.01" value={grantPrice} onChange={e => setGrantPrice(e.target.value)} className={`${INPUT_BASE_STYLE} font-mono`} required />
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Total Grant Value</span>
-                    <span className="text-xl font-bold text-blue-700 dark:text-blue-300 font-mono">{formatCurrency(totalGrantValue, 'EUR')}</span>
-                </div>
-
-                <div>
-                    <label htmlFor="grantDate" className={labelStyle}>Grant Date</label>
-                    <input id="grantDate" type="date" value={grantDate} onChange={e => setGrantDate(e.target.value)} className={INPUT_BASE_STYLE} required />
-                </div>
-
-                {/* Tax Section */}
-                <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 space-y-4">
-                    <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-amber-500">account_balance_wallet</span>
-                        Tax Configuration
+                {/* 1. Asset Identity Section */}
+                <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">fingerprint</span>
+                        Security Identification
                     </h4>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className={labelStyle}>Tax Type</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select 
-                                    value={taxType} 
-                                    onChange={e => setTaxType(e.target.value as 'amount' | 'percentage')}
-                                    className={SELECT_STYLE}
-                                >
-                                    <option value="percentage">Percentage (%)</option>
-                                    <option value="amount">Fixed Amount (€)</option>
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="col-span-1 space-y-2">
+                            <label htmlFor="isin" className={labelStyle}>Ticker / SYMBOL</label>
+                            <input 
+                                id="isin" 
+                                type="text" 
+                                value={isin} 
+                                onChange={e => setIsin(e.target.value)} 
+                                className={`${INPUT_BASE_STYLE} uppercase font-black tracking-widest h-14 !text-xl`} 
+                                placeholder="TICKER" 
+                                required 
+                                autoFocus 
+                            />
+                        </div>
+                        <div className="col-span-2 space-y-2">
+                            <label htmlFor="name" className={labelStyle}>Asset Designation</label>
+                            <input 
+                                id="name" 
+                                type="text" 
+                                value={name} 
+                                onChange={e => setName(e.target.value)} 
+                                className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} 
+                                placeholder="e.g. CORE ASSETS INC." 
+                                required 
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 2. Grant Specifications */}
+                <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">contract</span>
+                        Exercise Parameters
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label htmlFor="quantity" className={labelStyle}>Inventory Quantity</label>
+                            <input id="quantity" type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-xl`} placeholder="0" required />
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="grantPrice" className={labelStyle}>Strike / Grant Price</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">€</span>
+                                <input id="grantPrice" type="number" step="0.01" value={grantPrice} onChange={e => setGrantPrice(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-14 font-black tabular-nums text-xl`} placeholder="0.00" required />
                             </div>
                         </div>
-                        <div>
-                            <label className={labelStyle}>{taxType === 'percentage' ? 'Tax Percentage' : 'Tax Amount'}</label>
+                    </div>
+
+                    <div className="space-y-2 pt-4">
+                        <label htmlFor="grantDate" className={labelStyle}>Inception / Grant Date</label>
+                        <input id="grantDate" type="date" value={grantDate} onChange={e => setGrantDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-tighter`} required />
+                    </div>
+                </div>
+
+                {/* 3. Tax Strategy */}
+                <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-lg">receipt_long</span>
+                            Tax Liability Strategy
+                        </h4>
+                        <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-xl border border-black/5 dark:border-white/5 space-x-1">
+                            <button type="button" onClick={() => setTaxType('percentage')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${taxType === 'percentage' ? 'bg-white dark:bg-dark-card shadow-md text-amber-600' : 'text-gray-400 opacity-60'}`}>%</button>
+                            <button type="button" onClick={() => setTaxType('amount')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${taxType === 'amount' ? 'bg-white dark:bg-dark-card shadow-md text-amber-600' : 'text-gray-400 opacity-60'}`}>€</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-2">
+                            <label className={labelStyle}>{taxType === 'percentage' ? 'Rate Coefficient (%)' : 'Calculated Fixed Amount'}</label>
                             <input 
                                 type="number" 
                                 step="any" 
                                 value={taxValue} 
                                 onChange={e => setTaxValue(e.target.value)} 
-                                className={`${INPUT_BASE_STYLE} font-mono`}
+                                className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-xl`}
                                 placeholder="0"
                             />
                         </div>
-                    </div>
-
-                    <div className="flex items-center justify-between py-2 border-t border-amber-200 dark:border-amber-800/50">
-                        <span className="text-xs font-bold uppercase text-amber-800 dark:text-amber-300">Total Tax Liability</span>
-                        <span className="text-lg font-bold text-amber-700 dark:text-amber-400 font-mono">{formatCurrency(calculatedTaxAmount, 'EUR')}</span>
+                        <div className="flex flex-col justify-center items-end p-5 bg-white dark:bg-black/20 rounded-[1.5rem] border border-black/5 dark:border-white/5 shadow-sm">
+                            <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-[0.2em] mb-1">Calculated Obligation</span>
+                            <span className="text-3xl font-black text-amber-900 dark:text-amber-200 tabular-nums">{formatCurrency(calculatedTaxAmount, 'EUR')}</span>
+                        </div>
                     </div>
 
                     {/* Payment Schedule */}
-                    <div className="space-y-3">
+                    <div className="space-y-6 pt-4">
                         <div className="flex items-center justify-between">
-                            <h5 className="text-xs font-bold uppercase tracking-widest text-amber-800 dark:text-amber-300">Payment Schedule</h5>
+                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Settlement Sequence</h5>
                             <button 
                                 type="button" 
                                 onClick={handleAddPayment}
-                                className="text-[10px] font-bold uppercase tracking-widest bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded hover:bg-amber-300 transition-colors"
+                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 hover:text-primary-600 group transition-all"
                             >
-                                + Add Payment
+                                <span className="material-symbols-outlined text-lg group-active:scale-90">add_circle</span>
+                                Add Milestone
                             </button>
                         </div>
 
-                        {taxPayments.length === 0 ? (
-                            <p className="text-[10px] italic text-amber-700 dark:text-amber-400">No payments scheduled yet.</p>
-                        ) : (
-                            <div className="space-y-2">
-                                {taxPayments.map((payment, index) => (
-                                    <div key={payment.id} className="grid grid-cols-12 gap-2 items-end bg-white/50 dark:bg-black/20 p-2 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
-                                        <div className="col-span-5">
-                                            <label className="text-[9px] font-bold uppercase mb-1 block text-light-text-secondary dark:text-dark-text-secondary">Due Date</label>
-                                            <input 
-                                                type="date" 
-                                                value={payment.dueDate} 
-                                                onChange={e => handleUpdatePayment(payment.id, { dueDate: e.target.value })}
-                                                className="w-full text-xs bg-transparent border-b border-amber-300 dark:border-amber-700 focus:outline-none text-light-text dark:text-dark-text"
-                                            />
-                                        </div>
-                                        <div className="col-span-5">
-                                            <label className="text-[9px] font-bold uppercase mb-1 block text-light-text-secondary dark:text-dark-text-secondary">Amount (€)</label>
+                        <div className="grid grid-cols-1 gap-4">
+                            {taxPayments.map((payment) => (
+                                <div key={payment.id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end bg-white dark:bg-black/40 p-4 rounded-3xl border border-transparent dark:border-white/5 hover:border-black/5 transition-all shadow-sm group">
+                                    <div className="sm:col-span-6 space-y-2">
+                                        <label className={labelStyle}>Maturity Date</label>
+                                        <input 
+                                            type="date" 
+                                            value={payment.dueDate} 
+                                            onChange={e => handleUpdatePayment(payment.id, { dueDate: e.target.value })}
+                                            className={`${INPUT_BASE_STYLE} h-12 !text-[11px] font-black uppercase tracking-widest`}
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-5 relative space-y-2">
+                                        <label className={labelStyle}>Allocated Amount</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">€</span>
                                             <input 
                                                 type="number" 
                                                 step="0.01"
                                                 value={payment.amount} 
                                                 onChange={e => handleUpdatePayment(payment.id, { amount: parseFloat(e.target.value) || 0 })}
-                                                className="w-full text-xs bg-transparent border-b border-amber-300 dark:border-amber-700 focus:outline-none font-mono text-light-text dark:text-dark-text"
+                                                className={`${INPUT_BASE_STYLE} h-12 pl-10 !text-sm font-black tabular-nums`}
                                             />
                                         </div>
-                                        <div className="col-span-2 flex justify-end">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => handleRemovePayment(payment.id)}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <span className="material-symbols-outlined text-sm">delete</span>
-                                            </button>
-                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    <div className="sm:col-span-1 flex justify-center pt-2 sm:pt-0">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemovePayment(payment.id)}
+                                            className="w-12 h-12 flex items-center justify-center text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
+                                        >
+                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
 
-                        <div className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
-                            isBalanceZero 
-                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
-                                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                        }`}>
-                            <div className="flex items-center gap-2">
-                                <span className={`material-symbols-outlined text-sm ${isBalanceZero ? 'text-green-500' : 'text-red-500'}`}>
-                                    {isBalanceZero ? 'check_circle' : 'warning'}
-                                </span>
-                                <span className={`text-[10px] font-bold uppercase ${isBalanceZero ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                    {isBalanceZero ? 'Balance Settled' : 'Unallocated Balance'}
+                            <div className={`p-6 rounded-[2rem] border-2 flex items-center justify-between transition-all duration-700 shadow-xl ${
+                                isBalanceZero 
+                                    ? 'bg-emerald-500/5 border-emerald-500/20' 
+                                    : 'bg-rose-500/5 border-rose-500/20 shadow-rose-500/5'
+                            }`}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isBalanceZero ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white animate-pulse'}`}>
+                                        <span className="material-symbols-outlined text-xl">
+                                            {isBalanceZero ? 'check_circle' : 'pending_actions'}
+                                        </span>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${isBalanceZero ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
+                                            {isBalanceZero ? 'FISCAL EQUILIBRIUM' : 'REMAINING LIABILITY'}
+                                        </span>
+                                        <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Settlement Verification</p>
+                                    </div>
+                                </div>
+                                <span className={`text-2xl font-black tabular-nums ${isBalanceZero ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                                    {formatCurrency(remainingTaxBalance, 'EUR')}
                                 </span>
                             </div>
-                            <span className={`text-sm font-bold font-mono ${isBalanceZero ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                {formatCurrency(remainingTaxBalance, 'EUR')}
-                            </span>
                         </div>
-                        {!isBalanceZero && (
-                            <p className="text-[10px] text-red-500 font-medium italic">
-                                * Please adjust payments to match the total tax liability before saving.
-                            </p>
-                        )}
                     </div>
                 </div>
-                
-                <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
+
+                <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
                     <button 
                         type="submit" 
                         disabled={!isBalanceZero}
-                        className={`${BTN_PRIMARY_STYLE} ${!isBalanceZero ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-widest text-[10px] font-black ${!isBalanceZero ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     >
-                        {isEditing ? 'Save Changes' : 'Add Grant'}
+                        {isEditing ? 'Commit Changes' : 'Confirm Execution'}
+                        <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">verified</span>
                     </button>
                 </div>
             </form>

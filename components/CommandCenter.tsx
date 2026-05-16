@@ -146,7 +146,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-xl bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl z-[101] border border-black/5 dark:border-white/10 overflow-hidden"
           >
-            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center gap-3">
+            <div className="p-3 sm:p-4 border-b border-black/5 dark:border-white/10 flex items-center gap-3">
               <span className="material-symbols-outlined text-gray-400">search</span>
               <input
                 ref={inputRef}
@@ -154,41 +154,41 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search pages, accounts, actions..."
-                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-lg placeholder-gray-400"
+                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-base sm:text-lg placeholder-gray-400"
               />
-              <div className="flex items-center gap-1">
+              <div className="hidden sm:flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-[10px] font-mono text-gray-400">ESC</kbd>
               </div>
             </div>
 
-            <div ref={scrollRef} className="max-h-[400px] overflow-y-auto py-2">
+            <div ref={scrollRef} className="max-h-[350px] sm:max-h-[400px] overflow-y-auto py-2">
               {results.length > 0 ? (
                 results.map((item, index) => (
                   <div
                     key={item.id}
                     onClick={item.action}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`px-4 py-3 cursor-pointer flex items-center justify-between transition-colors ${
+                    className={`px-4 py-2.5 sm:py-3 cursor-pointer flex items-center justify-between transition-colors ${
                       index === selectedIndex ? 'bg-primary-500/10 dark:bg-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
                          index === selectedIndex ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500'
                       }`}>
-                        <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                         <span className="material-symbols-outlined text-[18px] sm:text-[20px]">{item.icon}</span>
                       </div>
-                      <div>
-                        <p className={`font-semibold text-sm ${index === selectedIndex ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
+                      <div className="min-w-0">
+                        <p className={`font-semibold text-xs sm:text-sm truncate ${index === selectedIndex ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
                           {item.title}
                         </p>
                         {item.subtitle && (
-                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.subtitle}</p>
+                          <p className="text-[10px] sm:text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{item.subtitle}</p>
                         )}
                       </div>
                     </div>
                     {index === selectedIndex && (
-                      <span className="text-[10px] font-mono text-primary-500 font-bold uppercase tracking-widest">Enter</span>
+                      <span className="hidden sm:block text-[10px] font-mono text-primary-500 font-bold uppercase tracking-widest">Enter</span>
                     )}
                   </div>
                 ))
@@ -200,13 +200,13 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
               )}
             </div>
 
-            <div className="p-3 bg-gray-50 dark:bg-white/5 border-t border-black/5 dark:border-white/10 flex justify-between items-center px-5">
-               <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
+            <div className="p-3 bg-gray-50 dark:bg-white/5 border-t border-black/5 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center px-5 gap-3">
+               <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <kbd className="px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-mono text-gray-500">↑↓</kbd>
                     <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">Navigate</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <kbd className="px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-mono text-gray-500">Enter</kbd>
                     <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">Select</span>
                   </div>

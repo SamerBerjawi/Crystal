@@ -62,7 +62,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 </div>
 
                 {/* --- MIDDLE: PERFORMANCE GRID --- */}
-                 <div className="grid grid-cols-3 divide-x divide-black/5 dark:divide-white/5 border-b border-black/5 dark:border-white/5 flex-grow min-h-[100px]">
+                 <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-black/5 dark:divide-white/5 border-b border-black/5 dark:border-white/5 flex-grow min-h-[100px]">
                      {/* Flow */}
                      <div className="p-4 flex flex-col justify-center">
                          <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>

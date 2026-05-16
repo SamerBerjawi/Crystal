@@ -79,7 +79,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                                 const tag = tags.find(t => t.id === id);
                                 if (!tag) return null;
                                 return (
-                                    <span key={id} className="px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm" style={{ backgroundColor: tag.color }}>
+                                    <span key={id} className="px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm border border-black/5 dark:border-white/10" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
                                         {tag.name}
                                     </span>
                                 );

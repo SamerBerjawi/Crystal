@@ -235,7 +235,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             className={`
                 relative group cursor-pointer
                 w-full bg-white dark:bg-dark-card rounded-[2rem] border-l-4 border-y border-r border-black/5 dark:border-white/5
-                p-6 flex flex-col justify-between h-[210px]
+                p-4 sm:p-6 flex flex-col justify-between min-h-[190px] sm:h-[210px]
                 transition-all duration-300 hover:-translate-y-1
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
                 ${dragClasses} ${dragOverClasses}
@@ -285,30 +285,30 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
             <div className="relative z-10 h-full flex flex-col justify-between">
                 <div>
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-12 h-12 rounded-2xl ${currentConfig.bg} ${currentConfig.text} flex items-center justify-center border ${currentConfig.border} transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
+                    <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${currentConfig.bg} ${currentConfig.text} flex items-center justify-center border ${currentConfig.border} transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
                             {showLogo ? (
                                 <img src={logoUrl!} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
                             ) : (
-                                <span className="material-symbols-outlined text-2xl">{iconName}</span>
+                                <span className="material-symbols-outlined text-xl sm:text-2xl">{iconName}</span>
                             )}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate">
+                            <p className="text-[9px] sm:text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate uppercase">
                                 {account.financialInstitution || account.type}
                             </p>
-                            <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
+                            <h3 className="text-lg sm:text-xl font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
                                 {account.name}
                             </h3>
                         </div>
                     </div>
 
                     <div className="space-y-0.5">
-                        <p className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums privacy-blur">
+                        <p className="text-2xl sm:text-3xl md:text-4xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums privacy-blur truncate">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         {account.currency !== 'EUR' && (
-                            <p className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur">
+                            <p className="text-[10px] sm:text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-50">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>
                         )}
@@ -338,11 +338,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             </span>
                         )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                          {isLinkedToEnableBanking && (
-                             <span className="material-symbols-outlined text-emerald-500 text-lg animate-pulse" title="Live Sync Active">sync</span>
+                             <span className="material-symbols-outlined text-emerald-500 text-base sm:text-lg animate-pulse shrink-0" title="Live Sync Active">sync</span>
                          )}
-                         <div className={`h-12 w-48 opacity-40 group-hover:opacity-100 transition-opacity`}>
+                         <div className={`h-8 sm:h-12 w-24 sm:w-48 opacity-40 group-hover:opacity-100 transition-opacity`}>
                              <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={sparklineData}>
                                     <defs>

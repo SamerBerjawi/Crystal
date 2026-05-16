@@ -1,9 +1,10 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
-import { Category, DisplayTransaction, MerchantRule } from '../types';
+import { Category, DisplayTransaction, MerchantRule, Tag } from '../types';
 import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { useTagsContext } from '../contexts/FinancialDataContext';
 
 interface TransactionListProps {
   transactions: DisplayTransaction[];
@@ -38,6 +39,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
   maxItems,
   className = ""
 }) => {
+  const { tags } = useTagsContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
@@ -90,6 +92,8 @@ const TransactionList: React.FC<TransactionListProps> = ({
         const formattedDate = formatDate(tx.date);
         const spareAmountEur = tx.spareChangeAmount ? formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR') : null;
 
+        const txTags = (tx.tagIds || []).map(id => tags.find(t => t.id === id)).filter(Boolean) as Tag[];
+
         return { 
           tx, 
           description, 
@@ -101,11 +105,12 @@ const TransactionList: React.FC<TransactionListProps> = ({
           formattedDate, 
           spareAmountEur,
           merchantLogoUrl,
-          merchantInitial
+          merchantInitial,
+          txTags
         };
       });
     },
-    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, maxItems]
+    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides, maxItems, tags]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,7 +153,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
       >
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />
         <ul className="absolute inset-0" style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, accentColor, isTransfer, spareAmountEur, merchantLogoUrl, merchantInitial }) => {
+          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, accentColor, isTransfer, spareAmountEur, merchantLogoUrl, merchantInitial, txTags }) => {
             const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors.has(merchantLogoUrl));
             return (
               <li
@@ -196,24 +201,37 @@ const TransactionList: React.FC<TransactionListProps> = ({
                         </p>
                         {tx.isMarketAdjustment && <span className="text-[9px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded-full shrink-0">Market</span>}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] px-2 py-0.5 rounded-lg font-medium tracking-tight flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
-                            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: categoryColor }}></span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                        <span className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-lg font-medium tracking-tight flex items-center gap-1 shrink-0" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
+                            <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}></span>
                             {tx.category}
                         </span>
-                        {tx.tagIds && tx.tagIds.length > 0 && (
-                            <span className="text-[11px] bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-lg font-medium tracking-tight">
-                                {tx.tagIds.length} tags
-                            </span>
+                        {txTags && txTags.length > 0 && (
+                            <div className="flex items-center gap-1 overflow-hidden shrink-0 max-w-[100px] sm:max-w-none">
+                                {txTags.slice(0, 1).map(tag => (
+                                    <span 
+                                        key={tag.id}
+                                        className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-lg font-bold tracking-tight border border-current shadow-sm truncate"
+                                        style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
+                                    >
+                                        {tag.name}
+                                    </span>
+                                ))}
+                                {txTags.length > 1 && (
+                                    <span className="text-[9px] sm:text-[10px] bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary px-1.5 sm:px-2 py-0.5 rounded-lg font-medium tracking-tight whitespace-nowrap">
+                                        +{txTags.length - 1}
+                                    </span>
+                                )}
+                            </div>
                         )}
                         {tx.accountName && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60">
-                                <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight">
+                            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60 shrink-0">
+                                <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight truncate max-w-[80px]">
                                     {tx.accountName}
                                 </span>
                             </div>
                         )}
-                        {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500/50">description</span>}
+                        {tx.notes && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500/50 shrink-0">description</span>}
                     </div>
                   </div>
                 </div>

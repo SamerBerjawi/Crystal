@@ -80,6 +80,7 @@ export const initialFinancialData: FinancialData = {
             category: 'Salary',
             type: 'income',
             currency: 'EUR',
+            tagIds: ['tag-work'],
         },
         {
             id: 'tx-rent-jun',
@@ -102,6 +103,7 @@ export const initialFinancialData: FinancialData = {
             category: 'Supermarket',
             type: 'expense',
             currency: 'EUR',
+            tagIds: ['tag-personal'],
         },
         {
             id: 'tx-commute',
@@ -334,7 +336,12 @@ export const initialFinancialData: FinancialData = {
         },
     ],
     importExportHistory: [],
-    tags: [],
+    tags: [
+        { id: 'tag-work', name: 'Work', color: '#3B82F6', icon: 'work' },
+        { id: 'tag-personal', name: 'Personal', color: '#10B981', icon: 'person' },
+        { id: 'tag-urgent', name: 'Urgent', color: '#EF4444', icon: 'priority_high' },
+        { id: 'tag-tax', name: 'Tax Deductible', color: '#F59E0B', icon: 'receipt_long' },
+    ],
     incomeCategories: MOCK_INCOME_CATEGORIES, // Keep default categories
     expenseCategories: MOCK_EXPENSE_CATEGORIES,
     billsAndPayments: [],

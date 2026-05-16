@@ -442,227 +442,254 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="space-y-2">
-              <label htmlFor="account-type" className={labelStyle}>Primary Classification</label>
-              <div className={SELECT_WRAPPER_STYLE}>
-                 <select
-                    id="account-type"
-                    value={type}
-                    onChange={(e) => setType(e.target.value as AccountType)}
-                    className={`${SELECT_STYLE} h-16 !text-sm font-black tracking-widest uppercase`}
-                  >
-                    {ALL_ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-              </div>
-            </div>
-
-            {type !== 'Loan' && type !== 'Lending' && (
-                <div className="space-y-2">
-                  <label htmlFor="account-balance" className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Fair Market Value' : 'Liquid Assets (Balance)'}</label>
-                  <div className="relative flex group/balance">
-                    <input
-                      id="account-balance"
-                      type="number"
-                      step="0.01"
-                      value={balance}
-                      onChange={(e) => setBalance(e.target.value)}
-                      className={`${INPUT_BASE_STYLE} h-16 !text-xl font-black tabular-nums rounded-r-none border-r-0 group-hover/balance:border-primary-500/50 transition-colors pointer-events-auto`}
-                      required
-                      readOnly={isComputedAccount}
-                      disabled={isComputedAccount}
-                    />
-                    <div className={`${SELECT_WRAPPER_STYLE} w-32`}>
-                        <select
-                          value={currency}
-                          onChange={(e) => setCurrency(e.target.value as Currency)}
-                          className={`${SELECT_STYLE} h-16 rounded-l-none bg-black/5 dark:bg-white/5 border-l border-black/10 dark:border-white/10 font-black tracking-tighter`}
-                          disabled={isComputedAccount}
-                        >
-                          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                  </div>
-                  {isComputedAccount && <p className="text-[10px] font-bold text-primary-500 mt-2 uppercase tracking-wide">Sync-Driven: Calculated from holdings</p>}
-                </div>
-            )}
-          </div>
-
           <div className="space-y-10">
             
-            {(showBankingDetails || ['Checking', 'Savings', 'Credit Card'].includes(type)) && (
-                <div className="space-y-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-primary-500">account_balance</span>
-                        <h4 className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Banking Architecture</h4>
+            {/* 1. Core Identification Card */}
+            <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary-500 text-lg">settings_input_component</span>
+                    Node Identification
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label htmlFor="account-name" className={labelStyle}>Account Alias / Node Name</label>
+                        <input id="account-name" type="text" value={name} onChange={e => setName(e.target.value)} className={`${INPUT_BASE_STYLE} !text-xl font-bold h-14`} required autoFocus />
                     </div>
-                    
-                    <div className="grid grid-cols-1 gap-6">
-                        {['Checking', 'Savings', 'Credit Card'].includes(type) && (
-                            <div className="bg-black/2 dark:bg-white/2 p-6 rounded-3xl border border-black/5 dark:border-white/5">
-                                <label htmlFor="financial-institution" className={labelStyle}>Underwriting Entity</label>
-                                <input
-                                    id="financial-institution"
-                                    type="text"
-                                    value={financialInstitution}
-                                    onChange={(e) => setFinancialInstitution(e.target.value)}
-                                    className={`${INPUT_BASE_STYLE} h-14 font-black`}
-                                    placeholder="e.g., Chase, Goldman Sachs"
-                                />
+                </div>
+            </div>
+
+            {/* 2. Primary Classification & Balance Hero */}
+            <div className="bg-white dark:bg-black/20 p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 space-y-10 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-4">
+                        <label className={labelStyle}>Primary Classification</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                           <select
+                              value={type}
+                              onChange={(e) => setType(e.target.value as AccountType)}
+                              className={`${SELECT_STYLE} h-16 !text-lg font-black tracking-widest uppercase`}
+                            >
+                              {ALL_ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                    </div>
+
+                    {type !== 'Loan' && type !== 'Lending' && (
+                        <div className="space-y-4">
+                          <label className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Fair Market Value' : 'Liquid Assets (Balance)'}</label>
+                          <div className="relative flex group/balance">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={balance}
+                              onChange={(e) => setBalance(e.target.value)}
+                              className={`${INPUT_BASE_STYLE} h-16 !text-3xl font-black tabular-nums rounded-r-none border-r-0 focus:ring-0 ${isComputedAccount ? 'bg-black/5 dark:bg-white/5 opacity-50' : 'bg-transparent'}`}
+                              required
+                              readOnly={isComputedAccount}
+                            />
+                            <div className={`${SELECT_WRAPPER_STYLE} w-32`}>
+                                <select
+                                  value={currency}
+                                  onChange={(e) => setCurrency(e.target.value as Currency)}
+                                  className={`${SELECT_STYLE} h-16 rounded-l-none bg-black/5 dark:bg-white/5 border-l border-black/10 dark:border-white/10 font-black tracking-tighter`}
+                                  disabled={isComputedAccount}
+                                >
+                                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
-                        )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/2 dark:bg-white/2 p-6 rounded-3xl border border-black/5 dark:border-white/5">
-                            <div>
-                                <label htmlFor="accountNumber" className={labelStyle}>System Identity (Acct # / IBAN)</label>
-                                <input id="accountNumber" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest tabular-nums`} placeholder="ID-ALPHA-778" />
-                            </div>
-                            <div>
-                                <label htmlFor="routingNumber" className={labelStyle}>Relational Routing (BIC / SWIFT)</label>
-                                <input id="routingNumber" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="Optional" />
-                            </div>
-                            {['Checking', 'Savings', 'Investment'].includes(type) && (
-                                <div>
-                                    <label htmlFor="apy" className={labelStyle}>Annual Compound Yield (APY %)</label>
-                                    <input id="apy" type="number" step="0.01" value={apy} onChange={e => setApy(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-emerald-500 tabular-nums`} placeholder="0.00" />
+                          </div>
+                          {isComputedAccount && <p className="text-[10px] font-black text-primary-500 uppercase tracking-widest text-center animate-pulse mt-2">Sync-Driven: Calculated from holdings</p>}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 3. Conditional Architecture Cards */}
+            <div className="space-y-10">
+                {(showBankingDetails || ['Checking', 'Savings', 'Credit Card'].includes(type)) && (
+                    <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="material-symbols-outlined text-primary-500">account_balance</span>
+                            <h4 className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Banking Architecture</h4>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-6">
+                            {['Checking', 'Savings', 'Credit Card'].includes(type) && (
+                                <div className="bg-white dark:bg-black/20 p-6 rounded-2xl border border-black/5 dark:border-white/5">
+                                    <label htmlFor="financial-institution" className={labelStyle}>Underwriting Entity</label>
+                                    <input
+                                        id="financial-institution"
+                                        type="text"
+                                        value={financialInstitution}
+                                        onChange={(e) => setFinancialInstitution(e.target.value)}
+                                        className={`${INPUT_BASE_STYLE} h-12 font-black`}
+                                        placeholder="e.g. Chase, Goldman Sachs"
+                                    />
                                 </div>
                             )}
-                            <div>
-                                <label htmlFor="openingDate" className={labelStyle}>Inception Date</label>
-                                <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-black/20 p-6 rounded-2xl border border-black/5 dark:border-white/5">
+                                <div>
+                                    <label htmlFor="accountNumber" className={labelStyle}>System Identity (Acct # / IBAN)</label>
+                                    <input id="accountNumber" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 !text-xs font-black tracking-widest tabular-nums`} placeholder="ID-ALPHA-778" />
+                                </div>
+                                <div>
+                                    <label htmlFor="routingNumber" className={labelStyle}>Relational Routing (BIC / SWIFT)</label>
+                                    <input id="routingNumber" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 !text-xs font-black tracking-widest`} placeholder="Optional" />
+                                </div>
+                                {['Checking', 'Savings', 'Investment'].includes(type) && (
+                                    <div>
+                                        <label htmlFor="apy" className={labelStyle}>Annual Compound Yield (%)</label>
+                                        <input id="apy" type="number" step="0.01" value={apy} onChange={e => setApy(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-black text-emerald-500 tabular-nums`} placeholder="0.00" />
+                                    </div>
+                                )}
+                                <div>
+                                    <label htmlFor="openingDate" className={labelStyle}>Inception Date</label>
+                                    <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-bold`} />
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-            
-            <div className={`p-8 rounded-[2.5rem] border transition-all duration-300 ${hasCard ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 shadow-xl shadow-primary-500/5' : 'bg-black/5 dark:bg-white/5 border-transparent opacity-60'}`}>
-                 <div className="flex items-center justify-between mb-8 cursor-pointer group/card" onClick={() => setHasCard(!hasCard)}>
-                    <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${hasCard ? 'bg-primary-500 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
-                            <span className="material-symbols-outlined text-2xl">credit_card</span>
-                        </div>
-                        <div className="flex flex-col">
-                            <h4 className={`text-[10px] font-black uppercase tracking-widest ${hasCard ? 'text-primary-600' : 'text-gray-500'}`}>Payment Instrument</h4>
-                            <span className="text-[10px] font-bold text-gray-400">Physical shell or virtual node</span>
-                        </div>
-                    </div>
-                    <div className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${hasCard ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-xl transition-transform ${hasCard ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </div>
-                </div>
-
-                {hasCard && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-                        <div>
-                            <label htmlFor="cardNetwork" className={labelStyle}>Network Protocol</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-widest`}>
-                                    <option value="">Select Network</option>
-                                    {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="last-4" className={labelStyle}>Terminal Segments (Last 4)</label>
-                            <input
-                                id="last-4"
-                                type="text"
-                                maxLength={4}
-                                value={last4}
-                                onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
-                                className={`${INPUT_BASE_STYLE} h-14 font-black tracking-[0.25em] text-center`}
-                                placeholder="0000"
-                            />
-                        </div>
-                         <div>
-                            <label htmlFor="expirationDate" className={labelStyle}>Validity Period (MM/YY)</label>
-                            <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-center tracking-widest`} placeholder="12/28" />
-                        </div>
-                        <div>
-                            <label htmlFor="cardholderName" className={labelStyle}>Signatory / Custodian</label>
-                            <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest text-center`} placeholder="Name on Card" />
                         </div>
                     </div>
                 )}
+                
+                <div className={`p-6 rounded-3xl border transition-all duration-500 ${hasCard ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 shadow-lg' : 'bg-black/5 dark:bg-white/5 border-transparent opacity-60'}`}>
+                     <div className="flex items-center justify-between mb-8 cursor-pointer group/card" onClick={() => setHasCard(!hasCard)}>
+                        <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${hasCard ? 'bg-primary-500 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
+                                <span className="material-symbols-outlined text-2xl">credit_card</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <h4 className={`text-[10px] font-black uppercase tracking-widest ${hasCard ? 'text-primary-600' : 'text-gray-500'}`}>Payment Instrument</h4>
+                                <span className="text-[10px] font-bold text-gray-400">Physical shell or virtual node</span>
+                            </div>
+                        </div>
+                        <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasCard ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-xl transition-transform ${hasCard ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </div>
+                    </div>
+
+                    {hasCard && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in bg-white dark:bg-black/20 p-6 rounded-2xl border border-black/5 dark:border-white/5">
+                            <div>
+                                <label htmlFor="cardNetwork" className={labelStyle}>Network Protocol</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={`${SELECT_STYLE} h-12 font-black uppercase tracking-widest`}>
+                                        <option value="">Select Network</option>
+                                        {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="last-4" className={labelStyle}>Terminal Segments (Last 4)</label>
+                                <input
+                                    id="last-4"
+                                    type="text"
+                                    maxLength={4}
+                                    value={last4}
+                                    onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
+                                    className={`${INPUT_BASE_STYLE} h-12 font-black tracking-[0.3em] text-center`}
+                                    placeholder="0000"
+                                />
+                            </div>
+                             <div>
+                                <label htmlFor="expirationDate" className={labelStyle}>Validity Period (MM/YY)</label>
+                                <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-black text-center tracking-widest`} placeholder="12/28" />
+                            </div>
+                            <div>
+                                <label htmlFor="cardholderName" className={labelStyle}>Signatory / Custodian</label>
+                                <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-black uppercase tracking-widest text-center`} placeholder="Name on Card" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {type === 'Investment' && (
+                  <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-primary-500">trending_up</span>
+                        <h4 className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Market Strategy</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-black/20 p-6 rounded-2xl border border-black/5 dark:border-white/5">
+                        <div>
+                          <label htmlFor="subType" className={labelStyle}>Core Specialization</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-12 font-black`}>
+                              {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </div>
+                        {['Stock', 'ETF', 'Crypto'].includes(subType) && (
+                            <div>
+                                 <label htmlFor="symbol" className={labelStyle}>Exchange Ticker / Protocol</label>
+                                 <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 !text-xs font-black uppercase tracking-widest text-primary-500`} placeholder="AAPL / BTC" />
+                            </div>
+                        )}
+                        {subType === 'Pension Fund' && (
+                             <div>
+                                <label htmlFor="retirementYear" className={labelStyle}>Projected Maturity Year</label>
+                                <input id="retirementYear" type="number" value={expectedRetirementYear} onChange={e => setExpectedRetirementYear(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 font-black`} placeholder="eg. 2055" />
+                            </div>
+                        )}
+                    </div>
+                  </div>
+                )}
             </div>
 
-            {type === 'Investment' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-primary-500">trending_up</span>
-                    <h4 className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Market Strategy</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/2 dark:bg-white/2 p-6 rounded-3xl border border-black/5 dark:border-white/5">
-                    <div>
-                      <label htmlFor="subType" className={labelStyle}>Core Specialization</label>
-                      <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-14 font-black`}>
-                          {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                      </div>
+            {/* 4. Functional Directives Card */}
+            <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
+                <label className={labelStyle}>Operational Directives / Notes</label>
+                <textarea 
+                    value={notes} 
+                    onChange={e => setNotes(e.target.value)} 
+                    className={`${INPUT_BASE_STYLE} min-h-[120px] p-4 text-sm leading-relaxed`} 
+                    placeholder="Append specific account parameters, goals, or usage guidelines..."
+                />
+            </div>
+
+            {/* 5. Logical Toggles */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-3xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setIsPrimary(!isPrimary)}
+                  className={`flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-black/20 border transition-all group ${isPrimary ? 'border-primary-500/50 shadow-md ring-2 ring-primary-500/10' : 'border-black/5 dark:border-white/5 hover:border-primary-500/20'}`}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isPrimary ? 'bg-primary-500 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-primary-500 group-hover:bg-primary-500/10'}`}>
+                            <span className="material-symbols-outlined text-lg">stars</span>
+                        </div>
+                        <div className="text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text">Master Nexus</p>
+                            <p className="text-[10px] font-bold text-gray-400">Primary anchor</p>
+                        </div>
                     </div>
-                    {['Stock', 'ETF', 'Crypto'].includes(subType) && (
-                        <div>
-                             <label htmlFor="symbol" className={labelStyle}>Exchange Ticker / Protocol</label>
-                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest text-primary-500`} placeholder="AAPL / BTC" />
+                    <div className={`w-8 h-4 rounded-full relative transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <div className={`h-3 w-3 rounded-full bg-white absolute top-0.5 transition-transform ${isPrimary ? 'right-0.5' : 'left-0.5'}`} />
+                    </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
+                  className={`flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-black/20 border transition-all group ${includeInAnalytics ? 'border-emerald-500/50 shadow-md ring-2 ring-emerald-500/10' : 'border-black/5 dark:border-white/5 hover:border-emerald-500/20'}`}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${includeInAnalytics ? 'bg-emerald-500 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-emerald-500 group-hover:bg-emerald-500/10'}`}>
+                            <span className="material-symbols-outlined text-lg">analytics</span>
                         </div>
-                    )}
-                    {subType === 'Pension Fund' && (
-                         <div>
-                            <label htmlFor="retirementYear" className={labelStyle}>Projected Maturity Year</label>
-                            <input id="retirementYear" type="number" value={expectedRetirementYear} onChange={e => setExpectedRetirementYear(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} placeholder="eg. 2055" />
+                        <div className="text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text">Analytics Sync</p>
+                            <p className="text-[10px] font-bold text-gray-400">Include in reports</p>
                         </div>
-                    )}
-                </div>
-              </div>
-            )}
-
-            {/* Other account type specific content can go here, following the same pattern */}
-          </div>
-
-          {/* System Flags */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 rounded-[2.5rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-              <button
-                type="button"
-                onClick={() => setIsPrimary(!isPrimary)}
-                className="flex items-center justify-between p-6 rounded-3xl bg-white dark:bg-dark-bg border border-black/5 dark:border-white/5 hover:scale-[1.02] active:scale-95 transition-all group shadow-sm"
-              >
-                  <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isPrimary ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}>
-                          <span className="material-symbols-outlined">stars</span>
-                      </div>
-                      <div className="text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Master Nexus</p>
-                          <p className="text-[10px] font-bold text-gray-400 mt-1">Primary transactional anchor</p>
-                      </div>
-                  </div>
-                  <div className={`w-11 h-6 rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                      <div className={`h-4 w-4 rounded-full bg-white transition-transform mt-1 ml-1 ${isPrimary ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
-                className="flex items-center justify-between p-6 rounded-3xl bg-white dark:bg-dark-bg border border-black/5 dark:border-white/5 hover:scale-[1.02] active:scale-95 transition-all group shadow-sm"
-              >
-                  <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${includeInAnalytics ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-emerald-500 group-hover:bg-emerald-500/10'}`}>
-                          <span className="material-symbols-outlined">analytics</span>
-                      </div>
-                      <div className="text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Analytical Integration</p>
-                          <p className="text-[10px] font-bold text-gray-400 mt-1">Include in net-worth & fiscal reporting</p>
-                      </div>
-                  </div>
-                  <div className={`w-11 h-6 rounded-full transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                      <div className={`h-4 w-4 rounded-full bg-white transition-transform mt-1 ml-1 ${includeInAnalytics ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </div>
-              </button>
+                    </div>
+                    <div className={`w-8 h-4 rounded-full relative transition-colors ${includeInAnalytics ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                        <div className={`h-3 w-3 rounded-full bg-white absolute top-0.5 transition-transform ${includeInAnalytics ? 'right-0.5' : 'left-0.5'}`} />
+                    </div>
+                </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-6 pt-10 border-t border-black/5 dark:border-white/5">
@@ -673,29 +700,33 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     className="flex items-center justify-center w-12 h-12 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 group shadow-lg shadow-rose-500/5"
                     title="Terminate Integration"
                 >
-                    <span className="material-symbols-outlined group-hover:rotate-12 transition-transform">delete</span>
+                    <span className="material-symbols-outlined group-hover:scale-110 transition-transform font-bold">delete_forever</span>
                 </button>
                 <button 
                     type="button" 
                     onClick={handleToggleStatus} 
-                    className={`${BTN_SECONDARY_STYLE} px-6 gap-2`}
+                    className={`h-12 px-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-black/10 dark:border-white/10 ${
+                        account.status === 'closed' 
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                        : 'bg-white dark:bg-dark-fill text-amber-600 hover:bg-amber-50'
+                    }`}
                 >
                     <span className="material-symbols-outlined text-lg">{account.status === 'closed' ? 'sync' : 'block'}</span>
-                    {account.status === 'closed' ? 'Re-Initialize' : 'Suspend Node'}
+                    {account.status === 'closed' ? 'Initialize Account' : 'Suspend Node'}
                 </button>
             </div>
 
-            <div className="flex flex-wrap gap-4 justify-end flex-grow md:flex-grow-0">
+            <div className="flex flex-wrap items-center gap-3">
                 <button 
                     type="button" 
                     onClick={onClose} 
-                    className={`${BTN_SECONDARY_STYLE} px-8`}
+                    className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}
                 >
                     Retract
                 </button>
                 <button 
                     type="submit" 
-                    className={`${BTN_PRIMARY_STYLE} px-10 gap-2 group animate-glow min-w-[200px]`}
+                    className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow uppercase tracking-widest text-[10px] font-black`}
                 >
                     Commit Changes
                     <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">save</span>

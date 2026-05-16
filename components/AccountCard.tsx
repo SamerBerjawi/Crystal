@@ -188,7 +188,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             className={`transition-all duration-150 ${dragOverClasses} ${isDraggable ? 'cursor-grab' : ''}`}
         >
             <Card 
-                className={`flex items-center justify-between h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group ${dragClasses}`} 
+                className={`flex flex-col sm:flex-row sm:items-center justify-between min-h-[100px] sm:h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group p-4 sm:p-6 ${dragClasses}`} 
                 onClick={onClick}
             >
                 {/* Inner Glow Effect */}
@@ -200,8 +200,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     }}
                 />
                 
-                <div className="flex items-center flex-1 min-w-0 relative z-10">
-                    <div className={`text-4xl mr-4 flex items-center justify-center w-14 h-14 shrink-0 rounded-2xl bg-black/5 dark:bg-white/10 ${style.color} shadow-inner overflow-hidden`}>
+                <div className="flex items-center flex-1 min-w-0 relative z-10 mb-4 sm:mb-0">
+                    <div className={`text-3xl sm:text-4xl mr-3 sm:mr-4 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-black/5 dark:bg-white/10 ${style.color} shadow-inner overflow-hidden`}>
                         {logoUrl ? (
                             <img 
                                 src={logoUrl} 
@@ -210,20 +210,20 @@ const AccountCard: React.FC<AccountCardProps> = ({
                                 onError={() => setLogoError(true)}
                             />
                         ) : (
-                            <span className="material-symbols-outlined text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '32px' }}>
+                            <span className="material-symbols-outlined text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '28px' }}>
                                 {account.icon || style.icon}
                             </span>
                         )}
                     </div>
-                    <div className="min-w-0">
-                        <p className="font-bold text-xl text-light-text dark:text-dark-text truncate leading-tight uppercase tracking-tight">{account.name}</p>
-                        <div className="flex items-center gap-2 mt-1 text-base text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wide uppercase">
-                           <span>{secondaryText} {account.last4 ? `•••• ${account.last4}` : ''}</span>
+                    <div className="min-w-0 flex-1">
+                        <p className="font-bold text-lg sm:text-xl text-light-text dark:text-dark-text truncate leading-tight uppercase tracking-tight">{account.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5 sm:mt-1 text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wide uppercase truncate">
+                           <span className="truncate">{secondaryText} {account.last4 ? `•••• ${account.last4}` : ''}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6 ml-4 relative z-10">
+                <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 sm:ml-4 relative z-10">
                     <div className="hidden sm:block w-20 h-8 shrink-0 opacity-60">
                         <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
                             <LineChart width={80} height={32} data={sparklineData}>
@@ -231,18 +231,18 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="text-right shrink-0">
-                        <p className={`font-black text-2xl tracking-tighter tabular-nums ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-rose-500'}`}>
+                    <div className="text-left sm:text-right shrink-0">
+                        <p className={`font-black text-xl sm:text-2xl tracking-tighter tabular-nums ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-rose-500'}`}>
                             {formatCurrency(convertCurrency(displayBalance, account.currency, preferredCurrency, conversionRates), preferredCurrency)}
                         </p>
                          {account.currency !== preferredCurrency && (
-                            <p className="text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-widest uppercase opacity-40">
+                            <p className="text-[10px] sm:text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-widest uppercase opacity-40">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>
                         )}
                     </div>
-                    <button onClick={handleEditClick} className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary/40 hover:text-primary-500 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                    <button onClick={handleEditClick} className="sm:opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary/40 hover:text-primary-500 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 ml-auto sm:ml-0">
+                        <span className="material-symbols-outlined text-[18px] sm:text-[20px]">edit</span>
                     </button>
                 </div>
             </Card>

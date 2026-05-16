@@ -261,13 +261,13 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   return (
     <div className="space-y-10 animate-fade-in-up pb-10">
       {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
-          <div className="flex items-center gap-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6 relative">
+          <div className="flex items-center gap-4 sm:gap-6">
               <button 
                   onClick={onBack}
-                  className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <span className="material-symbols-outlined text-xl sm:text-2xl transition-transform group-hover:-translate-x-1">arrow_back</span>
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -275,71 +275,71 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
                   </div>
-                  <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light">{account.icon || style.icon}</span>
+                      <span className="material-symbols-outlined text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light text-xl sm:text-2xl">{account.icon || style.icon}</span>
                   </h1>
               </div>
           </div>
           
-          <div className="flex gap-3 w-full md:w-auto">
+          <div className="flex gap-2 sm:gap-3 w-full md:w-auto">
               {isLinkedToEnableBanking && onSyncLinkedAccount && (
-                  <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                      <span className="material-symbols-outlined text-lg mr-2">sync</span>
+                  <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-4 sm:!px-6 h-10 sm:h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card flex-1 sm:flex-none text-xs sm:text-sm`}>
+                      <span className="material-symbols-outlined text-base sm:text-lg mr-1 sm:mr-2">sync</span>
                       Sync
                   </button>
               )}
-              <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                  <span className="material-symbols-outlined text-lg mr-2">add</span>
+              <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-4 sm:!px-6 h-10 sm:h-12 shadow-lg shadow-primary-500/20 flex-1 sm:flex-none text-xs sm:text-sm`}>
+                  <span className="material-symbols-outlined text-base sm:text-lg mr-1 sm:mr-2">add</span>
                   Transaction
               </button>
           </div>
       </header>
 
       {/* Hero Financial Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-stretch">
            {/* Immersive Dynamic Card */}
-           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-8">
+           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6 sm:gap-8">
                <div 
-                   className={`relative min-h-[440px] rounded-[3rem] ${cardGradient} text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group`}
+                   className={`relative min-h-[360px] sm:min-h-[440px] rounded-[2.5rem] sm:rounded-[3rem] ${cardGradient} text-white p-6 sm:p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group`}
                >
                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-[100px] animate-pulse"></div>
                    
                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-12">
-                             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
+                        <div className="flex justify-between items-start mb-8 sm:mb-12">
+                             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
                                   {logoUrl ? (
                                       <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
                                   ) : (
-                                      <span className="material-symbols-outlined text-3xl font-light">credit_card</span>
+                                      <span className="material-symbols-outlined text-2xl sm:text-3xl font-light">credit_card</span>
                                   )}
                              </div>
                              <div className="text-right">
-                                  <p className="text-[10px] font-bold tracking-wider text-white/60 mb-1">{account.financialInstitution || 'Crystal'}</p>
-                                  <p className="text-xs font-semibold text-white/90 tracking-widest">{account.accountNumber ? `•••• ${account.accountNumber.slice(-4)}` : 'Active'}</p>
+                                  <p className="text-[9px] sm:text-[10px] font-bold tracking-wider text-white/60 mb-1">{account.financialInstitution || 'Crystal'}</p>
+                                  <p className="text-[10px] sm:text-xs font-semibold text-white/90 tracking-widest">{account.accountNumber ? `•••• ${account.accountNumber.slice(-4)}` : 'Active'}</p>
                              </div>
                         </div>
                         
-                        <p className="text-[10px] font-black text-white/70 mb-2">Managed Capital</p>
-                        <h2 className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg privacy-blur">
+                        <p className="text-[9px] sm:text-[10px] font-black text-white/70 mb-1 sm:mb-2 uppercase tracking-wider">Managed Capital</p>
+                        <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg privacy-blur truncate">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                    </div>
 
-                   <div className="relative z-10 pt-10 border-t border-white/5 flex justify-between items-end">
+                   <div className="relative z-10 pt-6 sm:pt-10 border-t border-white/5 flex justify-between items-end">
                        <div>
-                           <p className="text-[11px] tracking-wider text-white/50 font-bold mb-1">Verified Holder</p>
-                           <p className="font-semibold text-sm text-white tracking-widest">{account.cardholderName || account.name}</p>
+                           <p className="text-[10px] sm:text-[11px] tracking-wider text-white/50 font-bold mb-1 uppercase">Verified Holder</p>
+                           <p className="font-semibold text-xs sm:text-sm text-white tracking-widest truncate max-w-[150px]">{account.cardholderName || account.name}</p>
                        </div>
-                       <span className="text-[10px] font-bold bg-white/10 px-2 py-1 rounded-lg border border-white/10">{account.currency}</span>
+                       <span className="text-[9px] sm:text-[10px] font-bold bg-white/10 px-2 py-1 rounded-lg border border-white/10">{account.currency}</span>
                    </div>
                </div>
 
                {/* Infrastructure Configuration (Integrated with Card Context) */}
-               <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
-                   <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
-                   <div className="space-y-6">
+               <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 group overflow-hidden">
+                   <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Infrastructure Configuration</h3>
+                   <div className="space-y-4 sm:space-y-6">
                        {[
                            { label: 'Clearing Institution', value: account.financialInstitution },
                            { label: 'Asset Architecture', value: account.type },
@@ -349,9 +349,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                            { label: 'Routing Directive', value: account.routingNumber, isMono: true },
                            { label: 'Yield Maturity', value: account.apy ? `${account.apy}% APY` : '—' }
                        ].filter(i => i.value).map((item, idx) => (
-                           <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                               <p className="text-[10px] font-bold tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
-                               <p className={`text-sm font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                           <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-3 sm:pb-4 last:border-0 last:pb-0">
+                               <p className="text-[9px] sm:text-[10px] font-bold tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                               <p className={`text-xs sm:text-sm font-black text-light-text dark:text-dark-text tracking-tight shrink-0 ml-4 ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                    {item.value}
                                </p>
                            </div>
@@ -445,10 +445,10 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
            {/* Detailed Activity Sidebar */}
            <div className="xl:col-span-8 flex flex-col gap-8">
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-full min-h-[600px]">
-                    <div className="py-1 px-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
+                    <div className="py-2 px-6 sm:px-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Account Ledger</h3>
-                            <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Complete history of financial flows</p>
+                            <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Account Ledger</h3>
+                            <p className="text-[9px] sm:text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Complete history of financial flows</p>
                         </div>
                     </div>
                     <div className="flex-grow overflow-hidden">
@@ -466,8 +466,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             {/* Metrics & Metadata Sidebar */}
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Upcoming Obligations */}
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden">
-                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Upcoming Obligations</h3>
+                <div className="bg-white dark:bg-dark-card rounded-[2rem] sm:rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-10 group relative overflow-hidden">
+                    <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Upcoming Obligations</h3>
                     <div className="space-y-6">
                         {upcomingPayments.length > 0 ? (
                             upcomingPayments.map((p, idx) => (
@@ -494,8 +494,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 
                 {/* Interconnected Assets */}
                 {(linkedCreditCards.length > 0 || linkedGoals.length > 0) && (
-                    <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group overflow-hidden">
-                        <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Interconnected Assets</h3>
+                    <div className="bg-white dark:bg-dark-card rounded-[2rem] sm:rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-10 group overflow-hidden">
+                        <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Interconnected Assets</h3>
                         <div className="space-y-4">
                             {linkedCreditCards.map(c => (
                                 <button key={c.id} onClick={() => setViewingAccountId(c.id)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">

@@ -135,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         `}
       >
         {/* Header / Logo */}
-        <div className={`h-20 flex items-center flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-6'}`}>
+        <div className={`h-20 flex items-center flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0 overflow-hidden' : 'justify-start px-6'}`}>
             <div className="flex items-center gap-3 overflow-hidden">
                 <div className={`flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'scale-90' : 'scale-100'}`}>
                      <CrystalLogo showText={false} />
@@ -144,6 +144,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white">Crystal</span>
                 </div>
             </div>
+
+            {/* Close Button Mobile */}
+            {isSidebarOpen && (
+                <button 
+                    onClick={() => setSidebarOpen(false)}
+                    className="md:hidden ml-auto p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10 transition-colors"
+                >
+                    <span className="material-symbols-outlined">close</span>
+                </button>
+            )}
         </div>
 
         {/* Navigation */}

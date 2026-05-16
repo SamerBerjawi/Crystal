@@ -172,51 +172,55 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
 
     return (
         <Modal onClose={onClose} title={modalTitle} size="lg">
-            <form onSubmit={handleSubmit} className="space-y-6 pb-2">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[80px] rounded-full" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-8 pb-4">
                 
                 {/* 1. Transaction Type Toggle */}
-                <div className="flex justify-center -mt-2">
-                    <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-2xl inline-flex relative shadow-inner border border-black/5 dark:border-white/5">
-                        <button 
-                            type="button" 
-                            onClick={() => setType('buy')} 
-                            className={`px-8 py-2 text-sm font-bold rounded-xl transition-all duration-200 z-10 ${type === 'buy' ? 'bg-green-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            Buy
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setType('sell')} 
-                            className={`px-8 py-2 text-sm font-bold rounded-xl transition-all duration-200 z-10 ${type === 'sell' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            Sell
-                        </button>
-                    </div>
+                <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-[1.25rem] border border-black/5 dark:border-white/5 space-x-1">
+                    <button 
+                        type="button" 
+                        onClick={() => setType('buy')} 
+                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${type === 'buy' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-md ring-1 ring-emerald-500/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 opacity-60'}`}
+                    >
+                        Execute Buy
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => setType('sell')} 
+                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${type === 'sell' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-md ring-1 ring-rose-500/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 opacity-60'}`}
+                    >
+                        Execute Sell
+                    </button>
                 </div>
                 
-                {/* 2. Hero Amount (Total Value) */}
-                <div className="flex flex-col items-center justify-center pt-2 pb-4">
-                    <div className="text-center">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Estimated Total</p>
-                        <div className="flex items-baseline justify-center gap-1">
-                            <span className="text-4xl font-light text-light-text-secondary dark:text-dark-text-secondary">€</span>
-                            <span className="text-7xl font-bold text-light-text dark:text-dark-text tracking-tighter">
-                                {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
+                {/* 2. Hero Amount Section */}
+                <div className="bg-white dark:bg-black/20 p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 space-y-4 flex flex-col items-center shadow-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-70">Projected Total Value</p>
+                    <div className="relative group w-full max-w-[320px] flex justify-center py-2">
+                        <div className="text-7xl font-black tracking-tighter tabular-nums flex items-baseline gap-3 text-light-text dark:text-dark-text">
+                            <span className="text-3xl text-gray-300 dark:text-gray-700 font-medium">€</span>
+                            {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
+                    <div className="h-1 w-16 bg-primary-500/20 rounded-full" />
                 </div>
 
-                {/* 3. Main Form Grid */}
-                <div className="space-y-6">
-                    <div className="bg-gray-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-                        <div className="absolute -top-3 left-6 px-2 bg-light-card dark:bg-dark-card text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 rounded-md">Asset Details</div>
+                {/* 3. Asset Details Card */}
+                <div className="p-6 bg-light-fill dark:bg-dark-fill/50 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">database</span>
+                        Asset Parameters
+                    </h4>
 
-                        {/* Symbol */}
-                        <div className="md:col-span-1 relative">
-                            <label htmlFor="inv-symbol" className={labelStyle}>Symbol / Ticker</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="relative space-y-2">
+                            <label htmlFor="inv-symbol" className={labelStyle}>Symbol / Identification</label>
                             <div className="relative group">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500">search</span>
+                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 transition-colors">search</span>
                                 <input 
                                     id="inv-symbol" 
                                     type="text" 
@@ -227,27 +231,25 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                     }} 
                                     onFocus={() => setShowSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                    className={`${INPUT_BASE_STYLE} uppercase pl-10 font-mono h-11 tracking-widest`} 
-                                    placeholder="Ticker..." 
+                                    className={`${INPUT_BASE_STYLE} uppercase pl-12 font-black h-14 tracking-widest !text-xl`} 
+                                    placeholder="TICKER..." 
                                     required 
                                     autoFocus 
                                 />
                                 {isFetchingMetadata && (
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                        <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
                                     </div>
                                 )}
                             </div>
                             
-                            {/* Suggestions Dropdown */}
                             {showSuggestions && filteredSuggestions.length > 0 && (
-                                <div className="absolute z-[100] w-full mt-1 bg-white/95 dark:bg-[#1E1E1E]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden py-1">
-                                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 dark:bg-white/5">Your Holdings</div>
+                                <div className="absolute z-[100] w-full mt-2 bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden py-2 backdrop-blur-xl">
                                     {filteredSuggestions.map(acc => (
                                         <button
                                             key={acc.id}
                                             type="button"
-                                            className="w-full text-left px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/40 flex flex-col transition-colors group"
+                                            className="w-full text-left px-5 py-4 hover:bg-primary-50 dark:hover:bg-primary-500/10 flex flex-col transition-colors group"
                                             onClick={() => {
                                                 setSymbol(acc.symbol || '');
                                                 setName(acc.name);
@@ -255,154 +257,121 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                                 setShowSuggestions(false);
                                             }}
                                         >
-                                            <span className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400">{acc.symbol}</span>
-                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{acc.name}</span>
+                                            <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 group-active:scale-95 transition-transform">{acc.symbol}</span>
+                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate font-black uppercase tracking-widest opacity-60">{acc.name}</span>
                                         </button>
                                     ))}
                                 </div>
                             )}
                         </div>
 
-                        {/* Date */}
-                        <div className="md:col-span-1">
-                            <label htmlFor="inv-date" className={labelStyle}>Date</label>
+                        <div className="space-y-2">
+                            <label htmlFor="inv-date" className={labelStyle}>Fiscal Execution Date</label>
+                            <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-tighter`} required />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                        <div className="space-y-2">
+                            <label htmlFor="inv-quantity" className={labelStyle}>Operational Quantity</label>
+                            <input id="inv-quantity" type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} className={`${INPUT_BASE_STYLE} font-black pl-5 h-14 text-xl tabular-nums`} placeholder="0.0000" required />
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="inv-price" className={labelStyle}>Price per Unit</label>
                             <div className="relative group">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500">calendar_today</span>
-                                <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} required />
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-black text-lg pointer-events-none select-none">€</span>
+                                <input id="inv-price" type="number" step="any" value={price} onChange={e => setPrice(e.target.value)} className={`${INPUT_BASE_STYLE} font-black pl-10 h-14 text-xl tabular-nums`} placeholder="0.00" required />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Balance Info for Sell */}
-                        {activeHolding && type === 'sell' && (
-                            <div className="md:col-span-2 p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/20 rounded-xl animate-fade-in-up">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-orange-600 dark:text-orange-400 text-lg">inventory_2</span>
-                                        <span className="text-sm font-bold text-orange-800 dark:text-orange-300">Available Balance</span>
+                    {(activeHolding && type === 'sell') || isNewSymbol ? (
+                        <div className="p-5 bg-white dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/5 space-y-6">
+                            {activeHolding && type === 'sell' && (
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-emerald-500">inventory_2</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-400">Available Inventory</span>
+                                            <p className="text-lg font-black tabular-nums">{currentQuantity.toLocaleString()}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="text-lg font-bold text-orange-900 dark:text-orange-200">{currentQuantity.toLocaleString()}</span>
-                                        <span className="text-xs ml-1 text-orange-700 dark:text-orange-400 uppercase font-bold tracking-tight">Units</span>
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        {[0.25, 0.5, 1].map(p => (
+                                            <button key={p} type="button" onClick={() => setQuantity(String(currentQuantity * p))} className="flex-1 sm:flex-none px-4 py-2 text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-xl hover:brightness-95 active:scale-95 transition-all uppercase tracking-widest">
+                                                {p * 100}%
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                                <div className="mt-2 flex gap-2">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setQuantity(String(currentQuantity / 4))}
-                                        className="flex-1 py-1 text-[10px] font-bold bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
-                                    >
-                                        25%
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setQuantity(String(currentQuantity / 2))}
-                                        className="flex-1 py-1 text-[10px] font-bold bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
-                                    >
-                                        50%
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setQuantity(String(currentQuantity))}
-                                        className="flex-1 py-1 text-[10px] font-bold bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
-                                    >
-                                        100%
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* New Asset Info */}
-                        {isNewSymbol && (
-                            <div className="md:col-span-2 p-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800/20 rounded-xl space-y-4 animate-fade-in-up">
-                                <h4 className="font-bold text-primary-700 dark:text-primary-300 text-[11px] flex items-center gap-2 uppercase tracking-wider">
-                                    <span className="material-symbols-outlined text-lg">new_label</span>
-                                    Register New Asset
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="inv-name" className={labelStyle}>Company / Fund Name</label>
-                                        <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={`${INPUT_BASE_STYLE} h-10`} placeholder="e.g., Apple Inc." required />
+                            )}
+                            {isNewSymbol && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                    <div className="space-y-2">
+                                        <label htmlFor="inv-name" className={labelStyle}>Asset Designation</label>
+                                        <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 text-sm font-black uppercase`} placeholder="COMPANY NAME" required />
                                     </div>
-                                    <div>
-                                        <label htmlFor="inv-subtype" className={labelStyle}>Asset Category</label>
+                                    <div className="space-y-2">
+                                        <label className={labelStyle}>Instrument Sub-Type</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={SELECT_STYLE} required>
-                                                {INVESTMENT_SUB_TYPES.map(subType => (
-                                                    <option key={subType} value={subType}>{subType}</option>
-                                                ))}
+                                            <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-12 text-sm font-black uppercase tracking-widest`} required>
+                                                {INVESTMENT_SUB_TYPES.map(subType => <option key={subType} value={subType}>{subType}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Transaction Details */}
-                        <div className="md:col-span-2 grid grid-cols-2 gap-6 pt-2">
-                            <div>
-                                <label htmlFor="inv-quantity" className={labelStyle}>Quantity</label>
-                                <div className="relative group">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500">shopping_cart</span>
-                                    <input id="inv-quantity" type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} className={`${INPUT_BASE_STYLE} font-mono pl-10 h-11`} placeholder="0.0000" required />
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="inv-price" className={labelStyle}>Price per Unit</label>
-                                <div className="relative group">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">€</span>
-                                    <input id="inv-price" type="number" step="any" value={price} onChange={e => setPrice(e.target.value)} className={`${INPUT_BASE_STYLE} font-mono pl-8 h-11`} placeholder="0.00" required />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Funding Section */}
-                    {!isEditing && (
-                        <div className={`p-6 rounded-2xl border transition-all duration-300 ${createCashTx ? 'bg-primary-50 dark:bg-primary-900/5 border-primary-100 dark:border-primary-800/20' : 'bg-transparent border-black/5 dark:border-white/5 opacity-60'}`}>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center">
-                                        <span className="material-symbols-outlined">payments</span>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-primary-900 dark:text-primary-300">Funding Source</h4>
-                                        <p className="text-[10px] text-primary-700 dark:text-primary-500 font-medium tracking-wide">Sync with cash account</p>
-                                    </div>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" checked={createCashTx} onChange={e => setCreateCashTx(e.target.checked)} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-                                </label>
-                            </div>
-
-                            {createCashTx && (
-                                <div className="animate-fade-in pt-4 border-t border-primary-200 dark:border-primary-800/20">
-                                    <label htmlFor="cash-account" className={labelStyle}>Select Funding Account</label>
-                                    <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={SELECT_STYLE} required>
-                                            <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="">Select cash account</option>
-                                            {ALL_ACCOUNT_TYPES.map(type => {
-                                                const group = groupedCashAccounts[type];
-                                                if (!group || group.length === 0) return null;
-                                                return (
-                                                    <optgroup key={type} label={type} className="bg-gray-100 dark:bg-gray-800 font-bold text-[10px] uppercase tracking-wider text-gray-500">
-                                                        {group.map(acc => <option key={acc.id} value={acc.id} className="bg-white dark:bg-gray-900 text-sm font-medium py-2">{acc.name}</option>)}
-                                                    </optgroup>
-                                                );
-                                            })}
-                                        </select>
-                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                    </div>
-                                </div>
                             )}
                         </div>
-                    )}
+                    ) : null}
                 </div>
                 
+                {/* Funding Source Section */}
+                {!isEditing && (
+                    <div className={`p-6 rounded-[2rem] border transition-all duration-500 group ${createCashTx ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 shadow-sm' : 'bg-transparent border-black/5 dark:border-white/5 opacity-40 grayscale hover:grayscale-0 hover:opacity-100'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${createCashTx ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
+                                    <span className="material-symbols-outlined">payments</span>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text">Funding Pipeline</h4>
+                                    <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary font-black tracking-widest uppercase opacity-60">Automated Ledger Posting</p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" checked={createCashTx} onChange={e => setCreateCashTx(e.target.checked)} className="sr-only peer" />
+                                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-[28px] peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-500"></div>
+                            </label>
+                        </div>
+
+                        {createCashTx && (
+                            <div className="pt-6 mt-6 border-t border-primary-500/10 animate-fade-in space-y-2">
+                                <label className={labelStyle}>Origin / Target Node</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-tight`} required>
+                                        <option value="" disabled className="text-gray-400">SELECT LIQUIDITY NODE...</option>
+                                        {Object.entries(groupedCashAccounts).map(([type, group]) => (
+                                            <optgroup key={type} label={type} className="font-black uppercase tracking-widest bg-gray-50 dark:bg-dark-bg p-2 text-[10px]">
+                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">account_balance_wallet</span></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Discard</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-8`}>{isEditing ? 'Save Changes' : 'Execute Trade'}</button>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-widest text-[10px] font-black`}>
+                        {isEditing ? 'Commit Changes' : 'Execute Order'}
+                        <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">rocket_launch</span>
+                    </button>
                 </div>
             </form>
         </Modal>

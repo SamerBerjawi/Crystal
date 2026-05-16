@@ -1424,7 +1424,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 </div>
               </div>
                 
-                <div className="px-8 py-4 border-b border-black/5 dark:border-white/5 flex items-center gap-4 bg-white/50 dark:bg-dark-card/50 sticky top-0 z-[30] backdrop-blur-xl">
+                <div className="hidden lg:flex px-8 py-4 border-b border-black/5 dark:border-white/5 items-center gap-4 bg-white/50 dark:bg-dark-card/50 sticky top-0 z-[30] backdrop-blur-xl">
                     <div className="flex items-center justify-center w-6">
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all visible transactions"/>
                     </div>
@@ -1608,13 +1608,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 />
                             </div>
 
-                            <div className="flex-1 grid grid-cols-12 gap-4 items-center min-w-0 z-10">
+                            <div className="flex-1 flex lg:grid lg:grid-cols-12 gap-4 items-center min-w-0 z-10">
                                 {/* Column 1: Description */}
-                                <div className="col-span-4 flex items-center gap-4 min-w-0">
+                                <div className="flex-1 lg:col-span-4 flex items-center gap-4 min-w-0">
                                     <div className="relative group/logo shrink-0">
                                         <div className="absolute -inset-1 bg-gradient-to-tr from-primary-500/20 to-transparent rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
                                         <div
-                                            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card relative overflow-hidden transition-transform group-hover/logo:scale-105 duration-300`}
+                                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-white border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card relative overflow-hidden transition-transform group-hover/logo:scale-105 duration-300`}
                                             style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
                                         >
                                             {showMerchantLogo && merchantLogoUrl ? (
@@ -1634,20 +1634,25 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                     </div>
                                     <div className="min-w-0 flex-grow">
                                         <div className="flex items-center gap-2 mb-0.5">
-                                            <p className="font-semibold text-[16px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
-                                            {tx.recurringSourceId && <span className="material-symbols-outlined text-[14px] text-primary-500">repeat</span>}
-                                            {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500/40 shrink-0">notes</span>}
+                                            <p className="font-semibold text-[14px] sm:text-[16px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
+                                            {tx.recurringSourceId && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500">repeat</span>}
+                                            {tx.notes && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500/40 shrink-0">notes</span>}
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-100">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-x-2">
+                                            <span className="text-[11px] sm:text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-100">
                                                 {tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}
                                             </span>
+                                            {/* Mobile Secondary Info */}
+                                            <div className="lg:hidden flex flex-wrap items-center gap-1.5 mt-1">
+                                                <span className="text-[10px] text-light-text-secondary truncate max-w-[100px]">{accountName}</span>
+                                                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>{tx.category || 'Unset'}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Column 2: Account */}
-                                <div className="col-span-2 flex items-center gap-4 min-w-0">
+                                <div className="hidden lg:flex col-span-2 items-center gap-4 min-w-0">
                                     <div className="shrink-0 group/inst transition-transform group-hover:scale-110">
                                         {showInstitutionLogo ? (
                                             <img 
@@ -1670,7 +1675,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 </div>
 
                                 {/* Column 3: Category */}
-                                <div className="col-span-3 overflow-hidden">
+                                <div className="hidden lg:block col-span-3 overflow-hidden">
                                     <div 
                                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors duration-300 max-w-full cursor-pointer overflow-hidden font-bold text-[12px]"
                                         style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
@@ -1684,14 +1689,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 </div>
 
                                 {/* Column 4: Tags */}
-                                <div className="col-span-2 overflow-hidden">
+                                <div className="hidden lg:block col-span-2 overflow-hidden">
                                     {tx.tagIds && tx.tagIds.length > 0 ? (
                                         <div className="flex flex-wrap gap-1.5">
                                             {tx.tagIds.slice(0, 1).map(tagId => {
                                                 const tag = tags.find(t => t.id === tagId);
                                                 if (!tag) return null;
                                                 return (
-                                                    <span key={tag.id} className="px-2.5 py-1 rounded-lg bg-primary-500/10 text-[12px] font-bold text-primary-600 dark:text-primary-400">
+                                                    <span key={tag.id} className="px-2.5 py-1 rounded-lg text-[12px] font-bold" style={{ backgroundColor: `${tag.color}15`, color: tag.color }}>
                                                         {tag.name}
                                                     </span>
                                                 );
@@ -1706,8 +1711,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 </div>
 
                                 {/* Column 5: Amount */}
-                                <div className="col-span-1 text-right flex flex-col items-end">
-                                    <span className={`text-base font-semibold tracking-tighter ${amountColor}`}>
+                                <div className="sm:col-span-1 lg:col-span-1 text-right flex flex-col items-end shrink-0">
+                                    <span className={`text-[15px] sm:text-base font-semibold tracking-tighter ${amountColor}`}>
                                         {displayAmount}
                                     </span>
                                     {tx.spareChangeAmount ? (

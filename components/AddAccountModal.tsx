@@ -1178,22 +1178,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
               </button>
           </div>
 
-          <div className="flex justify-end gap-4 pt-6 mt-6 border-t border-black/5 dark:border-white/5">
-            <button 
-                type="button" 
-                onClick={onClose} 
-                className={`${BTN_SECONDARY_STYLE}`}
-            >
-                Retract
-            </button>
-            <button 
-                type="submit" 
-                className={`${BTN_PRIMARY_STYLE} px-10 gap-2 group animate-glow`}
-            >
-                Initialize Account
-                <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
-            </button>
-          </div>
+            <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
+                <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Retract</button>
+                <button type="submit" className={`${BTN_PRIMARY_STYLE} px-10 gap-2 group animate-glow`}>
+                    Initialize Account
+                    <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
+                </button>
+            </div>
         </form>
       </Modal>
     </>

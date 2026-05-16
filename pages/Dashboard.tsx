@@ -1372,41 +1372,41 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
       
       {/* Header Section */}
-      <div className="mb-6 mt-4 md:mt-0">
+      <div className="mb-6 mt-2 md:mt-0">
         <PageHeader
           markerIcon="analytics"
           markerLabel="Command Center"
           title="Dashboard"
           subtitle="Real-time financial pulse across accounts, investments, and commitments."
           actions={
-            <div className="flex items-center p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-sm">
                 {/* Global Controls Group */}
-                <div className="flex items-center gap-1 pr-2 mr-2 border-r border-black/5 dark:border-white/10 ml-1">
+                <div className="flex items-center gap-1 pr-2 mr-1 border-r border-black/5 dark:border-white/10 ml-1">
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)}
-                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
                         title={isEditMode ? "Finish Editing" : "Edit Layout"}
                     >
-                        <span className="material-symbols-outlined text-xl">{isEditMode ? 'done' : 'dashboard_customize'}</span>
+                        <span className="material-symbols-outlined text-lg sm:text-xl">{isEditMode ? 'done' : 'dashboard_customize'}</span>
                     </button>
 
                     <button 
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-                        className="w-10 h-10 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all group"
+                        className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all group"
                         title="Command Center"
                     >
-                        <span className="material-symbols-outlined text-xl group-hover:text-blue-500">terminal</span>
+                        <span className="material-symbols-outlined text-lg sm:text-xl group-hover:text-blue-500">terminal</span>
                     </button>
                 </div>
 
                 {/* Main Actions Group */}
-                <div className="flex items-center gap-1.5 font-bold tracking-widest text-sm uppercase">
+                <div className="flex items-center gap-1 sm:gap-1.5 font-bold tracking-widest text-sm uppercase">
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-12 px-6 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all font-black text-xs uppercase tracking-widest"
+                            className="h-9 sm:h-12 px-3 sm:px-6 flex items-center gap-1 sm:gap-2 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all font-black text-[9px] sm:text-xs uppercase tracking-widest"
                         >
-                            <span className="material-symbols-outlined text-lg">add_circle</span>
+                            <span className="material-symbols-outlined text-base sm:text-lg">add_circle</span>
                             <span className="hidden sm:inline">Add Widget</span>
                         </button>
                     )}
@@ -1420,19 +1420,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className={`${BTN_SECONDARY_STYLE} !h-12 !px-7 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10`}
+                        className={`${BTN_SECONDARY_STYLE} !h-9 sm:!h-12 !px-3 sm:!px-7 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10 text-[9px] sm:text-xs`}
                         title="Sync Banks"
                     >
-                        <span className={`material-symbols-outlined text-xl ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
+                        <span className={`material-symbols-outlined text-lg sm:text-xl ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
                         <span className="hidden sm:inline font-black text-xs tracking-widest">{isSyncingBanks ? 'Syncing...' : 'Sync Banks'}</span>
                     </button>
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className={`${BTN_PRIMARY_STYLE} !h-12 !px-7`}
+                        className={`${BTN_PRIMARY_STYLE} !h-9 sm:!h-12 !px-3 sm:!px-7 text-[9px] sm:text-xs`}
                     >
-                        <span className="material-symbols-outlined text-xl">add</span>
+                        <span className="material-symbols-outlined text-lg sm:text-xl">add</span>
                         <span className="hidden sm:inline font-black text-xs tracking-widest">New Transaction</span>
+                        <span className="sm:hidden ml-1 font-black">Add</span>
                     </button>
                 </div>
             </div>
@@ -1440,46 +1441,44 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         />
       </div>
 
-
-
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-1 py-1 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-1 py-1 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
              {/* Redesigned Tabs (Accounts Style) */}
-             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1.5 rounded-[1.5rem]">
-            {tabs.map((tab) => {
-                const tabConfig = {
-                    overview: { icon: 'dashboard', label: 'Overview' },
-                    analysis: { icon: 'insights', label: 'Analysis' },
-                    activity: { icon: 'history', label: 'Activity' }
-                }[tab] || { icon: 'circle', label: tab };
+             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar">
+                {tabs.map((tab) => {
+                    const tabConfig = {
+                        overview: { icon: 'dashboard', label: 'Overview' },
+                        analysis: { icon: 'insights', label: 'Analysis' },
+                        activity: { icon: 'history', label: 'Activity' }
+                    }[tab] || { icon: 'circle', label: tab };
 
-                return (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-8 h-8 rounded-[1.25rem] text-[12px] font-black tracking-widest transition-all duration-300 flex items-center gap-2.5 uppercase ${
-                            activeTab === tab
-                            ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px'
-                            : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
-                        }`}
-                    >
-                        <span className={`material-symbols-outlined text-xl ${activeTab === tab ? 'filled-icon' : 'opacity-60'}`}>{tabConfig.icon}</span>
-                        <span>{tabConfig.label}</span>
-                    </button>
-                );
-            })}
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 sm:px-8 h-8 rounded-[1.25rem] text-[10px] sm:text-[12px] font-black tracking-widest transition-all duration-300 flex items-center justify-center gap-2 uppercase whitespace-nowrap flex-1 lg:flex-none ${
+                                activeTab === tab
+                                ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px'
+                                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
+                            }`}
+                        >
+                            <span className={`material-symbols-outlined text-lg sm:text-xl ${activeTab === tab ? 'filled-icon' : 'opacity-60'}`}>{tabConfig.icon}</span>
+                            <span>{tabConfig.label}</span>
+                        </button>
+                    );
+                })}
              </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-2 lg:px-0">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-1 rounded-[1.25rem] border border-black/5 dark:border-white/5 shadow-inner">
-                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-10`}>
+                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.25rem] border border-black/5 dark:border-white/5 shadow-inner">
+                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-9 sm:!h-10`}>
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-5 text-[12px] font-black tracking-widest uppercase`}
+                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-4 sm:!px-5 text-[10px] sm:text-[12px] font-black tracking-widest uppercase`}
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
                                  <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
@@ -1492,25 +1491,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       
                        <button 
                         onClick={() => setShowForecast(!showForecast)}
-                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
                         title={showForecast ? "Hide Forecast" : "Show Forecast"}
                       >
-                         <span className={`material-symbols-outlined text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
+                         <span className={`material-symbols-outlined text-lg sm:text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
                       </button>
 
                       <button 
                         onClick={() => setShowGoals(!showGoals)}
-                        className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
                         title={showGoals ? "Hide Goals" : "Show Goals"}
                       >
-                         <span className={`material-symbols-outlined text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
+                         <span className={`material-symbols-outlined text-lg sm:text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
                       </button>
                   </div>
               )}
 
-              <div className="h-8 w-px bg-black/5 dark:bg-white/10 mx-1 hidden lg:block"></div>
+              <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 sm:mx-1 hidden sm:block"></div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
               </div>

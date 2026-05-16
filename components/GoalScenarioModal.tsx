@@ -118,200 +118,218 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
     return (
         <Modal onClose={onClose} title={modalTitle} size="xl">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-rose-500/10 blur-[80px] rounded-full" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="relative z-10 space-y-8">
                 
-                {/* Header Toggle Section */}
+                {/* Mode Selection Control */}
                 {!isEditing && !isSubGoal && (
-                   <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl mb-6">
+                   <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 space-x-1">
                         <button
                             type="button"
                             onClick={() => { setIsBucket(false); setType('one-time'); }}
-                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Target Date
                         </button>
                         <button
                             type="button"
                             onClick={() => { setIsBucket(false); setType('recurring'); }}
-                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Recurring
                         </button>
                          <button
                             type="button"
                             onClick={() => setIsBucket(true)}
-                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Goal Bucket
                         </button>
                    </div>
                 )}
 
-                {/* Name Input */}
-                <div>
-                    <label htmlFor="goal-name" className={labelStyle}>{isBucket ? 'Bucket Name' : (isSubGoal ? 'Item Name' : 'Goal Name')}</label>
-                    <input 
-                        id="goal-name" 
-                        type="text" 
-                        value={name} 
-                        onChange={e => setName(e.target.value)} 
-                        className={`${INPUT_BASE_STYLE} !text-lg font-semibold`} 
-                        placeholder={isBucket ? "e.g. Summer Vacation" : "e.g. New Laptop"}
-                        required 
-                        autoFocus
-                    />
+                {/* Hero Target Section */}
+                {!isBucket && (
+                    <div className="bg-white dark:bg-black/20 p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 flex flex-col items-center gap-2 shadow-sm">
+                        <label className={labelStyle}>{amountLabels.target}</label>
+                        <div className="relative group w-full max-w-[320px] flex justify-center py-4">
+                             <div className="text-7xl font-black tracking-tighter tabular-nums flex items-baseline gap-2">
+                                 <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    value={amount} 
+                                    onChange={e => setAmount(e.target.value)} 
+                                    className="bg-transparent border-none text-center focus:ring-0 w-full p-0 placeholder-gray-200 dark:placeholder-gray-800" 
+                                    placeholder="0.00"
+                                    required 
+                                 />
+                                 <span className="text-3xl text-gray-300 dark:text-gray-700">EUR</span>
+                             </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">flag</span>
+                        Objective Parameters
+                    </h4>
+
+                    <div>
+                        <label htmlFor="goal-name" className={labelStyle}>{isBucket ? 'Bucket Alias' : (isSubGoal ? 'Objective Component' : 'Goal Alias')}</label>
+                        <input 
+                            id="goal-name" 
+                            type="text" 
+                            value={name} 
+                            onChange={e => setName(e.target.value)} 
+                            className={`${INPUT_BASE_STYLE} !text-xl font-bold h-14`} 
+                            placeholder={isBucket ? "e.g. Tactical Reserve" : "e.g. Asset Acquisition"}
+                            required 
+                            autoFocus={isBucket || isSubGoal}
+                        />
+                    </div>
                 </div>
                 
                 {!isBucket && (
-                <>
-                    {/* Hero Amount Input */}
-                    <div className="flex flex-col items-center justify-center py-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5">
-                        <label htmlFor="goal-amount" className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">{amountLabels.target}</label>
-                        <div className="relative w-full max-w-[200px]">
-                            <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-medium text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity duration-200 ${amount ? 'opacity-100' : 'opacity-50'}`}>
-                                €
-                            </span>
-                            <input 
-                                id="goal-amount"
-                                type="number" 
-                                step="0.01" 
-                                value={amount} 
-                                onChange={e => setAmount(e.target.value)} 
-                                className="w-full bg-transparent border-b-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 text-center text-5xl font-bold text-light-text dark:text-dark-text placeholder-gray-300 dark:placeholder-gray-700 focus:outline-none py-2 transition-colors pl-6" 
-                                placeholder="0" 
-                                required 
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                        <div>
-                             <label htmlFor="goal-current-amount" className={labelStyle}>{amountLabels.current}</label>
-                             <div className="relative">
-                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
-                                 <input 
-                                     id="goal-current-amount" 
-                                     type="number" 
-                                     step="0.01" 
-                                     value={currentAmount} 
-                                     onChange={e => setCurrentAmount(e.target.value)} 
-                                     className={`${INPUT_BASE_STYLE} pl-8`} 
-                                     placeholder="0.00" 
-                                 />
-                             </div>
-                        </div>
-                         <div>
-                             <label className={labelStyle}>Goal Type</label>
-                             <div className={SELECT_WRAPPER_STYLE}>
-                                 <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={SELECT_STYLE}>
-                                     <option value="savings">Saving goal</option>
-                                     <option value="expense">Spending target</option>
-                                     <option value="income">Income target</option>
-                                 </select>
-                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                             </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
-                        {type === 'one-time' ? (
-                            <div className="p-4 border-b border-black/5 dark:border-white/5">
-                                <label htmlFor="goal-date" className={labelStyle}>Target Date</label>
-                                <input id="goal-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
+                    {/* Left Column: Progress & Classification */}
+                    <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
+                         <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500 text-lg">donut_large</span>
+                                Progress Metrics
+                            </h4>
+                            <div className="grid grid-cols-1 gap-6">
+                                 <div>
+                                     <label htmlFor="goal-current-amount" className={labelStyle}>{amountLabels.current}</label>
+                                     <div className="relative">
+                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary font-bold">€</span>
+                                         <input 
+                                             id="goal-current-amount" 
+                                             type="number" 
+                                             step="0.01" 
+                                             value={currentAmount} 
+                                             onChange={e => setCurrentAmount(e.target.value)} 
+                                             className={`${INPUT_BASE_STYLE} pl-10 h-14 font-black tabular-nums`} 
+                                             placeholder="0.00" 
+                                         />
+                                     </div>
+                                </div>
+                                 <div className="space-y-2">
+                                     <label className={labelStyle}>Logical Classification</label>
+                                     <div className={SELECT_WRAPPER_STYLE}>
+                                         <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-tight`}>
+                                             <option value="savings">Saving Strategy</option>
+                                             <option value="expense">Spending Target</option>
+                                             <option value="income">Income Objective</option>
+                                         </select>
+                                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                     </div>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="p-4 border-b border-black/5 dark:border-white/5">
+                        </div>
+
+                        <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500 text-lg">event</span>
+                                Temporal Configuration
+                            </h4>
+                            {type === 'one-time' ? (
+                                <div className="space-y-2">
+                                    <label htmlFor="goal-date" className={labelStyle}>Deployment / Target Date</label>
+                                    <input id="goal-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-bold`} required />
+                                </div>
+                            ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="goal-frequency" className={labelStyle}>Frequency</label>
+                                    <div className="space-y-2">
+                                        <label className={labelStyle}>Frequency</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
+                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-widest`}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label htmlFor="goal-start-date" className={labelStyle}>Start Date</label>
-                                        <input id="goal-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} required />
+                                    <div className="space-y-2">
+                                        <label className={labelStyle}>Start Sequence</label>
+                                        <input id="goal-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-bold`} required />
                                     </div>
                                 </div>
-                                {(frequency === 'monthly' || frequency === 'yearly') && (
-                                    <div className="mt-4">
-                                        <label htmlFor="goal-due-date" className={labelStyle}>Day of Month (Optional)</label>
-                                        <input id="goal-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Uses start date's day" />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Execution & Integration */}
+                    <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500 text-lg">savings</span>
+                                Contribution Strategy
+                            </h4>
+                            <div>
+                                <label htmlFor="monthly-contribution" className={labelStyle}>
+                                    {type === 'one-time' ? 'Projected Monthly Contribution' : 'Recurrent Contribution'}
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary font-bold">€</span>
+                                    <input 
+                                        id="monthly-contribution" 
+                                        type="number" 
+                                        step="0.01" 
+                                        value={monthlyContribution} 
+                                        onChange={e => setMonthlyContribution(e.target.value)} 
+                                        className={`${INPUT_BASE_STYLE} pl-10 h-14 font-black tabular-nums placeholder:text-[10px]`} 
+                                        placeholder={type === 'one-time' ? "AUTOCALCULATE" : "e.g. 250.00"} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500 text-lg">account_tree</span>
+                                Network Integration
+                            </h4>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className={labelStyle}>Funding Source / Linkage</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                            <option value="">Decoupled Status</option>
+                                            {Object.entries(groupedAccounts).map(([type, group]) => (
+                                                <optgroup key={type} label={type} className="font-black uppercase tracking-widest bg-gray-50 dark:bg-dark-bg p-2 h-10">
+                                                    {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                                </optgroup>
+                                            ))}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                                
+                                {parentId && (
+                                     <div className="bg-primary-500/5 dark:bg-primary-500/10 p-4 rounded-2xl border border-primary-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-primary-500 text-base">subdirectory_arrow_right</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary-600">Sub-Goal Active</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        )}
-                        
-                        <div className="p-4">
-                            <label htmlFor="monthly-contribution" className={labelStyle}>
-                                {type === 'one-time' ? 'Monthly Savings/Payment Plan' : 'Contribution Amount'}
-                            </label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
-                                <input 
-                                    id="monthly-contribution" 
-                                    type="number" 
-                                    step="0.01" 
-                                    value={monthlyContribution} 
-                                    onChange={e => setMonthlyContribution(e.target.value)} 
-                                    className={`${INPUT_BASE_STYLE} pl-8`} 
-                                    placeholder={type === 'one-time' ? "e.g., 250 (Optional)" : "e.g., 250"} 
-                                />
-                            </div>
-                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 opacity-60">
-                                {type === 'one-time' 
-                                    ? "Determines how fast you'll reach the goal in the forecast." 
-                                    : "Amount applied every recurrence period."}
-                            </p>
                         </div>
                     </div>
-                    
-                    {/* Linking */}
-                    <div className="pt-2 border-t border-black/10 dark:border-white/10 space-y-4">
-                        <div>
-                            <label htmlFor="goal-payment-account" className={labelStyle}>Linked Account (Optional)</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={SELECT_STYLE}>
-                                    <option value="">None</option>
-                                    {ALL_ACCOUNT_TYPES.map(type => {
-                                        const group = groupedAccounts[type];
-                                        if (!group || group.length === 0) return null;
-                                        return (
-                                            <optgroup key={type} label={type}>
-                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                            </optgroup>
-                                        );
-                                    })}
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">If selected, the goal will only be active when this account is selected.</p>
-                        </div>
-
-                        {!preselectedParentId && (
-                            <div>
-                                <label htmlFor="goal-parent" className={labelStyle}>Parent Goal (Optional)</label>
-                                <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="goal-parent" value={parentId || ''} onChange={e => setParentId(e.target.value || undefined)} className={SELECT_STYLE} disabled={!!preselectedParentId}>
-                                        <option value="">None (Top-level goal)</option>
-                                        {parentGoalOptions.map(goal => (
-                                            <option key={goal.id} value={goal.id}>{goal.name}</option>
-                                        ))}
-                                    </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
+                </div>
                 )}
                 
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Create Goal'}</button>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow uppercase tracking-widest text-[10px] font-black`}>
+                        {isEditing ? 'Commit Objective' : 'Deploy Goal'}
+                        <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">track_changes</span>
+                    </button>
                 </div>
             </form>
         </Modal>

@@ -341,17 +341,17 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
                 {/* Left Side: Portfolio Display */}
-                <div className="flex flex-col lg:flex-row lg:items-center gap-8 flex-1">
+                <div className="flex flex-col xl:flex-row xl:items-center gap-8 flex-1">
                     <div 
                         onClick={() => setActiveSegment('all')}
-                        className="cursor-pointer group/nw"
+                        className="cursor-pointer group/nw w-full sm:w-auto"
                     >
                         <div className="flex items-center gap-2 mb-2">
                             <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
                             <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h2 className="text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
                                 {formatCurrency(segmentValues.all, 'EUR')}
                             </h2>
                             {activeSegment === 'all' && (
@@ -359,7 +359,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             )}
                         </div>
                         {/* Compact Sparkline */}
-                        <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity">
+                        <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity max-w-[200px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={globalMetrics.trendData}>
                                     <Area 
@@ -375,10 +375,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         </div>
                     </div>
 
-                    <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
+                    <div className="hidden xl:block w-px h-16 bg-black/5 dark:bg-white/10" />
 
                     {/* Segment Grid - High Density Tiles */}
-                    <div className="flex-[2] grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="flex-1 lg:flex-[2] grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         {segments.filter(s => s.id !== 'all').map(seg => {
                             const isActive = activeSegment === seg.id;
                             const val = segmentValues[seg.id as keyof typeof segmentValues];
