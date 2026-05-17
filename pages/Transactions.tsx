@@ -1291,7 +1291,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
       
       {/* Filter Toolbar */}
-      <div className={`p-6 bg-white dark:bg-dark-card rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 relative`}>
+      <div className={`p-4 sm:p-6 bg-white dark:bg-dark-card rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 relative`}>
           {/* Subtle Glow */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 40%)' }}></div>
           

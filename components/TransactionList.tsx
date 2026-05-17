@@ -115,7 +115,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(800);
+  const [viewportHeight, setViewportHeight] = useState(960);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {

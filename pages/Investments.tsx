@@ -494,7 +494,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 />
 
                 {/* --- Consolidated Header & Portfolio --- */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
+                <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
                     <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
                     <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
@@ -529,7 +529,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     const isActive = activeSegment === seg.id;
                                     const val = segmentValues[seg.id as keyof typeof segmentValues];
                                     return (
-                                        <div key={seg.id} onClick={() => setActiveSegment(seg.id)} className={`group cursor-pointer p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}>
+                                        <div key={seg.id} onClick={() => setActiveSegment(seg.id)} className={`group cursor-pointer p-3 sm:p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}>
                                             <div className="flex items-center justify-between mb-1.5">
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
                                                     <span className="material-symbols-outlined text-lg">{seg.icon}</span>

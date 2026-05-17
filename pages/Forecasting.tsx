@@ -1002,7 +1002,7 @@ const Forecasting: React.FC = () => {
                 </motion.div>
 
                 {/* Net Change Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[180px]">
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-4 sm:!p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[160px] sm:min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
                             <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60">Portfolio Shift</p>
@@ -1035,7 +1035,7 @@ const Forecasting: React.FC = () => {
                 </Card>
 
                 {/* Progress Mini Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[180px]">
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-4 sm:!p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[160px] sm:min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
                             <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60">Global Performance</p>

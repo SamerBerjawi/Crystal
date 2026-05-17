@@ -139,15 +139,15 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group">
+    <div className="bg-white dark:bg-dark-card p-4 sm:p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 sm:gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform`}>
-            <span className="material-symbols-outlined text-3xl">{icon}</span>
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform`}>
+            <span className="material-symbols-outlined text-2xl sm:text-3xl">{icon}</span>
         </div>
         <div className="min-w-0 relative z-10">
-            <p className="text-[12px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
-            <p className="text-2xl font-black text-light-text dark:text-dark-text privacy-blur tracking-tighter mt-1 leading-none">{value}</p>
-            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1.5 font-bold truncate opacity-60 uppercase tracking-tight">{subtext}</p>
+            <p className="text-[10px] sm:text-[12px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
+            <p className="text-xl sm:text-2xl font-black text-light-text dark:text-dark-text privacy-blur tracking-tighter mt-0.5 sm:mt-1 leading-none">{value}</p>
+            <p className="text-[10px] sm:text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1 sm:mt-1.5 font-bold truncate opacity-60 uppercase tracking-tight">{subtext}</p>
         </div>
     </div>
 );
