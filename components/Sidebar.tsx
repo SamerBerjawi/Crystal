@@ -150,10 +150,26 @@ const Sidebar: React.FC<SidebarProps> = ({
     const colorClass = getColorClasses(itemColor, isActive);
 
     return (
-      <li key={item.name} className="mb-1 relative">
+      <li key={item.name} className="mb-1 relative flex items-center">
+        {/* Left Indicator - Positioned smoothly via parent flexbox alignment */}
+        <div className="absolute left-[3px] w-1 h-full flex items-center justify-center z-20">
+          <AnimatePresence>
+            {isActive && (
+              <motion.div 
+                layoutId="active-indicator"
+                className={`w-1 rounded-r-full ${getGlowClasses(itemColor).split(' ')[0]}`}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 24, opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
         <div
           onClick={() => handleNavClick(item.name)}
-          className={`${baseClasses} ${layoutClasses} ${colorClass} ${!isActive && 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+          className={`${baseClasses} ${layoutClasses} ${colorClass} w-full ${!isActive && 'hover:bg-black/5 dark:hover:bg-white/5'}`}
           title={isSidebarCollapsed ? item.name : undefined}
         >
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -190,20 +206,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </div>
         </div>
-        
-        {/* Persistent Indicator - outside to avoid clipping */}
-        <AnimatePresence>
-          {isActive && (
-            <motion.div 
-              layoutId="active-indicator"
-              className={`absolute left-[3px] top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full z-20 ${getGlowClasses(itemColor).split(' ')[0]}`}
-              initial={{ height: 0, opacity: 0, x: -5 }}
-              animate={{ height: 24, opacity: 1, x: 0 }}
-              exit={{ height: 0, opacity: 0, x: -5 }}
-              transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
-            />
-          )}
-        </AnimatePresence>
       </li>
     );
   };
