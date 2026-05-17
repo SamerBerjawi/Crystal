@@ -1509,7 +1509,7 @@ const Forecasting: React.FC = () => {
             <div className="space-y-4">
                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                        <div className="p-2 rounded-lg bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border border-primary-500/20 dark:border-primary-500/30">
                              <span className="material-symbols-outlined text-xl">table_view</span>
                         </div>
                         <div>
@@ -1596,7 +1596,7 @@ const Forecasting: React.FC = () => {
                                                             <div className={`p-1.5 rounded-lg border flex items-center justify-center shrink-0 ${
                                                                 row.type === 'Financial Goal' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                                                                 row.type === 'Bill/Payment' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
-                                                                'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
+                                                                'bg-primary-500/10 text-primary-500 border-primary-500/20'
                                                             }`}>
                                                                 <span className="material-symbols-outlined text-sm">{getIcon(row.type)}</span>
                                                             </div>
@@ -1627,7 +1627,7 @@ const Forecasting: React.FC = () => {
                                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border ${
                                                             row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' :
                                                             row.type === 'Bill/Payment' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800' :
-                                                            'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-400 dark:border-indigo-800'
+                                                            'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-900/40 dark:text-primary-400 dark:border-primary-800'
                                                         }`}>
                                                             {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
                                                         </span>

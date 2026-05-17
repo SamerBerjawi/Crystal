@@ -96,7 +96,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(99, 102, 241, 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
     return (
         <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
              style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
@@ -737,7 +737,7 @@ const Reports: React.FC = () => {
           icon="savings"
           subtitle={savingsRate >= 20 ? 'Excellent saving' : 'Aim for 20% target'}
           colorClass={savingsRate >= 20 ? 'text-emerald-500' : savingsRate > 0 ? 'text-primary-500' : 'text-rose-500'}
-          glowColor={savingsRate >= 20 ? "rgba(16, 185, 129, 0.15)" : "rgba(99, 102, 241, 0.15)"}
+          glowColor={savingsRate >= 20 ? "rgba(16, 185, 129, 0.15)" : "rgba(var(--primary-500-rgb), 0.15)"}
         />
 
         <MetricCard
@@ -925,7 +925,7 @@ const Reports: React.FC = () => {
                   tick={{ fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }}
                 />
                 <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }} tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(1) + 'k' : val}`} />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(99, 102, 241, 0.2)', strokeWidth: 2 }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(var(--primary-500-rgb), 0.2)', strokeWidth: 2 }} />
                 <Area type="monotone" dataKey="previous" name="Previous Period" stroke="currentColor" fill="transparent" strokeDasharray="6 4" strokeWidth={1.5} opacity={0.2} />
                 <Area type="monotone" dataKey="current" name="Current Period" stroke="#6366F1" fillOpacity={1} fill="url(#colorCurrent)" strokeWidth={3} animationDuration={1500} />
               </AreaChart>

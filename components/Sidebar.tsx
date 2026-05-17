@@ -295,7 +295,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       {/* Privacy Toggle */}
                       <button
                           onClick={togglePrivacyMode}
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isPrivacyMode ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-lg shadow-indigo-500/20' : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'}`}
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isPrivacyMode ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 shadow-lg shadow-primary-500/20' : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'}`}
                           title={isPrivacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
                       >
                           <span className="material-symbols-outlined text-[19px]">{isPrivacyMode ? 'visibility_off' : 'visibility'}</span>
@@ -333,14 +333,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
                                 className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                             >
-                                <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-indigo-500 transition-colors">person</span>
+                                <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors">person</span>
                                 <span className="font-semibold">My Account</span>
                             </button>
                              <button
                                 onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
                                 className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                             >
-                                <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-indigo-500 transition-colors">settings</span>
+                                <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors">settings</span>
                                 <span className="font-semibold">Preferences</span>
                             </button>
                             <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-3"></div>

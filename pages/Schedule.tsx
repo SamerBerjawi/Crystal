@@ -627,7 +627,7 @@ const SchedulePage: React.FC = () => {
 
     const PIE_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
     const segments: { id: ScheduleSegment; label: string; icon: string; color: string }[] = [
-        { id: 'calendar', label: 'Calendar', icon: 'calendar_month', color: 'indigo' },
+        { id: 'calendar', label: 'Calendar', icon: 'calendar_month', color: 'primary' },
         { id: 'timeline', label: 'Timeline', icon: 'view_timeline', color: 'rose' },
         { id: 'rules', label: 'Rules', icon: 'repeat', color: 'amber' },
     ];
@@ -754,8 +754,8 @@ const SchedulePage: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-2xl bg-indigo-500/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-indigo-500/70">event_repeat</span>
+                                <div className="w-10 h-10 rounded-2xl bg-primary-500/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-primary-500/70">event_repeat</span>
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 uppercase">Active Rules</span>

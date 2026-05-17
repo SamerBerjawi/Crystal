@@ -137,17 +137,17 @@
             },
             colors: {
               gray: tailwind.colors.neutral,
-              'primary': {
-                '50': '#fef8f0',
-                '100': '#fdeed9',
-                '200': '#fbddb1',
-                '300': '#faca89',
-                '400': '#fcb045',
-                '500': '#fa9a1d',
-                '600': '#e78310',
-                '700': '#c1670e',
-                '800': '#995111',
-                '900': '#7d4312',
+              primary: {
+                50: 'var(--primary-50, #fef8f0)',
+                100: 'var(--primary-100, #fdeed9)',
+                200: 'var(--primary-200, #fbddb1)',
+                300: 'var(--primary-300, #faca89)',
+                400: 'var(--primary-400, #fcb045)',
+                500: 'var(--primary-500, #fa9a1d)',
+                600: 'var(--primary-600, #e78310)',
+                700: 'var(--primary-700, #c1670e)',
+                800: 'var(--primary-800, #995111)',
+                900: 'var(--primary-900, #7d4312)',
               },
               'light-bg': '#FAFAFA',
               'light-card': 'rgba(255, 255, 255, 0.6)',
@@ -219,6 +219,27 @@
           (!storedTheme && !prefersDark);
 
         document.documentElement.classList.toggle('dark', !shouldUseLight);
+
+        // Sync RGB primary variable
+        const syncPrimaryRgb = () => {
+          const color = getComputedStyle(document.documentElement).getPropertyValue('--primary-500').trim();
+          if (color) {
+            // Very simple hex to rgb
+            const hex = color.replace('#', '');
+            if (hex.length === 6) {
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+              document.documentElement.style.setProperty('--primary-500-rgb', `${r}, ${g}, ${b}`);
+            }
+          }
+        };
+        
+        // Use a MutatonObserver to watch for class changes (dark mode) OR style changes
+        const observer = new MutationObserver(() => syncPrimaryRgb());
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+        setTimeout(syncPrimaryRgb, 100);
+
       } catch (error) {
         document.documentElement.classList.add('dark');
         console.warn('Unable to read theme preference from localStorage.', error);

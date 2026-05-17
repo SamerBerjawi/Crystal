@@ -484,7 +484,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Assets"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-emerald-500">account_balance</span></div>}
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-primary-500">account_balance</span></div>}
                         headerSubtitle="Wealth & Resources"
                         accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 

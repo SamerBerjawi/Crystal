@@ -292,7 +292,7 @@ const Subscriptions: React.FC = () => {
     const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
     const segments: { id: SubscriptionSegment; label: string; icon: string; color: string }[] = [
-        { id: 'all', label: 'Overview', icon: 'dashboard', color: 'indigo' },
+        { id: 'all', label: 'Overview', icon: 'dashboard', color: 'primary' },
         { id: 'recurring', label: 'Payments', icon: 'calendar_today', color: 'rose' },
         { id: 'loyalty', label: 'Wallet', icon: 'wallet', color: 'amber' },
     ];
@@ -307,7 +307,7 @@ const Subscriptions: React.FC = () => {
         ? 'from-rose-500 via-rose-600 to-pink-700'
         : activeSegment === 'loyalty'
             ? 'from-amber-600 via-orange-600 to-yellow-600'
-            : 'from-indigo-600 via-violet-700 to-purple-800';
+            : 'from-primary-600 via-primary-700 to-primary-800';
 
     return (
         <div className="relative">
@@ -346,7 +346,7 @@ const Subscriptions: React.FC = () => {
                                         {formatCurrency(monthlySpend, 'EUR')}
                                     </h2>
                                     {activeSegment === 'all' && (
-                                        <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                                        <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(var(--primary-500-rgb),0.8)]" />
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-2 opacity-60">
@@ -414,8 +414,8 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-500/5 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-base text-blue-500/70">category</span>
+                                            <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-base text-primary-500/70">category</span>
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Categories</span>
@@ -435,8 +435,8 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-500/5 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-base text-indigo-500/70">subscriptions</span>
+                                            <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
+                                                <span className="material-symbols-outlined text-base text-primary-500/70">subscriptions</span>
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Active Subscriptions</span>
@@ -464,7 +464,7 @@ const Subscriptions: React.FC = () => {
                     {(activeSegment === 'all' || activeSegment === 'recurring') && (
                         <motion.div key="recurring" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                             {detectedSubscriptions.length > 0 && activeSegment !== 'recurring' && (
-                                <motion.div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-primary-700 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/10">
+                                <motion.div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/10">
                                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-[100px] pointer-events-none" />
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-6 bg-white/10 w-fit px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/20">
@@ -491,7 +491,7 @@ const Subscriptions: React.FC = () => {
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <button onClick={() => handleIgnore(sub.key)} className="flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white/100 hover:bg-white/10 rounded-lg">Ignore</button>
-                                                            <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest bg-white text-indigo-700 rounded-lg shadow-lg">Track</button>
+                                                            <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest bg-white text-primary-700 rounded-lg shadow-lg">Track</button>
                                                         </div>
                                                     </div>
                                                 )
@@ -528,7 +528,7 @@ const Subscriptions: React.FC = () => {
                                                     className="group cursor-pointer bg-light-fill dark:bg-dark-fill/40 rounded-3xl p-5 border border-transparent hover:border-primary-500/20 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                                                 >
                                                      {/* Inner Glow Effect */}
-                                                    <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden" style={{ background: `radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 60%)`, opacity: 0.5 }} />
+                                                    <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden" style={{ background: `radial-gradient(circle at 0% 0%, rgba(var(--primary-500-rgb), 0.15) 0%, transparent 60%)`, opacity: 0.5 }} />
 
                                                     <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                                                         <div className="flex items-start justify-between">

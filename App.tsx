@@ -519,6 +519,24 @@ const App: React.FC = () => {
     else { document.body.classList.remove('privacy-mode'); }
   }, [isPrivacyMode]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const tw = (window as any).tailwind;
+    if (!tw || !tw.colors) return;
+    
+    const colorName = currentPageColor;
+    const palette = tw.colors[colorName];
+    
+    if (palette && typeof palette === 'object') {
+      Object.entries(palette).forEach(([shade, value]) => {
+        if (typeof value === 'string') {
+          document.documentElement.style.setProperty(`--primary-${shade}`, value);
+        }
+      });
+    }
+  }, [currentPageColor]);
+
   const setCurrentPage = useCallback((page: Page) => {
     const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
     navigateToPath(targetPath);

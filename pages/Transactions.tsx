@@ -27,7 +27,7 @@ interface TransactionsProps {
   onClearInitialFilters?: () => void;
 }
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(99, 102, 241, 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
     return (
         <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
              style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
@@ -1182,7 +1182,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 className="fixed z-50 w-56 bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
                 <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-lg text-blue-500">edit</span>
+                    <span className="material-symbols-outlined text-lg text-primary-500">edit</span>
                     <span>Edit Transaction</span>
                 </button>
                 <button onClick={() => { handleDuplicate(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
@@ -1293,7 +1293,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       {/* Filter Toolbar */}
       <div className={`p-4 sm:p-6 bg-white dark:bg-dark-card rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 relative`}>
           {/* Subtle Glow */}
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 40%)' }}></div>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(var(--primary-500-rgb), 0.05) 0%, transparent 40%)' }}></div>
           
           <div className="relative z-10 flex flex-col gap-6">
               {/* Main Row */}
@@ -1385,10 +1385,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         <Card className="!p-0 h-full flex flex-col relative border border-black/5 dark:border-white/5 shadow-sm rounded-[2rem] bg-white dark:bg-dark-card">
             <div className="flex flex-col h-full"> {/* Container to avoid inner overflow-x issue */}
                 <div className={`transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${selectedIds.size > 0 ? 'h-[72px] opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
-                  <div className={`${selectedIds.size > 0 ? 'bg-indigo-600 dark:bg-indigo-900 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-8 flex justify-between items-center h-[72px] z-[40] relative transition-colors duration-500`}>
+                  <div className={`${selectedIds.size > 0 ? 'bg-primary-600 dark:bg-primary-900 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-8 flex justify-between items-center h-[72px] z-[40] relative transition-colors duration-500`}>
                      <div className="flex items-center gap-6">
                          <div className="flex items-center gap-4">
-                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={`${CHECKBOX_STYLE} border-white/30 checked:bg-white checked:text-indigo-600`} aria-label="Select all transactions"/>
+                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={`${CHECKBOX_STYLE} border-white/30 checked:bg-white checked:text-primary-600`} aria-label="Select all transactions"/>
                              <div className="flex flex-col">
                                 <span className="font-semibold text-lg tracking-tight leading-none">{selectedIds.size}</span>
                                 <span className="text-[10px] font-semibold tracking-widest opacity-70">records selected</span>
