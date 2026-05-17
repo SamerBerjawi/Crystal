@@ -195,7 +195,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                    
                    <div className="relative z-10">
                         <div className="flex justify-between items-start mb-12">
-                             <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg">
+                             <div className="w-16 h-16 rounded-2xl ios-regular !bg-white/5 dark:!bg-white/[0.02] border border-white/10 flex items-center justify-center shadow-lg">
                                   <span className="material-symbols-outlined text-3xl text-emerald-400 font-light">lock</span>
                              </div>
                              <div className="text-right">
@@ -209,7 +209,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                         
-                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/5 shadow-inner">
+                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl ios-regular !bg-white/5 dark:!bg-white/[0.02] border border-white/5 shadow-inner">
                              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                              <span className="text-[11px] font-bold tracking-wider text-emerald-300 drop-shadow-sm">{burnRateMessage}</span>
                         </div>
@@ -284,15 +284,16 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
                                     contentStyle={{ 
-                                        backgroundColor: 'rgba(30, 41, 59, 0.7)', 
-                                        backdropFilter: 'blur(16px)', 
-                                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                        backgroundColor: 'var(--light-card)', 
+                                        backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                        WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
+                                        border: 'none', 
                                         borderRadius: '24px', 
-                                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)',
                                         padding: '16px' 
                                     }}
-                                    itemStyle={{ color: '#fff', fontSize: '18px', fontWeight: '900' }}
-                                    labelStyle={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
+                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
                                     formatter={(value: number, name: string) => [`${formatCurrency(value, account.currency)}`, name]}
                                 />
                                 <Bar dataKey="income" name="Intake" stackId="a" fill="#10B981" radius={[0, 0, 12, 12]} />

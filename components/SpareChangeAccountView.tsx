@@ -199,11 +199,11 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                              </div>
                              
                              <div className="flex gap-10 mt-8">
-                                <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-[2rem] border border-white/10">
+                                <div className="ios-regular px-6 py-4">
                                     <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">Total round-ups</p>
                                     <p className="font-bold text-2xl text-white">{totalRoundUps}</p>
                                 </div>
-                                <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-[2rem] border border-white/10">
+                                <div className="ios-regular px-6 py-4 rounded-[2rem] border border-white/10 dark:border-white/5 !bg-white/10 dark:!bg-white/[0.05]">
                                     <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">MTD intake</p>
                                     <p className="font-bold text-2xl text-white">+{formatCurrency(thisMonthSaved, account.currency)}</p>
                                 </div>
@@ -213,7 +213,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                         <div className="md:w-64 flex flex-col justify-center items-center text-center border-l border-white/10 md:pl-10">
                              <div className="relative">
                                  <div className="absolute inset-0 bg-orange-500/20 blur-2xl rounded-full"></div>
-                                 <div className="w-24 h-24 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center shadow-2xl relative z-10 mb-4">
+                                 <div className="ios-regular w-24 h-24 !rounded-full flex items-center justify-center shadow-2xl relative z-10 mb-4">
                                       <span className="text-4xl">☕</span>
                                  </div>
                              </div>
@@ -263,15 +263,16 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
                                     contentStyle={{ 
-                                        backgroundColor: 'rgba(30, 41, 59, 0.7)', 
-                                        backdropFilter: 'blur(16px)', 
-                                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                        backgroundColor: 'var(--light-card)', 
+                                        backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                        WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
+                                        border: 'none', 
                                         borderRadius: '24px', 
-                                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)',
                                         padding: '16px' 
                                     }}
-                                    itemStyle={{ color: '#fff', fontSize: '18px', fontWeight: '900' }}
-                                    labelStyle={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
+                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
                                     formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Savings']}
                                 />
                                 <Bar dataKey="value" fill="#06B6D4" radius={[12, 12, 12, 12]} barSize={40}>

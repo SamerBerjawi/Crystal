@@ -181,7 +181,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     <div 
                         className="absolute inset-0"
                         style={{ 
-                            background: `radial-gradient(circle at 50% 100%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
+                            background: `radial-gradient(circle at 100% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
                         }}
                     />
                 </div>

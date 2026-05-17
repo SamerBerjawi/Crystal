@@ -45,7 +45,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       <div 
-        className={`bg-white/95 dark:bg-gray-900/95 rounded-xl shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+        className={`bg-white/95 dark:bg-gray-900/95 ios-regular shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         onClick={handleContentClick}
       >
         <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">

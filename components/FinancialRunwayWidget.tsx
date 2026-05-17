@@ -55,7 +55,7 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
       </div>
 
       <div className="space-y-3">
-        <div className="bg-light-fill dark:bg-dark-fill rounded-2xl p-4 border border-black/5 dark:border-white/5">
+        <div className="bg-black/[0.03] dark:bg-white/[0.03] rounded-2xl p-4 border border-black/5 dark:border-white/5">
           <div className="flex justify-between text-xs mb-1">
             <span className="text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">Avg. Monthly Burn</span>
             <span className="font-bold text-rose-500">{formatCurrency(monthlyBurn, 'EUR')}</span>

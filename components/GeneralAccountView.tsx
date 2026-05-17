@@ -308,7 +308,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                    
                    <div className="relative z-10">
                         <div className="flex justify-between items-start mb-8 sm:mb-12">
-                             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
+                             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ios-regular !bg-white/10 dark:!bg-white/[0.05] border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
                                   {logoUrl ? (
                                       <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
                                   ) : (
@@ -428,7 +428,14 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                 />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} width={40} />
                                 <Tooltip 
-                                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ 
+                                        backgroundColor: 'var(--light-card)', 
+                                        backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                        WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
+                                        border: 'none', 
+                                        borderRadius: '24px', 
+                                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
+                                    }}
                                     itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#3b82f6' }}
                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
                                     formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Balance']}

@@ -280,7 +280,14 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
                 margin={{ left: 100, right: 100, top: 20, bottom: 20 }}
             >
                 <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    contentStyle={{ 
+                        backgroundColor: 'var(--light-card)', 
+                        backdropFilter: 'blur(5px) saturate(180%) brightness(105%)', 
+                        WebkitBackdropFilter: 'blur(5px) saturate(180%) brightness(105%)',
+                        border: 'none', 
+                        borderRadius: '2rem', 
+                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
+                    }}
                     // Add itemStyle to dynamically color the inner text/values
                     itemStyle={{ color: 'var(--text-main)' }} 
                     // Add labelStyle if your tooltip displays a title/label at the top

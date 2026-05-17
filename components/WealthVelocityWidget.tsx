@@ -63,7 +63,14 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
             <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
             <YAxis axisLine={false} tickLine={false} hide />
             <Tooltip 
-              contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+              contentStyle={{ 
+                backgroundColor: 'var(--light-card)', 
+                backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
+                border: 'none', 
+                borderRadius: '24px', 
+                boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
+              }}
               formatter={(value: number) => [formatCurrency(value, 'EUR'), 'Net Change']}
             />
             {/* Using 'natural' type for extreme curves */}

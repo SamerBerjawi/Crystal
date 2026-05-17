@@ -36,7 +36,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
             <div className="flex flex-col h-full">
                 
                 {/* --- TOP: POSITION & WEALTH --- */}
-                <div className="p-4 sm:p-6 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.02]">
+                <div className="p-4 sm:p-6 border-b border-black/5 dark:border-white/10 bg-white/10 dark:bg-white/[0.01]">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-1">
                              <div className="flex items-center gap-2 mb-1">
@@ -113,7 +113,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 </div>
 
                 {/* --- BOTTOM: INTENSITY & VELOCITY --- */}
-                <div className="px-6 py-4 bg-gray-50/50 dark:bg-white/[0.01]">
+                <div className="px-6 py-4 bg-black/[0.02] dark:bg-white/[0.01]">
                     <div className="flex justify-between items-center mb-2">
                          <div className="flex items-center gap-2">
                              <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Burn intensity</span>

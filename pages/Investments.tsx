@@ -757,7 +757,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             borderRadius: '12px', 
                                             border: 'none', 
                                             color: 'var(--tooltip-text, #fff)',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)'
                                         }}
                                         itemStyle={{ fontSize: '12px' }}
                                     />

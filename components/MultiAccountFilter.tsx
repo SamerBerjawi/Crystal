@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Account } from '../types';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES, BTN_SECONDARY_STYLE } from '../constants';
@@ -12,7 +11,7 @@ interface MultiAccountFilterProps {
 const QuickFilterButton: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
   <button
     onClick={onClick}
-    className="w-full text-center text-[10px] font-semibold tracking-wider py-2 px-2 rounded-lg transition-all bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text whitespace-nowrap"
+    className="w-full text-center text-[10px] font-semibold tracking-wider py-2 px-2 rounded-lg transition-all bg-white/5 dark:bg-white/5 hover:bg-black/20 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text whitespace-nowrap"
   >
     {children}
   </button>
@@ -105,9 +104,10 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
         <span className="material-symbols-outlined text-sm">expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] ios-regular rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-fade-in-up">
-          {/* Quick Filters */}
-          <div className="p-4 bg-black/5 dark:bg-white/5">
+        /* Removed background overrides, shadows, and borders to let .ios-regular dictate the styles */
+        <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] ios-regular z-50 overflow-hidden animate-fade-in-up bg-white/20 dark:bg-black/20">
+          {/* Quick Filters Section */}
+          <div className="p-4">
             <h4 className="px-1 pb-3 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest">Quick filters</h4>
             <div className="grid grid-cols-2 gap-2">
               <QuickFilterButton onClick={handleSelectAll}>All Accounts</QuickFilterButton>
@@ -119,9 +119,9 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
             </div>
           </div>
           
-          <div className="h-px bg-black/5 dark:bg-white/10" />
+          <div className="h-px bg-white/10" />
 
-          {/* Individual Selection */}
+          {/* Individual Selection Section */}
           <div className="max-h-72 overflow-y-auto space-y-1 p-3">
             {/* Grouped Open Accounts */}
             {ALL_ACCOUNT_TYPES.map(type => {
@@ -136,7 +136,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
             })}
             
             {closedAccounts.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+              <div className="mt-3 pt-3 border-t border-white/10">
                 <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1 opacity-70">Closed accounts</h4>
                 {closedAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>

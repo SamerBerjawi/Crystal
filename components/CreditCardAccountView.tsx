@@ -306,7 +306,14 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 10 }}
-                                    contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ 
+                                        backgroundColor: 'var(--light-card)', 
+                                        backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                        WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
+                                        border: 'none', 
+                                        borderRadius: '24px', 
+                                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
+                                    }}
                                     itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#f97316' }}
                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
                                     formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Spending']}

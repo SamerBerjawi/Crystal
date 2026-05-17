@@ -109,28 +109,22 @@
 
       /* iOS Style Blur */
       .ios-regular {
-        border: 1px solid rgba(255, 255, 255, 0.25); /* Subtle crisp edge */
+        background-color: var(--light-card);
+        border: none; /* Subtle crisp edge */
         border-radius: 2rem;
         
         /* The core iOS blur configuration */
-        -webkit-backdrop-filter: blur(10px) saturate(180%) brightness(105%);
-        backdrop-filter: blur(10px) saturate(180%) brightness(105%);
+        -webkit-backdrop-filter: blur(5px) saturate(180%) brightness(105%);
+        backdrop-filter: blur(5px) saturate(180%) brightness(105%);
         
         /* Inset shadows to replicate the "Liquid Glass" rim reflection */
         box-shadow: 
-          inset 2px 2px 1px rgba(255, 255, 255, 0.5),   /* Top-left light edge */
+          inset 2px 2px 1px rgba(255, 255, 255, 0.05),   /* Top-left light edge */
           inset -2px -2px 2px rgba(0, 0, 0, 0.05),     /* Bottom-right depth */
           0 8px 32px rgba(0, 0, 0, 0.1);                /* Soft drop shadow */
-      }
 
-      /* Unified Glass/Blur Style (Sankey Tooltip inspired) */
-      .glass-blur {
-        background-color: var(--light-card) !important;
-        backdrop-filter: blur(10px) !important;
-        -webkit-backdrop-filter: blur(10px) !important;
-        border: none !important;
-        border-radius: 16px !important;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important;
+
+
       }
     </style>
     <script>

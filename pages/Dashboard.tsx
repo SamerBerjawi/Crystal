@@ -139,7 +139,7 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-4 sm:p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 sm:gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group">
+    <div className="ios-regular p-4 sm:p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 sm:gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform`}>
             <span className="material-symbols-outlined text-2xl sm:text-3xl">{icon}</span>
@@ -1442,9 +1442,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       </div>
 
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 ios-regular px-1 py-1 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 ios-regular p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
              {/* Redesigned Tabs (Accounts Style) */}
-             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar">
+             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar h-11 sm:h-12">
                 {tabs.map((tab) => {
                     const tabConfig = {
                         overview: { icon: 'dashboard', label: 'Overview' },
@@ -1456,7 +1456,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-4 sm:px-8 h-8 rounded-[1.25rem] text-[10px] sm:text-[12px] font-black tracking-widest transition-all duration-300 flex items-center justify-center gap-2 uppercase whitespace-nowrap flex-1 lg:flex-none ${
+                            className={`px-4 sm:px-8 h-9 sm:h-10 rounded-[1.25rem] text-[10px] sm:text-[12px] font-black tracking-widest transition-all duration-300 flex items-center justify-center gap-2 uppercase whitespace-nowrap flex-1 lg:flex-none ${
                                 activeTab === tab
                                 ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px'
                                 : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
@@ -1470,10 +1470,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
              </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-2 lg:px-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-1 lg:px-0">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.25rem] border border-black/5 dark:border-white/5 shadow-inner">
+                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] shadow-inner h-11 sm:h-12">
                       <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-9 sm:!h-10`}>
                           <select 
                             value={forecastDuration} 
@@ -1491,7 +1491,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       
                        <button 
                         onClick={() => setShowForecast(!showForecast)}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-[1.25rem] transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
                         title={showForecast ? "Hide Forecast" : "Show Forecast"}
                       >
                          <span className={`material-symbols-outlined text-lg sm:text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
@@ -1499,7 +1499,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                       <button 
                         onClick={() => setShowGoals(!showGoals)}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-[1.25rem] transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
                         title={showGoals ? "Hide Goals" : "Show Goals"}
                       >
                          <span className={`material-symbols-outlined text-lg sm:text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
@@ -1509,33 +1509,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
               <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 sm:mx-1 hidden sm:block"></div>
 
-              <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0">
+              {/* Added relative and z-dropdown positioning to ensure the child portal displays properly */}
+              <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0 relative z-50">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
               </div>
           </div>
         </div>
       </div>
-      
-      {suggestions.length > 0 && (
-          <Card className="rounded-3xl">
-              <div className="flex flex-wrap justify-between items-center gap-4">
-                  <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-2xl text-primary-500">autorenew</span>
-                      <div>
-                          <h3 className="font-semibold text-lg">Potential Transfers Detected</h3>
-                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                              We found {suggestions.length} pair(s) of transactions that might be transfers.
-                          </p>
-                      </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                      <button onClick={dismissAllSuggestions} className={BTN_SECONDARY_STYLE}>Dismiss All</button>
-                      <button onClick={() => setIsMatcherModalOpen(true)} className={BTN_PRIMARY_STYLE}>Review All</button>
-                  </div>
-              </div>
-          </Card>
-      )}
 
       {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">

@@ -326,8 +326,8 @@ const App: React.FC = () => {
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
-  const [isSidebarOpen, setSidebarOpen] = useLocalStorage('crystal_sidebar_open', false);
-  const [isSidebarCollapsed, setSidebarCollapsed] = useLocalStorage('crystal_sidebar_collapsed', false);
+  const [isSidebarOpen, setSidebarOpen] = useLocalStorage('crystal_sidebar_open_v2', false);
+  const [isSidebarCollapsed, setSidebarCollapsed] = useLocalStorage('crystal_sidebar_collapsed_v2', false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [viewingHoldingSymbol, setViewingHoldingSymbol] = useState<string | null>(initialRoute.holdingSymbol ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
@@ -2094,22 +2094,21 @@ const App: React.FC = () => {
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
         <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
              <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
-                {/* Persistent Background Tint */}
-                <motion.div 
-                    className="absolute inset-0 pointer-events-none z-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
-                    animate={{ backgroundColor: GLOW_COLOR.replace('0.2', '0.04') }}
-                />
-                
-                {/* Background Glow */}
-                <motion.div 
-                    className="absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] rounded-full pointer-events-none -mr-48 -mt-48 opacity-60 z-0 transition-all duration-1000"
-                    animate={{ backgroundColor: GLOW_COLOR }} 
-                />
-                <motion.div 
-                    className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none -ml-32 -mb-32 opacity-40 z-0 transition-all duration-1000"
-                    animate={{ backgroundColor: GLOW_COLOR }} 
-                />
-
+                {/* Persistent Background Tint & Glow - Moved to be under everything */}
+                <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+                    <motion.div 
+                        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
+                        animate={{ backgroundColor: GLOW_COLOR.split(',').slice(0, 3).join(',') + ', 0.04)' }}
+                    />
+                    <motion.div 
+                        className="absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] rounded-full pointer-events-none -mr-48 -mt-48 opacity-60 z-0 transition-all duration-1000"
+                        animate={{ backgroundColor: GLOW_COLOR }} 
+                    />
+                    <motion.div 
+                        className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none -ml-32 -mb-32 opacity-40 z-0 transition-all duration-1000"
+                        animate={{ backgroundColor: GLOW_COLOR }} 
+                    />
+                </div>
                 <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                     {/* Mobile Header Bar */}

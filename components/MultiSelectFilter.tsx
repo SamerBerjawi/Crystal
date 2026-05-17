@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CHECKBOX_STYLE, INPUT_BASE_STYLE } from '../constants';
 
@@ -65,13 +64,14 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
         <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] ios-regular rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 p-3 animate-fade-in-up">
+        /* Removed background slate, shadow-2xl, border-white, and rounded-2xl to give total control to .ios-regular */
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] ios-regular z-50 p-3 overflow-hidden animate-fade-in-up bg-white/20 dark:bg-black/20">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search..."
-            className={`${INPUT_BASE_STYLE} !h-9 !text-xs !px-3 mb-3 font-semibold`}
+            className={`${INPUT_BASE_STYLE} !h-9 !text-xs !px-3 mb-3 font-semibold bg-white/5 dark:bg-black/20 border-white/5`}
             autoFocus
           />
           <div className="flex justify-between items-center text-[10px] font-semibold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary">

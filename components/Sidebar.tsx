@@ -85,10 +85,16 @@ const Sidebar: React.FC<SidebarProps> = ({
       case 'purple': return 'text-purple-600 dark:text-purple-400';
       case 'cyan': return 'text-cyan-600 dark:text-cyan-400';
       case 'blue': return 'text-blue-600 dark:text-blue-400';
+      case 'teal': return 'text-teal-600 dark:text-teal-400 font-bold';
       case 'orange': return 'text-orange-600 dark:text-orange-400';
-      case 'rose': return 'text-rose-600 dark:text-rose-400';
+      case 'rose': return 'text-rose-600 dark:text-rose-400 font-bold';
       case 'violet': return 'text-violet-600 dark:text-violet-400';
       case 'slate': return 'text-slate-600 dark:text-slate-400';
+      case 'lime': return 'text-lime-600 dark:text-lime-400';
+      case 'gray': return 'text-gray-600 dark:text-gray-400';
+      case 'sky': return 'text-sky-600 dark:text-sky-400';
+      case 'pink': return 'text-pink-600 dark:text-pink-400';
+      case 'primary': return 'text-primary-600 dark:text-primary-400';
       default: return 'text-primary-600 dark:text-primary-400';
     }
   };
@@ -101,10 +107,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       case 'purple': return 'bg-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
       case 'cyan': return 'bg-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.5)]';
       case 'blue': return 'bg-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.5)]';
+      case 'teal': return 'bg-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.5)]';
       case 'orange': return 'bg-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.5)]';
       case 'rose': return 'bg-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.5)]';
       case 'violet': return 'bg-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.5)]';
       case 'slate': return 'bg-slate-500/50 shadow-[0_0_20px_rgba(100,116,139,0.5)]';
+      case 'lime': return 'bg-lime-500/50 shadow-[0_0_20px_rgba(132,204,22,0.5)]';
+      case 'gray': return 'bg-gray-500/50 shadow-[0_0_20px_rgba(107,114,128,0.5)]';
+      case 'sky': return 'bg-sky-500/50 shadow-[0_0_20px_rgba(14,165,233,0.5)]';
+      case 'pink': return 'bg-pink-500/50 shadow-[0_0_20px_rgba(236,72,153,0.5)]';
       default: return 'bg-primary-500/50 shadow-[0_0_20px_rgba(var(--primary-color-rgb),0.5)]';
     }
   };
@@ -117,10 +128,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       case 'purple': return 'bg-purple-500/10';
       case 'cyan': return 'bg-cyan-500/10';
       case 'blue': return 'bg-blue-500/10';
+      case 'teal': return 'bg-teal-500/10';
       case 'orange': return 'bg-orange-500/10';
       case 'rose': return 'bg-rose-500/10';
       case 'violet': return 'bg-violet-500/10';
       case 'slate': return 'bg-slate-500/10';
+      case 'lime': return 'bg-lime-500/10';
+      case 'gray': return 'bg-gray-500/10';
+      case 'sky': return 'bg-sky-500/10';
+      case 'pink': return 'bg-pink-500/10';
       default: return 'bg-primary-500/10';
     }
   };
@@ -134,50 +150,39 @@ const Sidebar: React.FC<SidebarProps> = ({
     const colorClass = getColorClasses(itemColor, isActive);
 
     return (
-      <li key={item.name} className="mb-1">
+      <li key={item.name} className="mb-1 relative">
         <div
           onClick={() => handleNavClick(item.name)}
           className={`${baseClasses} ${layoutClasses} ${colorClass} ${!isActive && 'hover:bg-black/5 dark:hover:bg-white/5'}`}
           title={isSidebarCollapsed ? item.name : undefined}
         >
-            <div className="absolute inset-0 pointer-events-none">
-              <AnimatePresence mode="popLayout">
-                {isActive && (
-                  <>
-                    <motion.div 
-                      layoutId="active-bg"
-                      key="active-bg"
-                      className={`absolute inset-0 ${getBgClasses(itemColor)} rounded-2xl`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                    <motion.div 
-                      layoutId="active-glow"
-                      key="active-glow"
-                      className={`absolute -inset-2 ${getGlowClasses(itemColor)} blur-xl opacity-40 rounded-full`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.4 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.8 }}
-                    />
-                    <motion.div 
-                      layoutId="active-indicator"
-                      key="active-indicator"
-                      className={`absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-1.5 rounded-r-full ${getGlowClasses(itemColor).split(' ')[0]}`}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: '50%', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  </>
-                )}
-              </AnimatePresence>
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <AnimatePresence>
+                  {isActive && (
+                    <>
+                      <motion.div 
+                        layoutId="active-bg"
+                        className={`absolute inset-0 ${getBgClasses(itemColor)} rounded-2xl`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                      />
+                      <motion.div 
+                        layoutId="active-glow"
+                        className={`absolute -inset-4 ${getGlowClasses(itemColor)} blur-2xl opacity-30 rounded-full`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.3 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+                      />
+                    </>
+                  )}
+                </AnimatePresence>
             </div>
 
             <div className={`flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
-              <span className={`material-symbols-outlined text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_8px_currentColor]' : 'group-hover:scale-110'}`}>
+              <span className={`material-symbols-outlined text-[20px] sm:text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_8px_currentColor]' : 'group-hover:scale-110 opacity-70'}`}>
                 {item.icon}
               </span>
               <span className={`whitespace-nowrap text-[13.5px] font-medium tracking-tight truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden invisible' : 'w-auto opacity-100'}`}>
@@ -185,6 +190,20 @@ const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </div>
         </div>
+        
+        {/* Persistent Indicator - outside to avoid clipping */}
+        <AnimatePresence>
+          {isActive && (
+            <motion.div 
+              layoutId="active-indicator"
+              className={`absolute left-[3px] top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full z-20 ${getGlowClasses(itemColor).split(' ')[0]}`}
+              initial={{ height: 0, opacity: 0, x: -5 }}
+              animate={{ height: 24, opacity: 1, x: 0 }}
+              exit={{ height: 0, opacity: 0, x: -5 }}
+              transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
+            />
+          )}
+        </AnimatePresence>
       </li>
     );
   };
@@ -246,9 +265,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               if (groupItems.length === 0) return null;
 
               return (
-                <div key={group.title} className={index > 0 ? 'mt-8' : ''}>
+                <div key={group.title} className={index > 0 ? 'mt-3' : ''}>
                   {!isSidebarCollapsed && (
-                    <div className="px-8 mb-3">
+                    <div className="px-8 mb-2">
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
                         {group.title}
                       </span>

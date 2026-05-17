@@ -63,7 +63,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
             />
             <Tooltip 
               cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}
               formatter={(value: number) => [formatCurrency(value, 'EUR'), 'Total Spent']}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
@@ -75,7 +75,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
         </ResponsiveContainer>
       </div>
       
-      <div className="bg-primary-50 dark:bg-primary-900/10 p-3 rounded-xl border border-primary-100 dark:border-primary-800/30">
+      <div className="bg-primary-500/5 dark:bg-primary-400/5 p-3 rounded-xl border border-primary-500/10 dark:border-primary-400/10">
         <div className="flex items-center gap-2 mb-1">
           <span className="material-symbols-outlined text-primary-500 text-sm">info</span>
           <span className="text-[10px] font-semibold tracking-wider text-primary-700 dark:text-primary-300">Pareto insight</span>

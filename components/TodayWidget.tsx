@@ -146,8 +146,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
     if (agendaItems.length === 0) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-100 dark:border-blue-800/30">
-                <div className="w-16 h-16 bg-white dark:bg-white/10 rounded-full flex items-center justify-center mb-4 shadow-sm">
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-transparent">
+                <div className="w-16 h-16 bg-blue-500/10 dark:bg-blue-400/10 rounded-full flex items-center justify-center mb-4 shadow-sm">
                     <span className="material-symbols-outlined text-4xl text-blue-500">wb_sunny</span>
                 </div>
                 <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Nothing due today</h3>

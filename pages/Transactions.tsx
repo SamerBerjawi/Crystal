@@ -575,7 +575,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         const row = virtualRows[index];
         if (row && row.type === 'header') return 40; 
         if (isMobile) return density === 'high' ? 110 : 130;
-        return density === 'high' ? 76 : 96;
+        return density === 'high' ? 68 : 72;
     },
     [virtualRows, isMobile, density]
   );
@@ -1577,13 +1577,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div
                         key={tx.id}
                         style={style}
-                        className="px-6 py-2"
+                        className="px-1 py-1"
                       >
-                         <motion.div
+                        <motion.div
                             initial={false}
                             whileHover={{ y: -1 }}
                             className={`
-                                group relative h-full flex items-center gap-4 px-4 rounded-[1.5rem] border transition-all duration-300 cursor-default
+                                group relative h-full flex items-center gap-2 px-3 rounded-[1.5rem] border transition-all duration-300 cursor-default
                                 ${selectedIds.has(tx.id)
                                     ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/30 shadow-lg shadow-primary-500/5'
                                     : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 shadow-sm'
@@ -1603,7 +1603,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 <div 
                                     className="absolute inset-0"
                                     style={{ 
-                                        background: `radial-gradient(circle at 0% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
+                                        background: `radial-gradient(circle at 100% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
                                     }}
                                 />
                             </div>
@@ -1611,7 +1611,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             <div className="flex items-center justify-center w-6 z-10 shrink-0">
                                 <input 
                                     type="checkbox" 
-                                    className={`${CHECKBOX_STYLE} w-5 h-5 !rounded-lg border-black/10 dark:border-white/10`} 
+                                    className={`${CHECKBOX_STYLE} !rounded-lg border-black/10 dark:border-white/10`} 
                                     checked={selectedIds.has(tx.id)} 
                                     onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} 
                                     onClick={e => e.stopPropagation()} 
