@@ -1,6 +1,7 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
+import { motion } from 'motion/react';
 import MobileNavbar from './components/MobileNavbar';
 import CommandCenter from './components/CommandCenter';
 const SignIn = lazy(() => import('./pages/SignIn'));
@@ -60,7 +61,7 @@ const MerchantsPage = lazy(pageRegistry.Merchants.loader);
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
-import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
+import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
@@ -325,8 +326,8 @@ const App: React.FC = () => {
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useLocalStorage('crystal_sidebar_open', false);
+  const [isSidebarCollapsed, setSidebarCollapsed] = useLocalStorage('crystal_sidebar_collapsed', false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [viewingHoldingSymbol, setViewingHoldingSymbol] = useState<string | null>(initialRoute.holdingSymbol ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
@@ -356,6 +357,34 @@ const App: React.FC = () => {
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(emptyFinancialData.enableBankingConnections || []);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
+
+  const currentPageColor = useMemo(() => {
+    if (currentPage === 'AccountDetail') return ITEM_COLORS['Accounts'];
+    if (currentPage === 'HoldingDetail') return ITEM_COLORS['Investments'];
+    if (currentPage === 'Personal Info' || currentPage === 'Preferences') return ITEM_COLORS['Settings'];
+    return ITEM_COLORS[currentPage as string] || 'indigo';
+  }, [currentPage]);
+
+  const GLOW_COLOR = useMemo(() => {
+    const colors: Record<string, string> = {
+      indigo: 'rgba(99, 102, 241, 0.2)',
+      emerald: 'rgba(16, 185, 129, 0.2)',
+      amber: 'rgba(245, 158, 11, 0.2)',
+      blue: 'rgba(59, 130, 246, 0.2)',
+      purple: 'rgba(168, 85, 247, 0.2)',
+      cyan: 'rgba(6, 182, 212, 0.2)',
+      teal: 'rgba(20, 184, 166, 0.2)',
+      slate: 'rgba(100, 116, 139, 0.2)',
+      orange: 'rgba(249, 115, 22, 0.2)',
+      rose: 'rgba(244, 63, 94, 0.2)',
+      violet: 'rgba(139, 92, 246, 0.2)',
+      lime: 'rgba(132, 204, 22, 0.2)',
+      gray: 'rgba(107, 114, 128, 0.2)',
+      sky: 'rgba(14, 165, 233, 0.2)',
+      pink: 'rgba(236, 72, 153, 0.2)',
+    };
+    return colors[currentPageColor] || colors.indigo;
+  }, [currentPageColor]);
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
   const lastUpdatedAtRef = useRef<string | null>(null);
@@ -2064,7 +2093,23 @@ const App: React.FC = () => {
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
         <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
-             <div className={`flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+             <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+                {/* Persistent Background Tint */}
+                <motion.div 
+                    className="absolute inset-0 pointer-events-none z-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
+                    animate={{ backgroundColor: GLOW_COLOR.replace('0.2', '0.04') }}
+                />
+                
+                {/* Background Glow */}
+                <motion.div 
+                    className="absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] rounded-full pointer-events-none -mr-48 -mt-48 opacity-60 z-0 transition-all duration-1000"
+                    animate={{ backgroundColor: GLOW_COLOR }} 
+                />
+                <motion.div 
+                    className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none -ml-32 -mb-32 opacity-40 z-0 transition-all duration-1000"
+                    animate={{ backgroundColor: GLOW_COLOR }} 
+                />
+
                 <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                     {/* Mobile Header Bar */}

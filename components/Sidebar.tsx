@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import { Page, Theme, User } from '../types';
-import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
+import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS } from '../constants';
 import ThemeToggle from './ThemeToggle';
 
 interface SidebarProps {
@@ -39,22 +39,6 @@ const NAV_GROUPS = [
   }
 ];
 
-const ITEM_COLORS: Record<string, string> = {
-  'Dashboard': 'indigo',
-  'Accounts': 'emerald',
-  'Transactions': 'amber',
-  'Reports': 'blue',
-  'Budget': 'purple',
-  'Forecasting': 'cyan',
-  'Investments': 'teal',
-  'Challenges': 'slate',
-  'Schedule & Bills': 'orange',
-  'Subscriptions': 'rose',
-  'Quotes & Invoices': 'violet',
-  'Tasks': 'lime',
-  'Settings': 'gray',
-};
-
 const Sidebar: React.FC<SidebarProps> = ({ 
   currentPage, 
   setCurrentPage, 
@@ -85,9 +69,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   const handleNavClick = (page: Page) => {
-    if (isSidebarCollapsed) {
-        setSidebarCollapsed(false);
-    }
     setCurrentPage(page);
     if (window.innerWidth < 768) { // md breakpoint
       setSidebarOpen(false);
@@ -159,35 +140,41 @@ const Sidebar: React.FC<SidebarProps> = ({
           className={`${baseClasses} ${layoutClasses} ${colorClass} ${!isActive && 'hover:bg-black/5 dark:hover:bg-white/5'}`}
           title={isSidebarCollapsed ? item.name : undefined}
         >
-            <AnimatePresence>
-              {isActive && (
-                <>
-                  <motion.div 
-                    layoutId="active-bg"
-                    className={`absolute inset-0 ${getBgClasses(itemColor)} rounded-2xl`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  <motion.div 
-                    layoutId="active-glow"
-                    className={`absolute -inset-2 ${getGlowClasses(itemColor)} blur-xl opacity-40 rounded-full`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.4 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5 }}
-                  />
-                  <motion.div 
-                    layoutId="active-indicator"
-                    className={`absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-1.5 rounded-r-full ${getGlowClasses(itemColor).split(' ')[0]}`}
-                    initial={{ height: 0 }}
-                    animate={{ height: '50%' }}
-                    exit={{ height: 0 }}
-                  />
-                </>
-              )}
-            </AnimatePresence>
+            <div className="absolute inset-0 pointer-events-none">
+              <AnimatePresence mode="popLayout">
+                {isActive && (
+                  <>
+                    <motion.div 
+                      layoutId="active-bg"
+                      key="active-bg"
+                      className={`absolute inset-0 ${getBgClasses(itemColor)} rounded-2xl`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                    <motion.div 
+                      layoutId="active-glow"
+                      key="active-glow"
+                      className={`absolute -inset-2 ${getGlowClasses(itemColor)} blur-xl opacity-40 rounded-full`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.4 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.8 }}
+                    />
+                    <motion.div 
+                      layoutId="active-indicator"
+                      key="active-indicator"
+                      className={`absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-1.5 rounded-r-full ${getGlowClasses(itemColor).split(' ')[0]}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: '50%', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
 
             <div className={`flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
               <span className={`material-symbols-outlined text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_8px_currentColor]' : 'group-hover:scale-110'}`}>
@@ -252,7 +239,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Navigation */}
           <nav className="flex-1 min-h-0 py-2 overflow-y-auto no-scrollbar relative z-10">
-            {NAV_GROUPS.map((group, index) => {
+            <LayoutGroup id="sidebar-nav">
+              <motion.div layout>
+                {NAV_GROUPS.map((group, index) => {
               const groupItems = group.items.map(name => NAV_ITEMS.find(i => i.name === name)).filter(Boolean) as NavItem[];
               if (groupItems.length === 0) return null;
 
@@ -271,7 +260,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               );
             })}
-          </nav>
+            </motion.div>
+          </LayoutGroup>
+        </nav>
 
           {/* Footer Area */}
           <div className="flex-shrink-0 p-5 mt-auto relative z-10">

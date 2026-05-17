@@ -135,6 +135,28 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Settings', icon: 'settings' },
 ];
 
+export const ITEM_COLORS: Record<string, string> = {
+  'Dashboard': 'indigo',
+  'Accounts': 'emerald',
+  'Transactions': 'amber',
+  'Reports': 'blue',
+  'Budget': 'purple',
+  'Forecasting': 'cyan',
+  'Investments': 'teal',
+  'Challenges': 'slate',
+  'Schedule & Bills': 'orange',
+  'Subscriptions': 'rose',
+  'Quotes & Invoices': 'violet',
+  'Tasks': 'lime',
+  'Settings': 'gray',
+  'Categories': 'sky',
+  'Tags': 'pink',
+  'Merchants': 'indigo',
+  'Integrations': 'emerald',
+  'Data Management': 'amber',
+  'Documentation': 'blue',
+};
+
 export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending'];
 export const DEBT_TYPES: AccountType[] = ['Credit Card', 'Loan', 'Other Liabilities'];
 export const ALL_ACCOUNT_TYPES: AccountType[] = [...ASSET_TYPES, ...DEBT_TYPES];
