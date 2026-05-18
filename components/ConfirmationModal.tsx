@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from './Modal';
-import { BTN_SECONDARY_STYLE, BTN_PRIMARY_STYLE } from '../constants';
+import { BTN_SECONDARY_STYLE, BTN_PRIMARY_STYLE, BTN_DANGER_STYLE } from '../constants';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   const confirmButtonStyle = confirmButtonVariant === 'danger'
-    ? "bg-red-500 text-white font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-red-600 transition-all duration-200"
+    ? BTN_DANGER_STYLE
     : BTN_PRIMARY_STYLE;
 
   return (

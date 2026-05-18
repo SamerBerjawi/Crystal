@@ -171,6 +171,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const [showGoals, setShowGoals] = useState(true);
   const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const layoutKey = useMemo(() => `${activeTab}-${isMobile ? 'mobile' : 'pc'}`, [activeTab, isMobile]);
 
   // Sync Forecast Duration with Historical Duration by default
   useEffect(() => {
@@ -1134,7 +1145,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   }, [allWidgets]);
 
   const widgets = useMemo(() => {
-    const rawWidgets = preferences.dashboardLayouts?.[activeTab] || initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
+    const rawWidgets = preferences.dashboardLayouts?.[layoutKey] || 
+                      preferences.dashboardLayouts?.[activeTab] || // Fallback to old layout for migration
+                      initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
     
     // Migration: Scale up old 4-column layout to 12-column layout
     // Heuristic: If every widget is within the old 4x4 coordinate space, assume it's an old legacy layout.
@@ -1154,10 +1167,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       ...prev,
       dashboardLayouts: {
         ...(prev.dashboardLayouts || {}),
-        [activeTab]: newWidgets
+        [layoutKey]: newWidgets
       }
     }));
-  }, [activeTab, setPreferences]);
+  }, [layoutKey, setPreferences]);
 
   // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
   useEffect(() => {
@@ -1285,7 +1298,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const tabs: DashboardTab[] = ['overview', 'analysis', 'activity'];
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in-up">
+    <div className="space-y-6 pb-12 animate-fade-in-up relative z-0">
       {/* ... existing modals */}
       {isTransactionModalOpen && (
         <AddTransactionModal 
@@ -1379,7 +1392,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           title="Dashboard"
           subtitle="Real-time financial pulse across accounts, investments, and commitments."
           actions={
-            <div className="flex flex-row items-center gap-1 p-1 ios-regular rounded-xl border border-black/5 dark:border-white/5 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar">
+            <div className="flex flex-row items-center gap-1 p-1 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm w-full sm:w-auto overflow-x-auto no-scrollbar relative z-[60]">
                 {/* Global Controls Group */}
                 <div className="flex items-center gap-0.5 pr-1 border-r border-black/5 dark:border-white/10 shrink-0">
                     <button 
@@ -1442,7 +1455,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       </div>
 
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 ios-regular p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 ios-regular p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">
              {/* Redesigned Tabs (Accounts Style) */}
              <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar h-11 sm:h-12">
                 {tabs.map((tab) => {
@@ -1528,20 +1541,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     icon="savings" 
                     colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                   />
-                  <AnalysisStatCard 
-                    title="Savings Rate" 
-                    value={`${savingsRate.toFixed(0)}%`} 
-                    subtext={`of total income (${duration})`}
-                    icon="trending_up" 
-                    colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                  />
-                  <AnalysisStatCard 
-                    title="Debt Ratio" 
-                    value={`${(globalTotalAssets > 0 ? (Math.abs(globalTotalDebt) / globalTotalAssets) * 100 : 0).toFixed(1)}%`} 
-                    subtext="Liabilities / Assets"
-                    icon="pie_chart" 
-                    colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-                  />
+          <AnalysisStatCard 
+            title="Savings Rate" 
+            value={`${savingsRate.toFixed(0)}%`} 
+            subtext={`of total income (${duration})`}
+            icon="trending_up" 
+            colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+          />
+          <AnalysisStatCard 
+            title="Debt Ratio" 
+            value={`${(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth > 0 ? (Math.abs(calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalDebt) / calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalAssets) * 100 : 0).toFixed(1)}%`} 
+            subtext="Liabilities / Assets"
+            icon="pie_chart" 
+            colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+          />
+          <AnalysisStatCard 
+            title="Net Flow" 
+            value={formatCurrency(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth - calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth, 'EUR')} 
+            subtext="Period change"
+            icon="payments" 
+            colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+          />
               </div>
 
               {/* Dynamic widgets grid */}
@@ -1563,7 +1583,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     isResizable={isEditMode}
                     onLayoutChange={handleLayoutChange}
                     draggableHandle=".drag-handle"
-                    margin={window.innerWidth < 768 ? [12, 12] : [24, 24]}
+                    margin={isMobile ? [12, 12] : [24, 24]}
                     containerPadding={[0, 0]}
                 >
                     {widgets
@@ -1727,7 +1747,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 isResizable={isEditMode}
                 onLayoutChange={handleLayoutChange}
                 draggableHandle=".drag-handle"
-                margin={window.innerWidth < 768 ? [12, 12] : [24, 24]}
+                margin={isMobile ? [12, 12] : [24, 24]}
                 containerPadding={[0, 0]}
             >
                 {widgets

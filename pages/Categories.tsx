@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import CategoryItem from '../components/CategoryItem';
 import PageHeader from '../components/PageHeader';
+import StatCard from '../components/StatCard';
 
 const generateId = () => `cat-${uuidv4()}`;
 

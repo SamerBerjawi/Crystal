@@ -213,19 +213,19 @@ const PersonalBestLeaderboard: React.FC<{
 
     return (
         <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-xl">
-             {/* Header Background */}
-             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-blue-900 to-blue-950 dark:from-black dark:to-gray-900 z-0">
-                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+             {/* Header Background - Redesigned to remove the "black box" starkness */}
+             <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-primary-500/10 to-transparent z-0">
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 dark:opacity-20 mix-blend-overlay"></div>
              </div>
 
              <div className="relative z-10 p-6 sm:p-8">
-                 <div className="flex justify-between items-start mb-8 text-white">
+                 <div className="flex justify-between items-start mb-8">
                      <div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
+                        <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-light-text dark:text-white">
                             <span className="material-symbols-outlined text-yellow-400 text-3xl">emoji_events</span>
                             Hall of Fame
                         </h2>
-                        <p className="text-blue-200 dark:text-gray-400 text-sm font-medium mt-1">Your personal wealth records</p>
+                        <p className="text-light-text-secondary dark:text-gray-400 text-sm font-bold uppercase tracking-widest opacity-60 mt-1">Personal Wealth Records</p>
                      </div>
                      {isNewRecord && (
                          <div className="animate-bounce bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg transform rotate-3">
@@ -912,22 +912,25 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       />
 
       {/* Navigation Tabs */}
-      <div className="sticky top-0 z-20 bg-light-bg dark:bg-dark-bg py-2 -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto no-scrollbar">
-          <div className="inline-flex bg-light-card dark:bg-dark-card p-1.5 rounded-2xl shadow-sm border border-black/5 dark:border-white/5 min-w-full md:min-w-0">
-              {navItems.map(item => (
-                  <button
-                      key={item.id}
-                      onClick={() => setActiveSection(item.id as ChallengeSection)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap flex-1 justify-center
-                          ${activeSection === item.id 
-                              ? 'bg-primary-500 text-white shadow-md' 
-                              : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text'
-                          }`}
-                  >
-                      <span className="material-symbols-outlined text-lg">{item.icon}</span>
-                      {item.label}
-                  </button>
-              ))}
+      <div className="sticky top-0 z-30 py-4 -mx-4 px-4 md:mx-0 md:px-0 bg-transparent overflow-x-auto no-scrollbar">
+          <div className="inline-flex bg-white/40 dark:bg-black/10 backdrop-blur-xl p-1.5 rounded-2xl border border-black/5 dark:border-white/10 min-w-full md:min-w-0 shadow-xl shadow-black/5 dark:shadow-black/20">
+              {navItems.map(item => {
+                  const isActive = activeSection === item.id;
+                  return (
+                      <button
+                          key={item.id}
+                          onClick={() => setActiveSection(item.id as ChallengeSection)}
+                          className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap flex-1 justify-center
+                              ${isActive 
+                                  ? 'bg-white dark:bg-gray-800 text-primary-500 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] dark:shadow-black/50 scale-[1.02]' 
+                                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 opacity-60'
+                              }`}
+                      >
+                          <span className={`material-symbols-outlined text-xl ${isActive ? 'filled-icon' : ''}`}>{item.icon}</span>
+                          {item.label}
+                      </button>
+                  );
+              })}
           </div>
       </div>
 

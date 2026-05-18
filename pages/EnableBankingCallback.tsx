@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
 import { loadAllPendingConnections, loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 
@@ -163,6 +164,10 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
             window.history.replaceState(null, '', window.location.pathname);
           }
           setMessage('Sync complete. Redirecting...');
+          toast.success("Bank Sync Successful!", {
+            description: "Your financial accounts have been updated in real-time.",
+            duration: 5000,
+          });
           setTimeout(() => setCurrentPage('Integrations'), 800);
         } catch (err: any) {
           console.error(err);

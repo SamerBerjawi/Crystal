@@ -9,6 +9,7 @@ import Card from '../components/Card';
 import { parseLocalDate } from '../utils';
 import TaskModal from '../components/TaskModal';
 import PageHeader from '../components/PageHeader';
+import StatCard from '../components/StatCard';
 
 interface TasksProps {
   tasks: Task[];
@@ -21,24 +22,7 @@ interface TasksProps {
 const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
 const STATUS_ORDER: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
 
-const MetricCard: React.FC<{ label: string; value: string | number; subtext?: string; color?: string; icon?: string }> = ({ label, value, subtext, color = 'text-light-text dark:text-dark-text', icon }) => (
-    <Card className="flex flex-col justify-between h-full p-5">
-        <div className="flex justify-between items-start">
-            <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">{label}</p>
-                <p className={`text-3xl font-bold ${color}`}>{value}</p>
-            </div>
-            {icon && (
-                <div className="p-2 bg-black/5 dark:bg-white/5 rounded-full">
-                    <span className="material-symbols-outlined text-xl opacity-70">{icon}</span>
-                </div>
-            )}
-        </div>
-        {subtext && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2 font-medium">{subtext}</p>}
-    </Card>
-);
-
-const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
+const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder, setCurrentPage }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
@@ -174,7 +158,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
     };
 
     return (
-        <div className="space-y-8 pb-10 animate-fade-in-up">
+        <div className="max-w-6xl mx-auto pb-24 space-y-12 animate-fade-in-up px-4">
             {isModalOpen && (
                 <TaskModal 
                     task={editingTask} 
@@ -194,110 +178,138 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                 confirmButtonVariant="danger"
             />
 
-            {/* Header */}
-            <PageHeader
-                markerIcon="checklist"
-                markerLabel="Action Board"
-                title="Tasks"
-                subtitle="Track follow-ups, approvals, and chores tied to accounts, invoices, or goals."
-                actions={
-                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
-                        <span className="material-symbols-outlined text-xl mr-2">add</span>
-                        Add Task
-                    </button>
-                }
-            />
+            {/* Navigation & Header */}
+            <div className="space-y-6 pt-4">
+                {setCurrentPage && (
+                    <nav className="flex items-center gap-3">
+                        <button 
+                            onClick={() => setCurrentPage('Settings')} 
+                            className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+                        >
+                            <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                            </div>
+                            <span>Back to Control Center</span>
+                        </button>
+                    </nav>
+                )}
+                
+                <PageHeader
+                    markerIcon="fact_check"
+                    markerLabel="Operational Protocols"
+                    title="Action Board"
+                    subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
+                    actions={
+                        <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                            <span className="material-symbols-outlined text-xl">add_circle</span>
+                            New Operational Task
+                        </button>
+                    }
+                />
+            </div>
             
+            {/* Productivity Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard 
+                    title="Completion Matrix" 
+                    value={`${stats.rate}%`} 
+                    subtext={`${stats.completed} nodes verified`} 
+                    icon="verified" 
+                    colorClass="bg-blue-500 text-white shadow-blue-500/20" 
+                />
+                <StatCard 
+                    title="Priority Signals" 
+                    value={stats.pendingHigh} 
+                    subtext="Critical latency items" 
+                    icon="priority_high" 
+                    colorClass={stats.pendingHigh > 0 ? "bg-red-500 text-white shadow-red-500/20" : "bg-emerald-500 text-white shadow-emerald-500/20"} 
+                />
+                <StatCard 
+                    title="Temporal Window" 
+                    value={stats.dueSoon} 
+                    subtext="Due in 7-day cycle" 
+                    icon="event_upcoming" 
+                    colorClass="bg-amber-500 text-white shadow-amber-500/20" 
+                />
+                <StatCard 
+                    title="Active Workload" 
+                    value={stats.total - stats.completed} 
+                    subtext="Unreconciled nodes" 
+                    icon="analytics" 
+                    colorClass="bg-indigo-500 text-white shadow-indigo-500/20" 
+                />
+            </div>
+
             {/* Controls Bar */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-                <div className="flex-1 w-full md:w-auto">
-                     <div className="px-4 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                         {stats.total} Total Tasks • {stats.completed} Completed
-                     </div>
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-2">
+                <div className="flex items-center gap-3">
+                    <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
+                    <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Execution Queue</h3>
                 </div>
                 
-                <div className="flex items-center gap-3 w-full md:w-auto px-1 md:px-0">
-                     <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap hidden sm:block">Sort by:</span>
-                     <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} pr-8 min-w-[140px]`}>
-                            <option value="manual">Manual (Drag)</option>
-                            <option value="priority-desc">Priority</option>
-                            <option value="dueDate-asc">Due Date</option>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                     <div className="relative flex-grow min-w-[200px]">
+                        <select 
+                            value={sortBy} 
+                            onChange={e => setSortBy(e.target.value as any)} 
+                            className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+                        >
+                            <option value="manual">Manual Sequence</option>
+                            <option value="priority-desc">Priority Sift</option>
+                            <option value="dueDate-asc">Temporal Sort</option>
                         </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                            <span className="material-symbols-outlined text-lg">swap_vert</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Productivity Metrics */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                <div className="col-span-2 lg:col-span-1">
-                    <Card className="bg-gradient-to-br from-primary-600 to-primary-700 text-white border-none relative overflow-hidden h-full p-5">
-                         <div className="absolute right-0 top-0 p-4 opacity-10 pointer-events-none">
-                             <span className="material-symbols-outlined text-6xl">check_circle</span>
-                         </div>
-                         <div className="relative z-10 flex flex-col justify-between h-full">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Completion Rate</p>
-                                <p className="text-4xl font-extrabold">{stats.rate}%</p>
-                            </div>
-                            <p className="text-xs font-medium opacity-80 mt-2">{stats.completed} of {stats.total} tasks done</p>
-                         </div>
-                    </Card>
+            {/* Heatmap Section */}
+            <section className="space-y-6">
+                <div className="flex items-center gap-3 px-2">
+                    <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
+                    <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Temporal Density</h3>
                 </div>
-                <MetricCard 
-                    label="High Priority Pending" 
-                    value={stats.pendingHigh} 
-                    subtext="Critical items to address" 
-                    color={stats.pendingHigh > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}
-                    icon="priority_high"
-                />
-                <MetricCard 
-                    label="Due in 7 Days" 
-                    value={stats.dueSoon} 
-                    subtext="Upcoming deadlines" 
-                    color="text-amber-600 dark:text-amber-400"
-                    icon="event_upcoming"
-                />
-                <MetricCard
-                    label="Total Active"
-                    value={stats.total - stats.completed}
-                    subtext="Current workload"
-                    icon="list_alt"
-                />
-            </div>
-
-            {/* Heatmap */}
-            <div className="flex justify-center">
-                <TasksHeatmap tasks={tasks} />
-            </div>
+                <div className="flex justify-center bg-white dark:bg-dark-card p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-sm">
+                    <TasksHeatmap tasks={tasks} />
+                </div>
+            </section>
 
             {/* Kanban Board */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {STATUS_ORDER.map(status => {
                     const tasksInColumn = groupedAndSortedTasks[status] || [];
-                    const columnColor = status === 'To Do' ? 'bg-gray-100 dark:bg-white/5' 
-                        : status === 'In Progress' ? 'bg-blue-50 dark:bg-blue-900/10' 
-                        : 'bg-green-50 dark:bg-green-900/10';
+                    const statusColorMap: Record<TaskStatus, string> = {
+                        'To Do': 'bg-slate-500',
+                        'In Progress': 'bg-blue-500',
+                        'Done': 'bg-emerald-500'
+                    };
                     
                     return (
-                        <div key={status} className={`rounded-2xl p-4 ${columnColor} border border-black/5 dark:border-white/5 flex flex-col h-full min-h-[300px]`}>
-                            <header className="flex justify-between items-center mb-4 px-1">
-                                <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                                    {status}
-                                    <span className="text-xs font-bold bg-white dark:bg-black/20 px-2 py-0.5 rounded-full opacity-70">{tasksInColumn.length}</span>
-                                </h3>
+                        <div key={status} className="space-y-6">
+                            <header className="flex justify-between items-center px-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-2 h-2 rounded-full ${statusColorMap[status]}`}></div>
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text opacity-80">
+                                        {status}
+                                    </h3>
+                                    <span className="text-[10px] font-black bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-lg opacity-40">
+                                        {tasksInColumn.length}
+                                    </span>
+                                </div>
                                 {status === 'To Do' && (
-                                    <button onClick={() => handleOpenModal()} className="text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 p-1 rounded transition-colors" title="Quick Add">
+                                    <button onClick={() => handleOpenModal()} className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all">
                                         <span className="material-symbols-outlined text-lg">add</span>
                                     </button>
                                 )}
                             </header>
                             
-                            <div className="space-y-3 flex-grow">
+                            <div className="space-y-4 min-h-[400px]">
                                 {tasksInColumn.length === 0 ? (
-                                    <div className="h-32 border-2 border-dashed border-black/5 dark:border-white/10 rounded-xl flex items-center justify-center text-sm text-light-text-secondary dark:text-dark-text-secondary italic">
-                                        No tasks
+                                    <div className="h-40 border-2 border-dashed border-black/5 dark:border-white/5 rounded-[2rem] flex flex-col items-center justify-center gap-2 opacity-20">
+                                        <span className="material-symbols-outlined text-3xl">task_alt</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Queue Clear</span>
                                     </div>
                                 ) : (
                                     tasksInColumn.map(task => {
@@ -308,17 +320,19 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                                         return (
                                             <div
                                                 key={task.id}
-                                                className={`transition-all duration-200 ${isDragOver ? 'translate-y-2' : ''}`}
+                                                className={`transition-all duration-300 ${isDragOver ? 'pt-4' : ''}`}
                                                 onDragOver={(e) => isDraggable && handleDragOver(e, task)}
                                                 onDrop={() => isDraggable && handleDrop(task)}
                                                 onDragLeave={isDraggable ? handleDragLeave : undefined}
                                             >
-                                                {isDragOver && <div className="h-1 bg-primary-500 rounded-full mb-2 opacity-50"></div>}
+                                                {isDragOver && (
+                                                    <div className="h-24 border-2 border-dashed border-primary-500/20 rounded-3xl mb-4 bg-primary-500/5 animate-pulse"></div>
+                                                )}
                                                 <div
                                                     draggable={isDraggable}
                                                     onDragStart={(e) => isDraggable && handleDragStart(e, task)}
                                                     onDragEnd={isDraggable ? handleDragEnd : undefined}
-                                                    className={`${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isBeingDragged ? 'opacity-40 scale-95' : ''}`}
+                                                    className={`${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isBeingDragged ? 'opacity-40 scale-95 blur-sm' : ''}`}
                                                 >
                                                     <TaskItem 
                                                         task={task} 

@@ -145,6 +145,13 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               description="Custom filtering labels"
               colorClass="bg-pink-500 text-white shadow-pink-500/20"
             />
+            <SettingItem 
+              page="Tasks" 
+              icon="fact_check" 
+              title="Action Board" 
+              description="Operational task protocols"
+              colorClass="bg-blue-600 text-white shadow-blue-600/20"
+            />
           </div>
 
            {/* System Group inside right col for balance */}

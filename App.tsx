@@ -1,5 +1,6 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
+import { Toaster, toast } from 'sonner';
 import Sidebar from './components/Sidebar';
 import { motion } from 'motion/react';
 import MobileNavbar from './components/MobileNavbar';
@@ -2060,7 +2061,7 @@ const App: React.FC = () => {
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
-      case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
+      case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} setCurrentPage={setCurrentPage} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
       case 'Subscriptions': return <SubscriptionsPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;
@@ -2111,6 +2112,7 @@ const App: React.FC = () => {
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
         <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
+             <Toaster position="top-center" expand={true} richColors closeButton />
              <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
                 {/* Persistent Background Tint & Glow - Moved to be under everything */}
                 <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">

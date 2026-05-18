@@ -115,40 +115,30 @@ const InvoicesPage: React.FC = () => {
                 confirmButtonText="Excision Document"
             />
 
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pt-4">
-                <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary-500 text-3xl">account_balance_wallet</span>
-                        </div>
-                        <div className="space-y-0.5">
-                            <h1 className="text-4xl font-black tracking-tight text-light-text dark:text-dark-text">
-                                Ledger & Receivables
-                            </h1>
-                            <p className="text-light-text-secondary dark:text-dark-text-secondary font-black uppercase tracking-[0.3em] text-[10px] opacity-60">
-                                Financial Document Lifecycle Management
-                            </p>
-                        </div>
+            <PageHeader
+                markerIcon="account_balance_wallet"
+                markerLabel="Ledger & Receivables"
+                title="Invoices & Quotes"
+                subtitle="Financial Document Lifecycle Management"
+                actions={
+                    <div className="flex bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-inner gap-3">
+                        <button 
+                            onClick={() => handleOpenEditor('quote')}
+                            className={`${BTN_SECONDARY_STYLE} h-12 px-6 gap-3 rounded-xl shadow-sm`}
+                        >
+                            <span className="material-symbols-outlined text-lg">add</span>
+                            Draft Quote
+                        </button>
+                        <button 
+                            onClick={() => handleOpenEditor('invoice')}
+                            className={`${BTN_PRIMARY_STYLE} h-12 px-8 gap-3 shadow-xl rounded-xl`}
+                        >
+                            <span className="material-symbols-outlined text-lg">add_circle</span>
+                            New Invoice
+                        </button>
                     </div>
-                </div>
-                <div className="flex bg-gray-100 dark:bg-white/5 p-1.5 rounded-[1.5rem] border border-black/5 dark:border-white/5 shadow-inner gap-3">
-                    <button 
-                        onClick={() => handleOpenEditor('quote')}
-                        className={`${BTN_SECONDARY_STYLE} h-12 px-6 gap-3 rounded-2xl text-[10px] uppercase font-black tracking-widest`}
-                    >
-                        <span className="material-symbols-outlined text-lg">add</span>
-                        Draft Quote
-                    </button>
-                    <button 
-                        onClick={() => handleOpenEditor('invoice')}
-                        className={`${BTN_PRIMARY_STYLE} h-12 px-8 gap-3 animate-glow rounded-2xl text-[10px] uppercase font-black tracking-widest`}
-                    >
-                        <span className="material-symbols-outlined text-lg">add_circle</span>
-                        New Invoice
-                    </button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Financial Intelligence Hub */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

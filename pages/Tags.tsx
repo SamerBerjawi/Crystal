@@ -8,6 +8,7 @@ import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import PageHeader from '../components/PageHeader';
+import StatCard from '../components/StatCard';
 
 interface TagsProps {
   tags: Tag[];

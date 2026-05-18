@@ -137,82 +137,92 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100]"
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+            initial={{ opacity: 0, scale: 0.98, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-xl ios-regular rounded-2xl shadow-2xl z-[101] border border-black/5 dark:border-white/10 overflow-hidden"
+            exit={{ opacity: 0, scale: 0.98, y: -10 }}
+            className="fixed top-[12%] left-1/2 -translate-x-1/2 w-full max-w-2xl bg-white/80 dark:bg-[#121212]/90 backdrop-blur-2xl rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] z-[101] border border-black/5 dark:border-white/10 overflow-hidden flex flex-col"
           >
-            <div className="p-3 sm:p-4 border-b border-black/5 dark:border-white/10 flex items-center gap-3">
-              <span className="material-symbols-outlined text-gray-400">search</span>
+            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary-500 text-2xl">search</span>
+              </div>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search pages, accounts, actions..."
-                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-base sm:text-lg placeholder-gray-400"
+                placeholder="What are you looking for?"
+                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-lg sm:text-xl font-bold tracking-tight placeholder-gray-400"
               />
-              <div className="hidden sm:flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-[10px] font-mono text-gray-400">ESC</kbd>
+              <div className="hidden sm:flex items-center gap-2">
+                <kbd className="px-2 py-1 rounded-xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 text-[10px] font-black tracking-widest text-gray-400">ESC</kbd>
               </div>
             </div>
 
-            <div ref={scrollRef} className="max-h-[350px] sm:max-h-[400px] overflow-y-auto py-2">
+            <div ref={scrollRef} className="max-h-[450px] overflow-y-auto pt-2 no-scrollbar">
               {results.length > 0 ? (
-                results.map((item, index) => (
-                  <div
-                    key={item.id}
-                    onClick={item.action}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    className={`px-4 py-2.5 sm:py-3 cursor-pointer flex items-center justify-between transition-colors ${
-                      index === selectedIndex ? 'bg-primary-500/10 dark:bg-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                         index === selectedIndex ? 'bg-primary-500 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500'
-                      }`}>
-                         <span className="material-symbols-outlined text-[18px] sm:text-[20px]">{item.icon}</span>
+                <div className="px-2 pb-2">
+                  {results.map((item, index) => (
+                    <div
+                      key={item.id}
+                      onClick={item.action}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`px-4 py-3 sm:py-4 cursor-pointer flex items-center justify-between rounded-2xl transition-all duration-200 group ${
+                        index === selectedIndex ? 'bg-primary-500 shadow-lg shadow-primary-500/20 scale-[1.02]' : 'hover:bg-black/5 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4 sm:gap-5">
+                        <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm border border-black/5 dark:border-white/5 transition-colors ${
+                           index === selectedIndex ? 'bg-white/20 text-white' : 'bg-white dark:bg-white/5 text-gray-500 group-hover:text-primary-500'
+                        }`}>
+                           <span className="material-symbols-outlined text-[22px] sm:text-[24px]">{item.icon}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`font-black text-[13px] sm:text-sm uppercase tracking-widest truncate ${index === selectedIndex ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                            {item.title}
+                          </p>
+                          {item.subtitle && (
+                            <p className={`text-[10px] sm:text-xs font-bold truncate mt-0.5 ${index === selectedIndex ? 'text-white/80' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>{item.subtitle}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className={`font-semibold text-xs sm:text-sm truncate ${index === selectedIndex ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
-                          {item.title}
-                        </p>
-                        {item.subtitle && (
-                          <p className="text-[10px] sm:text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{item.subtitle}</p>
-                        )}
-                      </div>
+                      {index === selectedIndex && (
+                        <div className="hidden sm:flex items-center gap-2 pr-2">
+                            <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Select</span>
+                            <kbd className="px-2 py-1 rounded-lg bg-white/20 text-[10px] font-black text-white">ENTER</kbd>
+                        </div>
+                      )}
                     </div>
-                    {index === selectedIndex && (
-                      <span className="hidden sm:block text-[10px] font-mono text-primary-500 font-bold uppercase tracking-widest">Enter</span>
-                    )}
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
-                <div className="px-6 py-12 text-center">
-                  <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">search_off</span>
-                  <p className="text-gray-400 text-sm">No results found for "{query}"</p>
+                <div className="px-6 py-20 text-center">
+                  <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-6 scale-110">
+                    <span className="material-symbols-outlined text-4xl text-gray-300">search_off</span>
+                  </div>
+                  <p className="text-light-text dark:text-dark-text font-black text-lg mb-1">No Intelligence Found</p>
+                  <p className="text-gray-400 text-sm font-medium">Unable to locate records for "{query}"</p>
                 </div>
               )}
             </div>
 
-            <div className="p-3 bg-gray-50 dark:bg-white/5 border-t border-black/5 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center px-5 gap-3">
-               <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <kbd className="px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-mono text-gray-500">↑↓</kbd>
-                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">Navigate</span>
+            <div className="p-5 bg-gray-50/50 dark:bg-white/[0.01] border-t border-black/5 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+               <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-black text-gray-500 shadow-sm">↑↓</kbd>
+                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Navigate</span>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <kbd className="px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-mono text-gray-500">Enter</kbd>
-                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">Select</span>
+                  <div className="flex items-center gap-2">
+                    <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-black text-gray-500 shadow-sm">Enter</kbd>
+                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Execute</span>
                   </div>
                </div>
-               <div className="text-[10px] text-gray-400 font-medium italic">
-                  Tip: Press <kbd className="font-mono">⌘ K</kbd> anywhere
+               <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] opacity-40">
+                  Shortcut: <kbd className="font-mono text-primary-500">⌘ K</kbd>
                </div>
             </div>
           </motion.div>

@@ -46,7 +46,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
 
   return (
     <div 
-        className={className}
+        className={`${className} relative z-[-1]`}
         style={style}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}

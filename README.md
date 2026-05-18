@@ -37,6 +37,11 @@ Crystal is organized around powerful views that provide both a high-level pulse 
 ### 📝 Transactions - Activity Feed
 * Every inflow and outflow with powerful filters, transaction splitting, and custom tagging to keep your history audit-ready.
 
+### ✅ Action Board - Operational Tasks
+* A telemetric Kanban board for tracking follow-ups, recursive obligations, and semantic chores.
+* **Temporal Density Map:** Heatmap visualization of task distribution.
+* **Manual Sequencing:** Precise drag-and-drop prioritization for operational execution.
+
 ### 📈 Investments - Portfolio Lab
 * Performance, risk, and allocation snapshots with drill-downs into individual holdings and transactions.
 * **Warrants & Grants:** Specialized tracking for employee equity, including strike prices and vesting.

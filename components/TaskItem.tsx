@@ -41,45 +41,53 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
         <div 
             onClick={() => onEdit(task)} 
             className={`
-                group relative bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm 
-                hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer
-                ${isJustCompleted ? 'animate-celebrate ring-2 ring-green-500' : ''} 
-                ${task.status === 'Done' ? 'opacity-60 bg-gray-50 dark:bg-black/20' : ''}
+                group relative bg-white dark:bg-dark-card p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm 
+                hover:shadow-xl hover:-translate-y-1 transition-all duration-500 cursor-pointer overflow-hidden
+                ${isJustCompleted ? 'animate-celebrate ring-2 ring-primary-500' : ''} 
+                ${task.status === 'Done' ? 'opacity-60 bg-gray-50/50 dark:bg-black/10' : ''}
             `}
         >
-            <div className="flex justify-between items-start mb-2">
-                <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${priorityStyle.bg} ${priorityStyle.text}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${priorityStyle.dot}`}></div>
-                    {task.priority}
-                </div>
-                {task.status === 'Done' && (
-                    <span className="material-symbols-outlined text-green-500 text-xl">check_circle</span>
-                )}
-            </div>
-
-            <h4 className={`font-semibold text-light-text dark:text-dark-text mb-1 leading-tight ${task.status === 'Done' ? 'line-through text-light-text-secondary dark:text-dark-text-secondary' : ''}`}>
-                {task.title}
-            </h4>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             
-            {task.description && (
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-2 mb-3">
-                    {task.description}
-                </p>
-            )}
-
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 dark:border-white/5">
-                {dateInfo ? (
-                    <div className={`flex items-center gap-1 text-xs ${dateInfo.color}`}>
-                        <span className="material-symbols-outlined text-[14px]">event</span>
-                        <span>{dateInfo.text}</span>
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-4">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-black/5 dark:border-white/5 shadow-sm ${priorityStyle.bg} ${priorityStyle.text}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${priorityStyle.dot} shadow-sm`}></div>
+                        {task.priority}
                     </div>
-                ) : (
-                    <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic">No due date</span>
-                )}
+                    {task.status === 'Done' && (
+                        <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                             <span className="material-symbols-outlined text-[16px] font-bold">check</span>
+                        </div>
+                    )}
+                </div>
+
+                <h4 className={`text-sm font-bold text-light-text dark:text-dark-text mb-2 leading-snug tracking-tight ${task.status === 'Done' ? 'line-through opacity-50' : ''}`}>
+                    {task.title}
+                </h4>
                 
-                {task.reminderDate && (
-                     <span className="material-symbols-outlined text-[16px] text-light-text-secondary dark:text-dark-text-secondary" title="Reminder set">notifications</span>
+                {task.description && (
+                    <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 line-clamp-2 mb-4 leading-relaxed">
+                        {task.description}
+                    </p>
                 )}
+
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5 dark:border-white/5">
+                    {dateInfo ? (
+                        <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-widest ${dateInfo.color}`}>
+                            <span className="material-symbols-outlined text-[14px] opacity-40">calendar_today</span>
+                            <span>{dateInfo.text}</span>
+                        </div>
+                    ) : (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-30">No Temporal Limit</span>
+                    )}
+                    
+                    {task.reminderDate && (
+                         <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">
+                              <span className="material-symbols-outlined text-[16px]">notifications</span>
+                         </div>
+                    )}
+                </div>
             </div>
         </div>
     );

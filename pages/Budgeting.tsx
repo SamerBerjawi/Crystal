@@ -202,7 +202,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         title="Budgeting"
         subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
         actions={
-          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-bold text-[10px] tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
+          <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
             <span className="material-symbols-outlined text-lg">add</span>
             Create budget
           </button>

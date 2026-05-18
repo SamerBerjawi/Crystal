@@ -149,6 +149,34 @@ const sections: Section[] = [
                 </div>
             </div>
         )
+    },
+    {
+        id: 'action-board',
+        title: 'Action Board (Tasks)',
+        icon: 'fact_check',
+        iconColor: 'text-blue-600',
+        content: (
+            <div className="space-y-6">
+                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                    The Action Board is a telemetric task management system designed to track operational chores, follow-ups, and systemic obligations.
+                </p>
+                <div className="space-y-4">
+                    {[
+                        { title: 'Status Matrix', desc: 'Manage workflow through Kanban-style columns: To Do, In Progress, and Done. Use Manual Sequence mode for precise prioritization.' },
+                        { title: 'Temporal Density', desc: 'Visualize task distribution across the temporal horizon using the density heatmap. Identify bottleneck windows before they impact system stability.' },
+                        { title: 'Priority Signals', desc: 'Assign "High", "Medium", or "Low" priority signals to ensure critical latency items are addressed first.' }
+                    ].map((item, i) => (
+                        <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
+                            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shrink-0">0{i+1}</div>
+                            <div>
+                                <h4 className="text-[11px] font-black uppercase tracking-widest mb-1">{item.title}</h4>
+                                <p className="text-xs font-bold opacity-60 leading-relaxed">{item.desc}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
     }
 ];
 
