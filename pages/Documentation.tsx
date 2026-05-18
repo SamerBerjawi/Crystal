@@ -20,159 +20,133 @@ interface Section {
 const sections: Section[] = [
     {
         id: 'getting-started',
-        title: 'Getting Started',
-        icon: 'rocket_launch',
+        title: 'System Initialization',
+        icon: 'terminal',
         iconColor: 'text-blue-500',
         content: (
-            <div className="space-y-4">
-                <p className="text-lg leading-relaxed">
-                    Welcome to Crystal! This guide will help you set up your financial workspace quickly and efficiently.
+            <div className="space-y-6">
+                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                    Crystal operates as a high-fidelity financial telemetry system. Initialization allows you to establish a secure data perimeter and define your primary currency standards.
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-                        <h4 className="font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">login</span> Authentication
-                        </h4>
-                        <p className="text-sm">Sign up for a secure account or use the <strong>Demo Mode</strong> to explore features with sample data without any commitment.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-xl">security</span>
+                        </div>
+                        <h4 className="font-black text-[10px] uppercase tracking-widest opacity-40">Security Protocol</h4>
+                        <p className="text-xs font-bold leading-relaxed">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800">
-                        <h4 className="font-bold text-green-700 dark:text-green-300 mb-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">check_circle</span> Onboarding
-                        </h4>
-                        <p className="text-sm">Our wizard guides you through setting your base currency, adding your first account, and creating a budget goal.</p>
+                    <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-xl">database</span>
+                        </div>
+                        <h4 className="font-black text-[10px] uppercase tracking-widest opacity-40">Local Persistence</h4>
+                        <p className="text-xs font-bold leading-relaxed">By default, all telemetry resides within your browser's encrypted sandbox. No data leaves your secure perimeter unless explicitly synchronized.</p>
                     </div>
-                </div>
-
-                <div className="mt-6">
-                    <h4 className="font-semibold text-light-text dark:text-dark-text mb-2">Data Privacy</h4>
-                    <p>
-                        Your data is persisted locally in your browser for performance. You can also perform a full 
-                        <strong> JSON Backup</strong> at any time from the Data Management page to secure your records or migrate devices.
-                    </p>
                 </div>
             </div>
         )
     },
     {
         id: 'dashboard',
-        title: 'Dashboard',
-        icon: 'space_dashboard',
+        title: 'Command Center',
+        icon: 'monitoring',
         iconColor: 'text-purple-500',
         content: (
-            <div className="space-y-4">
-                <p>
-                    Your financial command center. The dashboard is designed to be modular and customizable, giving you an instant overview of your net worth, cash flow, and recent activity.
+            <div className="space-y-6">
+                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                    The Dashboard serves as your multi-dimensional Command Center. It provides real-time visualization of your financial state through a modular, widget-based architecture.
                 </p>
-                <ul className="list-disc list-inside space-y-2 ml-2 text-light-text-secondary dark:text-dark-text-secondary">
-                    <li><strong>Edit Layout:</strong> Click the "Edit Layout" button to enter customization mode. You can drag, drop, and resize widgets to build your perfect view.</li>
-                    <li><strong>Global Filtering:</strong> Use the filters at the top to slice your data by specific accounts or time ranges (e.g., "Last 30 Days", "Year to Date").</li>
-                    <li><strong>Smart Insights:</strong> Widgets like "Cash Flow" and "Net Worth" automatically update based on your selected filters.</li>
-                </ul>
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md border-l-4 border-yellow-400 text-sm mt-4">
-                    <strong>Pro Tip:</strong> Try adding the "Transaction Map" widget to visualize your spending locations!
+                <div className="space-y-4">
+                    {[
+                        { title: 'Dynamic Layouts', desc: 'Engage "Interface Modification Mode" to reorganize, resize, and prioritize data widgets based on your current operational needs.' },
+                        { title: 'Global Time-Slicing', desc: 'Sync all visual nodes to specific temporal windows. From "Last 24h" to "Full Fiscal Year" snapshots.' },
+                        { title: 'Heatmap Telemetry', desc: 'Visualize spending density through geographic and categorical heatmaps for instant pattern recognition.' }
+                    ].map((item, i) => (
+                        <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
+                            <div className="w-8 h-8 rounded-lg bg-purple-500 text-white flex items-center justify-center font-black text-[10px] shrink-0">0{i+1}</div>
+                            <div>
+                                <h4 className="text-[11px] font-black uppercase tracking-widest mb-1">{item.title}</h4>
+                                <p className="text-xs font-bold opacity-60 leading-relaxed">{item.desc}</p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         )
     },
     {
-        id: 'accounts',
-        title: 'Accounts',
-        icon: 'wallet',
-        iconColor: 'text-emerald-500',
-        content: (
-            <div className="space-y-4">
-                <p>
-                    Crystal supports a wide variety of account types to mirror your real-world portfolio.
-                </p>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm text-left">
-                        <thead className="bg-gray-50 dark:bg-white/5 font-semibold">
-                            <tr>
-                                <th className="p-2 rounded-tl-md">Type</th>
-                                <th className="p-2 rounded-tr-md">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr><td className="p-2 font-medium">Liquid</td><td className="p-2 text-gray-500">Checking, Savings, Cash. Used for day-to-day spending.</td></tr>
-                            <tr><td className="p-2 font-medium">Credit</td><td className="p-2 text-gray-500">Credit Cards with limit tracking and billing cycle management.</td></tr>
-                            <tr><td className="p-2 font-medium">Assets</td><td className="p-2 text-gray-500">Property, Vehicles, and other high-value items with depreciation/appreciation tracking.</td></tr>
-                            <tr><td className="p-2 font-medium">Investments</td><td className="p-2 text-gray-500">Stocks, ETFs, Crypto, and Warrants.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p className="mt-2">
-                    <strong>Transaction Matching:</strong> The system automatically detects potential transfers between accounts (e.g., a debit in Checking matching a credit in Savings) and suggests linking them to keep your records clean.
-                </p>
-            </div>
-        )
-    },
-    {
-        id: 'budgeting',
-        title: 'Budgeting',
-        icon: 'pie_chart',
+        id: 'taxonomy',
+        title: 'Taxonomy & Semantics',
+        icon: 'schema',
         iconColor: 'text-orange-500',
         content: (
-            <div className="space-y-4">
-                <p>
-                    Move away from rigid spreadsheets. Crystal's budgeting is flexible and intelligent.
+            <div className="space-y-6">
+                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                    Organize your data using two distinct logical layers: Hierarchical Categories (Taxonomy) and Flat Labels (Semantics).
                 </p>
-                <ul className="space-y-3">
-                    <li className="flex gap-3">
-                        <span className="material-symbols-outlined text-primary-500">bolt</span>
-                        <div>
-                            <strong>Quick Budgeting:</strong> Tap the "Quick Budget" button to analyze your last 3 months of spending and generate budget limits based on your history.
-                        </div>
-                    </li>
-                    <li className="flex gap-3">
-                        <span className="material-symbols-outlined text-primary-500">notifications_active</span>
-                        <div>
-                            <strong>Visual Alerts:</strong> Progress bars turn yellow (warning) or red (over budget) as you spend, giving you instant feedback on your financial health.
-                        </div>
-                    </li>
-                </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary-500">Taxonomy (Categories)</h4>
+                        <p className="text-xs font-bold leading-relaxed opacity-70">Strict parent-child relationships. Use for primary structure like "Housing &gt; Rent" or "Transportation &gt; Fuel".</p>
+                    </div>
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-500">Semantics (Tags)</h4>
+                        <p className="text-xs font-bold leading-relaxed opacity-70">Multi-dimensional overlays. Apply #vacation, #business, or #trip-2024 to cluster data across different taxonomic branches.</p>
+                    </div>
+                </div>
             </div>
         )
     },
     {
-        id: 'forecasting',
-        title: 'Forecasting',
-        icon: 'show_chart',
+        id: 'merchants',
+        title: 'Merchant Intelligence',
+        icon: 'storefront',
         iconColor: 'text-indigo-500',
         content: (
-            <div className="space-y-4">
-                <p>
-                    Predict your future balance based on your scheduled income, bills, and savings goals.
+            <div className="space-y-6">
+                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                    Crystal identifies and profiles transaction entities automatically. It builds a history of interaction with specific merchants to provide better categorization and recurring payment detection.
                 </p>
-                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <h5 className="font-semibold mb-2">How it works:</h5>
-                    <ol className="list-decimal list-inside space-y-1 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        <li>Define your <strong>Recurring Transactions</strong> (Salary, Rent, Netflix).</li>
-                        <li>Set <strong>Financial Goals</strong> (Vacation, Emergency Fund).</li>
-                        <li>Crystal projects your daily balance up to 2 years into the future.</li>
-                    </ol>
+                <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl">
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                            { icon: 'sell', text: 'Auto-Category Mapping' },
+                            { icon: 'history', text: 'Temporal Distribution Analysis' },
+                            { icon: 'pattern', text: 'Recurring Pattern Signal' },
+                            { icon: 'rule', text: 'Custom Aggregation Rules' }
+                        ].map((item, i) => (
+                            <li key={i} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest opacity-80">
+                                <span className="material-symbols-outlined text-[18px] opacity-40">{item.icon}</span>
+                                {item.text}
+                            </li>
+                        ))}
+                    </ul>
                 </div>
-                <p>
-                    This allows you to spot potential cash flow issues ("Will I go overdraft next month?") or opportunities to invest more.
-                </p>
             </div>
         )
     },
     {
-        id: 'investments',
-        title: 'Investments',
-        icon: 'candlestick_chart',
-        iconColor: 'text-cyan-500',
-            content: (
-            <div className="space-y-4">
-                <p>
-                    Track your portfolio performance with manually maintained prices.
+        id: 'data-management',
+        title: 'Data Sovereignty',
+        icon: 'settings_ethernet',
+        iconColor: 'text-emerald-500',
+        content: (
+            <div className="space-y-6">
+                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                    Total control over your data nodes. Crystal provides granular tools for exporting and restoring your financial history.
                 </p>
-                <ul className="list-disc list-inside space-y-2 ml-2">
-                    <li><strong>Standard Assets:</strong> Enter and update stock and crypto prices yourself to keep valuations current.</li>
-                    <li><strong>Warrants:</strong> Specialized tracking for employee equity grants with manual price inputs for each grant.</li>
-                    <li><strong>Analysis:</strong> View asset allocation pie charts and track your total gains/losses over time.</li>
-                </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40">Granular Export</h4>
+                        <p className="text-xs font-bold leading-relaxed">Extract specific vectors: Accounts, Transactions, Budgets, or Schema patterns. Available in high-density JSON or interoperable CSV formats.</p>
+                    </div>
+                    <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40">Merge Restorations</h4>
+                        <p className="text-xs font-bold leading-relaxed">Import data without data loss. Use the "Merge" protocol to combine external backup nodes with your current state, resolving conflicts through ID matching.</p>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -219,60 +193,65 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto animate-fade-in-up pb-24 relative">
-            {/* Header */}
-            <header className="mb-12 pt-4 space-y-6">
-                <div className="flex items-center gap-3 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    <button onClick={() => setCurrentPage('Settings')} className="hover:text-primary-500 flex items-center gap-1 transition-colors">
-                         <span className="material-symbols-outlined text-base">arrow_back</span> Settings
+        <div className="max-w-7xl mx-auto animate-fade-in-up pb-24 px-4">
+             {/* Navigation & Header */}
+            <div className="space-y-6 pt-4 mb-16">
+                <nav className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setCurrentPage('Settings')} 
+                      className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+                    >
+                        <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                          <span className="material-symbols-outlined text-sm">arrow_back</span>
+                        </div>
+                        <span>Back to Control Center</span>
                     </button>
-                    <span>/</span>
-                    <span className="text-light-text dark:text-dark-text font-medium">Documentation</span>
-                </div>
+                </nav>
+                
                 <PageHeader
-                  markerIcon="menu_book"
-                  markerLabel="Help Library"
+                  markerIcon="auto_stories"
+                  markerLabel="Operational Manual"
                   title="Documentation"
-                  subtitle="How-to guides, release notes, and implementation tips at your fingertips."
+                  subtitle="Detailed technical guidance on operating the Crystal system. From taxonomy definition to advanced data synchronization."
                 />
-            </header>
+            </div>
 
-            <div className="flex flex-col lg:flex-row gap-12">
+            <div className="flex flex-col lg:flex-row gap-16">
                 {/* Sticky Navigation Sidebar */}
-                <aside className="hidden lg:block w-64 flex-shrink-0">
-                    <div className="sticky top-24 space-y-1">
-                        <p className="px-4 mb-2 text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
-                            Contents
+                <aside className="hidden lg:block w-72 flex-shrink-0">
+                    <div className="sticky top-24 space-y-2 p-2 bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl border border-black/5 dark:border-white/5">
+                        <p className="px-4 py-4 text-[9px] font-black uppercase tracking-[0.2em] opacity-40">
+                            Manual Index
                         </p>
                         {sections.map(section => (
                             <button
                                 key={section.id}
                                 onClick={() => scrollToSection(section.id)}
-                                className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-3 ${
+                                className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center gap-4 ${
                                     activeSection === section.id
-                                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300 translate-x-1'
-                                        : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text'
+                                        ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5 -translate-y-0.5'
+                                        : 'text-light-text-secondary opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5'
                                 }`}
                             >
-                                <span className={`material-symbols-outlined text-[18px] ${activeSection === section.id ? 'opacity-100' : 'opacity-0'}`}>
-                                    chevron_right
+                                <span className={`material-symbols-outlined text-xl transition-all ${activeSection === section.id ? 'scale-110' : 'opacity-40 scale-90'}`}>
+                                    {section.icon}
                                 </span>
-                                {section.title}
+                                <span className="text-[11px] font-black uppercase tracking-widest">{section.title}</span>
                             </button>
                         ))}
                     </div>
                 </aside>
 
-                {/* Mobile Navigation (Dropdown style or Horizontal Scroll) */}
-                <div className="lg:hidden overflow-x-auto pb-4 -mx-4 px-4 flex gap-2 snap-x no-scrollbar">
+                {/* Mobile Navigation */}
+                <div className="lg:hidden overflow-x-auto pb-4 -mx-4 px-4 flex gap-4 snap-x no-scrollbar">
                      {sections.map(section => (
                         <button
                             key={section.id}
                             onClick={() => scrollToSection(section.id)}
-                            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
+                            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
                                 activeSection === section.id
-                                    ? 'bg-primary-500 text-white border-primary-500'
-                                    : 'bg-white dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary border-black/10 dark:border-white/10'
+                                    ? 'bg-primary-500 text-white shadow-xl shadow-primary-500/20'
+                                    : 'bg-black/5 dark:bg-white/5 text-light-text-secondary'
                             }`}
                         >
                             {section.title}
@@ -281,38 +260,38 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 space-y-12">
+                <div className="flex-1 space-y-24">
                     {sections.map(section => (
                         <section 
                             key={section.id} 
                             id={section.id} 
-                            // FIX: Changed the ref callback to a block body to avoid returning a value, which is not allowed for callback refs.
                             ref={(el) => { sectionRefs.current[section.id] = el; }}
-                            className="scroll-mt-24"
+                            className="scroll-mt-24 group"
                         >
-                            <Card className="p-0 overflow-hidden border-l-4 border-l-transparent hover:border-l-primary-500 transition-all duration-300">
-                                <div className="p-6 md:p-8">
-                                    <div className="flex items-center gap-4 mb-6">
-                                        <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${section.iconColor}`}>
-                                            <span className="material-symbols-outlined text-3xl">{section.icon}</span>
-                                        </div>
-                                        <h2 className="text-2xl font-bold text-light-text dark:text-dark-text">{section.title}</h2>
+                            <div className="space-y-8">
+                                <div className="flex items-center gap-6">
+                                    <div className={`w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center ${section.iconColor} group-hover:scale-110 transition-transform`}>
+                                        <span className="material-symbols-outlined text-3xl">{section.icon}</span>
                                     </div>
-                                    <div className="prose dark:prose-invert max-w-none text-light-text dark:text-dark-text leading-relaxed">
-                                        {section.content}
+                                    <div>
+                                        <h2 className="text-xl font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text">{section.title}</h2>
+                                        <div className="h-1 w-12 bg-primary-500 mt-2 rounded-full transform origin-left group-hover:scale-x-150 transition-transform"></div>
                                     </div>
                                 </div>
-                            </Card>
+                                <div className="text-light-text dark:text-dark-text leading-relaxed">
+                                    {section.content}
+                                </div>
+                            </div>
                         </section>
                     ))}
 
                     <div className="flex justify-center pt-8">
                         <button 
                             onClick={handleBackToTop}
-                            className="flex items-center gap-2 px-6 py-3 rounded-full bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-colors font-medium text-sm"
+                            className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest shadow-sm"
                         >
-                            <span className="material-symbols-outlined">arrow_upward</span>
-                            Back to Top
+                            <span className="material-symbols-outlined group-hover:-translate-y-1 transition-transform">arrow_upward</span>
+                            Scroll to Origin
                         </button>
                     </div>
                 </div>

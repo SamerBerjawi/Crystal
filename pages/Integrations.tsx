@@ -127,67 +127,68 @@ const Integrations: React.FC<IntegrationsProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-fade-in-up">
-      {/* Header */}
-      <header className="space-y-4">
-        <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                <span className="material-symbols-outlined">arrow_back</span>
+    <div className="max-w-6xl mx-auto pb-12 space-y-12 animate-fade-in-up px-4">
+       {/* Navigation & Header */}
+       <div className="space-y-6">
+        <nav className="flex items-center gap-3">
+            <button 
+              onClick={() => setCurrentPage('Settings')} 
+              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+            >
+                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                </div>
+                <span>Back to Control Center</span>
             </button>
-            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-                <span className="mx-2">/</span>
-                <span className="text-light-text dark:text-dark-text font-medium">Integrations</span>
-            </div>
-        </div>
+        </nav>
+        
         <PageHeader
           markerIcon="extension"
-          markerLabel="Connected Services"
+          markerLabel="External Protocols"
           title="Integrations"
-          subtitle="Supercharge Crystal with live market data, merchant enrichment, and real bank synchronization."
+          subtitle="Augment your financial stack with real-time market data, telemetry, and secure vault synchronization."
         />
-      </header>
+      </div>
 
       {/* API Keys Grid */}
-      <section>
-          <div className="flex items-center gap-2 mb-4 px-1">
-              <span className="material-symbols-outlined text-primary-500">api</span>
-              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Data Services</h3>
+      <section className="space-y-6">
+          <div className="flex items-center gap-3 px-2">
+              <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
+              <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Intelligence & Enrichment</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <ApiKeyCard
                   title="Twelve Data"
-                  description="Enables real-time stock, ETF, crypto, and FX rate updates for accurate currency conversions across your accounts."
-                  icon="candlestick_chart"
+                  description="High-frequency engine for market rates, ETF valuations, and global currency arbitrage calculations."
+                  icon="monitoring"
                   name="twelveDataApiKey"
                   value={localApiKeys.twelveDataApiKey}
                   onChange={(value) => handleLocalChange('twelveDataApiKey', value)}
                   onBlur={() => handleCommit('twelveDataApiKey')}
-                  placeholder="Enter API Key"
-                  colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+                  placeholder="Enter 12Data API Key"
+                  colorClass="bg-indigo-500 text-white shadow-indigo-500/20"
               />
               <ApiKeyCard
                   title="Brandfetch"
-                  description="Automatically fetches high-quality logos for merchants and institutions based on transaction names."
-                  icon="collections"
+                  description="Metadata enrichment service for merchant identification and high-fidelity branding assets."
+                  icon="auto_awesome"
                   name="brandfetchClientId"
                   value={localApiKeys.brandfetchClientId}
                   onChange={(value) => handleLocalChange('brandfetchClientId', value)}
                   onBlur={() => handleCommit('brandfetchClientId')}
-                  placeholder="Enter Client ID"
-                  colorClass="bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400"
+                  placeholder="Enter Client Access ID"
+                  colorClass="bg-pink-500 text-white shadow-pink-500/20"
               />
           </div>
       </section>
 
       {/* Enable Banking Section */}
-      <section>
-           <div className="flex items-center gap-2 mb-4 px-1 mt-8">
-              <span className="material-symbols-outlined text-emerald-500">account_balance</span>
-              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Open Banking</h3>
+      <section className="space-y-6">
+           <div className="flex items-center gap-3 px-2">
+              <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
+              <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Synchronization Vault</h3>
           </div>
-          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm p-1">
+          <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
                <EnableBankingIntegrationCard
                     connections={enableBankingConnections}
                     accounts={accounts}

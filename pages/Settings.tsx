@@ -22,23 +22,25 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
     <button
       type="button"
       onClick={() => handleNavigation(page)}
-      className="w-full flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group first:rounded-t-xl last:rounded-b-xl text-left"
+      className="w-full flex items-center justify-between p-5 hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer group first:rounded-t-2xl last:rounded-b-2xl text-left border-b border-black/5 dark:border-white/5 last:border-0"
     >
-      <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>
-          <span className="material-symbols-outlined text-xl">{icon}</span>
+      <div className="flex items-center gap-5">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+          <span className="material-symbols-outlined text-2xl">{icon}</span>
         </div>
         <div>
-          <h3 className="font-medium text-light-text dark:text-dark-text text-base">{title}</h3>
-          {description && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">{description}</p>}
+          <h3 className="font-bold text-light-text dark:text-dark-text text-lg tracking-tight">{title}</h3>
+          {description && <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-60 uppercase tracking-tight">{description}</p>}
         </div>
       </div>
-      <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-lg group-hover:translate-x-1 transition-transform">chevron_right</span>
+      <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+        <span className="material-symbols-outlined text-lg">chevron_right</span>
+      </div>
     </button>
   );
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-fade-in-up pb-12">
+    <div className="max-w-4xl mx-auto space-y-10 animate-fade-in-up pb-12 px-4">
       {/* Header */}
       <PageHeader
         markerIcon="settings"
@@ -48,113 +50,134 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       />
 
       {/* Profile Section */}
-      <button
-        type="button"
-        onClick={() => handleNavigation('Personal Info')}
-        className="w-full text-left bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-5 cursor-pointer hover:shadow-md transition-all group"
-      >
-        <div className="relative">
-          {profileImageError || !user.profilePictureUrl ? (
-            <div className="w-20 h-20 rounded-full border-2 border-white dark:border-dark-card shadow-sm bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-xl font-semibold">
-              {user.firstName?.charAt(0)}
-              {user.lastName?.charAt(0)}
+      <div className="relative group">
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-primary-600 rounded-3xl blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200"></div>
+        <button
+          type="button"
+          onClick={() => handleNavigation('Personal Info')}
+          className="relative w-full text-left bg-white dark:bg-dark-card rounded-2xl p-7 shadow-sm border border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center gap-6 cursor-pointer hover:shadow-xl transition-all"
+        >
+          <div className="relative">
+            {profileImageError || !user.profilePictureUrl ? (
+              <div className="w-24 h-24 rounded-2xl border-4 border-white dark:border-dark-card shadow-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-3xl font-black uppercase">
+                {user.firstName?.charAt(0)}
+                {user.lastName?.charAt(0)}
+              </div>
+            ) : (
+              <img
+                src={user.profilePictureUrl}
+                alt={`${user.firstName} ${user.lastName}`}
+                className="w-24 h-24 rounded-2xl object-cover border-4 border-white dark:border-dark-card shadow-lg"
+                loading="lazy"
+                onError={() => setProfileImageError(true)}
+              />
+            )}
+            <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white w-8 h-8 flex items-center justify-center rounded-lg border-4 border-white dark:border-dark-card shadow-md">
+              <span className="material-symbols-outlined text-base">edit</span>
             </div>
-          ) : (
-            <img
-              src={user.profilePictureUrl}
-              alt={`${user.firstName} ${user.lastName}`}
-              className="w-20 h-20 rounded-full object-cover border-2 border-white dark:border-dark-card shadow-sm"
-              loading="lazy"
-              onError={() => setProfileImageError(true)}
+          </div>
+          <div className="flex-grow text-center sm:text-left">
+            <h2 className="text-2xl font-black text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors leading-tight">{user.firstName} {user.lastName}</h2>
+            <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">{user.email}</p>
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-4">
+               <span className="px-3 py-1 rounded-lg bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest">{user.role}</span>
+               <span className="px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800/30">Verified</span>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-primary-500 font-bold text-sm">
+            <span>Manage Profile</span>
+            <span className="material-symbols-outlined">arrow_forward</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Grid Layout for Groups */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* App Settings Group */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">tune</span>
+            Experience
+          </h3>
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
+            <SettingItem
+              page="Preferences"
+              icon="palette"
+              title="Preferences"
+              description="Theme, currency, and formats"
+              colorClass="bg-blue-500 text-white shadow-blue-500/20"
             />
-          )}
-          <div className="absolute bottom-0 right-0 bg-primary-500 text-white p-1 rounded-full border-2 border-white dark:border-dark-card">
-             <span className="material-symbols-outlined text-xs block">edit</span>
+            <SettingItem
+              page="Integrations"
+              icon="extension"
+              title="Integrations"
+              description="Banks and Market APIs"
+              colorClass="bg-indigo-500 text-white shadow-indigo-500/20"
+            />
+             <SettingItem
+              page="Merchants"
+              icon="store"
+              title="Merchants"
+              description="Identity and visibility"
+              colorClass="bg-emerald-500 text-white shadow-emerald-500/20"
+            />
           </div>
         </div>
-        <div className="flex-grow">
-          <h2 className="text-xl font-bold text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{user.firstName} {user.lastName}</h2>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary">{user.email}</p>
-          <div className="flex items-center gap-2 mt-2">
-             <span className="px-2 py-0.5 rounded-md bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-medium uppercase tracking-wide">{user.role}</span>
+
+        {/* Workspace Organization Group */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">category</span>
+            Workspace
+          </h3>
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-black/5 dark:border-white/5 overflow-hidden h-fit">
+            <SettingItem 
+              page="Categories" 
+              icon="grid_view" 
+              title="Categories" 
+              description="Income & Expense schema"
+              colorClass="bg-orange-500 text-white shadow-orange-500/20"
+            />
+            <SettingItem 
+              page="Tags" 
+              icon="label" 
+              title="Tags" 
+              description="Custom filtering labels"
+              colorClass="bg-pink-500 text-white shadow-pink-500/20"
+            />
           </div>
-        </div>
-        <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-2xl">chevron_right</span>
-      </button>
 
-      {/* App Settings Group */}
-      <div>
-        <h3 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-3 ml-2">App Settings</h3>
-        <div className="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-black/5 dark:border-white/5 divide-y divide-black/5 dark:divide-white/5">
-          <SettingItem
-            page="Preferences"
-            icon="tune"
-            title="Preferences"
-            description="Theme, currency, language, and regional formats"
-            colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-          />
-          <SettingItem
-            page="Integrations"
-            icon="extension"
-            title="Integrations"
-            description="Manage API keys and external service connections"
-            colorClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
-          />
-          <SettingItem
-            page="Merchants"
-            icon="store"
-            title="Merchants"
-            description="Manage merchant defaults, branding, and visibility"
-            colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-          />
-        </div>
-      </div>
-
-      {/* Organization Group */}
-      <div>
-        <h3 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-3 ml-2">Organization</h3>
-        <div className="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-black/5 dark:border-white/5 divide-y divide-black/5 dark:divide-white/5">
-          <SettingItem 
-            page="Categories" 
-            icon="category" 
-            title="Categories" 
-            description="Manage income and expense categories"
-            colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-          />
-          <SettingItem 
-            page="Tags" 
-            icon="label" 
-            title="Tags" 
-            description="Custom tags for transaction filtering"
-            colorClass="bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400"
-          />
-        </div>
-      </div>
-
-       {/* System Group */}
-       <div>
-        <h3 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-3 ml-2">System</h3>
-        <div className="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-black/5 dark:border-white/5 divide-y divide-black/5 dark:divide-white/5">
-          <SettingItem 
-            page="Data Management" 
-            icon="database" 
-            title="Data Management" 
-            description="Import, export, backup, and reset data"
-            colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-          />
-          <SettingItem 
-            page="Documentation" 
-            icon="menu_book" 
-            title="Documentation" 
-            description="Learn about features and usage"
-            colorClass="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-          />
+           {/* System Group inside right col for balance */}
+           <div className="pt-4 space-y-4">
+            <h3 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">settings_system_daydream</span>
+              Infrastructure
+            </h3>
+            <div className="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
+              <SettingItem 
+                page="Data Management" 
+                icon="database" 
+                title="Data Desk" 
+                description="Import, Export, Sync"
+                colorClass="bg-cyan-500 text-white shadow-cyan-500/20"
+              />
+              <SettingItem 
+                page="Documentation" 
+                icon="menu_book" 
+                title="Knowledge" 
+                description="User guide & APIs"
+                colorClass="bg-slate-500 text-white shadow-slate-500/20"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
        {/* Version Info */}
-       <div className="text-center pt-4">
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Crystal v1.0.0</p>
+       <div className="flex justify-center items-center gap-4 pt-12">
+          <div className="h-px bg-black/5 dark:bg-white/5 flex-grow max-w-[100px]"></div>
+          <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">Crystal Edition v1.0.0</p>
+          <div className="h-px bg-black/5 dark:bg-white/5 flex-grow max-w-[100px]"></div>
        </div>
 
     </div>

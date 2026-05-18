@@ -249,7 +249,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   }, [entities, missingMerchantCount]);
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-fade-in-up">
+    <div className="max-w-6xl mx-auto pb-12 space-y-12 animate-fade-in-up px-4">
       {isDetailModalOpen && editingEntity && (
           <MerchantDetailModal 
             isOpen={isDetailModalOpen}
@@ -265,111 +265,126 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           />
       )}
       
-      <header className="space-y-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setCurrentPage('Settings')}
-            className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-            <span className="mx-2">/</span>
-            <span className="text-light-text dark:text-dark-text font-medium">Merchants & Institutions</span>
-          </div>
-        </div>
+       {/* Navigation & Header */}
+       <div className="space-y-6">
+        <nav className="flex items-center gap-3">
+            <button 
+              onClick={() => setCurrentPage('Settings')} 
+              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+            >
+                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                </div>
+                <span>Back to Control Center</span>
+            </button>
+        </nav>
+        
         <PageHeader
           markerIcon="store"
-          markerLabel="Entity Management"
+          markerLabel="Entity Intelligence"
           title="Merchants & Institutions"
-          subtitle="Manage defaults, branding, and visibility for your frequent transaction partners."
+          subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."
         />
+
         {!brandfetchClientId && (
-          <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl px-4 py-3 text-sm flex items-start gap-2 dark:bg-amber-900/20 dark:text-amber-100 dark:border-amber-900/40">
-            <span className="material-symbols-outlined text-base mt-[2px]">info</span>
-            <p className="leading-relaxed">
-              Add your Brandfetch Client ID in Preferences to enable automatic logo fetching.
+          <div className="bg-amber-100/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl px-5 py-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+               <span className="material-symbols-outlined text-xl">brand_awareness</span>
+            </div>
+            <p className="text-xs font-bold text-amber-800/80 dark:text-amber-200/80 leading-relaxed">
+              Automatic branding enrichment is offline. Add a Brandfetch Access Key in Preferences to restore merchant telemetry.
             </p>
           </div>
         )}
-      </header>
+      </div>
       
       {/* Metrics Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Merchants" value={stats.totalMerchants} icon="store" colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
-          <StatCard title="Total Banks" value={stats.totalInstitutions} icon="account_balance" colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" />
-          <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="payments" colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" />
-          <StatCard title="Unidentified Txns" value={stats.missingCount} icon="help_outline" colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
+          <StatCard title="Institutions" value={stats.totalInstitutions} icon="hub" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
+          <StatCard title="Aggr. Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="equalizer" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
+          <StatCard title="Ambiguous" value={stats.missingCount} icon="psychology_alt" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-           <div className="relative w-full md:max-w-md">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">search</span>
+      <div className="flex flex-col md:flex-row gap-6 justify-between items-center px-2">
+           <div className="relative w-full md:max-w-md group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-40 group-focus-within:text-primary-500 group-focus-within:opacity-100 transition-all">database_search</span>
+                </div>
                 <input 
                     type="text" 
-                    placeholder="Search entities..." 
+                    placeholder="Query entities..." 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} pl-10 border-none bg-transparent shadow-none focus:ring-0`}
+                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold uppercase tracking-widest placeholder:text-light-text-secondary/30 dark:placeholder:text-dark-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
                 />
            </div>
            
-           <div className="flex items-center gap-3 w-full md:w-auto px-1 md:px-0">
-               <label className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors">
-                   <input 
-                       type="checkbox" 
-                       checked={showHidden} 
-                       onChange={(e) => setShowHidden(e.target.checked)} 
-                       className={CHECKBOX_STYLE} 
-                   />
-                   Show Hidden
+           <div className="flex items-center gap-6 w-full md:w-auto">
+               <label className="flex items-center gap-3 cursor-pointer group select-none">
+                   <div className="relative">
+                      <input 
+                          type="checkbox" 
+                          checked={showHidden} 
+                          onChange={(e) => setShowHidden(e.target.checked)} 
+                          className="sr-only peer" 
+                      />
+                      <div className="w-10 h-6 bg-black/5 dark:bg-white/5 rounded-full peer-checked:bg-primary-500 transition-colors"></div>
+                      <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-4 transition-transform shadow-sm"></div>
+                   </div>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
                </label>
-               <div className="h-6 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
-               <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+
+               <div className="h-8 w-px bg-black/5 dark:bg-white/5"></div>
+
+               <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl">
                    <button 
                       onClick={() => setViewMode('grid')}
-                      className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                      className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
-                       <span className="material-symbols-outlined text-xl">grid_view</span>
+                       <span className="material-symbols-outlined text-lg">grid_view</span>
                    </button>
                    <button 
                       onClick={() => setViewMode('list')}
-                      className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                      className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
-                       <span className="material-symbols-outlined text-xl">view_list</span>
+                       <span className="material-symbols-outlined text-lg">view_list</span>
                    </button>
                </div>
                
-               <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
+               <div className="relative group">
                    <select 
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value as any)} 
-                        className={`${SELECT_STYLE} pr-8`}
+                        className="appearance-none bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-xl pl-4 pr-10 py-3 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm cursor-pointer"
                    >
                        <option value="count">Most Frequent</option>
-                       <option value="value">Highest Value</option>
+                       <option value="value">Highest Volume</option>
                        <option value="recent">Recently Active</option>
-                       <option value="name">Name (A-Z)</option>
+                       <option value="name">Identifier</option>
                    </select>
-                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-light-text-secondary opacity-40">
+                      <span className="material-symbols-outlined text-sm">unfold_more</span>
+                   </div>
                </div>
            </div>
       </div>
 
       {filteredEntities.length === 0 ? (
-          <div className="text-center py-20 bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/10 dark:border-white/10">
-              <span className="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600 mb-4">store_off</span>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary">No entities found.</p>
+          <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
+              <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-3xl opacity-20">search_off</span>
+              </div>
+              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Zero Results Found</p>
               {stats.missingCount > 0 && (
-                  <p className="text-xs text-orange-500 mt-2">
-                      Tip: You have {stats.missingCount} transactions without a merchant name assigned.
+                  <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mt-4">
+                    Audit required: {stats.missingCount} ambiguous records detected.
                   </p>
               )}
           </div>
       ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {filteredEntities.map(entity => {
               const previewUrl = getPreviewUrl(entity.name, entity.rule);
               const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
@@ -377,78 +392,67 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               const isHidden = entity.rule?.isHidden;
               
               const accentColor = entity.type === 'Institution' 
-                  ? (entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-500')
+                  ? (entity.totalValue >= 0 ? 'text-primary-500' : 'text-red-500')
                   : 'text-light-text dark:text-dark-text';
 
               return (
-                <Card 
+                <div 
                     key={entity.id} 
-                    className={`flex flex-col gap-4 group relative overflow-visible hover:border-primary-500/30 transition-all duration-200 cursor-pointer ${isHidden ? 'opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : ''}`}
                     onClick={() => { setEditingEntity(entity); setIsDetailModalOpen(true); }}
+                    className={`relative group bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-3xl p-6 cursor-pointer hover:border-primary-500/20 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 ${isHidden ? 'opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
                 >
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                         <div
-                            className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white dark:bg-dark-card' : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-500 dark:text-gray-400'}`}
-                         >
+                    <div className="flex justify-between items-start mb-6">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white' : 'bg-gradient-to-br from-black/[0.02] to-black/[0.1] dark:from-white/[0.02] dark:to-white/[0.1]'}`}>
                             {hasLogo && previewUrl ? (
-                              <img
-                                src={previewUrl}
-                                alt={`${entity.name} logo`}
-                                className="w-full h-full object-cover"
-                                onError={() => handleLogoError(previewUrl)}
-                              />
+                              <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
                             ) : (
-                              <span className="text-xl font-bold">{initialLetter}</span>
+                              <span className="text-xl font-black text-light-text-secondary/40">{initialLetter}</span>
                             )}
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${entity.type === 'Institution' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                                {entity.type === 'Institution' ? 'Bank' : 'Merch'}
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
+                                {entity.type === 'Institution' ? 'Core' : 'Merch'}
                             </span>
                             {entity.rule?.category && (
-                                <span className="text-[10px] font-medium bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-light-text-secondary dark:text-dark-text-secondary truncate max-w-[80px]">
+                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase tracking-tighter truncate max-w-[100px]">
                                     {entity.rule.category}
                                 </span>
                             )}
                         </div>
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between group/name mb-1">
-                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate" title={entity.name}>{entity.name}</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="font-black text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40 uppercase tracking-widest">
+                                {entity.count} Observed Events
+                            </p>
                         </div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium mb-3">
-                            {entity.count} {entity.type === 'Merchant' ? 'transactions' : 'accounts'}
-                        </p>
                         
-                        <div className="flex justify-between items-end border-t border-black/5 dark:border-white/5 pt-3">
-                            <div>
-                                <p className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">
-                                    {entity.type === 'Institution' ? 'Assets' : 'Volume'}
-                                </p>
-                                <p className={`font-mono font-bold text-base ${accentColor}`}>
-                                    {formatCurrency(entity.totalValue, 'EUR')}
-                                </p>
-                            </div>
+                        <div className="pt-4 border-t border-black/5 dark:border-white/5">
+                            <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-40 uppercase tracking-widest mb-1">
+                                Cumulative
+                            </p>
+                            <p className={`font-mono font-black text-xl tracking-tighter ${accentColor}`}>
+                                {formatCurrency(entity.totalValue, 'EUR')}
+                            </p>
                         </div>
                     </div>
-                </Card>
+                </div>
               );
             })}
           </div>
       ) : (
-          <Card className="!p-0 overflow-hidden">
-              <table className="w-full text-left text-sm">
-                  <thead className="bg-light-bg dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-xs uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
-                      <tr>
-                          <th className="px-4 py-3">Entity</th>
-                          <th className="px-4 py-3">Default Category</th>
-                          <th className="px-4 py-3 text-right">Count</th>
-                          <th className="px-4 py-3 text-right">Last Activity</th>
-                          <th className="px-4 py-3 text-right">Total Value</th>
-                          <th className="px-4 py-3 w-20"></th>
+          <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+              <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                      <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Identifier</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Classification</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Frequency</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Last Sync</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Total Exposure</th>
+                          <th className="px-8 py-5 w-20"></th>
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -462,56 +466,58 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                               <tr 
                                 key={entity.id} 
                                 onClick={() => { setEditingEntity(entity); setIsDetailModalOpen(true); }}
-                                className={`hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group ${isHidden ? 'opacity-60 bg-gray-50 dark:bg-white/5' : ''}`}
+                                className={`group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${isHidden ? 'opacity-40 grayscale' : ''}`}
                               >
-                                  <td className="px-4 py-3">
-                                      <div className="flex items-center gap-3">
-                                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white dark:bg-dark-card' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                                  <td className="px-8 py-5">
+                                      <div className="flex items-center gap-4">
+                                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white' : 'bg-black/5 dark:bg-white/5'}`}>
                                                 {hasLogo && previewUrl ? (
-                                                    <img src={previewUrl} alt="logo" className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} />
+                                                    <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
                                                 ) : (
-                                                    <span className="font-bold text-xs">{initialLetter}</span>
+                                                    <span className="font-black text-xs text-light-text-secondary/40">{initialLetter}</span>
                                                 )}
                                            </div>
-                                           <span className="font-bold text-light-text dark:text-dark-text truncate max-w-[200px]">{entity.name}</span>
-                                           {isHidden && <span className="material-symbols-outlined text-xs text-gray-400">visibility_off</span>}
+                                           <div className="flex items-center gap-2">
+                                              <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors uppercase tracking-tight">{entity.name}</span>
+                                              {isHidden && <span className="material-symbols-outlined text-sm text-gray-400">visibility_off</span>}
+                                           </div>
                                       </div>
                                   </td>
-                                  <td className="px-4 py-3">
+                                  <td className="px-8 py-5">
                                       {entity.rule?.category ? (
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-white/10 text-light-text dark:text-dark-text">
+                                          <span className="inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
                                               {entity.rule.category}
                                           </span>
                                       ) : (
-                                          <span className="text-light-text-secondary dark:text-dark-text-secondary text-xs italic">None</span>
+                                          <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30 uppercase tracking-[0.2em] italic">Unclassified</span>
                                       )}
                                   </td>
-                                  <td className="px-4 py-3 text-right font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                                      {entity.count}
+                                  <td className="px-8 py-5 text-right font-black text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase tracking-widest">
+                                      {entity.count} Events
                                   </td>
-                                  <td className="px-4 py-3 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs">
-                                      {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString() : '—'}
+                                  <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-[10px] font-black uppercase tracking-widest opacity-40">
+                                      {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' }) : 'INF'}
                                   </td>
-                                  <td className={`px-4 py-3 text-right font-mono font-bold ${entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-light-text dark:text-dark-text'}`}>
+                                  <td className={`px-8 py-5 text-right font-mono font-black text-base tracking-tighter ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
                                       {formatCurrency(entity.totalValue, 'EUR')}
                                   </td>
-                                  <td className="px-4 py-3 text-right">
-                                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <td className="px-8 py-5 text-right">
+                                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                            <button 
                                                 onClick={(e) => handleToggleHidden(entity, e)}
-                                                className="p-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                title={isHidden ? "Show" : "Hide"}
+                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 transition-all shadow-sm"
+                                                title={isHidden ? "Activate" : "Deactivate"}
                                             >
                                                 <span className="material-symbols-outlined text-lg">
-                                                    {isHidden ? 'visibility' : 'visibility_off'}
+                                                    {isHidden ? 'notifications_active' : 'notifications_off'}
                                                 </span>
                                             </button>
                                            <button 
                                                 onClick={(e) => { e.stopPropagation(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
-                                                className="p-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                title="Edit"
+                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
+                                                title="Protocol Configuration"
                                             >
-                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                <span className="material-symbols-outlined text-lg">tune</span>
                                             </button>
                                        </div>
                                   </td>
@@ -520,7 +526,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                       })}
                   </tbody>
               </table>
-          </Card>
+          </div>
       )}
     </div>
   );

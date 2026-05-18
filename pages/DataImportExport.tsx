@@ -352,7 +352,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
     };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up">
+    <div className="max-w-6xl mx-auto pb-12 space-y-12 animate-fade-in-up px-4">
       {isNewImportModalOpen && <NewImportModal onClose={() => setNewImportModalOpen(false)} onSelect={handleSelectImportType} />}
       
       {exportConfig.isOpen && (
@@ -402,140 +402,161 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       )}
 
 
-      <header className="space-y-4">
-        <div className="flex items-center gap-4">
-            <button onClick={() => props.setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                <span className="material-symbols-outlined">arrow_back</span>
+       {/* Navigation & Header */}
+       <div className="space-y-6">
+        <nav className="flex items-center gap-3">
+            <button 
+              onClick={() => props.setCurrentPage('Settings')} 
+              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+            >
+                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                </div>
+                <span>Back to Control Center</span>
             </button>
-            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span onClick={() => props.setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-                <span> / </span>
-                <span className="text-light-text dark:text-dark-text font-medium">Import & Export</span>
-            </div>
-        </div>
-         <PageHeader
-            markerIcon="file_upload"
-            markerLabel="Data Desk"
-            title="Import & Export"
-            subtitle="Bring data in from banks or CSVs and take clean snapshots out for auditing or migration."
-         />
-      </header>
+        </nav>
+        
+        <PageHeader
+          markerIcon="database"
+          markerLabel="Systems Core"
+          title="Data Management"
+          subtitle="Atomic data operations: maintain snapshots, import external ledgers, and manage system state."
+        />
+      </div>
       
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Imports" value={stats.imports} icon="cloud_upload" colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
-          <StatCard title="Total Exports" value={stats.exports} icon="cloud_download" colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" />
-          <StatCard title="Total Restores" value={stats.restores} icon="settings_backup_restore" colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" />
-          <StatCard title="Last Activity" value={stats.lastActivity} icon="history" colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <StatCard title="Ingress" value={stats.imports} icon="input" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
+          <StatCard title="Egress" value={stats.exports} icon="output" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
+          <StatCard title="Restored" value={stats.restores} icon="rebase" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
+          <StatCard title="Uptime" value={stats.lastActivity} icon="pulse" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
            {/* External Data */}
-           <Card className="flex flex-col h-full bg-gradient-to-br from-white to-blue-50/50 dark:from-dark-card dark:to-blue-900/10 border-blue-100 dark:border-blue-900/30">
-                <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
-                        <span className="material-symbols-outlined text-2xl">table_view</span>
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text">External Data</h3>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Import new transactions or export for spreadsheets.</p>
-                    </div>
-                </div>
-                <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
-                    <button onClick={() => setNewImportModalOpen(true)} className={`${BTN_PRIMARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
-                        <span className="material-symbols-outlined">add</span>
-                        Import CSV
-                    </button>
-                    <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
-                        <span className="material-symbols-outlined">download</span>
-                        Export Data
-                    </button>
-                </div>
-           </Card>
+           <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
+              <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
+                  <div className="flex items-center gap-4 mb-6">
+                      <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-xl shadow-blue-500/20">
+                          <span className="material-symbols-outlined text-3xl">table_chart</span>
+                      </div>
+                      <div>
+                          <h3 className="text-xl font-black text-light-text dark:text-dark-text leading-tight">External Data Desk</h3>
+                          <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mt-1 opacity-60">CSV Ingress & Egress</p>
+                      </div>
+                  </div>
+                  <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-80 mb-10">
+                    Import transactions from bank statements or existing spreadsheets using the mapping engine.
+                  </p>
+                  <div className="mt-auto grid grid-cols-2 gap-4">
+                      <button onClick={() => setNewImportModalOpen(true)} className="px-6 py-4 rounded-2xl bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-lg">add_circle</span>
+                        Import
+                      </button>
+                      <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className="px-6 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-lg">download</span>
+                        Export
+                      </button>
+                  </div>
+              </div>
+           </div>
 
            {/* Backup & Restore */}
-           <Card className="flex flex-col h-full bg-gradient-to-br from-white to-purple-50/50 dark:from-dark-card dark:to-purple-900/10 border-purple-100 dark:border-purple-900/30">
-                <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20 flex-shrink-0">
-                        <span className="material-symbols-outlined text-2xl">save</span>
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text">System Snapshots</h3>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Backup your entire workspace or restore specific parts.</p>
-                    </div>
-                </div>
-                <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
-                    <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
-                         {/* We reuse export modal but user chooses JSON format there */}
-                        <span className="material-symbols-outlined">cloud_download</span>
+           <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-3xl blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
+              <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
+                  <div className="flex items-center gap-4 mb-6">
+                      <div className="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-500/20">
+                          <span className="material-symbols-outlined text-3xl">terminal</span>
+                      </div>
+                      <div>
+                          <h3 className="text-xl font-black text-light-text dark:text-dark-text leading-tight">System Snapshots</h3>
+                          <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mt-1 opacity-60">Full Environment State</p>
+                      </div>
+                  </div>
+                  <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-80 mb-10">
+                    Create atomic JSON backups of your entire configuration, including preferences, accounts, and histories.
+                  </p>
+                  <div className="mt-auto grid grid-cols-2 gap-4">
+                      <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className="px-6 py-4 rounded-2xl bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-lg">backup</span>
                         Backup
-                    </button>
-                    <button onClick={() => setRestoreModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
-                        <span className="material-symbols-outlined">cloud_upload</span>
+                      </button>
+                      <button onClick={() => setRestoreModalOpen(true)} className="px-6 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-lg">restore</span>
                         Restore
-                    </button>
-                </div>
-           </Card>
+                      </button>
+                  </div>
+              </div>
+           </div>
       </div>
 
       {/* Activity History */}
-      <Card className="p-0 overflow-hidden">
-          <div className="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Activity History</h3>
-              <div className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-1 rounded-md">
-                  {sortedHistory.length} items
+      <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden mb-12">
+          <div className="p-8 border-b border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-black/[0.02] dark:bg-white/[0.02]">
+              <div className="flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
+                    <span className="material-symbols-outlined">history</span>
+                 </div>
+                 <div>
+                    <h3 className="text-lg font-black text-light-text dark:text-dark-text uppercase tracking-tight">Audit Trail</h3>
+                    <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase tracking-widest">Chronological Operation Log</p>
+                 </div>
+              </div>
+              <div className="text-[10px] font-black text-primary-500 bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 rounded-lg uppercase tracking-[0.2em]">
+                  {sortedHistory.length} Registered Events
               </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                    <tr className="bg-light-bg dark:bg-black/20 border-b border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary uppercase text-xs font-bold tracking-wider">
-                        <th className="px-6 py-3">Type</th>
-                        <th className="px-6 py-3">File / Data</th>
-                        <th className="px-6 py-3">Date</th>
-                        <th className="px-6 py-3">Status</th>
-                        <th className="px-6 py-3 text-right">Actions</th>
+                    <tr className="bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/5 dark:border-white/5">
+                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Type</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Identifier</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Timestamp</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Status</th>
+                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] text-right">Control</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
                     {sortedHistory.length > 0 ? (
                         sortedHistory.map(item => (
-                            <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
-                                <td className="px-6 py-4">
+                            <tr key={item.id} className="hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors group">
+                                <td className="px-8 py-6">
                                     <TypeBadge type={item.type} />
                                 </td>
-                                <td className="px-6 py-4">
-                                    <p className="font-medium text-light-text dark:text-dark-text">{item.fileName}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary capitalize">
-                                        {item.dataType}
+                                <td className="px-8 py-6">
+                                    <p className="font-black text-light-text dark:text-dark-text uppercase tracking-tight">{item.fileName}</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mt-1">
+                                        Collection: {item.dataType}
                                         {item.details && (
-                                            <span className="ml-2 px-1.5 py-0.5 bg-black/5 dark:bg-white/5 rounded text-[10px] font-bold normal-case">
-                                                {item.details}
-                                            </span>
+                                            <span className="ml-2 text-primary-500">[{item.details}]</span>
                                         )}
                                     </p>
                                 </td>
-                                <td className="px-6 py-4 text-light-text-secondary dark:text-dark-text-secondary font-mono text-xs">
-                                    {new Date(item.date).toLocaleString()}
+                                <td className="px-8 py-6 text-light-text-secondary dark:text-dark-text-secondary font-black text-[10px] uppercase tracking-widest opacity-60">
+                                    {new Date(item.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-8 py-6">
                                     <StatusBadge status={item.status} />
                                 </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <td className="px-8 py-6 text-right">
+                                    <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button 
-                                            onClick={() => item.type === 'import' ? setViewingDetails(item) : alert('View details not available for exports.')}
-                                            className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                                            title="View Details"
+                                            onClick={() => item.type === 'import' ? setViewingDetails(item) : {}}
+                                            disabled={item.type !== 'import'}
+                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-primary-500 hover:text-white disabled:opacity-20 transition-all shadow-sm"
+                                            title="Inspector"
                                         >
-                                            <span className="material-symbols-outlined text-lg">visibility</span>
+                                            <span className="material-symbols-outlined text-lg">analytics</span>
                                         </button>
                                         <button 
                                             onClick={() => props.onDeleteHistoryItem(item.id)}
-                                            className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                            title="Delete Log"
+                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                            title="Evict Log"
                                         >
-                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                            <span className="material-symbols-outlined text-lg">delete_sweep</span>
                                         </button>
                                     </div>
                                 </td>
@@ -543,32 +564,37 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                No history recorded yet.
+                            <td colSpan={5} className="px-8 py-20 text-center">
+                                <div className="flex flex-col items-center gap-3 opacity-20">
+                                   <span className="material-symbols-outlined text-5xl">inventory_2</span>
+                                   <p className="text-[11px] font-black uppercase tracking-[0.3em]">Vault Empty</p>
+                                </div>
                             </td>
                         </tr>
                     )}
                 </tbody>
             </table>
           </div>
-      </Card>
+      </div>
 
       {/* Danger Zone */}
-      <div className="border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-                <h3 className="text-lg font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
-                    <span className="material-symbols-outlined">warning</span>
-                    Danger Zone
-                </h3>
-                <p className="text-sm text-red-600/80 dark:text-red-300/80 mt-1 max-w-2xl">
-                    Resetting your account will permanently delete all transactions, accounts, budgets, and settings. This action cannot be undone without a backup file.
-                </p>
+      <div className="bg-red-500/5 border border-red-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 border border-red-500/20">
+                    <span className="material-symbols-outlined text-3xl">dangerous</span>
+                </div>
+                <div>
+                    <h3 className="text-xl font-black text-red-600 dark:text-red-400 uppercase tracking-tighter">Factory Reset</h3>
+                    <p className="text-xs font-bold text-red-600/60 dark:text-red-400/60 mt-1 max-w-xl leading-relaxed">
+                        Irreversible atomic wipe of all database records, configurations, and encrypted keys. This operation cannot be rolled back without a pre-existing System Snapshot.
+                    </p>
+                </div>
             </div>
             <button 
                 onClick={() => setConfirmingAction({ type: 'reset' })}
-                className="px-6 py-2.5 bg-white dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 rounded-lg font-semibold shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors whitespace-nowrap"
+                className="px-8 py-4 bg-red-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-red-500/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
             >
-                Reset Account
+                Execute Wipe
             </button>
       </div>
 
