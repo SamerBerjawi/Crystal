@@ -417,7 +417,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
         </nav>
         
         <PageHeader
-          markerIcon="database"
+          markerIcon="storage"
           markerLabel="Systems Core"
           title="Data Management"
           subtitle="Atomic data operations: maintain snapshots, import external ledgers, and manage system state."
@@ -429,7 +429,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
           <StatCard title="Ingress" value={stats.imports} icon="input" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Egress" value={stats.exports} icon="output" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
           <StatCard title="Restored" value={stats.restores} icon="rebase" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-          <StatCard title="Uptime" value={stats.lastActivity} icon="pulse" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
+          <StatCard title="Uptime" value={stats.lastActivity} icon="history" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">

@@ -1455,7 +1455,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       </div>
 
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 ios-regular p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/60 dark:bg-dark-card p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">
              {/* Redesigned Tabs (Accounts Style) */}
              <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar h-11 sm:h-12">
                 {tabs.map((tab) => {
@@ -1517,16 +1517,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       >
                          <span className={`material-symbols-outlined text-lg sm:text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
                       </button>
+                      <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 sm:mx-1 hidden sm:block"></div>
+                      <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0 relative z-50">
+                          <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                          <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+                      </div>
                   </div>
               )}
-
-              <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 sm:mx-1 hidden sm:block"></div>
-
-              {/* Added relative and z-dropdown positioning to ensure the child portal displays properly */}
-              <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0 relative z-50">
-                  <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                  <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-              </div>
           </div>
         </div>
       </div>

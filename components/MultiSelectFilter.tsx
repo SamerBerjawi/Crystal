@@ -65,7 +65,7 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
       </button>
       {isOpen && (
         /* Removed background slate, shadow-2xl, border-white, and rounded-2xl to give total control to .ios-regular */
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] ios-regular z-50 p-3 overflow-hidden animate-fade-in-up bg-white/20 dark:bg-black/20">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] ios-regular z-50 p-3 overflow-hidden animate-fade-in-up !backdrop-blur-xl bg-white/40 dark:bg-black/40">
           <input
             type="text"
             value={searchTerm}
