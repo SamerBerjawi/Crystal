@@ -3,6 +3,7 @@
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, WeekendAdjustment } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
+import { precision } from './lib/precision';
 
 const symbolMap: { [key in Currency]: string } = {
   'USD': '$',
@@ -53,7 +54,7 @@ export const updateConversionRates = (rates: Record<string, number>) => {
 
 export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    return balance * (activeRates[currency] || 1);
+    return precision.multiply(balance, activeRates[currency] || 1);
 }
 
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
@@ -61,11 +62,11 @@ export const convertCurrency = (amount: number, from: Currency, to: Currency, ra
     if (from === to) return amount;
     
     // Convert from 'from' to EUR
-    const amountInEur = amount * (activeRates[from] || 1);
+    const amountInEur = precision.multiply(amount, activeRates[from] || 1);
     
     // Convert from EUR to 'to'
     const rateTo = activeRates[to] || 1;
-    return amountInEur / rateTo;
+    return precision.divide(amountInEur, rateTo);
 }
 
 export const getPreferredTimeZone = (fallback?: string): string => {
@@ -279,25 +280,25 @@ export function calculateAccountTotals(
                     const totalScheduledPrincipal = schedule.reduce((s, p) => s + p.principal, 0);
                     const totalScheduledInterest = schedule.reduce((s, p) => s + p.interest, 0);
 
-                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.principal : a, 0);
-                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.interest : a, 0);
+                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? precision.add(a, p.principal) : a, 0);
+                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? precision.add(a, p.interest) : a, 0);
                     
-                    const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-                    const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                    const outstandingPrincipal = Math.max(0, precision.subtract(totalScheduledPrincipal, totalPaidPrincipal));
+                    const outstandingInterest = Math.max(0, precision.subtract(totalScheduledInterest, totalPaidInterest));
                     
-                    assetValue = convertToEur(outstandingPrincipal + outstandingInterest, acc.currency);
+                    assetValue = convertToEur(precision.add(outstandingPrincipal, outstandingInterest), acc.currency);
                 } else if (acc.totalAmount) {
                     const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'expense');
                     const totalPaid = loanPayments.reduce((s, tx) => {
-                        const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-                        return s + (totalPayment > 0 ? totalPayment : tx.amount);
+                        const totalPayment = precision.add(tx.principalAmount || 0, tx.interestAmount || 0);
+                        return precision.add(s, totalPayment > 0 ? totalPayment : tx.amount);
                     }, 0);
-                    const outstanding = Math.max(0, acc.totalAmount - totalPaid);
+                    const outstanding = Math.max(0, precision.subtract(acc.totalAmount, totalPaid));
                     assetValue = convertToEur(outstanding, acc.currency);
                 }
             }
             
-            totalAssets += assetValue;
+            totalAssets = precision.add(totalAssets, assetValue);
         } else if (DEBT_TYPES.includes(acc.type)) {
             let debtValue = 0;
             if (acc.type === 'Loan') {
@@ -305,42 +306,42 @@ export function calculateAccountTotals(
                     const overrides = loanPaymentOverrides[acc.id] || {};
                     const schedule = generateAmortizationSchedule(acc, transactions, overrides);
                     
-                    const totalScheduledPrincipal = schedule.reduce((s, p) => s + p.principal, 0);
-                    const totalScheduledInterest = schedule.reduce((s, p) => s + p.interest, 0);
+                    const totalScheduledPrincipal = schedule.reduce((s, p) => precision.add(s, p.principal), 0);
+                    const totalScheduledInterest = schedule.reduce((s, p) => precision.add(s, p.interest), 0);
 
-                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.principal : a, 0);
-                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.interest : a, 0);
+                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? precision.add(a, p.principal) : a, 0);
+                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? precision.add(a, p.interest) : a, 0);
                     
-                    const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-                    const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                    const outstandingPrincipal = Math.max(0, precision.subtract(totalScheduledPrincipal, totalPaidPrincipal));
+                    const outstandingInterest = Math.max(0, precision.subtract(totalScheduledInterest, totalPaidInterest));
                     
-                    debtValue = convertToEur(outstandingPrincipal + outstandingInterest, acc.currency);
+                    debtValue = convertToEur(precision.add(outstandingPrincipal, outstandingInterest), acc.currency);
                 } else if (acc.totalAmount) {
                     const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'income');
                     const totalPaid = loanPayments.reduce((s, tx) => {
-                        const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-                        return s + (totalPayment > 0 ? totalPayment : tx.amount);
+                        const totalPayment = precision.add(tx.principalAmount || 0, tx.interestAmount || 0);
+                        return precision.add(s, totalPayment > 0 ? totalPayment : tx.amount);
                     }, 0);
-                    const outstanding = Math.max(0, acc.totalAmount - totalPaid);
+                    const outstanding = Math.max(0, precision.subtract(acc.totalAmount, totalPaid));
                     debtValue = convertToEur(outstanding, acc.currency);
                 } else {
-                    debtValue = Math.abs(valueEur);
+                    debtValue = precision.abs(valueEur);
                 }
             } else {
                 // For Credit Cards and Other Liabilities:
                 // Negative balance means user owes money (positive debt)
                 // Positive balance means user has surplus (negative debt)
-                debtValue = -valueEur;
+                debtValue = precision.subtract(0, valueEur);
                 
                 if (acc.type === 'Credit Card') {
-                    creditCardDebt += debtValue;
+                    creditCardDebt = precision.add(creditCardDebt, debtValue);
                 }
             }
-            totalDebt += debtValue;
+            totalDebt = precision.add(totalDebt, debtValue);
         }
     });
 
-    const netWorth = totalAssets - totalDebt;
+    const netWorth = precision.subtract(totalAssets, totalDebt);
 
     return { totalAssets, totalDebt, netWorth, creditCardDebt };
 }
@@ -1047,7 +1048,7 @@ export function generateBalanceForecast(
     accounts.forEach(acc => {
         const balanceEur = convertToEur(acc.balance, acc.currency);
         currentBalances[acc.id] = balanceEur;
-        runningTotalBalance += balanceEur;
+        runningTotalBalance = precision.add(runningTotalBalance, balanceEur);
     });
     
     let currentDate = new Date(startDate.getTime());
@@ -1065,9 +1066,9 @@ export function generateBalanceForecast(
         if (dailyMarketRate !== 0) {
             accounts.forEach(acc => {
                 if (acc.type === 'Investment' && currentBalances[acc.id] !== undefined) {
-                    const growth = currentBalances[acc.id] * dailyMarketRate;
-                    currentBalances[acc.id] += growth;
-                    runningTotalBalance += growth;
+                    const growth = precision.multiply(currentBalances[acc.id], dailyMarketRate);
+                    currentBalances[acc.id] = precision.add(currentBalances[acc.id], growth);
+                    runningTotalBalance = precision.add(runningTotalBalance, growth);
                 }
             });
         }
@@ -1084,14 +1085,14 @@ export function generateBalanceForecast(
                 
                 if (!isSkipped) {
                     if (event.accountId && currentBalances[event.accountId] !== undefined) {
-                        currentBalances[event.accountId] += amountInEur;
+                        currentBalances[event.accountId] = precision.add(currentBalances[event.accountId], amountInEur);
                     }
                     
                     if (event.accountId && accountIds.has(event.accountId)) {
-                         runningTotalBalance += amountInEur;
+                         runningTotalBalance = precision.add(runningTotalBalance, amountInEur);
                     } else if (!event.accountId) {
                          // Unassigned bill/income -> affects total view
-                         runningTotalBalance += amountInEur;
+                         runningTotalBalance = precision.add(runningTotalBalance, amountInEur);
                     }
                 }
 
