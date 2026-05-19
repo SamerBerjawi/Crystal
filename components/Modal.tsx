@@ -6,7 +6,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   zIndexClass?: string;
-  size?: 'lg' | 'xl' | '2xl' | '3xl';
+  size?: 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
 }
 
 const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-[9999]', size = 'lg' }) => {
@@ -25,6 +25,9 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
     xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
     '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl',
+    '6xl': 'max-w-6xl',
   };
 
   const handleClose = () => {
