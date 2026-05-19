@@ -609,7 +609,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <th className="py-4 text-right hidden lg:table-cell">Qty</th>
                                         <th className="py-4 text-right hidden md:table-cell">Cost</th>
                                         <th className="py-4 text-right">Market</th>
-                                        <th className="py-4 text-right pr-4 sm:pr-6">G/L</th>
+                                        <th className="py-4 text-right">G/L</th>
+                                        <th className="py-4 text-right pr-4 sm:pr-6">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
@@ -668,6 +669,32 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                             </div>
                                                             <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
                                                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 text-right pr-6">
+                                                            <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                                <button 
+                                                                    onClick={(e) => { 
+                                                                        e.stopPropagation(); 
+                                                                        handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); 
+                                                                    }}
+                                                                    className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-primary-500 transition-colors"
+                                                                    title="Adjust Price"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg">edit_note</span>
+                                                                </button>
+                                                                {holdingAccount && (
+                                                                    <button 
+                                                                        onClick={(e) => { 
+                                                                            e.stopPropagation(); 
+                                                                            handleOpenAccountModal(holdingAccount); 
+                                                                        }}
+                                                                        className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
+                                                                        title="Edit Details"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-lg">settings</span>
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>

@@ -17,6 +17,7 @@ import AddInvestmentTransactionModal from '../components/AddInvestmentTransactio
 import WarrantModal from '../components/WarrantModal';
 import { formatHoldingType } from '../utils/investments';
 import PriceHistoryChart from '../components/PriceHistoryChart';
+import EditAccountModal from '../components/EditAccountModal';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -31,6 +32,8 @@ interface HoldingDetailProps {
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     onBack: () => void;
     priceHistory?: Record<string, PriceHistoryEntry[]>;
+    saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+    onToggleAccountStatus: (accountId: string) => void;
 }
 
 const HoldingDetail: React.FC<HoldingDetailProps> = ({
@@ -44,7 +47,9 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     saveWarrant,
     onManualPriceChange,
     onBack,
-    priceHistory = {}
+    priceHistory = {},
+    saveAccount,
+    onToggleAccountStatus
 }) => {
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<{ date: string, price: number } | undefined>(undefined);
@@ -52,6 +57,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
     const [isWarrantModalOpen, setIsWarrantModalOpen] = useState(false);
+    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
     const holding: HoldingSummary | undefined = useMemo(
         () => holdingsOverview.holdings.find(h => h.symbol === holdingSymbol),
@@ -194,6 +200,15 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 />
             )}
 
+            {isAccountModalOpen && relatedAccount && (
+                <EditAccountModal
+                    onClose={() => setIsAccountModalOpen(false)}
+                    onSave={(acc) => { saveAccount(acc); setIsAccountModalOpen(false); }}
+                    account={relatedAccount}
+                    onToggleStatus={() => { onToggleAccountStatus(relatedAccount.id); setIsAccountModalOpen(false); }}
+                />
+            )}
+
             {/* Navigation & Header */}
             <div className="flex flex-col gap-6">
                 <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 flex items-center gap-2 transition-colors self-start group">
@@ -227,7 +242,17 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         </div>
                     </div>
                     <div className="flex gap-3 w-full lg:w-auto">
-                        <button onClick={handleAddPrice} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center`}>
+                        {relatedAccount && (
+                            <button 
+                                onClick={() => setIsAccountModalOpen(true)} 
+                                className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center px-6`}
+                                title="Edit Account Details"
+                            >
+                                <span className="material-symbols-outlined text-xl mr-2">settings</span>
+                                Edit Details
+                            </button>
+                        )}
+                        <button onClick={handleAddPrice} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center px-6 shadow-lg shadow-primary-500/10`}>
                             <span className="material-symbols-outlined text-xl mr-2">edit_note</span>
                             Log Price
                         </button>
