@@ -5,25 +5,90 @@ import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { motion } from 'motion/react';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getMerchantLogoUrl } from '../utils/brandfetch';
 
-interface VehicleAccountViewProps {
-  account: Account;
-  accounts: Account[];
-  transactions: Transaction[];
-  loanPaymentOverrides: LoanPaymentOverrides;
-  onAddTransaction: () => void;
-  onUpdateValuation?: () => void;
-  onAddLog: () => void;
-  onEditLog: (log: MileageLog) => void;
-  onDeleteLog: (id: string) => void;
-  onBack: () => void;
-  setViewingAccountId: (id: string | null) => void;
-  onSyncLinkedAccount?: () => void;
-  isLinkedToEnableBanking?: boolean;
-  onCloseAsset?: () => void;
-  onRevertClosure?: () => void;
-  showBalanceAdjustments?: boolean;
-}
+const CAR_MAKE_DOMAINS: Record<string, string> = {
+  bmw: 'bmw.com',
+  tesla: 'tesla.com',
+  audi: 'audi.com',
+  mercedes: 'mercedes-benz.com',
+  'mercedes-benz': 'mercedes-benz.com',
+  ford: 'ford.com',
+  toyota: 'toyota.com',
+  honda: 'honda.com',
+  porsche: 'porsche.com',
+  volkswagen: 'volkswagen.com',
+  vw: 'volkswagen.com',
+  nissan: 'nissan-global.com',
+  chevrolet: 'chevrolet.com',
+  hyundai: 'hyundai.com',
+  kia: 'kia.com',
+  lexus: 'lexus.com',
+  subaru: 'subaru.com',
+  mazda: 'mazda.com',
+  volvo: 'volvocars.com',
+  jaguar: 'jaguar.com',
+  landrover: 'landrover.com',
+  'land rover': 'landrover.com',
+  ferrari: 'ferrari.com',
+  lamborghini: 'lamborghini.com',
+  jeep: 'jeep.com',
+  dodge: 'dodge.com',
+  chrysler: 'chrysler.com',
+  fiat: 'fiat.com',
+  peugeot: 'peugeot.com',
+  renault: 'renaultgroup.com',
+  citroen: 'citroen.com',
+  alfa: 'alfaromeo.com',
+  'alfa romeo': 'alfaromeo.com',
+  saab: 'saab.com',
+  aston: 'astonmartin.com',
+  'aston martin': 'astonmartin.com',
+  bentley: 'bentleymotors.com',
+  maserati: 'maserati.com',
+  bugatti: 'bugatti.com',
+  byd: 'byd.com',
+  rivian: 'rivian.com',
+  lucid: 'lucidmotors.com',
+  polestar: 'polestar.com',
+};
+
+const LicensePlate: React.FC<{ plate?: string; countryCode?: string }> = ({ plate, countryCode }) => {
+  if (!plate || plate.trim() === '') {
+    return (
+      <div className="inline-flex items-center h-10 bg-black/5 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10 rounded-xl px-4 text-xs font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/40 select-none uppercase tracking-widest">
+        No Plate Set
+      </div>
+    );
+  }
+  
+  const displayCountry = (countryCode || 'EU').toUpperCase().trim().slice(0, 3);
+  
+  return (
+    <div className="inline-flex items-center bg-[#FDFDFD] border-[1.5px] border-slate-950 dark:border-slate-800 rounded-[6px] overflow-hidden shadow-md font-mono text-slate-900 select-none h-11 px-0.5 relative shrink-0" style={{ minWidth: '160px' }}>
+      {/* EU Blue strip on left */}
+      <div className="w-6 h-full bg-[#003399] flex flex-col items-center justify-between py-1 text-white shrink-0">
+        <div className="text-[6px] text-yellow-300 leading-none font-bold origin-center select-none scale-90">
+          ★
+        </div>
+        <span className="text-[9px] font-black leading-none tracking-tighter">{displayCountry}</span>
+      </div>
+      
+      {/* Plate characters */}
+      <div className="px-3 flex-grow flex items-center justify-center font-black tracking-widest text-sm md:text-base uppercase text-[#141414] drop-shadow-[0.5px_0.5px_0px_rgba(255,255,255,0.8)] leading-none">
+        {plate}
+      </div>
+      
+      {/* Small sticker decals */}
+      <div className="flex flex-col gap-0.5 mr-1.5 shrink-0 select-none">
+        <div className="w-3.5 h-3.5 rounded-full bg-amber-400 border border-amber-600/30 flex items-center justify-center text-[6.5px] font-bold text-amber-950 leading-none shadow-sm">
+          26
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary' }: { 
     label: string; 
@@ -67,6 +132,25 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
     );
 };
 
+export interface VehicleAccountViewProps {
+  account: Account;
+  accounts: Account[];
+  transactions: Transaction[];
+  loanPaymentOverrides: LoanPaymentOverrides;
+  onAddTransaction: (transaction?: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  onUpdateValuation: () => void;
+  onAddLog: () => void;
+  onEditLog: (log: MileageLog) => void;
+  onDeleteLog: (logId: string) => void;
+  onBack: () => void;
+  setViewingAccountId?: (id: string | null) => void;
+  onSyncLinkedAccount?: (accountId: string) => void;
+  isLinkedToEnableBanking?: boolean;
+  onCloseAsset?: () => void;
+  onRevertClosure?: () => void;
+  showBalanceAdjustments?: boolean;
+}
+
 const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   account,
   accounts,
@@ -85,6 +169,16 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   onRevertClosure,
   showBalanceAdjustments = true,
 }) => {
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+
+  const brandLogoUrl = useMemo(() => {
+    if (!brandfetchClientId || !account.make) return null;
+    const makeKey = account.make.trim().toLowerCase();
+    const domain = CAR_MAKE_DOMAINS[makeKey] || (makeKey.includes('.') ? makeKey : `${makeKey}.com`);
+    return getMerchantLogoUrl(domain, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'transparent', width: 128, height: 128 });
+  }, [account.make, brandfetchClientId, merchantLogoOverrides]);
+
   const isLeased = account.ownership === 'Leased';
   const isClosed = account.status === 'closed';
   const linkedLoan = accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
@@ -169,26 +263,26 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
           
           <div className="flex gap-3 w-full md:w-auto">
               {!isClosed && (
-                <button onClick={onUpdateValuation || onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
+                <button onClick={() => { if (onUpdateValuation) { onUpdateValuation(); } else if (onAddTransaction) { onAddTransaction(); } }} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
                     <span className="material-symbols-outlined text-lg mr-2">add</span>
                     Value Update
                 </button>
               )}
               {isClosed && onRevertClosure && (
-                    <button onClick={onRevertClosure} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
+                    <button onClick={() => onRevertClosure()} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
                         <span className="material-symbols-outlined text-lg mr-2">history</span>
                         Reopen
                     </button>
               )}
               <button 
-                  onClick={onAddLog} 
+                  onClick={() => onAddLog()} 
                   className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card flex items-center gap-2 hover:bg-primary-500 hover:text-white transition-all`}
               >
                   <span className="material-symbols-outlined text-lg">speed</span>
                   Add Log
               </button>
               {!isClosed && onCloseAsset && (
-                    <button onClick={onCloseAsset} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
+                    <button onClick={() => onCloseAsset()} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">event_busy</span>
                         Retire Vehicle
                     </button>
@@ -222,46 +316,81 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                <motion.div 
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
-                   className="relative h-full min-h-[440px] rounded-[3rem] bg-slate-950 text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group"
+                   className="relative h-full min-h-[460px] rounded-[3rem] bg-slate-950 text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group"
                >
-                   <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-transparent"></div>
-                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                   {/* Full-bleed background photo of the car with custom gradient masks */}
+                   <div className="absolute inset-0 z-0">
+                       <img 
+                           src={account.imageUrl || "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600"} 
+                           alt={account.name} 
+                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                           referrerPolicy="no-referrer"
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/30"></div>
+                       <div className="absolute inset-0 bg-gradient-to-br from-[#003399]/25 via-transparent to-slate-950/40"></div>
+                   </div>
                    
-                   <div className="relative z-10 text-white">
-                         <div className="flex justify-between items-start mb-12">
-                             <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold tracking-wider border border-white/10">
-                                 {account.ownership || 'Private'} • {account.fuelType}
-                             </span>
+                   <div className="relative z-10 text-white flex-grow flex flex-col justify-between">
+                         <div className="flex justify-between items-start mb-6">
+                             <div className="flex flex-col gap-3">
+                                 <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold tracking-wider border border-white/10 w-fit">
+                                     {account.ownership || 'Private'} • {account.fuelType}
+                                 </span>
+                                 {brandLogoUrl && (
+                                     <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
+                                         <img 
+                                             src={brandLogoUrl} 
+                                             alt={account.make || 'Car Brand'} 
+                                             className="max-w-full max-h-full object-contain p-2 filter brightness-110 drop-shadow-md"
+                                             onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
+                                             referrerPolicy="no-referrer"
+                                         />
+                                     </div>
+                                 )}
+                             </div>
                              <div className="text-right">
-                                  <p className="text-[10px] font-semibold tracking-wider text-slate-400 mb-1">Odometer</p>
+                                  <p className="text-[10px] font-semibold tracking-wider text-slate-300 mb-1">Odometer</p>
                                   <p className="text-3xl font-semibold tabular-nums text-cyan-400">{currentMileage.toLocaleString()} km</p>
                              </div>
                         </div>
                         
-                        <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-2">Estimated Market Value</p>
-                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12">
-                            {formatCurrency(account.balance, account.currency)}
-                        </h2>
+                        <div className="my-2">
+                            <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Estimated Market Value</p>
+                            <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm">
+                                {formatCurrency(account.balance, account.currency)}
+                            </h2>
+                        </div>
+
+                        {/* Redesigned License Plate attached into the card */}
+                        <div className="my-4 flex flex-col items-start">
+                            <p className="text-[10px] font-semibold tracking-wider text-slate-400 mb-2">Registered Plate</p>
+                            <LicensePlate plate={account.licensePlate} countryCode={account.registrationCountryCode} />
+                        </div>
                         
-                        <div className="space-y-6">
-                            <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
+                        <div className="space-y-4">
+                            <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                                  <motion.div 
                                     initial={{ width: 0 }}
                                     animate={{ width: `${Math.min(100, (currentMileage / (leaseStats?.totalAllowance || 150000)) * 100)}%` }}
                                     className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
                                  />
                             </div>
-                            <p className="text-[10px] font-semibold tracking-wider text-slate-500 text-center">Lifecycle utilization</p>
+                            <p className="text-[10px] font-semibold tracking-wider text-slate-400 text-center">
+                                {isLeased 
+                                    ? `Lease Mileage: ${currentMileage.toLocaleString()} of ${(leaseStats?.totalAllowance || 0).toLocaleString()} km budget (${Math.min(100, (currentMileage / (leaseStats?.totalAllowance || 1)) * 100).toFixed(0)}%)`
+                                    : `Milestone: ${currentMileage.toLocaleString()} of 150,000 km target lifespan (${Math.min(100, (currentMileage / 150000) * 100).toFixed(0)}%)`
+                                }
+                            </p>
                         </div>
                    </div>
 
-                   <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
+                   <div className="relative z-10 pt-6 mt-6 border-t border-white/5 grid grid-cols-2 gap-8 shrink-0">
                        <div>
-                           <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Model Year</p>
+                           <p className="text-[10px] tracking-wider text-slate-400 font-bold mb-1">Model Year</p>
                            <p className="font-black text-xl text-white tabular-nums">{account.year || '—'}</p>
                        </div>
                        <div>
-                           <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Ownership</p>
+                           <p className="text-[10px] tracking-wider text-slate-300 font-bold mb-1">Ownership</p>
                            <p className="font-black text-xl text-cyan-400 tabular-nums">{account.ownership}</p>
                        </div>
                    </div>
@@ -354,82 +483,13 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                     </div>
                 </div>
            </div>
-      </div>
+       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-           {/* Detailed Specs & Lease */}
-           <div className="xl:col-span-8 space-y-8">
-                {isLeased && leaseStats && (
-                    <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 border-l-8 border-l-amber-500">
-                         <div className="flex justify-between items-center mb-10">
-                            <div>
-                                <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Lease Monitoring</h3>
-                                <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">{account.leaseProvider || 'Agreement Terms'}</p>
-                            </div>
-                            <div className={`px-4 py-2 rounded-xl border font-black text-[10px] tracking-widest ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
-                                {leaseStats.mileageStatus}
-                            </div>
-                         </div>
-                         
-                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-                            <div className="space-y-4">
-                                <div className="flex justify-between text-[10px] font-bold tracking-wider text-slate-500">
-                                    <span>Contract Evolution</span>
-                                    <span>{leaseStats.progress.toFixed(0)}%</span>
-                                </div>
-                                <div className="w-full h-2 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
-                                     <motion.div 
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${leaseStats.progress}%` }}
-                                        className="h-full bg-amber-500"
-                                     />
-                                </div>
-                                <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 text-center">{leaseStats.daysRemaining} days left</p>
-                            </div>
-                            
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Allowance Variance</p>
-                                <p className={`text-2xl font-black tabular-nums ${leaseStats.mileageDiff > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                    {leaseStats.mileageDiff > 0 ? '−' : '+'}{Math.abs(Math.round(leaseStats.mileageDiff)).toLocaleString()} km
-                                </p>
-                            </div>
-
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Projected Final</p>
-                                <p className="text-2xl font-black text-light-text dark:text-dark-text tabular-nums">
-                                    {Math.round(leaseStats.projectedMileage).toLocaleString()} km
-                                </p>
-                            </div>
-                         </div>
-                    </div>
-                )}
-                
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group">
-                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Technical Configuration</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-10">
-                        <div className="space-y-1">
-                             <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">VIN / Serial</p>
-                             <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight font-mono truncate">{account.vin || '—'}</p>
-                        </div>
-                        <div className="space-y-1">
-                             <p className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">Make / Model</p>
-                             <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">{account.make} {account.model}</p>
-                        </div>
-                        <div className="space-y-1">
-                             <p className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">Registration</p>
-                             <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">
-                                 {account.registrationCountryCode ? `${account.registrationCountryCode} • ` : ''}{account.licensePlate || 'Unregistered'}
-                             </p>
-                        </div>
-                    </div>
-                    <div className="h-64 mt-12 bg-black/[0.02] dark:bg-white/[0.01] rounded-3xl p-6">
-                        <VehicleMileageChart logs={sortedMileageLogs} />
-                    </div>
-                </div>
-                 {/* Mileage Journal Sidebar */}
-            <div className="xl:col-span-4 flex flex-col gap-8">
+       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+           {/* Left Column: Infrastructure & Mileage Journal */}
+           <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Infrastructure Configuration */}
-                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden">
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden shadow-sm">
                      <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
@@ -447,7 +507,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                      </div>
                 </div>
 
-                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col group h-full">
+                {/* Mileage Journal */}
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col group h-full shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                          <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight uppercase">Mileage Journal</h3>
                          <span className="material-symbols-outlined text-slate-400">history</span>
@@ -490,7 +551,72 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                         )}
                     </div>
                 </div>
-           </div>        </div>
+           </div>
+
+           {/* Right Column: Lease Monitoring & Technical Configuration */}
+           <div className="xl:col-span-8 space-y-8">
+                {isLeased && leaseStats && (
+                    <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 border-l-8 border-l-amber-500 shadow-sm">
+                         <div className="flex justify-between items-center mb-10">
+                            <div>
+                                <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Lease Monitoring</h3>
+                                <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">{account.leaseProvider || 'Agreement Terms'}</p>
+                            </div>
+                            <div className={`px-4 py-2 rounded-xl border font-black text-[10px] tracking-widest ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                                {leaseStats.mileageStatus}
+                            </div>
+                         </div>
+                         
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+                            <div className="space-y-4">
+                                <div className="flex justify-between text-[10px] font-bold tracking-wider text-slate-500">
+                                    <span>Contract Evolution</span>
+                                    <span>{leaseStats.progress.toFixed(0)}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                     <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${leaseStats.progress}%` }}
+                                        className="h-full bg-amber-500"
+                                     />
+                                </div>
+                                <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 text-center">{leaseStats.daysRemaining} days left</p>
+                            </div>
+                            
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 font-bold">Allowance Variance</p>
+                                <p className={`text-2xl font-black tabular-nums ${leaseStats.mileageDiff > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                    {leaseStats.mileageDiff > 0 ? '−' : '+'}{Math.abs(Math.round(leaseStats.mileageDiff)).toLocaleString()} km
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 font-bold">Projected Final</p>
+                                <p className="text-2xl font-black text-light-text dark:text-dark-text tabular-nums">
+                                    {Math.round(leaseStats.projectedMileage).toLocaleString()} km
+                                </p>
+                            </div>
+                         </div>
+                    </div>
+                )}
+                
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group shadow-sm">
+                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Technical Configuration</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                        <div className="space-y-1">
+                             <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 font-bold">VIN / Serial</p>
+                             <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight font-mono truncate">{account.vin || '—'}</p>
+                        </div>
+                        <div className="space-y-1">
+                             <p className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold">Make / Model</p>
+                             <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">{account.make} {account.model}</p>
+                        </div>
+                    </div>
+                    <div className="h-64 mt-12 bg-black/[0.02] dark:bg-white/[0.01] rounded-3xl p-6">
+                        <VehicleMileageChart logs={sortedMileageLogs} />
+                    </div>
+                </div>
+           </div>
       </div>
     </div>
   );
