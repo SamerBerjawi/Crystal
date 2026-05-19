@@ -1,9 +1,9 @@
 # Build the frontend assets
-FROM node:24-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --no-scripts
+RUN npm install
 
 COPY . .
 RUN npm run build
