@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { AppPreferences, Theme, Page } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { AppPreferences, Theme } from '../types';
 import Card from '../components/Card';
-import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
+import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE, PAGE_PATHS } from '../constants';
 import PageHeader from '../components/PageHeader';
 
 interface PreferencesProps {
@@ -10,10 +11,10 @@ interface PreferencesProps {
   setPreferences: (prefs: AppPreferences) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  setCurrentPage: (page: Page) => void;
 }
 
 interface SectionHeaderProps { title: string; icon: string; description: string }
+
 const SectionHeader = React.memo(function SectionHeader({ title, icon, description }: SectionHeaderProps) {
   return (
     <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
@@ -71,7 +72,8 @@ const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, se
 });
 
 
-const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {
+const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme }) => {
+  const navigate = useNavigate();
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'defaultQuickCreatePeriod') {
@@ -87,7 +89,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
       <div className="mb-10 space-y-6">
         <nav className="flex items-center gap-3">
             <button 
-              onClick={() => setCurrentPage('Settings')} 
+              onClick={() => navigate(PAGE_PATHS['Settings'])} 
               className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

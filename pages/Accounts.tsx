@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
@@ -21,9 +22,6 @@ interface AccountsProps {
     transactions: Transaction[];
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     deleteAccount: (accountId: string) => void;
-    setCurrentPage: (page: Page) => void;
-    setViewingAccountId: (id: string | null) => void;
-    onViewAccount?: (id: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
@@ -36,7 +34,7 @@ interface AccountsProps {
 
 type AccountSegment = 'all' | 'cash' | 'invested' | 'property' | 'debt';
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -51,6 +49,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const { loanPaymentOverrides } = useScheduleContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as any);
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
+  const navigate = useNavigate();
   
   // New State for Segmentation
   const [activeSegment, setActiveSegment] = useState<AccountSegment>('all');
@@ -243,12 +242,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   }, {} as Record<string, Transaction[]>), [transactions]);
 
   const handleAccountClick = (accountId: string) => {
-    if (onViewAccount) {
-      onViewAccount(accountId);
-    } else {
-      setViewingAccountId(accountId);
-      setCurrentPage('AccountDetail');
-    }
+    navigate(`/accounts/${accountId}`);
   };
 
   const openEditModal = (account: Account) => {

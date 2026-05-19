@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
+import { EnableBankingConnection, EnableBankingSyncOptions } from '../types';
 import { loadAllPendingConnections, loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
   setConnections: React.Dispatch<React.SetStateAction<EnableBankingConnection[]>>;
   onSync: (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => Promise<void>;
-  setCurrentPage: (page: Page) => void;
 }
 
 const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   connections,
   setConnections,
   onSync,
-  setCurrentPage,
 }) => {
+  const navigate = useNavigate();
   const [message, setMessage] = useState('Finalising your Enable Banking connection...');
   const [error, setError] = useState<string | null>(null);
 
@@ -168,7 +168,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
             description: "Your financial accounts have been updated in real-time.",
             duration: 5000,
           });
-          setTimeout(() => setCurrentPage('Integrations'), 800);
+          setTimeout(() => navigate('/integrations'), 800);
         } catch (err: any) {
           console.error(err);
           setConnections(prev => prev.map(conn => conn.id === connection?.id ? {
@@ -184,7 +184,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
     };
 
     resolveConnection();
-  }, [connections, onSync, setConnections, setCurrentPage]);
+  }, [connections, onSync, setConnections, navigate]);
 
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-card shadow-lg text-center animate-fade-in-up">
@@ -196,7 +196,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
         <>
           <p className="text-rose-600 dark:text-rose-300 mb-4">{error}</p>
           <button
-            onClick={() => setCurrentPage('Integrations')}
+            onClick={() => navigate('/integrations')}
             className="px-4 py-2 rounded-lg bg-primary-600 text-white font-semibold"
           >
             Back to integrations

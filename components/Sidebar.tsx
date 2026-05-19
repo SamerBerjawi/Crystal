@@ -1,13 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Page, Theme, User } from '../types';
-import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS } from '../constants';
+import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS, PAGE_PATHS } from '../constants';
 import ThemeToggle from './ThemeToggle';
+import { cn } from '../lib/utils';
 
 interface SidebarProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
   isSidebarOpen: boolean;
   setSidebarOpen: (isOpen: boolean) => void;
   theme: Theme;
@@ -40,8 +40,6 @@ const NAV_GROUPS = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ 
-  currentPage, 
-  setCurrentPage, 
   isSidebarOpen, 
   setSidebarOpen, 
   theme, 
@@ -55,6 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,13 +66,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const handleNavClick = (page: Page) => {
-    setCurrentPage(page);
-    if (window.innerWidth < 768) { // md breakpoint
-      setSidebarOpen(false);
-    }
-  };
 
   const getColorClasses = (color: string, isActive: boolean) => {
     if (!isActive) return 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100';
@@ -141,71 +133,89 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const renderNavItem = (item: NavItem) => {
-    const isActive = currentPage === item.name;
-    const itemColor = ITEM_COLORS[item.name] || 'primary';
+  const handleProfileNav = (page: Page) => {
+    navigate(PAGE_PATHS[page]);
+    setProfileMenuOpen(false);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
 
-    const baseClasses = `group flex items-center rounded-2xl transition-all duration-300 cursor-pointer select-none mx-3 my-0.5 relative overflow-hidden`;
-    const layoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-start px-3 py-2.5';
-    const colorClass = getColorClasses(itemColor, isActive);
+  const renderNavItem = (item: NavItem) => {
+    const itemColor = ITEM_COLORS[item.name] || 'primary';
+    const path = PAGE_PATHS[item.name];
 
     return (
       <li key={item.name} className="mb-1 relative flex items-center">
-        {/* Left Indicator - Positioned smoothly via parent flexbox alignment */}
-        <div className="absolute left-[3px] w-1 h-full flex items-center justify-center z-20">
-          <AnimatePresence>
-            {isActive && (
-              <motion.div 
-                layoutId="active-indicator"
-                className={`w-1 rounded-r-full ${getGlowClasses(itemColor).split(' ')[0]}`}
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 24, opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
-              />
+        <NavLink
+            to={path}
+            onClick={() => window.innerWidth < 768 && setSidebarOpen(false)}
+            className={({ isActive }) => cn(
+                "group flex items-center rounded-2xl transition-all duration-300 cursor-pointer select-none mx-3 my-0.5 relative overflow-hidden w-full",
+                isSidebarCollapsed ? "justify-center px-0 py-3" : "justify-start px-3 py-2.5",
+                getColorClasses(itemColor, isActive),
+                !isActive && "hover:bg-black/5 dark:hover:bg-white/5"
             )}
-          </AnimatePresence>
-        </div>
-
-        <div
-          onClick={() => handleNavClick(item.name)}
-          className={`${baseClasses} ${layoutClasses} ${colorClass} w-full ${!isActive && 'hover:bg-black/5 dark:hover:bg-white/5'}`}
-          title={isSidebarCollapsed ? item.name : undefined}
+            title={isSidebarCollapsed ? item.name : undefined}
         >
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {({ isActive }) => (
+            <>
+              {/* Left Indicator */}
+              <div className="absolute left-[3px] w-1 h-full flex items-center justify-center z-20">
                 <AnimatePresence>
                   {isActive && (
-                    <>
-                      <motion.div 
-                        layoutId="active-bg"
-                        className={`absolute inset-0 ${getBgClasses(itemColor)} rounded-2xl`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                      />
-                      <motion.div 
-                        layoutId="active-glow"
-                        className={`absolute -inset-4 ${getGlowClasses(itemColor)} blur-2xl opacity-30 rounded-full`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.3 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ type: "spring", bounce: 0, duration: 0.5 }}
-                      />
-                    </>
+                    <motion.div 
+                      layoutId="active-indicator"
+                      className={cn("w-1 rounded-r-full", getGlowClasses(itemColor).split(' ')[0])}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 24, opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
+                    />
                   )}
                 </AnimatePresence>
-            </div>
+              </div>
 
-            <div className={`flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
-              <span className={`material-symbols-outlined text-[20px] sm:text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_8px_currentColor]' : 'group-hover:scale-110 opacity-70'}`}>
-                {item.icon}
-              </span>
-              <span className={`whitespace-nowrap text-[13.5px] font-medium tracking-tight truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden invisible' : 'w-auto opacity-100'}`}>
-                  {item.name}
-              </span>
-            </div>
-        </div>
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <AnimatePresence>
+                    {isActive && (
+                      <>
+                        <motion.div 
+                          layoutId="active-bg"
+                          className={cn("absolute inset-0 rounded-2xl", getBgClasses(itemColor))}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                        />
+                        <motion.div 
+                          layoutId="active-glow"
+                          className={cn("absolute -inset-4 blur-2xl opacity-30 rounded-full", getGlowClasses(itemColor))}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 0.3 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ type: "spring", bounce: 0, duration: 0.5 }}
+                        />
+                      </>
+                    )}
+                  </AnimatePresence>
+              </div>
+
+              <div className={cn("flex items-center relative z-10", isSidebarCollapsed ? "justify-center w-full" : "gap-3 min-w-0")}>
+                <span className={cn(
+                    "material-symbols-outlined text-[20px] sm:text-[22px] flex-shrink-0 transition-all duration-300",
+                    isActive ? "scale-110 filled-icon drop-shadow-[0_0_8px_currentColor]" : "group-hover:scale-110 opacity-70"
+                )}>
+                  {item.icon}
+                </span>
+                <span className={cn(
+                    "whitespace-nowrap text-[13.5px] font-medium tracking-tight truncate transition-all duration-300",
+                    isSidebarCollapsed ? "w-0 opacity-0 overflow-hidden invisible" : "w-auto opacity-100"
+                )}>
+                    {item.name}
+                </span>
+              </div>
+            </>
+          )}
+        </NavLink>
       </li>
     );
   };
@@ -330,14 +340,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                           className="absolute bottom-[calc(100%+12px)] left-0 right-0 z-50 p-1.5 ios-regular rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 overflow-hidden ring-1 ring-black/5 min-w-[210px]"
                         >
                             <button
-                                onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
+                                onClick={() => handleProfileNav('Personal Info')}
                                 className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                             >
                                 <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors">person</span>
                                 <span className="font-semibold">My Account</span>
                             </button>
                              <button
-                                onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
+                                onClick={() => handleProfileNav('Preferences')}
                                 className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                             >
                                 <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors">settings</span>

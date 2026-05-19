@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { Page, Account, Transaction } from '../types';
-import { NAV_ITEMS } from '../constants';
+import { NAV_ITEMS, PAGE_PATHS } from '../constants';
 
 interface CommandCenterProps {
   isOpen: boolean;
   onClose: () => void;
-  setCurrentPage: (page: Page) => void;
   accounts: Account[];
   transactions: Transaction[];
-  onOpenAccount: (id: string) => void;
   togglePrivacyMode: () => void;
   isPrivacyMode: boolean;
   theme: 'light' | 'dark' | 'system';
@@ -20,10 +19,8 @@ interface CommandCenterProps {
 const CommandCenter: React.FC<CommandCenterProps> = ({
   isOpen,
   onClose,
-  setCurrentPage,
   accounts,
   transactions,
-  onOpenAccount,
   togglePrivacyMode,
   isPrivacyMode,
   theme,
@@ -33,6 +30,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen) {
@@ -55,7 +53,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
           id: `page-${item.name}`,
           title: item.name,
           icon: item.icon,
-          action: () => { setCurrentPage(item.name); onClose(); }
+          action: () => { navigate(PAGE_PATHS[item.name]); onClose(); }
         });
       }
     });
@@ -69,7 +67,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
           title: acc.name,
           subtitle: acc.financialInstitution || acc.type,
           icon: 'account_balance',
-          action: () => { onOpenAccount(acc.id); onClose(); }
+          action: () => { navigate(`/accounts/${acc.id}`); onClose(); }
         });
       }
     });
@@ -107,7 +105,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
     }
 
     return items.slice(0, 8); // Limit results for speed/focus
-  }, [query, accounts, setCurrentPage, onClose, onOpenAccount, togglePrivacyMode, isPrivacyMode, setTheme]);
+  }, [query, accounts, navigate, onClose, togglePrivacyMode, isPrivacyMode, setTheme]);
 
   useEffect(() => {
     setSelectedIndex(0);

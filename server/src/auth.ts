@@ -1,10 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from './database';
-import { authenticateToken, AuthRequest } from './middleware';
-import { AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig';
-import { createRateLimiter } from './rateLimit';
+import { db } from './database.ts';
+import { authenticateToken, AuthRequest } from './middleware.ts';
+import { AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig.ts';
+import { createRateLimiter } from './rateLimit.ts';
 
 const router = express.Router();
 

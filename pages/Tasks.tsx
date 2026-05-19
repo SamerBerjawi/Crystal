@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Task, TaskStatus, TaskPriority } from '../types';
-import { BTN_PRIMARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, PAGE_PATHS } from '../constants';
 import TasksHeatmap from '../components/TasksHeatmap';
 import TaskItem from '../components/TaskItem';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -22,7 +23,8 @@ interface TasksProps {
 const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
 const STATUS_ORDER: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
 
-const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder, setCurrentPage }) => {
+const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
+  const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
@@ -180,19 +182,17 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
 
             {/* Navigation & Header */}
             <div className="space-y-6 pt-4">
-                {setCurrentPage && (
-                    <nav className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setCurrentPage('Settings')} 
-                            className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
-                        >
-                            <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                            </div>
-                            <span>Back to Control Center</span>
-                        </button>
-                    </nav>
-                )}
+                <nav className="flex items-center gap-3">
+                    <button 
+                        onClick={() => navigate(PAGE_PATHS['Settings'])} 
+                        className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+                    >
+                        <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                            <span className="material-symbols-outlined text-sm">arrow_back</span>
+                        </div>
+                        <span>Back to Control Center</span>
+                    </button>
+                </nav>
                 
                 <PageHeader
                     markerIcon="fact_check"

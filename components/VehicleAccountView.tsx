@@ -17,7 +17,6 @@ interface VehicleAccountViewProps {
   onEditLog: (log: MileageLog) => void;
   onDeleteLog: (id: string) => void;
   onBack: () => void;
-  setViewingAccountId: (id: string | null) => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
   onCloseAsset?: () => void;
@@ -78,7 +77,6 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   onEditLog,
   onDeleteLog,
   onBack,
-  setViewingAccountId,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
   onCloseAsset,

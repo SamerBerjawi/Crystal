@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Card from '../components/Card';
@@ -35,12 +36,10 @@ interface InvestmentsProps {
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     prices: Record<string, number | null>;
-    onOpenHoldingDetail: (symbol: string) => void;
     holdingsOverview?: HoldingsOverview;
     onToggleAccountStatus: (accountId: string) => void;
     deleteAccount: (accountId: string) => void;
     transactions: Transaction[];
-    onViewAccount?: (accountId: string) => void;
 }
 
 type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant';
@@ -60,11 +59,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     manualPrices,
     onManualPriceChange,
     prices,
-    onOpenHoldingDetail,
     onToggleAccountStatus,
     deleteAccount,
     transactions,
-    onViewAccount
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -81,6 +78,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
+    const navigate = useNavigate();
 
     // Include only Stocks, ETFs, Crypto for the Investments page
     const investmentAccounts = useMemo(() => (
@@ -205,7 +203,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     };
 
     const handleAccountClick = (accountId: string) => {
-        if (onViewAccount) onViewAccount(accountId);
+        navigate(`/accounts/${accountId}`);
     };
 
     const normalizeDecimalString = useCallback((rawValue: string): string => {
@@ -610,19 +608,20 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <th className="py-4 text-right hidden md:table-cell">Cost</th>
                                         <th className="py-4 text-right">Market</th>
                                         <th className="py-4 text-right pr-4 sm:pr-6">G/L</th>
+                                        <th className="py-4 text-right pr-4 sm:pr-6 w-24"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
                                     {holdingsByType.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-12 text-center text-gray-400 italic">
+                                            <td colSpan={7} className="py-12 text-center text-gray-400 italic">
                                                 No active holdings found. Start by adding a transaction.
                                             </td>
                                         </tr>
                                     ) : (
                                         holdingsByType.flatMap(([typeName, holdings]) => ([
                                             <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
-                                                <td colSpan={6} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                                                <td colSpan={7} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
                                                     {typeName}
                                                 </td>
                                             </tr>,
@@ -632,12 +631,13 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 const isPositive = gainLoss >= 0;
                                                 const holdingAccount = accountBySymbol.get(holding.symbol);
                                                 const isClosed = holdingAccount?.status === 'closed';
+                                                const holdingWarrant = holding.type === 'Warrant' ? warrants.find(w => w.isin === holding.symbol) : null;
 
                                                 return (
                                                     <tr 
                                                         key={holding.symbol} 
                                                         className={`group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer ${isClosed ? 'opacity-50' : ''}`}
-                                                        onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                                        onClick={() => navigate(`/investments/${holding.symbol}`)}
                                                     >
                                                         <td className="py-4 pl-6">
                                                             <div className="flex items-center gap-3">
@@ -668,6 +668,33 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                             </div>
                                                             <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
                                                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 text-right pr-6">
+                                                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <button 
+                                                                    onClick={(e) => { 
+                                                                        e.stopPropagation(); 
+                                                                        handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); 
+                                                                    }}
+                                                                    className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-primary-500 transition-colors"
+                                                                    title="Adjust Price"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-lg leading-none">edit_note</span>
+                                                                </button>
+                                                                {(holdingAccount || holdingWarrant) && (
+                                                                    <button 
+                                                                        onClick={(e) => { 
+                                                                            e.stopPropagation(); 
+                                                                            if (holdingWarrant) handleOpenWarrantModal(holdingWarrant);
+                                                                            else if (holdingAccount) handleOpenAccountModal(holdingAccount); 
+                                                                        }}
+                                                                        className="p-1.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                                                                        title="Edit"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-lg leading-none">edit</span>
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>

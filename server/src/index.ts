@@ -1,12 +1,20 @@
 import express from 'express';
 import cors from 'cors';
-import authRouter from './auth';
-import dataRouter from './data';
-import usersRouter from './users';
-import enableBankingRouter from './enableBanking';
-import smartFetcherRouter from './smartFetcher';
-import { initializeDatabase } from './database';
+import * as Sentry from "@sentry/node";
+import authRouter from './auth.ts';
+import dataRouter from './data.ts';
+import usersRouter from './users.ts';
+import enableBankingRouter from './enableBanking.ts';
+import smartFetcherRouter from './smartFetcher.ts';
+import { initializeDatabase } from './database.ts';
 import { exit } from 'process';
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  });
+}
 
 const startServer = async () => {
     try {
@@ -42,7 +50,7 @@ const startServer = async () => {
             },
             credentials: true,
         }));
-        const bodyLimit = process.env.API_BODY_LIMIT || '50mb';
+        const bodyLimit = process.env.API_BODY_LIMIT || '20mb';
         app.use(express.json({ limit: bodyLimit }));
         app.use(express.urlencoded({ limit: bodyLimit, extended: true }));
 

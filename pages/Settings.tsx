@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Page, User } from '../types';
+import { PAGE_PATHS } from '../constants';
 import PageHeader from '../components/PageHeader';
 
 interface SettingsProps {
-  setCurrentPage: (page: Page) => void;
   user: User;
 }
 
-const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
+const Settings: React.FC<SettingsProps> = ({ user }) => {
   const [profileImageError, setProfileImageError] = useState(false);
+  const navigate = useNavigate();
 
   const handleNavigation = (page: Page) => {
-    if (window.innerWidth < 768) {
-      setTimeout(() => setCurrentPage(page), 150);
-    } else {
-      setCurrentPage(page);
-    }
+    navigate(PAGE_PATHS[page]);
   };
 
   const SettingItem = ({ page, icon, title, description, colorClass = "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300" }: { page: Page; icon: string; title: string; description?: string; colorClass?: string }) => (

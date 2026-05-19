@@ -1,17 +1,17 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { PAGE_PATHS } from '../constants';
+import { Page } from '../types';
 
-interface MobileNavbarProps {
-  currentPage: string;
-  setCurrentPage: (page: string) => void;
-}
+interface MobileNavbarProps {}
 
-const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage }) => {
+const MobileNavbar: React.FC<MobileNavbarProps> = () => {
   const navItems = [
-    { label: 'Dashboard', icon: 'dashboard', id: 'Dashboard', color: 'indigo' },
-    { label: 'Accounts', icon: 'account_balance', id: 'Accounts', color: 'emerald' },
-    { label: 'Transactions', icon: 'receipt_long', id: 'Transactions', color: 'amber' },
-    { label: 'Forecasting', icon: 'trending_up', id: 'Forecasting', color: 'purple' },
-    { label: 'Investments', icon: 'account_balance_wallet', id: 'Investments', color: 'cyan' },
+    { label: 'Dashboard', icon: 'dashboard', id: 'Dashboard' as Page, color: 'indigo' },
+    { label: 'Accounts', icon: 'account_balance', id: 'Accounts' as Page, color: 'emerald' },
+    { label: 'Transactions', icon: 'receipt_long', id: 'Transactions' as Page, color: 'amber' },
+    { label: 'Forecasting', icon: 'trending_up', id: 'Forecasting' as Page, color: 'purple' },
+    { label: 'Investments', icon: 'account_balance_wallet', id: 'Investments' as Page, color: 'cyan' },
   ];
 
   const getColorClasses = (color: string, isActive: boolean) => {
@@ -59,24 +59,28 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
         }}
       >
         {navItems.map((item) => {
-          const isActive = currentPage === item.id;
+          const path = PAGE_PATHS[item.id];
           return (
-            <button
+            <NavLink
               key={item.id}
-              onClick={() => setCurrentPage(item.id)}
-              className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl flex-1 transition-all duration-300 relative ${isActive ? getColorClasses(item.color || '', true) : 'text-light-text-secondary/40 dark:text-dark-text-secondary/30'}`}
+              to={path}
+              className={({ isActive }) => `flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl flex-1 transition-all duration-300 relative ${isActive ? getColorClasses(item.color || '', true) : 'text-light-text-secondary/40 dark:text-dark-text-secondary/30'}`}
             >
-              {isActive && (
+              {({ isActive }) => (
                 <>
-                  <div className={`absolute inset-x-0.5 inset-y-0.5 ${getBgClasses(item.color || '')} rounded-[1.25rem] animate-in fade-in zoom-in duration-300`}></div>
-                  {/* Enhanced Glow Effect */}
-                  <div className={`absolute inset-0 ${getGlowClasses(item.color || '')} blur-2xl rounded-2xl scale-110 opacity-60 animate-pulse duration-[2000ms]`}></div>
+                  {isActive && (
+                    <>
+                      <div className={`absolute inset-x-0.5 inset-y-0.5 ${getBgClasses(item.color || '')} rounded-[1.25rem] animate-in fade-in zoom-in duration-300`}></div>
+                      {/* Enhanced Glow Effect */}
+                      <div className={`absolute inset-0 ${getGlowClasses(item.color || '')} blur-2xl rounded-2xl scale-110 opacity-60 animate-pulse duration-[2000ms]`}></div>
+                    </>
+                  )}
+                  <span className={`material-symbols-outlined text-[24px] transition-all duration-500 relative z-10 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_10px_currentColor]' : 'scale-100 opacity-60'}`}>
+                    {item.icon}
+                  </span>
                 </>
               )}
-              <span className={`material-symbols-outlined text-[24px] transition-all duration-500 relative z-10 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_10px_currentColor]' : 'scale-100 opacity-60'}`}>
-                {item.icon}
-              </span>
-            </button>
+            </NavLink>
           );
         })}
       </nav>

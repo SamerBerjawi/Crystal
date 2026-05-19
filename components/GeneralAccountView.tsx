@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Account, DisplayTransaction, Category, Transaction } from '../types';
 import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, getPreferredTimeZone, toLocalISOString } from '../utils';
 import TransactionList from './TransactionList';
@@ -18,7 +19,6 @@ interface GeneralAccountViewProps {
   onAddTransaction: () => void;
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
-  setViewingAccountId: (id: string | null) => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
   showBalanceAdjustments?: boolean;
@@ -99,11 +99,11 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   onAddTransaction,
   onTransactionClick,
   onBack,
-  setViewingAccountId,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
   showBalanceAdjustments = true,
 }) => {
+  const navigate = useNavigate();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [logoError, setLogoError] = useState(false);
@@ -505,7 +505,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Interconnected Assets</h3>
                         <div className="space-y-4">
                             {linkedCreditCards.map(c => (
-                                <button key={c.id} onClick={() => setViewingAccountId(c.id)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">
+                                <button key={c.id} onClick={() => navigate(`/accounts/${c.id}`)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">
                                     <div className="flex items-center gap-4">
                                         <span className="material-symbols-outlined text-rose-500">credit_card</span>
                                         <div className="text-left">

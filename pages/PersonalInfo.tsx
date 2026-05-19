@@ -1,8 +1,9 @@
 
 import React, { useState, useRef } from 'react';
-import { User, Page } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { User } from '../types';
 import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE, PAGE_PATHS } from '../constants';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import PageHeader from '../components/PageHeader';
 
@@ -10,13 +11,13 @@ interface PersonalInfoProps {
   user: User;
   setUser: (updates: Partial<User>) => void;
   onChangePassword: (current: string, newPass: string) => Promise<boolean>;
-  setCurrentPage: (page: Page) => void;
 }
 
-const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePassword, setCurrentPage }) => {
+const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePassword }) => {
   const [formData, setFormData] = useState<User>(user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -61,7 +62,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
       <div className="mb-10 space-y-6">
         <nav className="flex items-center gap-3">
             <button 
-              onClick={() => setCurrentPage('Settings')} 
+              onClick={() => navigate(PAGE_PATHS['Settings'])} 
               className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

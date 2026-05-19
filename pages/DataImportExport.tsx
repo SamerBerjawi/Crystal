@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo } from 'react';
-import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page, FinancialData } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, FinancialData } from '../types';
 import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, PAGE_PATHS } from '../constants';
 import Modal from '../components/Modal';
 import ImportWizard from '../components/ImportWizard';
 import ExportModal, { ExportConfig } from '../components/ExportModal';
@@ -25,7 +26,6 @@ interface DataImportExportProps {
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
-  setCurrentPage: (page: Page) => void;
   onRestoreData: (data: FinancialData) => void;
   onLogExport?: (dataType: ImportDataType, format: 'csv' | 'json', itemCount: number) => void;
   fullFinancialData: FinancialData; 
@@ -117,6 +117,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
 );
 
 const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
+  const navigate = useNavigate();
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
     
     // Updated state to handle export format
@@ -406,7 +407,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
        <div className="space-y-6">
         <nav className="flex items-center gap-3">
             <button 
-              onClick={() => props.setCurrentPage('Settings')} 
+              onClick={() => navigate(PAGE_PATHS['Settings'])} 
               className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

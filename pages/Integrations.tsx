@@ -1,14 +1,14 @@
 import React from 'react';
-import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions, Page } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
-import { INPUT_BASE_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, PAGE_PATHS } from '../constants';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
 
 interface IntegrationsProps {
   preferences: AppPreferences;
   setPreferences: (prefs: AppPreferences) => void;
-  setCurrentPage: (page: Page) => void;
   enableBankingConnections: EnableBankingConnection[];
   accounts: Account[];
   onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string }) => void;
@@ -94,7 +94,6 @@ const ApiKeyCard = ({
 const Integrations: React.FC<IntegrationsProps> = ({
   preferences,
   setPreferences,
-  setCurrentPage,
   enableBankingConnections,
   accounts,
   onCreateConnection,
@@ -103,6 +102,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
   onLinkAccount,
   onTriggerSync,
 }) => {
+  const navigate = useNavigate();
   const [localApiKeys, setLocalApiKeys] = React.useState({
     twelveDataApiKey: preferences.twelveDataApiKey || '',
     brandfetchClientId: preferences.brandfetchClientId || '',
@@ -132,7 +132,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
        <div className="space-y-6">
         <nav className="flex items-center gap-3">
             <button 
-              onClick={() => setCurrentPage('Settings')} 
+              onClick={() => navigate(PAGE_PATHS['Settings'])} 
               className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

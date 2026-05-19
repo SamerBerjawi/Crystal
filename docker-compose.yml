@@ -18,8 +18,9 @@ services:
       - ${DATA_ROOT}/db-data:/var/lib/postgresql/data:rw
 
   backend:
-    # ⚠️ Use the tagged GHCR image instead of 'build'
-    image: ghcr.io/samerberjawi/crystal:backend-latest
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       db:
@@ -40,8 +41,9 @@ services:
       - ${DATA_ROOT}/backend-config:/app/config:rw 
 
   frontend:
-    # ⚠️ Use the tagged GHCR image instead of 'build'
-    image: ghcr.io/samerberjawi/crystal:frontend-latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       - backend

@@ -157,6 +157,33 @@ export const ITEM_COLORS: Record<string, string> = {
   'Documentation': 'blue',
 };
 
+export const PAGE_PATHS: Record<Page, string> = {
+  Dashboard: '/',
+  Accounts: '/accounts',
+  Transactions: '/transactions',
+  Reports: '/reports',
+  Budget: '/budget',
+  Forecasting: '/forecasting',
+  Challenges: '/challenges',
+  Settings: '/settings',
+  'Schedule & Bills': '/schedule',
+  Tasks: '/tasks',
+  Categories: '/categories',
+  Tags: '/tags',
+  'Personal Info': '/personal-info',
+  'Data Management': '/data-management',
+  Preferences: '/preferences',
+  Integrations: '/integrations',
+  EnableBankingCallback: '/enable-banking/callback',
+  AccountDetail: '/accounts',
+  Investments: '/investments',
+  HoldingDetail: '/investments',
+  Documentation: '/documentation',
+  Subscriptions: '/subscriptions',
+  'Quotes & Invoices': '/invoices',
+  Merchants: '/merchants',
+};
+
 export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending'];
 export const DEBT_TYPES: AccountType[] = ['Credit Card', 'Loan', 'Other Liabilities'];
 export const ALL_ACCOUNT_TYPES: AccountType[] = [...ASSET_TYPES, ...DEBT_TYPES];

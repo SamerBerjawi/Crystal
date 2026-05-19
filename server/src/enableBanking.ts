@@ -1,8 +1,8 @@
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { authenticateToken, AuthRequest } from './middleware';
-import { db } from './database';
+import { authenticateToken, AuthRequest } from './middleware.ts';
+import { db } from './database.ts';
 
 const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enablebanking.com';
 const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:5173/enable-banking/callback';

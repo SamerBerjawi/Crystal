@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Account, Transaction, ScheduledPayment } from '../types';
 import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
@@ -15,7 +16,6 @@ interface LoanAccountViewProps {
   onOverridesChange: (overrides: Record<number, Partial<ScheduledPayment>>) => void;
   onMakePayment: (payment: ScheduledPayment, description: string) => void;
   onAddTransaction: () => void;
-  setViewingAccountId: (id: string | null) => void;
   onBack: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
@@ -67,12 +67,12 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   onOverridesChange,
   onMakePayment,
   onAddTransaction,
-  setViewingAccountId,
   onBack,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
   showBalanceAdjustments = true,
 }) => {
+  const navigate = useNavigate();
   const isLending = account.type === 'Lending';
 
   const loanDetails = useMemo(() => {
@@ -311,7 +311,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                          <div className="flex justify-between items-start mb-8">
                              <div>
                                  <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase mb-2">Interconnected Assets</h3>
-                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
+                                 <button onClick={() => navigate(`/accounts/${loanDetails.linkedAsset!.id}`)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
                                      Asset portfolio <span className="material-symbols-outlined text-[12px]">arrow_forward</span>
                                  </button>
                              </div>

@@ -511,13 +511,6 @@ export interface BillPayment {
     warrantId?: string;
 }
 
-export interface AccountDetailProps {
-  account: Account;
-  setCurrentPage: (page: Page) => void;
-  setViewingAccountId: (id: string | null) => void;
-  saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
-}
-
 export interface Membership {
   id: string;
   provider: string; // e.g. "British Airways", "Starbucks"
