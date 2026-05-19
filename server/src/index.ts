@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import * as Sentry from "@sentry/node";
 import authRouter from './auth.ts';
 import dataRouter from './data.ts';
 import usersRouter from './users.ts';
@@ -8,13 +7,6 @@ import enableBankingRouter from './enableBanking.ts';
 import smartFetcherRouter from './smartFetcher.ts';
 import { initializeDatabase } from './database.ts';
 import { exit } from 'process';
-
-if (process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: 1.0,
-  });
-}
 
 const startServer = async () => {
     try {
