@@ -18,7 +18,7 @@ interface AddInvestmentTransactionModalProps {
 }
 
 const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({ onClose, onSave, accounts, cashAccounts, transactionToEdit, holdings }) => {
-    const isEditing = !!transactionToEdit;
+    const isEditing = !!(transactionToEdit && transactionToEdit.id);
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
     
     const [type, setType] = useState<'buy' | 'sell'>(isEditing ? transactionToEdit.type : 'buy');

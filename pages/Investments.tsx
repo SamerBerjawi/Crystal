@@ -609,20 +609,21 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <th className="py-4 text-right hidden lg:table-cell">Qty</th>
                                         <th className="py-4 text-right hidden md:table-cell">Cost</th>
                                         <th className="py-4 text-right">Market</th>
-                                        <th className="py-4 text-right pr-4 sm:pr-6">G/L</th>
+                                        <th className="py-4 text-right">G/L</th>
+                                        <th className="py-4 text-center pr-4 sm:pr-6 w-32">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
                                     {holdingsByType.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-12 text-center text-gray-400 italic">
+                                            <td colSpan={7} className="py-12 text-center text-gray-400 italic">
                                                 No active holdings found. Start by adding a transaction.
                                             </td>
                                         </tr>
                                     ) : (
                                         holdingsByType.flatMap(([typeName, holdings]) => ([
                                             <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
-                                                <td colSpan={6} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                                                <td colSpan={7} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
                                                     {typeName}
                                                 </td>
                                             </tr>,
@@ -662,12 +663,37 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         <td className="py-4 text-right">
                                                             <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
                                                         </td>
-                                                        <td className="py-4 text-right pr-6">
+                                                        <td className="py-4 text-right">
                                                             <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                                 {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
                                                             </div>
                                                             <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
                                                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <button 
+                                                                    onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice || null)}
+                                                                    className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
+                                                                    title="Set / Scrape Price"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-base">edit_note</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleOpenModal({ id: '', type: 'buy', symbol: holding.symbol, name: holding.name, quantity: 1, price: holding.currentPrice || 0, date: toLocalISOString(new Date()) })}
+                                                                    className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
+                                                                    title="Trade Asset"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-base">swap_horiz</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                                                    className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
+                                                                    title="Holding Details"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-base">analytics</span>
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
