@@ -54,12 +54,17 @@ const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
 
 interface DashboardProps {
   user: User;
+  incomeCategories: Category[];
+  expenseCategories: Category[];
+  financialGoals: FinancialGoal[];
+  recurringTransactions: RecurringTransaction[];
+  recurringTransactionOverrides: RecurringTransactionOverride[];
+  loanPaymentOverrides: LoanPaymentOverrides;
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
   onTogglePrivacyMode?: () => void;
   onSyncBanks?: () => void | Promise<void>;
   isSyncingBanks?: boolean;
-  isDataLoaded?: boolean;
 }
 
 // Define the AssetGroup type to fix type errors
@@ -147,7 +152,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks, isDataLoaded }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
@@ -967,16 +972,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     return data;
   }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
 
-  // Calculate period net worth change based on the trend data (which respects filters)
-  const netWorthChange = useMemo(() => {
-      if (netWorthData.length < 2) return 0;
-      const filtered = netWorthData.filter(d => d.value !== undefined);
-      if (filtered.length < 2) return 0;
-      const first = filtered[0].value || 0;
-      const last = filtered[filtered.length - 1].value || 0;
-      return last - first;
-  }, [netWorthData]);
-
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only
     const historyPoints = netWorthData.filter(d => d.value !== undefined);
@@ -1179,49 +1174,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
   // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
   useEffect(() => {
-    if (!widgets.length || !isDataLoaded) return;
+    if (!widgets.length) return;
     
-    // Check if we already have the required widgets to avoid redundant updates
     const requiredWidgets = WIDGET_TABS[activeTab];
     const currentIds = new Set(widgets.map(w => w.id));
     const missing = requiredWidgets.filter(id => !currentIds.has(id));
     
-    // Only subset if we have widgets from other tabs that shouldn't be here
     let newWidgets = widgets.filter(w => requiredWidgets.includes(w.id));
-    let hasStructuralChanges = newWidgets.length !== widgets.length || missing.length > 0;
+    let changed = false;
+
+    if (newWidgets.length !== widgets.length) changed = true;
     
     // Net worth chart specifically needs more width to be readable in overview
-    let hasVisualChanges = false;
     newWidgets = newWidgets.map(w => {
         if (activeTab === 'overview' && w.id === 'netWorthOverTime' && w.w < 6) {
-            hasVisualChanges = true;
+            changed = true;
             return { ...w, w: 12 };
         }
         return w;
     });
 
     if (missing.length) {
+         changed = true;
          const additions = missing
             .map((id, index) => {
                 const widgetDef = allWidgets.find(w => w.id === id);
-                if (!widgetDef) return null;
                 const yOffset = Math.max(0, ...newWidgets.map(w => w.y + w.h));
-                return { id: widgetDef.id, title: widgetDef.name, x: (index % 2) * 6, y: yOffset + index, w: widgetDef.defaultW, h: widgetDef.defaultH };
+                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, x: (index % 2) * 6, y: yOffset + index, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
             })
             .filter(Boolean) as WidgetConfig[];
          newWidgets = [...newWidgets, ...additions];
     }
 
-    if (hasStructuralChanges || hasVisualChanges) {
-        // Deep compare to prevent infinite loops if something else is updating widgets reference
-        const currentSignature = JSON.stringify(widgets.map(w => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h })));
-        const nextSignature = JSON.stringify(newWidgets.map(w => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h })));
-        
-        if (currentSignature !== nextSignature) {
-            saveLayouts(newWidgets);
-        }
+    if (changed) {
+        saveLayouts(newWidgets);
     }
-  }, [activeTab, allWidgets, widgets, saveLayouts, isDataLoaded]);
+  }, [activeTab, allWidgets, widgets, saveLayouts]);
 
 
   const removeWidget = (widgetId: string) => {
@@ -1242,41 +1230,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     setIsAddWidgetModalOpen(false);
   };
   
-  // 1/3: Define memoized layouts for the grid to prevent re-render loops
-  const memoizedLayouts = useMemo(() => {
-    const currentTabWidgets = widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id));
-    
-    // Base layout shared between lg and md
-    const baseLayout = currentTabWidgets.map(w => ({ 
-        i: w.id, 
-        x: w.x, 
-        y: w.y, 
-        w: w.w, 
-        h: w.h, 
-        isResizable: isEditMode 
-    }));
-
-    // For mobile breakpoints, we keep the order but mostly force width or y: Infinity for auto-flow if not explicitly saved for mobile
-    const mobileLayout = currentTabWidgets.map(w => ({ 
-        i: w.id, 
-        x: layoutKey.includes('mobile') ? w.x : 0, 
-        y: layoutKey.includes('mobile') ? w.y : Infinity, 
-        w: layoutKey.includes('mobile') ? w.w : 6, // default to full mobile width if not mobile-native
-        h: w.h, 
-        isResizable: false 
-    }));
-
-    return {
-        lg: baseLayout,
-        md: baseLayout,
-        sm: mobileLayout,
-        xs: mobileLayout.map(l => ({ ...l, w: Math.min(l.w, 2) })),
-        xxs: mobileLayout.map(l => ({ ...l, w: Math.min(l.w, 1) })),
-    };
-  }, [widgets, activeTab, isEditMode, layoutKey]);
-
   const handleLayoutChange = useCallback((currentLayout: any[]) => {
-      // Use a more predictable property order and subset to avoid noise
       const updated = widgets.map(w => {
           const layoutItem = currentLayout.find(l => l.i === w.id);
           if (layoutItem) {
@@ -1284,12 +1238,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           }
           return w;
       });
-      
-      // Compare specific layout properties
-      const currentSig = JSON.stringify(widgets.map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })));
-      const nextSig = JSON.stringify(updated.map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })));
-      
-      if (currentSig !== nextSig) {
+      const isDifferent = JSON.stringify(updated) !== JSON.stringify(widgets);
+      if (isDifferent) {
         saveLayouts(updated);
       }
   }, [widgets, saveLayouts]);
@@ -1597,14 +1547,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           />
           <AnalysisStatCard 
             title="Debt Ratio" 
-            value={`${(netWorth > 0 ? (Math.abs(totalDebt) / totalAssets) * 100 : 0).toFixed(1)}%`} 
+            value={`${(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth > 0 ? (Math.abs(calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalDebt) / calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalAssets) * 100 : 0).toFixed(1)}%`} 
             subtext="Liabilities / Assets"
             icon="pie_chart" 
             colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
           />
           <AnalysisStatCard 
             title="Net Flow" 
-            value={formatCurrency(netWorthChange, 'EUR', { showPlusSign: true })} 
+            value={formatCurrency(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth - calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth, 'EUR')} 
             subtext="Period change"
             icon="payments" 
             colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
@@ -1613,9 +1563,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
               {/* Dynamic widgets grid */}
                {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
-                 <ResponsiveGridLayout
+                <ResponsiveGridLayout
                     className="layout"
-                    layouts={memoizedLayouts}
+                    layouts={{ lg: widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).map(w => ({ 
+                    i: w.id, 
+                    x: w.x, 
+                    y: w.y, 
+                    w: w.w, 
+                    h: w.h,
+                    isResizable: isEditMode
+                })) }}
                     breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                     cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
                     rowHeight={180}
@@ -1772,7 +1729,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         <div className="animate-fade-in-up">
             <ResponsiveGridLayout
                 className="layout"
-                layouts={memoizedLayouts}
+                layouts={{ lg: widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id)).map(w => ({ 
+                    i: w.id, 
+                    x: w.x, 
+                    y: w.y, 
+                    w: w.w, 
+                    h: w.h,
+                    isResizable: isEditMode
+                })) }}
                 breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                 cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
                 rowHeight={180}

@@ -1,17 +1,18 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MerchantRule, Category } from '../types';
+import { Page, MerchantRule, Category } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
-import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE, PAGE_PATHS } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import MerchantDetailModal from '../components/MerchantDetailModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 
-interface MerchantsProps {}
+interface MerchantsProps {
+  setCurrentPage: (page: Page) => void;
+}
 
 type EntityType = 'Merchant' | 'Institution';
 
@@ -40,8 +41,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
     </div>
 );
 
-const Merchants: React.FC<MerchantsProps> = () => {
-  const navigate = useNavigate();
+const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const { transactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -269,7 +269,7 @@ const Merchants: React.FC<MerchantsProps> = () => {
        <div className="space-y-6">
         <nav className="flex items-center gap-3">
             <button 
-              onClick={() => navigate(PAGE_PATHS['Settings'])} 
+              onClick={() => setCurrentPage('Settings')} 
               className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

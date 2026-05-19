@@ -1,6 +1,5 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions, AssetClosureDetails } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -28,13 +27,14 @@ const SpareChangeAccountView = React.lazy(() => import('../components/SpareChang
 
 const AccountDetail: React.FC<{
     account: Account;
+    setCurrentPage: (page: any) => void;
+    setViewingAccountId: (id: string | null) => void;
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     enableBankingLink?: { connection: EnableBankingConnection; account: EnableBankingAccount };
     onTriggerEnableBankingSync?: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
     onCloseAsset?: (accountId: string, details: AssetClosureDetails) => void;
     onRevertClosure?: (accountId: string) => void;
-}> = ({ account, saveAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
-    const navigate = useNavigate();
+}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -307,7 +307,8 @@ const AccountDetail: React.FC<{
     const commonProps = {
         account,
         onAddTransaction: () => handleOpenTransactionModal(),
-        onBack: () => { navigate('/accounts'); },
+        setViewingAccountId,
+        onBack: () => { setViewingAccountId(null); setCurrentPage('Accounts'); },
         onSyncLinkedAccount: enableBankingLink ? handleOpenSyncPrompt : undefined,
         isLinkedToEnableBanking: Boolean(enableBankingLink),
         onCloseAsset: handleOpenCloseModal,

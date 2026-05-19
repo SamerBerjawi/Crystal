@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Account, Transaction, LoanPaymentOverrides } from '../types';
 import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -13,6 +12,7 @@ interface PropertyAccountViewProps {
   loanPaymentOverrides: LoanPaymentOverrides;
   onAddTransaction: () => void;
   onUpdateValuation?: () => void;
+  setViewingAccountId: (id: string | null) => void;
   onBack: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
@@ -70,6 +70,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   loanPaymentOverrides,
   onAddTransaction,
   onUpdateValuation,
+  setViewingAccountId,
   onBack,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
@@ -77,7 +78,6 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   onRevertClosure,
   showBalanceAdjustments = true,
 }) => {
-  const navigate = useNavigate();
   const isClosed = account.status === 'closed';
   const linkedLoan = accounts.find(a => a.id === account.linkedLoanId) || accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
   
@@ -409,7 +409,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                          <div className="flex justify-between items-start mb-8">
                              <div>
                                  <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Active mortgage</h3>
-                                 <button onClick={() => navigate(`/accounts/${linkedLoan.id}`)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
+                                 <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
                                      Loan profile <span className="material-symbols-outlined text-[12px]">arrow_forward</span>
                                  </button>
                              </div>

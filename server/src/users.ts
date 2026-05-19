@@ -1,9 +1,9 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { db } from './database.ts';
-import { authenticateToken, AuthRequest } from './middleware.ts';
-import { clearAuthCookie, PASSWORD_HASH_ROUNDS } from './authConfig.ts';
-import { createRateLimiter } from './rateLimit.ts';
+import { db } from './database';
+import { authenticateToken, AuthRequest } from './middleware';
+import { clearAuthCookie, PASSWORD_HASH_ROUNDS } from './authConfig';
+import { createRateLimiter } from './rateLimit';
 
 const router = express.Router();
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -11,15 +10,14 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-[9999]', size = 'lg' }) => {
+  const [isVisible, setIsVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    // Small timeout to allow mount before animation
+    const timer = setTimeout(() => setIsVisible(true), 10);
+    return () => clearTimeout(timer);
   }, []);
 
   const sizeClasses = {
@@ -29,6 +27,11 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
     '3xl': 'max-w-3xl',
   };
 
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 300); // Animation duration
+  };
+
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -36,35 +39,26 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
   if (!mounted || typeof document === 'undefined') return null;
 
   const modalContent = (
-    <AnimatePresence>
+    <div 
+      className={`fixed inset-0 flex items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-sm p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      onClick={handleClose}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
       <div 
-        className={`fixed inset-0 flex ${isMobile ? 'items-end' : 'items-center'} justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-sm ${zIndexClass}`}
-        onClick={onClose}
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        className={`bg-white/95 dark:bg-gray-900/95 ios-regular shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+        onClick={handleContentClick}
       >
-        <motion.div 
-          initial={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
-          animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-          exit={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200, duration: 0.3 }}
-          className={`bg-white/95 dark:bg-gray-900/95 shadow-modal w-full ${isMobile ? 'rounded-t-[2.5rem] rounded-b-none max-h-[92vh]' : `${sizeClasses[size]} rounded-[2rem] mx-4`} transition-all duration-300 ease-in-out relative flex flex-col`}
-          onClick={handleContentClick}
-        >
-          {isMobile && (
-            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-3 mb-1 shrink-0" />
-          )}
-          <header className={`flex items-center justify-between p-4 ${isMobile ? 'pt-2 pb-4' : 'border-b border-light-separator dark:border-dark-separator'}`}>
-            <h2 className="text-lg font-black text-light-text dark:text-dark-text tracking-tight ml-2">{title}</h2>
-            <button onClick={onClose} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-              <span className="material-symbols-outlined leading-none">close</span>
-            </button>
-          </header>
-          <div className={`p-4 sm:p-6 overflow-y-auto ${isMobile ? 'pb-12' : 'max-h-[85vh] md:max-h-[80vh]'}`}>
-            {children}
-          </div>
-        </motion.div>
+        <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">
+          <h2 className="text-lg font-semibold text-light-text dark:text-dark-text">{title}</h2>
+          <button onClick={handleClose} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </header>
+        <div className="p-4 sm:p-6 max-h-[85vh] md:max-h-[80vh] overflow-y-auto">
+          {children}
+        </div>
       </div>
-    </AnimatePresence>
+    </div>
   );
 
   return createPortal(modalContent, document.body);

@@ -15,7 +15,6 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } fr
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import WarrantModal from '../components/WarrantModal';
-import EditAccountModal from '../components/EditAccountModal';
 import { formatHoldingType } from '../utils/investments';
 import PriceHistoryChart from '../components/PriceHistoryChart';
 
@@ -28,9 +27,6 @@ interface HoldingDetailProps {
     saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
     warrants: Warrant[];
     saveWarrant: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
-    saveAccount?: (account: Omit<Account, 'id'> & { id?: string }) => void;
-    deleteAccount?: (id: string) => void;
-    onToggleAccountStatus?: (id: string) => void;
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     onBack: () => void;
@@ -46,9 +42,6 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     saveInvestmentTransaction,
     warrants,
     saveWarrant,
-    saveAccount,
-    deleteAccount,
-    onToggleAccountStatus,
     onManualPriceChange,
     onBack,
     priceHistory = {}
@@ -59,7 +52,6 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
     const [isWarrantModalOpen, setIsWarrantModalOpen] = useState(false);
-    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
     const holding: HoldingSummary | undefined = useMemo(
         () => holdingsOverview.holdings.find(h => h.symbol === holdingSymbol),
@@ -67,7 +59,6 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     );
 
     const relatedAccount = useMemo(() => accounts.find(acc => acc.symbol === holdingSymbol), [accounts, holdingSymbol]);
-    const relatedWarrant = useMemo(() => warrants.find(w => w.isin === holdingSymbol), [warrants, holdingSymbol]);
 
     // Combine transactions and grants for activity feed
     const activity = useMemo(() => {
@@ -202,17 +193,6 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     warrantToEdit={editingWarrant}
                 />
             )}
-            {isAccountModalOpen && relatedAccount && saveAccount && deleteAccount && onToggleAccountStatus && (
-                <EditAccountModal
-                    onClose={() => setIsAccountModalOpen(false)}
-                    onSave={(acc) => { saveAccount(acc); setIsAccountModalOpen(false); }}
-                    onDelete={(id) => { deleteAccount(id); onBack(); }}
-                    account={relatedAccount}
-                    accounts={accounts}
-                    warrants={warrants}
-                    onToggleStatus={onToggleAccountStatus}
-                />
-            )}
 
             {/* Navigation & Header */}
             <div className="flex flex-col gap-6">
@@ -247,22 +227,10 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         </div>
                     </div>
                     <div className="flex gap-3 w-full lg:w-auto">
-                        <button onClick={handleAddPrice} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
+                        <button onClick={handleAddPrice} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center`}>
                             <span className="material-symbols-outlined text-xl mr-2">edit_note</span>
-                            Adjust Price
+                            Log Price
                         </button>
-                        {(relatedAccount || relatedWarrant) && (
-                            <button 
-                                onClick={() => {
-                                    if (relatedWarrant) handleOpenWarrantModal(relatedWarrant);
-                                    else if (relatedAccount) setIsAccountModalOpen(true);
-                                }} 
-                                className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center px-6`}
-                            >
-                                <span className="material-symbols-outlined text-xl mr-2">edit</span>
-                                Edit {isWarrant ? 'Warrant' : 'Holding'}
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>

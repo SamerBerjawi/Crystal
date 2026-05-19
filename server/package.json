@@ -1,7 +1,5 @@
 {
   "name": "crystal-server",
-  "private": true,
-  "type": "module",
   "version": "1.0.0",
   "description": "Backend for Crystal",
   "main": "dist/index.js",
@@ -16,9 +14,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.5",
-    "pm2": "^5.3.1",
-    "xss": "^1.0.15"
+    "pg": "^8.11.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -27,7 +23,6 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.12.7",
     "@types/pg": "^8.11.6",
-    "@types/xss": "^1.0.6",
     "tsc-watch": "^6.2.0",
     "typescript": "^5.4.5"
   }

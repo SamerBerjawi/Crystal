@@ -1,25 +1,7 @@
 
 import express from 'express';
-import { db } from './database.ts';
-import { authenticateToken, AuthRequest } from './middleware.ts';
-import xss from 'xss';
-
-const sanitize = (data: any): any => {
-    if (typeof data === 'string') {
-        return xss(data);
-    }
-    if (Array.isArray(data)) {
-        return data.map(sanitize);
-    }
-    if (data !== null && typeof data === 'object') {
-        const sanitized: any = {};
-        for (const key in data) {
-            sanitized[key] = sanitize(data[key]);
-        }
-        return sanitized;
-    }
-    return data;
-};
+import { db } from './database';
+import { authenticateToken, AuthRequest } from './middleware';
 
 const router = express.Router();
 
@@ -67,7 +49,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         const existing = await db.query(selectSql, [userId]);
         const currentData = existing.rows?.[0]?.data || {};
         const isPartial = Boolean(body.partial);
-        const incomingData = sanitize(isPartial ? (body.data || {}) : { ...body });
+        const incomingData = isPartial ? (body.data || {}) : { ...body };
         delete incomingData.partial;
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;

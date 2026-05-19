@@ -1,8 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Tag, Transaction } from '../types';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, PAGE_PATHS } from '../constants';
+import { Page, Tag, Transaction } from '../types';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
 import Card from '../components/Card';
 import TagModal from '../components/TagModal';
 import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
@@ -16,14 +15,14 @@ interface TagsProps {
   transactions: Transaction[];
   saveTag: (tag: Omit<Tag, 'id'> & { id?: string }) => void;
   deleteTag: (tagId: string) => void;
+  setCurrentPage: (page: Page) => void;
   onNavigateToTransactions: (filters?: { tagId?: string | null }) => void;
 }
 
 type SortOption = 'name' | 'count' | 'amount';
 type ViewMode = 'grid' | 'list';
 
-const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, onNavigateToTransactions }) => {
-  const navigate = useNavigate();
+const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, setCurrentPage, onNavigateToTransactions }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
@@ -163,7 +162,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, onN
       <div className="space-y-6">
         <nav className="flex items-center gap-3">
             <button 
-              onClick={() => navigate(PAGE_PATHS['Settings'])} 
+              onClick={() => setCurrentPage('Settings')} 
               className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

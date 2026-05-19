@@ -1,12 +1,13 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Page } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
-import { PAGE_PATHS } from '../constants';
 
-interface DocumentationProps {}
+interface DocumentationProps {
+  setCurrentPage: (page: Page) => void;
+}
 
 interface Section {
     id: string;
@@ -179,8 +180,7 @@ const sections: Section[] = [
     }
 ];
 
-const Documentation: React.FC<DocumentationProps> = () => {
-    const navigate = useNavigate();
+const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     const [activeSection, setActiveSection] = useState(sections[0].id);
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -226,7 +226,7 @@ const Documentation: React.FC<DocumentationProps> = () => {
             <div className="space-y-6 pt-4 mb-16">
                 <nav className="flex items-center gap-3">
                     <button 
-                      onClick={() => navigate(PAGE_PATHS['Settings'])} 
+                      onClick={() => setCurrentPage('Settings')} 
                       className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
                     >
                         <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">

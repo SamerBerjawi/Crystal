@@ -172,104 +172,6 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
     );
   };
 
-  const renderGoalCard = (goal: FinancialGoal) => {
-    const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
-    const status = getStatusLabel(goal.projection?.status || '');
-    const isCompleted = progress >= 100;
-    const category = goal.goalCategory || (goal.transactionType === 'income' ? 'income' : 'savings');
-
-    const getGoalIcon = () => {
-      switch (category) {
-        case 'expense': return 'shopping_cart';
-        case 'income': return 'monetization_on';
-        default: return 'savings';
-      }
-    };
-
-    const getGoalColor = () => {
-      switch (category) {
-        case 'expense': return 'bg-rose-500/10 text-rose-500';
-        case 'income': return 'bg-emerald-500/10 text-emerald-500';
-        default: return 'bg-primary-500/10 text-primary-500';
-      }
-    };
-
-    return (
-      <div key={goal.id} className="p-4 rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${getGoalColor()}`}>
-              <span className="material-symbols-outlined text-xl">{getGoalIcon()}</span>
-            </div>
-            <div>
-              <p className="font-bold text-base text-light-text dark:text-dark-text" onClick={() => onGoalClick(goal)}>{goal.name}</p>
-              <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-bold tracking-wider">{getAccountName(goal.paymentAccountId)}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => onEdit(goal)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 rounded-xl bg-blue-50/50 dark:bg-blue-900/10">
-              <span className="material-symbols-outlined text-lg">edit</span>
-            </button>
-            <button onClick={() => onDelete(goal.id)} className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-500 rounded-xl bg-rose-50/50 dark:bg-rose-900/10">
-              <span className="material-symbols-outlined text-lg">delete</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/50 dark:text-dark-text-secondary/50">Target</p>
-            <p className="font-black text-sm text-light-text dark:text-dark-text">{formatCurrency(goal.amount, goal.currency)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/50 dark:text-dark-text-secondary/50">Saved</p>
-            <p className="font-black text-sm text-light-text dark:text-dark-text">{formatCurrency(goal.currentAmount, goal.currency)}</p>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="flex justify-between items-center text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary">
-            <span>Progress</span>
-            <span>{progress.toFixed(0)}%</span>
-          </div>
-          <div className="w-full h-2 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${isCompleted ? 'bg-emerald-500' : 'bg-primary-500'}`}
-              style={{ width: `${Math.min(progress, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
-          <div>
-             <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/50 dark:text-dark-text-secondary/50 mb-0.5">Due Date</p>
-             <p className="text-xs font-bold text-light-text dark:text-dark-text">
-                {goal.date ? parseLocalDate(goal.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-             </p>
-          </div>
-          <div className="text-right">
-             <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary/50 dark:text-dark-text-secondary/50 mb-0.5">Projected</p>
-             <p className="text-xs font-black text-primary-500">
-                {goal.projection?.projectedDate && goal.projection.projectedDate !== 'Beyond forecast' && goal.projection.projectedDate !== 'Goal reached'
-                  ? parseLocalDate(goal.projection.projectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : goal.projection?.projectedDate || '-'}
-             </p>
-          </div>
-        </div>
-        
-        {!isCompleted ? (
-          <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center ${status.color}`}>
-            {status.text}
-          </div>
-        ) : (
-          <div className="px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center bg-emerald-500 text-white shadow-sm">
-            Completed
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4 bg-light-fill dark:bg-dark-fill p-2 rounded-xl border border-black/5 dark:border-white/5 self-start inline-flex">
@@ -287,7 +189,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
           </button>
       </div>
 
-      <div className="hidden sm:block overflow-x-auto rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-sm">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
@@ -351,43 +253,13 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile Cards View */}
-      <div className="sm:hidden space-y-4">
-        {groupByBucket ? (
-          buckets.map(bucket => {
-            const subGoals = sortedGoals.filter(g => g.parentId === bucket.id);
-            if (subGoals.length === 0) return null;
-            return (
-              <div key={bucket.id} className="space-y-3">
-                <div className="flex items-center gap-2 mb-1 px-1">
-                   <span className="material-symbols-outlined text-sm text-indigo-500">folder</span>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">{bucket.name}</span>
-                </div>
-                {subGoals.map(renderGoalCard)}
-              </div>
-            );
-          }).concat(
-            <div key="unassigned" className="space-y-3 pt-2">
-              <div className="flex items-center gap-2 mb-1 px-1">
-                 <span className="material-symbols-outlined text-sm text-gray-400">label_off</span>
-                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Unassigned</span>
-              </div>
-              {sortedGoals.filter(g => !g.parentId).map(renderGoalCard)}
-            </div>
-          )
-        ) : (
-          sortedGoals.map(renderGoalCard)
+        {sortedGoals.length === 0 && (
+          <div className="py-20 text-center">
+            <span className="material-symbols-outlined text-4xl text-light-text-secondary opacity-20">flag</span>
+            <p className="mt-2 text-sm font-medium text-light-text-secondary">No goals found for this view.</p>
+          </div>
         )}
       </div>
-
-      {sortedGoals.length === 0 && (
-        <div className="py-20 text-center">
-          <span className="material-symbols-outlined text-4xl text-light-text-secondary opacity-20">flag</span>
-          <p className="mt-2 text-sm font-medium text-light-text-secondary">No goals found for this view.</p>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,7 +1,6 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import { Toaster, toast } from 'sonner';
-import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import { motion } from 'motion/react';
 import MobileNavbar from './components/MobileNavbar';
@@ -63,7 +62,7 @@ const MerchantsPage = lazy(pageRegistry.Merchants.loader);
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
-import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS, PAGE_PATHS } from './constants';
+import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
@@ -80,6 +79,104 @@ import { persistPendingConnection, removePendingConnection } from './utils/enabl
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
+
+const normalizeIban = (value?: string | null) => {
+  if (!value) return undefined;
+  const cleaned = value.replace(/[^A-Za-z0-9]/g, '');
+  return IBAN_REGEX.test(cleaned) ? cleaned.toUpperCase() : undefined;
+};
+
+const findIbanCandidate = (...sources: any[]): string | undefined => {
+  const visited = new WeakSet<object>();
+
+  const search = (input: any): string | undefined => {
+    if (!input) return undefined;
+
+    if (typeof input === 'string') {
+      return normalizeIban(input);
+    }
+
+    if (typeof input !== 'object') {
+      return undefined;
+    }
+
+    if (visited.has(input)) return undefined;
+    visited.add(input);
+
+    if (Array.isArray(input)) {
+      for (const item of input) {
+        const result = search(item);
+        if (result) return result;
+      }
+      return undefined;
+    }
+
+    for (const [key, value] of Object.entries(input)) {
+      if (/iban/i.test(key)) {
+        const prioritizedValue = typeof value === 'string' ? value : (value as any)?.iban ?? (value as any)?.id ?? value;
+        const normalized = normalizeIban(prioritizedValue as any);
+        if (normalized) return normalized;
+      }
+    }
+
+    for (const value of Object.values(input)) {
+      const result = search(value);
+      if (result) return result;
+    }
+
+    return undefined;
+  };
+
+  for (const source of sources) {
+    const result = search(source);
+    if (result) return result;
+  }
+
+  return undefined;
+};
+
+const routePathMap = Object.entries(pageRegistry).reduce((acc, [page, config]) => {
+  acc[page as Page] = config.path;
+  return acc;
+}, {} as Record<Page, string>);
+
+type RouteInfo = { page: Page; matched: boolean; accountId?: string | null; holdingSymbol?: string | null };
+
+const parseRoute = (pathname: string): RouteInfo => {
+  const rawPath = pathname.split('?')[0] || '/';
+  const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
+  const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
+  const holdingMatch = normalizedPath.match(/^\/investments\/([^/]+)$/);
+
+  if (accountMatch?.[1]) {
+    return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };
+  }
+
+  if (holdingMatch?.[1]) {
+    return { page: 'HoldingDetail', matched: true, holdingSymbol: decodeURIComponent(holdingMatch[1]) };
+  }
+
+  const matchedPage = (Object.entries(routePathMap) as [Page, string][])
+    .find(([, path]) => path === normalizedPath)?.[0];
+
+  if (matchedPage) {
+    return { page: matchedPage, matched: true, accountId: null };
+  }
+
+  return { page: 'Dashboard', matched: false, accountId: null };
+};
+
+const pageToPath = (page: Page, accountId?: string | null) => {
+  if (page === 'AccountDetail' && accountId) {
+    return `/accounts/${encodeURIComponent(accountId)}`;
+  }
+
+  if (page === 'HoldingDetail' && accountId) {
+    return `/investments/${encodeURIComponent(accountId)}`;
+  }
+
+  return routePathMap[page] || '/';
+};
 
 const MATERIAL_DATA_ARRAY_KEYS: (keyof FinancialData)[] = [
   'accounts',
@@ -217,9 +314,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const App: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const currentPath = location.pathname;
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const initialRoute = parseRoute(initialPath);
 
   const { user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
@@ -229,8 +325,12 @@ const App: React.FC = () => {
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   const [isSyncingBanks, setIsSyncingBanks] = useState(false);
 
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
   const [isSidebarOpen, setSidebarOpen] = useLocalStorage('crystal_sidebar_open_v2', false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useLocalStorage('crystal_sidebar_collapsed_v2', false);
+  const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
+  const [viewingHoldingSymbol, setViewingHoldingSymbol] = useState<string | null>(initialRoute.holdingSymbol ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
@@ -260,16 +360,11 @@ const App: React.FC = () => {
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
 
   const currentPageColor = useMemo(() => {
-    const path = location.pathname;
-    if (path.startsWith('/accounts/')) return ITEM_COLORS['Accounts'];
-    if (path.startsWith('/investments/')) return ITEM_COLORS['Investments'];
-    
-    const pageName = (Object.entries(PAGE_PATHS) as [string, string][])
-      .find(([, p]) => p === path)?.[0];
-    
-    if (pageName === 'Personal Info' || pageName === 'Preferences') return ITEM_COLORS['Settings'];
-    return ITEM_COLORS[pageName || 'Dashboard'] || 'indigo';
-  }, [location.pathname]);
+    if (currentPage === 'AccountDetail') return ITEM_COLORS['Accounts'];
+    if (currentPage === 'HoldingDetail') return ITEM_COLORS['Investments'];
+    if (currentPage === 'Personal Info' || currentPage === 'Preferences') return ITEM_COLORS['Settings'];
+    return ITEM_COLORS[currentPage as string] || 'indigo';
+  }, [currentPage]);
 
   const GLOW_COLOR = useMemo(() => {
     const colors: Record<string, string> = {
@@ -358,14 +453,6 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  const investmentSymbolSignature = useMemo(() => {
-    const symbols = Array.from(new Set([
-        ...accounts.filter(acc => acc.type === 'Investment' && acc.symbol).map(acc => acc.symbol as string),
-        ...warrants.map(w => w.isin)
-    ])).sort();
-    return symbols.join('|');
-  }, [accounts, warrants]);
-
   const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
     accounts.filter(acc => acc.type === 'Investment' && acc.symbol).forEach(acc => {
@@ -384,7 +471,7 @@ const App: React.FC = () => {
       }
     });
     return resolved;
-  }, [investmentSymbolSignature, manualWarrantPrices]);
+  }, [accounts, manualWarrantPrices, warrants]);
 
   const investmentAccounts = useMemo(() => (
     accounts || []
@@ -400,6 +487,33 @@ const App: React.FC = () => {
     });
     return resolved;
   }, [assetPrices, warrants]);
+
+  const navigateToPath = useCallback((path: string, replace = false) => {
+    if (typeof window === 'undefined') return;
+    const nextPath = path || '/';
+    try {
+      if (replace) { window.history.replaceState(null, '', nextPath); } 
+      else { window.history.pushState(null, '', nextPath); }
+    } catch (e) {
+      console.warn('Navigation state update failed, falling back to in-memory navigation:', e);
+    }
+    setCurrentPath(nextPath);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => { setCurrentPath(window.location.pathname || '/'); };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const route = parseRoute(currentPath);
+    setCurrentPageState(route.page);
+    setViewingAccountId(route.accountId ?? null);
+    setViewingHoldingSymbol(route.holdingSymbol ?? null);
+    if (!route.matched && currentPath !== '/') { navigateToPath('/', true); }
+  }, [currentPath, navigateToPath]);
 
   useEffect(() => {
     if (isPrivacyMode) { document.body.classList.add('privacy-mode'); } 
@@ -424,6 +538,26 @@ const App: React.FC = () => {
     }
   }, [currentPageColor]);
 
+  const setCurrentPage = useCallback((page: Page) => {
+    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
+    navigateToPath(targetPath);
+    setCurrentPageState(page);
+    if (page !== 'AccountDetail') { setViewingAccountId(null); }
+    if (page !== 'HoldingDetail') { setViewingHoldingSymbol(null); }
+  }, [navigateToPath, viewingAccountId, viewingHoldingSymbol]);
+
+  const handleOpenAccountDetail = useCallback((accountId: string) => {
+    setViewingAccountId(accountId);
+    setCurrentPageState('AccountDetail');
+    navigateToPath(pageToPath('AccountDetail', accountId));
+  }, [navigateToPath]);
+
+  const handleOpenHoldingDetail = useCallback((symbol: string) => {
+    setViewingHoldingSymbol(symbol);
+    setCurrentPageState('HoldingDetail');
+    navigateToPath(pageToPath('HoldingDetail', symbol));
+  }, [navigateToPath]);
+
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
@@ -432,8 +566,8 @@ const App: React.FC = () => {
       accountName: filters?.accountName ?? null,
       tagId: filters?.tagId ?? null,
     };
-    navigate('/transactions');
-  }, [navigate]);
+    setCurrentPage('Transactions');
+  }, [setCurrentPage]);
 
   const clearPendingTransactionFilters = useCallback(() => {
     transactionsViewFilters.current = {};
@@ -458,14 +592,7 @@ const App: React.FC = () => {
     return holdings;
   }, [investmentTransactions, warrants]);
 
-  // Use a signature to detect if actual calculation values changed to prevent infinite loops via assetPrices/accounts
-  const holdingsSyncSignature = useMemo(() => {
-      return JSON.stringify(warrantHoldingsBySymbol) + JSON.stringify(assetPrices);
-  }, [warrantHoldingsBySymbol, assetPrices]);
-
   useEffect(() => {
-    if (!isDataLoaded) return;
-    
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
       if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
@@ -480,7 +607,7 @@ const App: React.FC = () => {
       return account;
     });
     if (hasChanges) { setAccounts(updatedAccounts); }
-  }, [holdingsSyncSignature, isDataLoaded]);
+  }, [assetPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
     const dataToLoad = data ?? (options?.useDemoDefaults ? initialFinancialData : emptyFinancialData);
@@ -959,8 +1086,10 @@ const App: React.FC = () => {
       });
     });
 
-    navigate('/accounts');
-  }, [accounts, navigate]);
+    setViewingAccountId(null);
+    setCurrentPageState('Accounts');
+    navigateToPath('/accounts');
+  }, [accounts, navigateToPath]);
 
   const handleRevertAccountClosure = useCallback((accountId: string) => {
     const account = accounts.find(a => a.id === accountId);
@@ -1007,8 +1136,9 @@ const App: React.FC = () => {
     setRecurringTransactions(prev => prev.filter(rt => rt.accountId !== accountId && rt.toAccountId !== accountId));
     if (impactedRecurringIds.size > 0) { setRecurringTransactionOverrides(prev => prev.filter(override => !impactedRecurringIds.has(override.recurringTransactionId))); }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    if (location.pathname === `/accounts/${accountId}`) { navigate('/accounts'); }
-  }, [accounts, navigate]);
+    if (viewingAccountId === accountId) { setViewingAccountId(null); setCurrentPage('Accounts'); }
+    if (viewingHoldingSymbol === accountToDelete.symbol) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
+  }, [accounts, recurringTransactions, viewingAccountId, viewingHoldingSymbol, setCurrentPage]);
 
   const handleSaveTransaction = useCallback((transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete: string[] = [], options?: { autoSpareChange?: boolean }) => {
     const finalTxArray = [...transactionDataArray];
@@ -1886,6 +2016,8 @@ const App: React.FC = () => {
     safeLocalStorage.setItem('theme', theme);
   }, [theme]);
   
+  const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
+  const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
   const cashAccounts = useMemo(() => accounts.filter(a => a.type === 'Checking' || a.type === 'Savings'), [accounts]);
 
   const linkedEnableBankingAccountIds = useMemo(() => new Set(enableBankingConnections.flatMap(c => (c.accounts || []).map(a => a.linkedAccountId).filter(Boolean))), [enableBankingConnections]);
@@ -1894,6 +2026,49 @@ const App: React.FC = () => {
     enableBankingConnections.forEach(c => (c.accounts || []).forEach(a => { if (a.linkedAccountId) map.set(a.linkedAccountId, { connection: c, account: a }); }));
     return map;
   }, [enableBankingConnections]);
+
+  useEffect(() => {
+    if (isDataLoaded) {
+      if (viewingAccountId && !viewingAccount) { setViewingAccountId(null); setCurrentPage('Dashboard'); }
+      if (viewingHoldingSymbol && !viewingHolding) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
+    }
+  }, [isDataLoaded, viewingAccount, viewingAccountId, viewingHolding, viewingHoldingSymbol, setCurrentPage]);
+
+  const renderPage = () => {
+    if (viewingHoldingSymbol) {
+      if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} />;
+      return <PageLoader label="Loading holding..." />;
+    }
+    if (viewingAccountId) {
+      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveAccount={handleSaveAccount} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
+      return <PageLoader label="Loading account..." />;
+    }
+    switch (currentPage) {
+      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
+      case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
+      case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
+      case 'Reports': return <ReportsPage />;
+      case 'Budget': return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
+      case 'Forecasting': return <Forecasting />;
+      case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
+      case 'Settings': return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
+      case 'Schedule & Bills': return <SchedulePage />;
+      case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
+      case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
+      case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
+      case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
+      case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
+      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
+      case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
+      case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
+      case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} setCurrentPage={setCurrentPage} />;
+      case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
+      case 'Subscriptions': return <SubscriptionsPage />;
+      case 'Quotes & Invoices': return <InvoicesPage />;
+      case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
+      default: return <div>Page not found</div>;
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1905,20 +2080,6 @@ const App: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const AccountDetailWrapper = ({ accounts, saveAccount, enableBankingLinkMap, handleSyncEnableBankingConnection, handleCloseAsset, handleRevertAccountClosure }: any) => {
-    const { accountId } = useParams();
-    const account = accounts.find((a: any) => a.id === accountId);
-    if (!account) return <PageLoader label="Loading account..." />;
-    return <AccountDetail account={account} saveAccount={saveAccount} enableBankingLink={enableBankingLinkMap.get(account.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
-  };
-
-  const HoldingDetailWrapper = ({ holdingsOverview, accounts, cashAccounts, investmentTransactions, handleSaveInvestmentTransaction, warrants, handleSaveWarrant, manualWarrantPrices, handleManualWarrantPrice, priceHistory }: any) => {
-    const { symbol } = useParams();
-    const holding = holdingsOverview.holdings.find((h: any) => h.symbol === symbol);
-    if (!holding || !symbol) return <PageLoader label="Loading holding..." />;
-    return <HoldingDetail holdingSymbol={symbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} onToggleAccountStatus={handleToggleAccountStatus} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => navigate('/investments')} priceHistory={priceHistory} />;
-  };
 
   const preferencesContextValue = useMemo(() => ({ preferences, setPreferences }), [preferences]);
   const accountsContextValue = useMemo(() => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }), [accounts, accountOrder, handleSaveAccount]);
@@ -1968,7 +2129,7 @@ const App: React.FC = () => {
                         animate={{ backgroundColor: GLOW_COLOR }} 
                     />
                 </div>
-                <Sidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
+                <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                     {/* Mobile Header Bar */}
                     <div className="md:hidden flex items-center h-16 px-4 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-[#0A0A0A]/50 backdrop-blur-md z-20 shrink-0">
@@ -1980,52 +2141,23 @@ const App: React.FC = () => {
                           <span className="material-symbols-outlined">menu</span>
                         </button>
                         <span className="ml-3 font-bold text-lg tracking-tight truncate text-light-text dark:text-dark-text">
-                            {(Object.entries(PAGE_PATHS) as [string, string][])
-                                .find(([, p]) => p === location.pathname)?.[0] || 'Dashboard'}
+                            {viewingHoldingSymbol ? 'Holding Detail' : (viewingAccountId ? 'Account Detail' : currentPage)}
                         </span>
                     </div>
 
                     <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
-                         <ErrorBoundary>
-                           <Suspense fallback={<PageLoader />}>
-                             <Routes>
-                               <Route path="/" element={<Dashboard user={currentUser!} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} isDataLoaded={isDataLoaded} />} />
-                               <Route path="/accounts" element={<Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />} />
-                               <Route path="/accounts/:accountId" element={<AccountDetailWrapper accounts={accounts} saveAccount={handleSaveAccount} enableBankingLinkMap={enableBankingLinkMap} handleSyncEnableBankingConnection={handleSyncEnableBankingConnection} handleCloseAsset={handleCloseAsset} handleRevertAccountClosure={handleRevertAccountClosure} />} />
-                               <Route path="/transactions" element={<Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />} />
-                               <Route path="/reports" element={<ReportsPage />} />
-                               <Route path="/budget" element={<Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />} />
-                               <Route path="/forecasting" element={<Forecasting />} />
-                               <Route path="/challenges" element={<ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />} />
-                               <Route path="/settings" element={<SettingsPage user={currentUser!} />} />
-                               <Route path="/schedule" element={<SchedulePage />} />
-                               <Route path="/categories" element={<CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} />} />
-                               <Route path="/tags" element={<TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} onNavigateToTransactions={navigateToTransactions} />} />
-                               <Route path="/personal-info" element={<PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} />} />
-                               <Route path="/data-management" element={<DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />} />
-                               <Route path="/preferences" element={<PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} />} />
-                               <Route path="/enable-banking/callback" element={<EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} />} />
-                               <Route path="/integrations" element={<IntegrationsPage preferences={preferences} setPreferences={setPreferences} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />} />
-                               <Route path="/investments" element={<InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} />} />
-                               <Route path="/investments/:symbol" element={<HoldingDetailWrapper holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} handleSaveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} handleSaveWarrant={handleSaveWarrant} manualWarrantPrices={manualWarrantPrices} handleManualWarrantPrice={handleManualWarrantPrice} priceHistory={priceHistory} />} />
-                               <Route path="/tasks" element={<TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />} />
-                               <Route path="/documentation" element={<Documentation />} />
-                               <Route path="/subscriptions" element={<SubscriptionsPage />} />
-                               <Route path="/invoices" element={<InvoicesPage />} />
-                               <Route path="/merchants" element={<MerchantsPage />} />
-                               <Route path="*" element={<div>Page not found</div>} />
-                             </Routes>
-                           </Suspense>
-                         </ErrorBoundary>
+                         <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
                     </main>
                 </div>
-                <MobileNavbar />
+                <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
                 {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
                 <CommandCenter 
                     isOpen={isCommandCenterOpen} 
                     onClose={() => setIsCommandCenterOpen(false)} 
+                    setCurrentPage={setCurrentPage} 
                     accounts={accounts} 
                     transactions={transactions} 
+                    onOpenAccount={handleOpenAccountDetail} 
                     togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} 
                     isPrivacyMode={isPrivacyMode} 
                     theme={theme} 

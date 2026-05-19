@@ -1,7 +1,7 @@
 import { Request as ExpressRequest, Response as ExpressResponse, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { db } from './database.ts';
-import { AUTH_COOKIE_NAME, JWT_SECRET } from './authConfig.ts';
+import { db } from './database';
+import { AUTH_COOKIE_NAME, JWT_SECRET } from './authConfig';
 
 export interface AuthRequest extends ExpressRequest {
     user?: { id: number; email: string; sessionId: string };

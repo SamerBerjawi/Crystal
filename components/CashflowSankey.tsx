@@ -49,7 +49,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
     const addLink = (source: number, target: number, value: number, colorStart: string, colorEnd: string) => {
       if (value < 0.01) return;
-      const gradientId = `grad-${source}-${target}-${Math.floor(value * 100)}`; 
+      const gradientId = `grad-${source}-${target}-${Math.floor(value * 100)}-${Math.random().toString(36).substr(2, 5)}`; 
       gradients.push({ id: gradientId, start: colorStart, end: colorEnd });
       links.push({ source, target, value, gradientId });
     };
