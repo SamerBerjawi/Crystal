@@ -34,6 +34,7 @@ interface HoldingDetailProps {
     priceHistory?: Record<string, PriceHistoryEntry[]>;
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     onToggleAccountStatus: (accountId: string) => void;
+    deleteAccount: (accountId: string) => void;
 }
 
 const HoldingDetail: React.FC<HoldingDetailProps> = ({
@@ -49,7 +50,8 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     onBack,
     priceHistory = {},
     saveAccount,
-    onToggleAccountStatus
+    onToggleAccountStatus,
+    deleteAccount
 }) => {
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<{ date: string, price: number } | undefined>(undefined);
@@ -204,7 +206,10 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 <EditAccountModal
                     onClose={() => setIsAccountModalOpen(false)}
                     onSave={(acc) => { saveAccount(acc); setIsAccountModalOpen(false); }}
+                    onDelete={(id) => { deleteAccount(id); setIsAccountModalOpen(false); onBack(); }}
                     account={relatedAccount}
+                    accounts={accounts}
+                    warrants={warrants}
                     onToggleStatus={() => { onToggleAccountStatus(relatedAccount.id); setIsAccountModalOpen(false); }}
                 />
             )}

@@ -2036,7 +2036,7 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     if (viewingHoldingSymbol) {
-      if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} saveAccount={handleSaveAccount} onToggleAccountStatus={handleToggleAccountStatus} />;
+      if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} saveAccount={handleSaveAccount} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} />;
       return <PageLoader label="Loading holding..." />;
     }
     if (viewingAccountId) {
