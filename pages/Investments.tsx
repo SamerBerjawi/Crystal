@@ -16,6 +16,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Modal from '../components/Modal';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSafeState } from '../hooks/useSafeState';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -77,7 +78,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
-    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
+    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useSafeState(false);
     const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');

@@ -3,6 +3,52 @@
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, WeekendAdjustment } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
+import Big from 'big.js';
+
+// Setup to avoid scientific notation for typical business figures
+Big.NE = -10;
+Big.PE = 20;
+
+export function safeAdd(a: number, b: number): number {
+  try {
+    return Number(new Big(a).plus(new Big(b)).toFixed(8));
+  } catch (e) {
+    return a + b;
+  }
+}
+
+export function safeSubtract(a: number, b: number): number {
+  try {
+    return Number(new Big(a).minus(new Big(b)).toFixed(8));
+  } catch (e) {
+    return a - b;
+  }
+}
+
+export function safeMultiply(a: number, b: number): number {
+  try {
+    return Number(new Big(a).times(new Big(b)).toFixed(8));
+  } catch (e) {
+    return a * b;
+  }
+}
+
+export function safeDivide(a: number, b: number): number {
+  if (b === 0) return 0;
+  try {
+    return Number(new Big(a).div(new Big(b)).toFixed(8));
+  } catch (e) {
+    return a / b;
+  }
+}
+
+export function safeRound(a: number, decimals: number = 2): number {
+  try {
+    return Number(new Big(a).toFixed(decimals));
+  } catch (e) {
+    return Math.round(a * Math.pow(10, decimals)) / Math.pow(10, decimals);
+  }
+}
 
 const symbolMap: { [key in Currency]: string } = {
   'USD': '$',
@@ -53,7 +99,7 @@ export const updateConversionRates = (rates: Record<string, number>) => {
 
 export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    return balance * (activeRates[currency] || 1);
+    return safeMultiply(balance, activeRates[currency] || 1);
 }
 
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
@@ -61,11 +107,11 @@ export const convertCurrency = (amount: number, from: Currency, to: Currency, ra
     if (from === to) return amount;
     
     // Convert from 'from' to EUR
-    const amountInEur = amount * (activeRates[from] || 1);
+    const amountInEur = safeMultiply(amount, activeRates[from] || 1);
     
     // Convert from EUR to 'to'
     const rateTo = activeRates[to] || 1;
-    return amountInEur / rateTo;
+    return safeDivide(amountInEur, rateTo);
 }
 
 export const getPreferredTimeZone = (fallback?: string): string => {
@@ -276,28 +322,28 @@ export function calculateAccountTotals(
                     const overrides = loanPaymentOverrides[acc.id] || {};
                     const schedule = generateAmortizationSchedule(acc, transactions, overrides);
                     
-                    const totalScheduledPrincipal = schedule.reduce((s, p) => s + p.principal, 0);
-                    const totalScheduledInterest = schedule.reduce((s, p) => s + p.interest, 0);
+                    const totalScheduledPrincipal = schedule.reduce((s, p) => safeAdd(s, p.principal), 0);
+                    const totalScheduledInterest = schedule.reduce((s, p) => safeAdd(s, p.interest), 0);
 
-                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.principal : a, 0);
-                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.interest : a, 0);
+                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.principal) : a, 0);
+                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.interest) : a, 0);
                     
-                    const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-                    const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                    const outstandingPrincipal = Math.max(0, safeSubtract(totalScheduledPrincipal, totalPaidPrincipal));
+                    const outstandingInterest = Math.max(0, safeSubtract(totalScheduledInterest, totalPaidInterest));
                     
-                    assetValue = convertToEur(outstandingPrincipal + outstandingInterest, acc.currency);
+                    assetValue = convertToEur(safeAdd(outstandingPrincipal, outstandingInterest), acc.currency);
                 } else if (acc.totalAmount) {
                     const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'expense');
                     const totalPaid = loanPayments.reduce((s, tx) => {
-                        const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-                        return s + (totalPayment > 0 ? totalPayment : tx.amount);
+                        const totalPayment = safeAdd((tx.principalAmount || 0), (tx.interestAmount || 0));
+                        return safeAdd(s, (totalPayment > 0 ? totalPayment : tx.amount));
                     }, 0);
-                    const outstanding = Math.max(0, acc.totalAmount - totalPaid);
+                    const outstanding = Math.max(0, safeSubtract(acc.totalAmount, totalPaid));
                     assetValue = convertToEur(outstanding, acc.currency);
                 }
             }
             
-            totalAssets += assetValue;
+            totalAssets = safeAdd(totalAssets, assetValue);
         } else if (DEBT_TYPES.includes(acc.type)) {
             let debtValue = 0;
             if (acc.type === 'Loan') {
@@ -305,23 +351,23 @@ export function calculateAccountTotals(
                     const overrides = loanPaymentOverrides[acc.id] || {};
                     const schedule = generateAmortizationSchedule(acc, transactions, overrides);
                     
-                    const totalScheduledPrincipal = schedule.reduce((s, p) => s + p.principal, 0);
-                    const totalScheduledInterest = schedule.reduce((s, p) => s + p.interest, 0);
+                    const totalScheduledPrincipal = schedule.reduce((s, p) => safeAdd(s, p.principal), 0);
+                    const totalScheduledInterest = schedule.reduce((s, p) => safeAdd(s, p.interest), 0);
 
-                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.principal : a, 0);
-                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.interest : a, 0);
+                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.principal) : a, 0);
+                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.interest) : a, 0);
                     
-                    const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-                    const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                    const outstandingPrincipal = Math.max(0, safeSubtract(totalScheduledPrincipal, totalPaidPrincipal));
+                    const outstandingInterest = Math.max(0, safeSubtract(totalScheduledInterest, totalPaidInterest));
                     
-                    debtValue = convertToEur(outstandingPrincipal + outstandingInterest, acc.currency);
+                    debtValue = convertToEur(safeAdd(outstandingPrincipal, outstandingInterest), acc.currency);
                 } else if (acc.totalAmount) {
                     const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'income');
                     const totalPaid = loanPayments.reduce((s, tx) => {
-                        const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-                        return s + (totalPayment > 0 ? totalPayment : tx.amount);
+                        const totalPayment = safeAdd((tx.principalAmount || 0), (tx.interestAmount || 0));
+                        return safeAdd(s, (totalPayment > 0 ? totalPayment : tx.amount));
                     }, 0);
-                    const outstanding = Math.max(0, acc.totalAmount - totalPaid);
+                    const outstanding = Math.max(0, safeSubtract(acc.totalAmount, totalPaid));
                     debtValue = convertToEur(outstanding, acc.currency);
                 } else {
                     debtValue = Math.abs(valueEur);
@@ -333,14 +379,14 @@ export function calculateAccountTotals(
                 debtValue = -valueEur;
                 
                 if (acc.type === 'Credit Card') {
-                    creditCardDebt += debtValue;
+                    creditCardDebt = safeAdd(creditCardDebt, debtValue);
                 }
             }
-            totalDebt += debtValue;
+            totalDebt = safeAdd(totalDebt, debtValue);
         }
     });
 
-    const netWorth = totalAssets - totalDebt;
+    const netWorth = safeSubtract(totalAssets, totalDebt);
 
     return { totalAssets, totalDebt, netWorth, creditCardDebt };
 }

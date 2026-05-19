@@ -5,6 +5,7 @@ import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE } from '../constants';
 import { toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { useSafeState } from '../hooks/useSafeState';
 
 interface WarrantPriceModalProps {
   onClose: () => void;
@@ -26,15 +27,15 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     // Bulk Entry State
     const [bulkData, setBulkData] = useState('');
     const [bulkPreview, setBulkPreview] = useState<{date: string, price: number}[]>([]);
-    const [fetchError, setFetchError] = useState<string | null>(null);
-    const [isFetching, setIsFetching] = useState(false);
+    const [fetchError, setFetchError] = useSafeState<string | null>(null);
+    const [isFetching, setIsFetching] = useSafeState(false);
 
     // Smart Fetcher State
     const [isSmartFetcherOpen, setIsSmartFetcherOpen] = useState(false);
     const [smartFetcherUrl, setSmartFetcherUrl] = useState('');
-    const [smartFetcherStatus, setSmartFetcherStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-    const [smartFetcherError, setSmartFetcherError] = useState<string | null>(null);
-    const [smartFetcherCandidates, setSmartFetcherCandidates] = useState<{ id: string; value: number; selector: string; context: string; score: number }[]>([]);
+    const [smartFetcherStatus, setSmartFetcherStatus] = useSafeState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    const [smartFetcherError, setSmartFetcherError] = useSafeState<string | null>(null);
+    const [smartFetcherCandidates, setSmartFetcherCandidates] = useSafeState<{ id: string; value: number; selector: string; context: string; score: number }[]>([]);
     const [smartFetcherSelection, setSmartFetcherSelection] = useState<string | null>(null);
     const [smartFetcherBinding, setSmartFetcherBinding] = useState<{ url: string; selector: string; cookies?: string } | null>(null);
     const [smartFetcherCookies, setSmartFetcherCookies] = useState('');
