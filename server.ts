@@ -52,15 +52,6 @@ async function startServer() {
     res.json({ status: 'unauthenticated' });
   });
 
-  app.get('/api/auth/me', (req, res) => {
-    // Mock user for local development if not authenticated
-    res.status(200).json({ id: 'mock-user', email: 'user@example.com', name: 'Mock User' });
-  });
-
-  app.post('/api/auth/logout', (req, res) => {
-    res.json({ status: 'ok' });
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
