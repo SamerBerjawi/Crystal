@@ -341,7 +341,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                          <img 
                                              src={brandLogoUrl} 
                                              alt={account.make || 'Car Brand'} 
-                                             className="max-w-full max-h-full object-contain p-2 filter brightness-110 drop-shadow-md"
+                                             className="max-w-full max-h-full object-contain filter brightness-110 drop-shadow-md"
                                              onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
                                              referrerPolicy="no-referrer"
                                          />
