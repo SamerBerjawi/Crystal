@@ -508,52 +508,55 @@ export function calculateStatementPeriods(statementStartDay: number, paymentDueD
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    let currentStatementStart: Date;
-    const todayDay = todayStart.getDate();
     const todayMonth = todayStart.getMonth();
     const todayYear = todayStart.getFullYear();
 
-    if (todayDay >= statementStartDay) {
-        currentStatementStart = new Date(todayYear, todayMonth, statementStartDay);
-    } else {
-        currentStatementStart = new Date(todayYear, todayMonth - 1, statementStartDay);
+    // Helper to generate a statement period for a given offset from the current month
+    const getPeriodForOffset = (monthOffset: number) => {
+        // Target month and year
+        const targetDate = new Date(todayYear, todayMonth + monthOffset, 1);
+        const y = targetDate.getFullYear();
+        const m = targetDate.getMonth();
+
+        const start = new Date(y, m, statementStartDay);
+        const end = new Date(y, m + 1, statementStartDay - 1);
+        
+        let paymentDue = new Date(end.getFullYear(), end.getMonth(), paymentDueDay);
+        if (paymentDue <= end) {
+            paymentDue.setMonth(paymentDue.getMonth() + 1);
+        }
+        return { start, end, paymentDue };
+    };
+
+    // Generate consecutive periods spanning from 3 months ago to 3 months ahead
+    const allPeriods = [];
+    for (let offset = -3; offset <= 3; offset++) {
+        allPeriods.push(getPeriodForOffset(offset));
     }
 
-    // Previous Period
-    const previousStatementStart = new Date(currentStatementStart);
-    previousStatementStart.setMonth(previousStatementStart.getMonth() - 1);
-    const previousStatementEnd = new Date(previousStatementStart);
-    previousStatementEnd.setMonth(previousStatementEnd.getMonth() + 1);
-    previousStatementEnd.setDate(previousStatementEnd.getDate() - 1);
-    let previousPaymentDueDate = new Date(previousStatementEnd.getFullYear(), previousStatementEnd.getMonth(), paymentDueDay);
-    if (previousPaymentDueDate <= previousStatementEnd) {
-        previousPaymentDueDate.setMonth(previousPaymentDueDate.getMonth() + 1);
+    // Find the active 'current' period:
+    // This is the earliest generated statement period whose payment due date is still in the future or is today (i.e., not yet past due).
+    let currentIndex = -1;
+    for (let i = 0; i < allPeriods.length; i++) {
+        if (allPeriods[i].paymentDue >= todayStart) {
+            currentIndex = i;
+            break;
+        }
     }
 
-    // Current Period
-    const currentStatementEnd = new Date(currentStatementStart);
-    currentStatementEnd.setMonth(currentStatementEnd.getMonth() + 1);
-    currentStatementEnd.setDate(currentStatementEnd.getDate() - 1);
-    let currentPaymentDueDate = new Date(currentStatementEnd.getFullYear(), currentStatementEnd.getMonth(), paymentDueDay);
-    if (currentPaymentDueDate <= currentStatementEnd) {
-        currentPaymentDueDate.setMonth(currentPaymentDueDate.getMonth() + 1);
+    // Fallback if none found
+    if (currentIndex === -1) {
+        currentIndex = 3; // pivot/current offset (offset = 0)
     }
 
-    // Future Period
-    const futureStatementStart = new Date(currentStatementStart);
-    futureStatementStart.setMonth(futureStatementStart.getMonth() + 1);
-    const futureStatementEnd = new Date(futureStatementStart);
-    futureStatementEnd.setMonth(futureStatementEnd.getMonth() + 1);
-    futureStatementEnd.setDate(futureStatementEnd.getDate() - 1);
-    let futurePaymentDueDate = new Date(futureStatementEnd.getFullYear(), futureStatementEnd.getMonth(), paymentDueDay);
-    if (futurePaymentDueDate <= futureStatementEnd) {
-        futurePaymentDueDate.setMonth(futurePaymentDueDate.getMonth() + 1);
-    }
-    
+    const previous = currentIndex > 0 ? allPeriods[currentIndex - 1] : getPeriodForOffset(-1);
+    const current = allPeriods[currentIndex];
+    const future = currentIndex < allPeriods.length - 1 ? allPeriods[currentIndex + 1] : getPeriodForOffset(1);
+
     return {
-        previous: { start: previousStatementStart, end: previousStatementEnd, paymentDue: previousPaymentDueDate },
-        current: { start: currentStatementStart, end: currentStatementEnd, paymentDue: currentPaymentDueDate },
-        future: { start: futureStatementStart, end: futureStatementEnd, paymentDue: futurePaymentDueDate }
+        previous,
+        current,
+        future
     };
 }
 

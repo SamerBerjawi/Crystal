@@ -337,11 +337,11 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                      {account.ownership || 'Private'} • {account.fuelType}
                                  </span>
                                  {brandLogoUrl && (
-                                     <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
+                                     <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden">
                                          <img 
                                              src={brandLogoUrl} 
                                              alt={account.make || 'Car Brand'} 
-                                             className="max-w-full max-h-full object-contain filter brightness-110 drop-shadow-md"
+                                             className="w-full h-full object-cover"
                                              onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
                                              referrerPolicy="no-referrer"
                                          />
