@@ -494,6 +494,13 @@ const Investments: React.FC<InvestmentsProps> = ({
                     confirmButtonText="Delete"
                 />
 
+                <PageHeader 
+                    markerIcon="show_chart"
+                    markerLabel="Investment Center"
+                    title="Investments & Holdings"
+                    subtitle="Track public equities, Exchange Traded Funds, cryptocurrencies, warrants, active basis, and yield metrics in real-time."
+                />
+
                 {/* --- Consolidated Header & Portfolio --- */}
                 <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
                     <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />

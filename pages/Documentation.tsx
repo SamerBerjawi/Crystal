@@ -221,7 +221,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto animate-fade-in-up pb-24 px-4">
+        <div className="w-full animate-fade-in-up pb-24 px-4">
              {/* Navigation & Header */}
             <div className="space-y-6 pt-4 mb-16">
                 <nav className="flex items-center gap-3">

@@ -95,7 +95,7 @@ const InvoicesPage: React.FC = () => {
     const currencyCode = (preferences.currency.split(' ')[0] as Currency) || 'EUR';
 
     return (
-        <div className="max-w-7xl mx-auto space-y-10 pb-20 animate-fade-in-up">
+        <div className="w-full space-y-10 pb-20 animate-fade-in-up">
             {isEditorOpen && (
                 <InvoiceModal 
                     isOpen={isEditorOpen}

@@ -29,20 +29,53 @@ interface DetectedSubscription {
 }
 
 const normalizeString = (str: string) => {
-    return str.toLowerCase().replace(/[^a-z]/g, ''); // aggressive normalization
+    if (!str) return '';
+    // 1. Lowercase
+    let clean = str.toLowerCase();
+    
+    // 2. Remove common transaction prefixes/gateway noise
+    clean = clean.replace(/^(paypal\s*\*|stripe\s*\*|sq\s*\*|apple\s+bill\s*|google\s*\*|amzn\s*\*|amazon\s*\*|g\.co\/helppay#?)/g, '');
+    
+    // 3. Remove card numbers and ending details (e.g. *1234, x1234, ending in 1234)
+    clean = clean.replace(/(ending\s+in\s+\d+|[\s*-]*[x*]+\d{2,4}\b)/g, '');
+    
+    // 4. Remove transaction reference codes and dates (e.g. #12345, 12-34, 20240401)
+    clean = clean.replace(/(#[a-z0-9_-]+|\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\/\d{2}\/\d{4}\b|\b\d{8,}\b)/g, '');
+    
+    // 5. Remove common corporate suffixes at the end of words or strings
+    clean = clean.replace(/\b(inc|llc|ltd|corp|gmbh|co|com|net|org|srl|sas|se|nl|de|fr|uk|holding|holdings|services|group|pay|payment|bill|billing|subscription|member|membership)\b/g, '');
+    
+    // 6. Keep only a-z and 0-9 to normalize
+    clean = clean.replace(/[^a-z0-9]/g, '');
+    
+    return clean.trim();
 };
 
 const calculateFrequency = (intervals: number[]): RecurrenceFrequency | null => {
+    if (intervals.length === 0) return null;
+    
     const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     // Standard deviation to ensure consistency
     const variance = intervals.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / intervals.length;
     const stdDev = Math.sqrt(variance);
 
-    if (stdDev > 5) return null; // Intervals are too irregular
+    // Set variable tolerances based on subscription frequency average interval (in days)
+    // - Daily: avg ~1 day, max stdDev = 0.5
+    // - Weekly: avg ~7 days, max stdDev = 2.5 (allows 1-2 days weekend shifts)
+    // - Monthly: avg ~30 days, max stdDev = 6.0 (allows variable month lengths + weekends)
+    // - Yearly: avg ~365 days, max stdDev = 15.0
+    let maxStdDev = 5;
+    if (avg >= 0.8 && avg <= 1.5) maxStdDev = 0.5;
+    else if (avg >= 5 && avg <= 9) maxStdDev = 2.5;
+    else if (avg >= 25 && avg <= 35) maxStdDev = 6.0;
+    else if (avg >= 355 && avg <= 375) maxStdDev = 15.0;
 
-    if (avg >= 26 && avg <= 34) return 'monthly'; // ~30 days
-    if (avg >= 360 && avg <= 370) return 'yearly'; // ~365 days
-    if (avg >= 6 && avg <= 8) return 'weekly'; // ~7 days
+    if (stdDev > maxStdDev) return null;
+
+    if (avg >= 0.8 && avg <= 1.5) return 'daily';
+    if (avg >= 5.5 && avg <= 8.5) return 'weekly';
+    if (avg >= 25 && avg <= 35) return 'monthly';
+    if (avg >= 355 && avg <= 375) return 'yearly';
     
     return null;
 };
@@ -82,11 +115,18 @@ const Subscriptions: React.FC = () => {
             const groups: Record<string, Transaction[]> = {};
             const expenseTransactions = transactions.filter(t => t.type === 'expense' && !t.transferId);
 
-            // Group by normalized description (first 10 chars to catch variations like "Netflix #123")
+            // Group by normalized merchant/description
             expenseTransactions.forEach(tx => {
-                const key = normalizeString(tx.description.substring(0, 12));
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(tx);
+                const targetStr = tx.merchant || tx.description;
+                let key = normalizeString(targetStr);
+                if (key.length < 3) {
+                    // Fallback to simpler normalization of description if it was too aggressively cleaned
+                    key = tx.description.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
+                }
+                if (key.length >= 3) {
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(tx);
+                }
             });
 
             const candidates: DetectedSubscription[] = [];
@@ -96,7 +136,14 @@ const Subscriptions: React.FC = () => {
                 if (groupTxs.length < 2) return;
 
                 // Check if already tracked or ignored
-                const isTracked = recurringTransactions.some(rt => normalizeString(rt.description).includes(key));
+                const isTracked = recurringTransactions.some(rt => {
+                    const rtStr = rt.merchant || rt.description;
+                    let rtKey = normalizeString(rtStr);
+                    if (rtKey.length < 3) {
+                        rtKey = rt.description.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
+                    }
+                    return rtKey.includes(key) || key.includes(rtKey);
+                });
                 if (isTracked || ignoredSubscriptions.includes(key)) return;
 
                 // Sort by date
@@ -121,10 +168,20 @@ const Subscriptions: React.FC = () => {
                     const totalAmount = groupTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0);
                     const avgAmount = totalAmount / groupTxs.length;
                     
-                    // Determine "confidence" based on consistency of amount
+                    // Determine "confidence" based on consistency of amount and timing
                     const amountVariance = groupTxs.reduce((sum, t) => sum + Math.pow(Math.abs(t.amount) - avgAmount, 2), 0) / groupTxs.length;
                     const amountStdDev = Math.sqrt(amountVariance);
-                    const confidence = amountStdDev < (avgAmount * 0.1) ? 'high' : 'medium'; // <10% variation
+                    
+                    const isAmountConsistent = amountStdDev <= (avgAmount * 0.05); // <=5% variation
+                    const hasManyOccurrences = groupTxs.length >= 3;
+                    
+                    // Timing consistency check based on standard deviation of intervals
+                    const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                    const intervalVariance = intervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / intervals.length;
+                    const intervalStdDev = Math.sqrt(intervalVariance);
+                    const isTimingConsistent = intervalStdDev <= (frequency === 'weekly' ? 1.0 : frequency === 'monthly' ? 3.0 : 7.0);
+
+                    const confidence = (isAmountConsistent && hasManyOccurrences && isTimingConsistent) ? 'high' : 'medium';
 
                     // Last occurrence info
                     const lastTx = groupTxs[groupTxs.length - 1];
@@ -267,7 +324,11 @@ const Subscriptions: React.FC = () => {
         // Remove from detected if it matches (cleanup)
         if (!data.id) {
              // Just added a new one, clear matching detected items immediately for UX
-             const key = normalizeString(data.description.substring(0, 12));
+             const targetStr = data.merchant || data.description;
+             let key = normalizeString(targetStr);
+             if (key.length < 3) {
+                 key = data.description.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12);
+             }
              setDetectedSubscriptions(prev => prev.filter(d => d.key !== key));
         }
     };
@@ -329,6 +390,13 @@ const Subscriptions: React.FC = () => {
                         membershipToEdit={membershipToEdit}
                     />
                 )}
+
+                <PageHeader 
+                    markerIcon="autorenew"
+                    markerLabel="Subscriptions & Memberships"
+                    title="Active Commitments"
+                    subtitle="Track active digital products, recurring user contracts, gym memberships, and loyalty cards in a unified panel."
+                />
 
                 {/* --- Consolidated Header & Portfolio --- */}
                 <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">

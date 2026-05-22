@@ -111,15 +111,38 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                         </label>
                     </div>
                     <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
-                        {DATA_TYPES.map(type => (
-                            <label key={type.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTypes.includes(type.id) ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800' : 'bg-light-bg dark:bg-dark-bg border-transparent hover:bg-black/5 dark:hover:bg-white/5'}`}>
-                                <input type="checkbox" checked={selectedTypes.includes(type.id)} onChange={() => toggleType(type.id)} className={CHECKBOX_STYLE} />
-                                <div className="flex items-center gap-2">
-                                     <span className={`material-symbols-outlined text-lg ${selectedTypes.includes(type.id) ? 'text-primary-600 dark:text-primary-400 filled-icon' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{type.icon}</span>
-                                     <span className="font-medium text-sm text-light-text dark:text-dark-text">{type.label}</span>
-                                </div>
-                            </label>
-                        ))}
+                        {DATA_TYPES.map(type => {
+                            const isSelected = selectedTypes.includes(type.id);
+                            return (
+                                <label 
+                                    key={type.id} 
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                        isSelected 
+                                            ? 'bg-primary-50 dark:bg-primary-950/40 border-primary-300 dark:border-primary-500/50 shadow-sm shadow-primary-500/5' 
+                                            : 'bg-light-bg dark:bg-dark-bg border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5'
+                                    }`}
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isSelected} 
+                                        onChange={() => toggleType(type.id)} 
+                                        className={CHECKBOX_STYLE} 
+                                    />
+                                    <div className="flex items-center gap-2">
+                                         <span className={`material-symbols-outlined text-lg ${
+                                             isSelected 
+                                                 ? 'text-primary-600 dark:text-primary-400 filled-icon' 
+                                                 : 'text-light-text-secondary dark:text-dark-text-secondary'
+                                         }`}>{type.icon}</span>
+                                         <span className={`font-semibold text-sm ${
+                                             isSelected
+                                                 ? 'text-primary-700 dark:text-primary-300'
+                                                 : 'text-light-text dark:text-dark-text'
+                                         }`}>{type.label}</span>
+                                    </div>
+                                </label>
+                            );
+                        })}
                     </div>
                 </div>
 

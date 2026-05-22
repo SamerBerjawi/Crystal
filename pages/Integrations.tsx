@@ -127,7 +127,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 space-y-12 animate-fade-in-up px-4">
+    <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4">
        {/* Navigation & Header */}
        <div className="space-y-6">
         <nav className="flex items-center gap-3">

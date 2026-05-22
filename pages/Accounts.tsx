@@ -334,6 +334,13 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
         )}
 
+        <PageHeader 
+            markerIcon="account_balance_wallet"
+            markerLabel="Portfolio Overview"
+            title="Accounts & Portfolio"
+            subtitle="Track your liquid capital, property valuations, debt obligations and investments in a single place to calculate real-time net worth."
+        />
+
         {/* --- Consolidated Header & Portfolio --- */}
         <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
             {/* Subtle background glow based on active segment */}

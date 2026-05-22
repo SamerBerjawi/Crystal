@@ -158,7 +158,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
     };
 
     return (
-        <div className="max-w-6xl mx-auto pb-24 space-y-12 animate-fade-in-up px-4">
+        <div className="w-full pb-24 space-y-12 animate-fade-in-up px-4">
             {isModalOpen && (
                 <TaskModal 
                     task={editingTask} 
@@ -271,7 +271,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
                     <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Temporal Density</h3>
                 </div>
-                <div className="flex justify-center bg-white dark:bg-dark-card p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-sm">
+                <div className="w-full overflow-x-auto flex justify-center py-2">
                     <TasksHeatmap tasks={tasks} />
                 </div>
             </section>

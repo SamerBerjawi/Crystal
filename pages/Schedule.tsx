@@ -670,6 +670,13 @@ const SchedulePage: React.FC = () => {
                     confirmButtonText="Confirm"
                 />
 
+                <PageHeader 
+                    markerIcon="event_repeat"
+                    markerLabel="Future Outflows"
+                    title="Recurring & Bilateral Obligations"
+                    subtitle="Track and forecast subscriptions, insurance schedules, salary contracts, loan payments, and billing cycles."
+                />
+
                 {/* --- Consolidated Header & Portfolio --- */}
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
                     <div className={`absolute -top-24 -right-24 w-80 h-80 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />

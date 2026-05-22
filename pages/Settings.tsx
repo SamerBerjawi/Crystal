@@ -40,7 +40,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 animate-fade-in-up pb-12 px-4">
+    <div className="w-full space-y-10 animate-fade-in-up pb-12 px-4">
       {/* Header */}
       <PageHeader
         markerIcon="settings"

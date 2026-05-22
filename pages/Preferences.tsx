@@ -82,7 +82,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 animate-fade-in-up px-4">
+    <div className="w-full pb-12 animate-fade-in-up px-4">
       {/* Navigation & Header */}
       <div className="mb-10 space-y-6">
         <nav className="flex items-center gap-3">

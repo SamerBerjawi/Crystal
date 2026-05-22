@@ -865,7 +865,7 @@ const Forecasting: React.FC = () => {
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto flex-wrap">
                         <button 
                             onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)} 
-                            className={`${BTN_SECONDARY_STYLE} flex items-center justify-center gap-2 ${isPlaygroundOpen ? 'bg-primary-500/10 text-primary-600 border-primary-500/30' : ''}`}
+                            className={`${BTN_SECONDARY_STYLE} flex items-center justify-center gap-2 !bg-white dark:!bg-dark-fill !border !border-black/15 dark:!border-white/5 shadow-sm ${isPlaygroundOpen ? '!bg-primary-500/10 !text-primary-600 !border-primary-500/30' : ''}`}
                         >
                             <span className="material-symbols-outlined text-xl">science</span>
                             <span className="truncate">{isPlaygroundOpen ? 'Close Playground' : 'Playground'}</span>
@@ -1097,17 +1097,17 @@ const Forecasting: React.FC = () => {
                         </p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="flex items-center gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl h-10">
                             <button 
                                 onClick={() => setShowIndividualLines(false)}
-                                className={`p-2 rounded-lg flex items-center gap-2 transition-all ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
+                                className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">stacked_line_chart</span>
                                 <span className="text-xs font-bold uppercase tracking-wider">Combined</span>
                             </button>
                             <button 
                                 onClick={() => setShowIndividualLines(true)}
-                                className={`p-2 rounded-lg flex items-center gap-2 transition-all ${showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
+                                className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">multiline_chart</span>
                                 <span className="text-xs font-bold tracking-wider">Split Accounts</span>
@@ -1155,17 +1155,17 @@ const Forecasting: React.FC = () => {
                         <button onClick={handleToggleAllDisplayed} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline transition-colors tracking-widest">
                             {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
                         </button>
-                        <div className="flex items-center gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl h-10">
                             <button 
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
+                                className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">grid_view</span>
                                 <span className="text-xs font-bold uppercase tracking-wider">Grid</span>
                             </button>
                             <button 
                                 onClick={() => setViewMode('table')}
-                                className={`p-2 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'table' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
+                                className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'table' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">table_rows</span>
                                 <span className="text-xs font-bold uppercase tracking-wider">Table</span>

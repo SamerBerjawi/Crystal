@@ -48,7 +48,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   const sectionTitleStyle = "text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2";
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in-up pb-12 px-4">
+    <div className="w-full animate-fade-in-up pb-12 px-4">
       {isPasswordModalOpen && (
         <ChangePasswordModal 
           isOpen={isPasswordModalOpen}

@@ -98,7 +98,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
     <div className="relative w-auto" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`${BTN_SECONDARY_STYLE} w-auto pl-6 pr-4 gap-1`}
+        className={`${BTN_SECONDARY_STYLE} w-auto pl-6 pr-4 gap-1 !bg-white dark:!bg-dark-fill !border !border-black/15 dark:!border-white/5 shadow-sm`}
       >
         <span className="truncate max-w-[150px]">{buttonText()}</span>
         <span className="material-symbols-outlined text-sm">expand_more</span>

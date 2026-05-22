@@ -1471,7 +1471,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                             onClick={() => setActiveTab(tab)}
                             className={`px-4 sm:px-8 h-9 sm:h-10 rounded-[1.25rem] text-[10px] sm:text-[12px] font-black tracking-widest transition-all duration-300 flex items-center justify-center gap-2 uppercase whitespace-nowrap flex-1 lg:flex-none ${
                                 activeTab === tab
-                                ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px'
+                                ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400'
                                 : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
                             }`}
                         >

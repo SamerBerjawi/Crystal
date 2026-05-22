@@ -210,7 +210,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                              </div>
                              
                              {logoUrl ? (
-                                <img src={logoUrl} alt="" className="h-10 object-contain" onError={() => setLogoError(true)} />
+                                <img src={logoUrl} alt="" className="h-10 object-contain rounded-lg" onError={() => setLogoError(true)} />
                              ) : (
                                 <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm uppercase">{account.cardNetwork || 'PLATINUM'}</span>
                              )}

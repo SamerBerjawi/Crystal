@@ -139,7 +139,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 space-y-12 animate-fade-in-up px-4 text-light-text dark:text-dark-text">
+    <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4 text-light-text dark:text-dark-text">
       {isModalOpen && (
         <TagModal 
           onClose={() => setIsModalOpen(false)}

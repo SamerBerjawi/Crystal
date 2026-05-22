@@ -352,7 +352,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
     };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 space-y-12 animate-fade-in-up px-4">
+    <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4">
       {isNewImportModalOpen && <NewImportModal onClose={() => setNewImportModalOpen(false)} onSelect={handleSelectImportType} />}
       
       {exportConfig.isOpen && (

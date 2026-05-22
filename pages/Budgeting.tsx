@@ -210,7 +210,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
       />
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl relative z-10">
-           <div className="flex items-center gap-2 bg-white/50 dark:bg-black/50 p-1 rounded-2xl w-full md:w-auto justify-between md:justify-start border border-black/5 dark:border-white/5 shadow-lg">
+           <div className="flex items-center gap-2 bg-white/50 dark:bg-black/50 p-1 rounded-[1.5rem] w-full md:w-auto justify-between md:justify-start border border-black/5 dark:border-white/5 shadow-lg">
                 <button onClick={() => handleMonthChange(-1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
                     <span className="material-symbols-outlined text-lg leading-none group-hover:-translate-x-1 transition-transform">chevron_left</span>
                 </button>
@@ -224,7 +224,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
            </div>
            
            <div className="flex items-center gap-2 w-full md:w-auto group">
-                <div className="flex rounded-2xl shadow-lg bg-white/50 dark:bg-black/50 border border-black/5 dark:border-white/5 overflow-hidden">
+                <div className="flex rounded-[1.5rem] shadow-lg bg-white/50 dark:bg-black/50 border border-black/5 dark:border-white/5 overflow-hidden">
                     <button
                         onClick={handleQuickCreateDefault}
                         className="flex items-center gap-3 px-6 py-3 hover:bg-primary-500/10 transition-colors group/btn"
