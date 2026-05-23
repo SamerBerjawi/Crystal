@@ -17,6 +17,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import TransactionMatcherModal from '../components/TransactionMatcherModal';
+import TransactionMatcherCard from '../components/TransactionMatcherCard';
 import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
@@ -1453,6 +1454,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           }
         />
       </div>
+
+      {suggestions.length > 0 && (
+          <TransactionMatcherCard
+              suggestionsCount={suggestions.length}
+              onReview={() => setIsMatcherModalOpen(true)}
+              onDismiss={dismissAllSuggestions}
+          />
+      )}
 
       <div className="mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/60 dark:bg-dark-card p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">

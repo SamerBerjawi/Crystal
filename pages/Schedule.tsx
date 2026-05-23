@@ -70,6 +70,127 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
     )
 }
 
+// --- Recurring vs Income Comparison Widget ---
+const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; incomeCount: number; outflowCount: number }> = ({ income, outflow, incomeCount, outflowCount }) => {
+    const ratio = income > 0 ? (outflow / income) * 100 : (outflow > 0 ? 100 : 0);
+    const remaining = Math.max(0, income - outflow);
+    
+    // Status color and advice based on standard recommendation for fixed/recurring costs
+    let statusColor = 'text-emerald-600 dark:text-emerald-400';
+    let progressColor = 'bg-emerald-500';
+    let statusBg = 'bg-emerald-500/10 dark:bg-emerald-500/20';
+    let statusText = 'Optimal Commitment';
+    let advice = 'Recurring obligations consume less than 50% of monthly dynamic income. Solid safety margins are in place for savings and portfolio growth.';
+    
+    if (ratio >= 70) {
+        statusColor = 'text-rose-600 dark:text-rose-400';
+        progressColor = 'bg-rose-500';
+        statusBg = 'bg-rose-500/10 dark:bg-rose-500/20';
+        statusText = 'High Commitment';
+        advice = 'Recurring obligation overhead exceeds 70%. Consider renegotiating subscriptions, interest schemes, or core servicing parameters.';
+    } else if (ratio >= 50) {
+        statusColor = 'text-amber-600 dark:text-amber-400';
+        progressColor = 'bg-amber-500';
+        statusBg = 'bg-amber-500/10 dark:bg-amber-500/20';
+        statusText = 'Moderate Commitment';
+        advice = 'Bilateral obligations occupy over half of incoming flow. Maintain vigilance on discretionary increments to avoid cashflow compression.';
+    }
+
+    return (
+        <div className="bg-white/60 dark:bg-dark-card/60 rounded-[2.5rem] p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+                <span className="material-symbols-outlined text-8xl text-primary-500">analytics</span>
+            </div>
+            
+            <div className="relative z-10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 flex-1 min-w-0">
+                    <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                        {/* Circular progress bar */}
+                        <svg className="w-20 h-20 transform -rotate-90">
+                            <circle
+                                cx="40"
+                                cy="40"
+                                r="34"
+                                className="stroke-black/5 dark:stroke-white/10"
+                                strokeWidth="6"
+                                fill="transparent"
+                            />
+                            <circle
+                                cx="40"
+                                cy="40"
+                                r="34"
+                                className={`transition-all duration-1000`}
+                                strokeWidth="6"
+                                fill="transparent"
+                                strokeDasharray={213.6}
+                                strokeDashoffset={213.6 - (213.6 * Math.min(ratio, 100)) / 100}
+                                strokeLinecap="round"
+                                style={{ stroke: 'var(--color-primary-500, #6366f1)' }}
+                            />
+                        </svg>
+                        <div className="absolute flex flex-col items-center">
+                            <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                                {Math.round(ratio)}%
+                            </span>
+                            <span className="text-[7px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary/60">ratio</span>
+                        </div>
+                    </div>
+
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <div className="flex items-center gap-1.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2.5 py-0.5 rounded-full">
+                                <span className="material-symbols-outlined text-sm">donut_large</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest">Commitment Index</span>
+                            </div>
+                            <div className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${statusBg} ${statusColor}`}>
+                                {statusText}
+                            </div>
+                        </div>
+                        <h4 className="font-extrabold text-base text-gray-900 dark:text-white">
+                            Scheduled payments consume <span className={statusColor}>{Math.round(ratio)}%</span> of anticipated income
+                        </h4>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 max-w-xl leading-relaxed">
+                            {advice}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="w-full md:w-80 shrink-0 bg-black/5 dark:bg-black/20 p-5 rounded-[1.5rem] border border-black/5 dark:border-white/5 flex flex-col justify-between">
+                    <div className="flex justify-between items-baseline mb-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Distribution (30d)</span>
+                        <div className="text-right">
+                            <span className="text-xs font-black tabular-nums text-light-text dark:text-dark-text">
+                                {formatCurrency(outflow, 'EUR')}
+                            </span>
+                            <span className="text-[10px] opacity-40 italic"> of {formatCurrency(income, 'EUR')}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden flex mb-3">
+                        <motion.div 
+                            initial={{ width: 0 }} 
+                            animate={{ width: `${Math.min(ratio, 100)}%` }} 
+                            className={`h-full rounded-l-full ${progressColor}`} 
+                        />
+                        {ratio < 100 && (
+                            <motion.div 
+                                initial={{ width: 0 }} 
+                                animate={{ width: `${100 - Math.min(ratio, 100)}%` }} 
+                                className="h-full bg-emerald-500/20 dark:bg-emerald-500/10 rounded-r-full" 
+                            />
+                        )}
+                    </div>
+
+                    <div className="flex justify-between text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                        <span>{outflowCount} expected obligations</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatCurrency(remaining, 'EUR')} reserve</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Collapsible Group Component ---
 const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEndSeries, defaultOpen = true, totalAmount }: any) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -675,6 +796,13 @@ const SchedulePage: React.FC = () => {
                     markerLabel="Future Outflows"
                     title="Recurring & Bilateral Obligations"
                     subtitle="Track and forecast subscriptions, insurance schedules, salary contracts, loan payments, and billing cycles."
+                />
+
+                <RecurringComparisonWidget
+                    income={summaryMetrics.income}
+                    outflow={summaryMetrics.expense}
+                    incomeCount={summaryMetrics.incCount}
+                    outflowCount={summaryMetrics.expCount}
                 />
 
                 {/* --- Consolidated Header & Portfolio --- */}

@@ -1142,6 +1142,25 @@ const App: React.FC = () => {
 
   const handleSaveTransaction = useCallback((transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete: string[] = [], options?: { autoSpareChange?: boolean }) => {
     const finalTxArray = [...transactionDataArray];
+
+    // Apply Regex Categorization rules
+    const activeRegexRules = preferences.regexCategorizationRules?.filter(r => r.isActive) || [];
+    if (activeRegexRules.length > 0) {
+      finalTxArray.forEach(tx => {
+        const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').trim();
+        for (const rule of activeRegexRules) {
+          try {
+            const regex = new RegExp(rule.pattern, 'i');
+            if (regex.test(textToMatch)) {
+              tx.category = rule.category;
+              break; // Stop at first matching rule
+            }
+          } catch (e) {
+            console.error('Invalid regex pattern:', rule.pattern, e);
+          }
+        }
+      });
+    }
     
     // Automatic Spare Change Logic
     if (options?.autoSpareChange) {
@@ -1244,7 +1263,7 @@ const App: React.FC = () => {
             return account;
         })
     );
-  }, [accounts, transactions]);
+  }, [accounts, transactions, preferences]);
 
   const handleDeleteTransactions = (transactionIds: string[]) => { if (transactionIds.length > 0) handleSaveTransaction([], transactionIds); };
   const handleSaveInvestmentTransaction = (invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {

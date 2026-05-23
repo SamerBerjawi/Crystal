@@ -474,6 +474,14 @@ export interface MerchantRule {
   defaultDescription?: string;
 }
 
+export interface RegexCategorizationRule {
+  id: string;
+  pattern: string;
+  category: string;
+  isActive: boolean;
+  description?: string;
+}
+
 export interface AppPreferences {
   currency: string;
   language: string;
@@ -494,6 +502,7 @@ export interface AppPreferences {
   excludeTransfersFromAnalytics?: boolean;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
   showBalanceAdjustments?: boolean;
+  regexCategorizationRules?: RegexCategorizationRule[];
 }
 
 // New types for Bills & Payments

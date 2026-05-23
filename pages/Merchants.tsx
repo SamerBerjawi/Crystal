@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Page, MerchantRule, Category } from '../types';
+import { Page, MerchantRule, Category, RegexCategorizationRule } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
@@ -9,6 +9,8 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import MerchantDetailModal from '../components/MerchantDetailModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
+import { toast } from 'sonner';
+import RegexCategorizationModal from '../components/RegexCategorizationModal';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -41,8 +43,112 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
     </div>
 );
 
+// --- Custom Guess Helper & Sparkline Mini charts ---
+const guessDomainName = (name: string): string | null => {
+    const cleanName = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!cleanName || cleanName.length < 2) return null;
+    
+    const commonMap: Record<string, string> = {
+        netflix: 'netflix.com',
+        spotify: 'spotify.com',
+        uber: 'uber.com',
+        apple: 'apple.com',
+        amazon: 'amazon.com',
+        google: 'google.com',
+        youtube: 'youtube.com',
+        microsoft: 'microsoft.com',
+        steam: 'steampowered.com',
+        github: 'github.com',
+        paypal: 'paypal.com',
+        stripe: 'stripe.com',
+        revolut: 'revolut.com',
+        mcdonalds: 'mcdonalds.com',
+        starbucks: 'starbucks.com',
+        shell: 'shell.com',
+        total: 'totalenergies.com',
+        bp: 'bp.com',
+        airbnb: 'airbnb.com',
+        booking: 'booking.com',
+        lidl: 'lidl.com',
+        aldi: 'aldi.com',
+        ikea: 'ikea.com',
+        hm: 'hm.com',
+        zara: 'zara.com',
+        nike: 'nike.com',
+        adidas: 'adidas.com',
+        patreon: 'patreon.com',
+        substack: 'substack.com',
+        target: 'target.com',
+        walmart: 'walmart.com',
+        costco: 'costco.com',
+        chevron: 'chevron.com',
+        exxon: 'exxon.com',
+        starlink: 'starlink.com',
+        tesla: 'tesla.com',
+        openai: 'openai.com',
+        adobe: 'adobe.com',
+        figma: 'figma.com',
+        slack: 'slack.com',
+        zoom: 'zoom.us',
+        discord: 'discord.com',
+        trello: 'trello.com',
+        notion: 'notion.so'
+    };
+    
+    for (const [key, domain] of Object.entries(commonMap)) {
+        if (cleanName.includes(key)) return domain;
+    }
+    return `${cleanName}.com`;
+};
+
+const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
+    const max = Math.max(...data, 1);
+    const min = Math.min(...data, 0);
+    const range = max - min;
+    const width = 100;
+    const height = 28;
+    
+    const points = data.map((val, idx) => {
+        const x = (idx / (data.length - 1)) * width;
+        const y = height - ((val - min) / range) * (height - 6) - 3;
+        return `${x},${y}`;
+    });
+    
+    const pathData = `M 0,${height} L ${points.join(' L ')} L ${width},${height} Z`;
+    const lineData = `M ${points.join(' L ')}`;
+    
+    return (
+        <div className="flex items-center gap-3">
+            <div className="relative w-[100px] h-[28px]">
+                <svg width="100" height="28" className="overflow-visible select-none pointer-events-none">
+                    <defs>
+                        <linearGradient id="sparkline-trend-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.18" />
+                            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                        </linearGradient>
+                    </defs>
+                    <path d={pathData} fill="url(#sparkline-trend-grad)" />
+                    <path d={lineData} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    {data[data.length - 1] > 0 && (
+                        <circle 
+                            cx={width} 
+                            cy={height - ((data[data.length - 1] - min) / range) * (height - 6) - 3} 
+                            r="2.5" 
+                            fill="#6366f1" 
+                            className="animate-pulse"
+                        />
+                    )}
+                </svg>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-light-text dark:text-dark-text min-w-[55px] text-right">
+                {formatCurrency(data[data.length - 1] || 0, 'EUR')}
+            </span>
+        </div>
+    );
+};
+
 const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
-  const { transactions } = useTransactionsContext();
+  const { transactions, saveTransaction } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { preferences, setPreferences } = usePreferencesContext();
@@ -62,6 +168,56 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   
   const [editingEntity, setEditingEntity] = useState<EntityItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  // Advanced regex state & background task progress state
+  const [isRegexModalOpen, setIsRegexModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState({ current: 0, total: 0, currentName: '' });
+
+  const regexRules = useMemo(() => preferences.regexCategorizationRules || [], [preferences.regexCategorizationRules]);
+
+  const handleSaveRegexRules = (updatedRules: RegexCategorizationRule[]) => {
+      setPreferences(prev => ({
+          ...prev,
+          regexCategorizationRules: updatedRules
+      }));
+  };
+
+  const handleApplyHistoricalRules = () => {
+      const activeRules = regexRules.filter(r => r.isActive);
+      if (activeRules.length === 0) {
+          toast.error("No active regex rules are currently deployed.");
+          return;
+      }
+      
+      const updatedTransactions: any[] = [];
+      transactions.forEach(tx => {
+          const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').trim();
+          for (const rule of activeRules) {
+              try {
+                  const regex = new RegExp(rule.pattern, 'i');
+                  if (regex.test(textToMatch) && tx.category !== rule.category) {
+                      updatedTransactions.push({
+                          ...tx,
+                          category: rule.category
+                      });
+                      break; // stop at first matching pattern
+                  }
+              } catch (e) {
+                  // Skip invalid regex
+              }
+          }
+      });
+      
+      if (updatedTransactions.length === 0) {
+          toast.success("No transactions need re-routing; all values conform to active patterns.");
+          return;
+      }
+      
+      saveTransaction(updatedTransactions);
+      toast.success(`Analysis Complete! Reclassified ${updatedTransactions.length} historical records successfully.`);
+  };
+
   const effectiveMerchantRules = useMemo(() => {
     const migratedRules = { ...merchantRules };
 
@@ -184,6 +340,50 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     return Array.from(map.values());
   }, [transactions, accounts, effectiveMerchantRules, legacyOverrides]);
 
+  const spendTrendsMap = useMemo(() => {
+      const map: Record<string, number[]> = {};
+      const now = new Date(2026, 4, 23); // May 23, 2026
+      const months: string[] = [];
+      for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          months.push(d.toISOString().slice(0, 7)); // "YYYY-MM"
+      }
+      
+      entities.forEach(entity => {
+          const monthlySums = Array(6).fill(0);
+          if (entity.type === 'Merchant') {
+              transactions.forEach(tx => {
+                  if (!showBalanceAdjustments && tx.isBalanceAdjustment) return;
+                  if (!tx.merchant) return;
+                  const txKey = normalizeMerchantKey(tx.merchant);
+                  if (txKey === entity.logoKey) {
+                      const txMonth = tx.date.slice(0, 7);
+                      const bucketIdx = months.indexOf(txMonth);
+                      if (bucketIdx !== -1) {
+                          monthlySums[bucketIdx] += Math.abs(convertToEur(tx.amount, tx.currency));
+                      }
+                  }
+              });
+          } else {
+              const instAccounts = accounts.filter(acc => acc.financialInstitution && normalizeMerchantKey(acc.financialInstitution) === entity.logoKey);
+              const instAccountIds = new Set(instAccounts.map(acc => acc.id));
+              transactions.forEach(tx => {
+                  if (!showBalanceAdjustments && tx.isBalanceAdjustment) return;
+                  if (instAccountIds.has(tx.accountId)) {
+                      const txMonth = tx.date.slice(0, 7);
+                      const bucketIdx = months.indexOf(txMonth);
+                      if (bucketIdx !== -1) {
+                          monthlySums[bucketIdx] += Math.abs(convertToEur(tx.amount, tx.currency));
+                      }
+                  }
+              });
+          }
+          map[entity.id] = monthlySums;
+      });
+      
+      return map;
+  }, [entities, transactions, accounts, showBalanceAdjustments]);
+
   // Filtering & Sorting
   const filteredEntities = useMemo(() => {
       let result = entities;
@@ -216,6 +416,43 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               [key]: rule
           }
       }));
+  };
+
+  const handleRefreshLogos = async () => {
+      const targetEntities = entities.filter(e => !e.rule?.logo);
+      if (targetEntities.length === 0) {
+          toast.success("Branding telemetry fully resolved. All merchants have active custom logos or matching domains.");
+          return;
+      }
+      
+      setIsRefreshing(true);
+      setRefreshProgress({ current: 0, total: targetEntities.length, currentName: targetEntities[0].name });
+      
+      const updatedRules = { ...preferences.merchantRules };
+      
+      for (let i = 0; i < targetEntities.length; i++) {
+          const entity = targetEntities[i];
+          setRefreshProgress({ current: i + 1, total: targetEntities.length, currentName: entity.name });
+          
+          await new Promise(resolve => setTimeout(resolve, 150));
+          
+          const guessedDomain = guessDomainName(entity.name);
+          if (guessedDomain) {
+              const prevRule = updatedRules[entity.logoKey] || {};
+              updatedRules[entity.logoKey] = {
+                  ...prevRule,
+                  logo: guessedDomain,
+                  website: `https://${guessedDomain}`
+              };
+          }
+      }
+      
+      setPreferences(prev => ({
+          ...prev,
+          merchantRules: updatedRules
+      }));
+      setIsRefreshing(false);
+      toast.success(`Logo auto-enrichment complete! Successfully resolved ${targetEntities.length} missing merchant records.`);
   };
 
   const handleToggleHidden = (entity: EntityItem, e: React.MouseEvent) => {
@@ -295,6 +532,65 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               Automatic branding enrichment is offline. Add a Brandfetch Access Key in Preferences to restore merchant telemetry.
             </p>
           </div>
+        )}
+
+        {/* Telemetry Optimization Center Action Panel */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-between bg-black/[0.02]/5 dark:bg-zinc-800/40 p-4 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm">
+            <div className="flex flex-col justify-center">
+                <h3 className="text-xs font-black uppercase tracking-wider text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
+                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                    Deploy complex regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
+                </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <button
+                    onClick={handleRefreshLogos}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-500/40 text-white text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
+                >
+                    <span className={`material-symbols-outlined text-sm ${isRefreshing ? 'animate-spin' : ''}`}>sync_saved_locally</span>
+                    {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
+                </button>
+                <button
+                    onClick={() => setIsRegexModalOpen(true)}
+                    className="flex items-center gap-2 bg-white dark:bg-dark-card hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text border border-black/5 dark:border-white/5 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
+                >
+                    <span className="material-symbols-outlined text-sm">assignment_turned_in</span>
+                    Regex Routing Rules
+                </button>
+            </div>
+        </div>
+
+        {/* Real-time Enrichment Progress Indicator */}
+        {isRefreshing && (
+            <div className="bg-primary-500/10 border border-primary-500/20 rounded-3xl p-5 space-y-3 animate-pulse">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                    <span>Branding Telemetry Lookup Pipeline In Progress</span>
+                    <span>{refreshProgress.current} / {refreshProgress.total}</span>
+                </div>
+                <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                    <div 
+                        className="bg-primary-500 h-full transition-all duration-300"
+                        style={{ width: `${(refreshProgress.current / refreshProgress.total) * 100}%` }}
+                    />
+                </div>
+                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                    Resolving domain parameters and caching Brandfetch endpoints for <strong className="font-extrabold">{refreshProgress.currentName}</strong>...
+                </p>
+            </div>
+        )}
+
+        {isRegexModalOpen && (
+          <RegexCategorizationModal
+            isOpen={isRegexModalOpen}
+            onClose={() => setIsRegexModalOpen(false)}
+            rules={regexRules}
+            onSaveRules={handleSaveRegexRules}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            transactions={transactions}
+            onApplyHistoricalRules={handleApplyHistoricalRules}
+          />
         )}
       </div>
       
@@ -451,6 +747,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                           <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Classification</th>
                           <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Frequency</th>
                           <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Last Sync</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Activity Trend (6m)</th>
                           <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Total Exposure</th>
                           <th className="px-8 py-5 w-20"></th>
                       </tr>
@@ -497,6 +794,11 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                   </td>
                                   <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-[10px] font-black uppercase tracking-widest opacity-40">
                                       {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' }) : 'INF'}
+                                  </td>
+                                  <td className="px-8 py-5">
+                                      <div className="flex justify-end">
+                                          <Sparkline data={spendTrendsMap[entity.id] || [0, 0, 0, 0, 0, 0]} />
+                                      </div>
                                   </td>
                                   <td className={`px-8 py-5 text-right font-mono font-black text-base tracking-tighter ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
                                       {formatCurrency(entity.totalValue, 'EUR')}
