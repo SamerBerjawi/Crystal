@@ -20,6 +20,7 @@ services:
   backend:
     # ⚠️ Use the tagged GHCR image instead of 'build'
     image: ghcr.io/samerberjawi/crystal:backend-latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       db:
@@ -42,6 +43,7 @@ services:
   frontend:
     # ⚠️ Use the tagged GHCR image instead of 'build'
     image: ghcr.io/samerberjawi/crystal:frontend-latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - backend
