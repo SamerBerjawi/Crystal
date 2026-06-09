@@ -477,7 +477,16 @@ const App: React.FC = () => {
     accounts || []
   ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '') && a.status !== 'closed'), [accounts]);
 
-  const holdingsOverview = useMemo(() => buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, assetPrices), [investmentAccounts, investmentTransactions, warrants, assetPrices]);
+  const holdingsOverview = useMemo(() => {
+    const overview = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, assetPrices);
+    return {
+      ...overview,
+      holdings: overview.holdings.map(h => ({
+        ...h,
+        remainingQuantity: h.quantity
+      }))
+    };
+  }, [investmentAccounts, investmentTransactions, warrants, assetPrices]);
 
   const warrantPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
@@ -584,10 +593,13 @@ const App: React.FC = () => {
     const holdings: Record<string, number> = {};
     investmentTransactions.forEach(tx => {
       if (!tx.symbol) return;
-      holdings[tx.symbol] = (holdings[tx.symbol] || 0) + (tx.type === 'buy' ? tx.quantity : -tx.quantity);
+      const q = Number(tx.quantity) || 0;
+      const isBuy = tx.type?.toLowerCase() === 'buy';
+      holdings[tx.symbol] = (holdings[tx.symbol] || 0) + (isBuy ? q : -q);
     });
     warrants.forEach(warrant => {
-      holdings[warrant.isin] = (holdings[warrant.isin] || 0) + warrant.quantity;
+      const q = Number(warrant.quantity) || 0;
+      holdings[warrant.isin] = (holdings[warrant.isin] || 0) + q;
     });
     return holdings;
   }, [investmentTransactions, warrants]);
@@ -1267,12 +1279,83 @@ const App: React.FC = () => {
 
   const handleDeleteTransactions = (transactionIds: string[]) => { if (transactionIds.length > 0) handleSaveTransaction([], transactionIds); };
   const handleSaveInvestmentTransaction = (invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {
-      if (invTxData.id) { setInvestmentTransactions(prev => prev.map(t => t.id === invTxData.id ? {...t, ...invTxData} as InvestmentTransaction : t)); } 
-      else {
-          setInvestmentTransactions(prev => [...prev, { ...invTxData, id: `inv-txn-${uuidv4()}` } as InvestmentTransaction]);
-          if (cashTxData) handleSaveTransaction([cashTxData]);
-          if (newAccount) handleSaveAccount(newAccount);
+      const symbol = invTxData.symbol.toUpperCase();
+      const type = invTxData.type?.toLowerCase();
+
+      // Calculate current holdings for this symbol excluding the transaction being edited (if editing)
+      let currentHoldingQty = 0;
+      investmentTransactions.forEach(t => {
+          if (t.symbol?.toUpperCase() === symbol && t.id !== invTxData.id) {
+              const q = Number(t.quantity) || 0;
+              if (t.type?.toLowerCase() === 'buy') {
+                  currentHoldingQty += q;
+              } else if (t.type?.toLowerCase() === 'sell') {
+                  currentHoldingQty -= q;
+              }
+          }
+      });
+      warrants.forEach(w => {
+          if (w.isin?.toUpperCase() === symbol) {
+              currentHoldingQty += Number(w.quantity) || 0;
+          }
+      });
+
+      if (type === 'sell') {
+          const sellQty = Number(invTxData.quantity) || 0;
+          if (sellQty > currentHoldingQty) {
+              toast.error(`Cannot process sale of ${sellQty} shares. You only hold ${currentHoldingQty} shares of ${symbol}.`);
+              return;
+          }
       }
+
+      let nextTxList: InvestmentTransaction[];
+      if (invTxData.id) {
+          nextTxList = investmentTransactions.map(t => t.id === invTxData.id ? { ...t, ...invTxData } as InvestmentTransaction : t);
+          setInvestmentTransactions(nextTxList);
+      } else {
+          const newTx = { ...invTxData, id: `inv-txn-${uuidv4()}` } as InvestmentTransaction;
+          nextTxList = [...investmentTransactions, newTx];
+          setInvestmentTransactions(nextTxList);
+          if (cashTxData) handleSaveTransaction([cashTxData]);
+      }
+
+      // Calculate remaining quantity of this symbol based on the updated transactions list
+      let remainingQtyForSymbol = 0;
+      nextTxList.forEach(t => {
+          if (t.symbol?.toUpperCase() === symbol) {
+              const q = Number(t.quantity) || 0;
+              if (t.type?.toLowerCase() === 'buy') {
+                  remainingQtyForSymbol += q;
+              } else if (t.type?.toLowerCase() === 'sell') {
+                  remainingQtyForSymbol -= q;
+              }
+          }
+      });
+      warrants.forEach(w => {
+          if (w.isin?.toUpperCase() === symbol) {
+              remainingQtyForSymbol += Number(w.quantity) || 0;
+          }
+      });
+
+      // Recalculate remaining balance or quantity based on final holding quantity and current asset price
+      const price = assetPrices[symbol] ?? invTxData.price;
+      const finalBalance = remainingQtyForSymbol * price;
+
+      if (newAccount) {
+          const accountWithBalance = { ...newAccount, balance: finalBalance };
+          handleSaveAccount(accountWithBalance);
+      }
+
+      // Update the accounts state for the matching Investment account
+      setAccounts(prevAccounts => prevAccounts.map(account => {
+          if (account.symbol?.toUpperCase() === symbol && account.type === 'Investment') {
+              return {
+                  ...account,
+                  balance: parseFloat(finalBalance.toFixed(account.currency === 'BTC' ? 8 : 2))
+              };
+          }
+          return account;
+      }));
   };
   const handleDeleteInvestmentTransaction = (id: string) => { setInvestmentTransactions(prev => prev.filter(t => t.id !== id)); };
   const handleSaveRecurringTransaction = (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => {

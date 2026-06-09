@@ -67,12 +67,12 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
             .map(tx => ({
                 id: tx.id,
                 date: tx.date,
-                label: tx.type === 'buy' ? 'Buy' : 'Sell',
+                label: tx.type?.toLowerCase() === 'buy' ? 'Buy' : 'Sell',
                 quantity: tx.quantity,
                 amount: tx.quantity * tx.price,
                 detail: `@ ${formatCurrency(tx.price, 'EUR')}`,
                 price: tx.price,
-                badgeClass: tx.type === 'buy'
+                badgeClass: tx.type?.toLowerCase() === 'buy'
                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
                 isWarrant: false,
@@ -184,6 +184,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     accounts={accounts}
                     cashAccounts={cashAccounts}
                     transactionToEdit={editingTransaction}
+                    holdings={holdingsOverview.holdings}
                 />
             )}
             {isWarrantModalOpen && (

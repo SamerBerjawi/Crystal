@@ -321,6 +321,7 @@ export interface HoldingSummary {
   symbol: string;
   name: string;
   quantity: number;
+  remainingQuantity?: number;
   totalCost: number;
   currentValue: number;
   currentPrice: number;

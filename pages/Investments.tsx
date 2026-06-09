@@ -178,7 +178,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         const txs = investmentTransactions.map(tx => ({
             id: tx.id,
             date: tx.date,
-            type: tx.type === 'buy' ? 'BUY' : 'SELL',
+            type: tx.type?.toLowerCase() === 'buy' ? 'BUY' : 'SELL',
             symbol: tx.symbol,
             quantity: tx.quantity,
             price: tx.price,
@@ -199,6 +199,95 @@ const Investments: React.FC<InvestmentsProps> = ({
 
         return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [investmentTransactions, warrants]);
+
+    const realizedPerformance = useMemo(() => {
+        // Sort transactions chronologically
+        const sortedTxs = [...investmentTransactions].sort(
+            (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
+        );
+
+        const symbolStates: Record<string, { currentQty: number; averagePrice: number }> = {};
+        const realizedSales: {
+            id: string;
+            symbol: string;
+            date: string;
+            quantity: number;
+            buyPrice: number;
+            sellPrice: number;
+            gain: number;
+            gainPercent: number;
+        }[] = [];
+
+        sortedTxs.forEach(tx => {
+            if (!tx.symbol) return;
+            const symbol = tx.symbol.toUpperCase();
+            const txType = tx.type?.toLowerCase();
+            const q = Number(tx.quantity) || 0;
+            const p = Number(tx.price) || 0;
+
+            if (!symbolStates[symbol]) {
+                symbolStates[symbol] = { currentQty: 0, averagePrice: 0 };
+            }
+
+            const state = symbolStates[symbol];
+
+            if (txType === 'buy') {
+                const totalCostBefore = state.currentQty * state.averagePrice;
+                const totalCostAdded = q * p;
+                state.currentQty += q;
+                state.averagePrice = state.currentQty > 0 ? (totalCostBefore + totalCostAdded) / state.currentQty : 0;
+            } else if (txType === 'sell') {
+                const gain = q * (p - state.averagePrice);
+                const gainPercent = state.averagePrice > 0 ? ((p - state.averagePrice) / state.averagePrice) * 100 : 0;
+                
+                realizedSales.push({
+                    id: tx.id,
+                    symbol,
+                    date: tx.date,
+                    quantity: q,
+                    buyPrice: state.averagePrice,
+                    sellPrice: p,
+                    gain,
+                    gainPercent
+                });
+
+                state.currentQty -= q;
+                if (state.currentQty < 0) {
+                    state.currentQty = 0;
+                }
+            }
+        });
+
+        let totalRealizedGain = 0;
+        let winsCount = 0;
+        let lossesCount = 0;
+        let biggestWin = { symbol: '', gain: 0, gainPercent: 0 };
+        let biggestLoss = { symbol: '', gain: 0, gainPercent: 0 };
+
+        realizedSales.forEach(sale => {
+            totalRealizedGain += sale.gain;
+            if (sale.gain >= 0) {
+                winsCount++;
+                if (sale.gain > biggestWin.gain) {
+                    biggestWin = { symbol: sale.symbol, gain: sale.gain, gainPercent: sale.gainPercent };
+                }
+            } else {
+                lossesCount++;
+                if (sale.gain < biggestLoss.gain) {
+                    biggestLoss = { symbol: sale.symbol, gain: sale.gain, gainPercent: sale.gainPercent };
+                }
+            }
+        });
+
+        return {
+            realizedSales: realizedSales.reverse(),
+            totalRealizedGain,
+            winsCount,
+            lossesCount,
+            biggestWin,
+            biggestLoss
+        };
+    }, [investmentTransactions]);
     
     const handleContextMenu = (event: React.MouseEvent, account: Account) => {
         event.preventDefault();
@@ -840,6 +929,66 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     </div>
                                 ))}
                         </div>
+                    </Card>
+
+                    {/* Historic Performance / Realized Gains Widget */}
+                    <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500 text-lg">workspace_premium</span>
+                                <span>Realized Return</span>
+                            </h3>
+                            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">
+                                {realizedPerformance.winsCount}W - {realizedPerformance.lossesCount}L
+                            </span>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.03] mb-6">
+                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Total Realized Returns</span>
+                            <div className="flex items-baseline gap-2 mt-1">
+                                <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(realizedPerformance.totalRealizedGain, 'EUR')}
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase">
+                                    {realizedPerformance.winsCount + realizedPerformance.lossesCount} closed trades
+                                </span>
+                            </div>
+                        </div>
+
+                        {realizedPerformance.realizedSales.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-gray-400 italic">
+                                No sales recorded. Realized gain/loss will appear when you sell holdings.
+                            </div>
+                        ) : (
+                            <div className="space-y-4 max-h-[280px] overflow-y-auto pr-1">
+                                {realizedPerformance.realizedSales.map((sale) => {
+                                    const isWin = sale.gain >= 0;
+                                    return (
+                                        <div key={sale.id} className="flex items-center justify-between group border-b border-black/[0.02] dark:border-white/[0.02] pb-3 last:border-b-0 last:pb-0">
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-bold text-xs text-light-text dark:text-dark-text">{sale.symbol}</span>
+                                                    <span className="text-[9px] text-gray-400 font-medium font-mono">({sale.quantity.toLocaleString()} units)</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="text-[9px] text-gray-400">Buy: {formatCurrency(sale.buyPrice, 'EUR')}</span>
+                                                    <span className="text-[9px] text-gray-400">•</span>
+                                                    <span className="text-[9px] text-gray-400">Sell: {formatCurrency(sale.sellPrice, 'EUR')}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`text-xs font-black ${isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {isWin ? '+' : ''}{formatCurrency(sale.gain, 'EUR')}
+                                                </p>
+                                                <p className={`text-[9px] font-bold ${isWin ? 'text-green-500/80' : 'text-red-500/80'}`}>
+                                                    {isWin ? '▲' : '▼'} {Math.abs(sale.gainPercent).toFixed(1)}%
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </Card>
                 </div>
             </div>

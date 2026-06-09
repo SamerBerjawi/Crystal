@@ -28,42 +28,6 @@ export const buildHoldingsOverview = (
         }
     });
 
-    [...investmentTransactions]
-        .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
-        .forEach(tx => {
-            if (!holdingsMap[tx.symbol]) {
-                holdingsMap[tx.symbol] = {
-                    symbol: tx.symbol,
-                    name: tx.symbol, // Use symbol as name if account not found
-                    quantity: 0,
-                    totalCost: 0,
-                    currentValue: 0,
-                    currentPrice: 0,
-                    type: 'Standard',
-                    subType: 'Stock'
-                };
-            }
-            const holding = holdingsMap[tx.symbol];
-            
-            const q = Number(tx.quantity) || 0;
-            const p = Number(tx.price) || 0;
-
-            if (tx.type === 'buy') {
-                holding.quantity += q;
-                holding.totalCost += q * p;
-            } else {
-                const avgCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
-                holding.totalCost -= q * avgCost;
-                holding.quantity -= q;
-                if (holding.quantity < 0.000001) {
-                    holding.quantity = 0;
-                    holding.totalCost = 0;
-                } else if (holding.totalCost < 0) {
-                    holding.totalCost = 0;
-                }
-            }
-        });
-
     warrants.forEach(w => {
         if (!holdingsMap[w.isin]) {
             holdingsMap[w.isin] = {
@@ -86,10 +50,47 @@ export const buildHoldingsOverview = (
         holding.warrantId = w.id;
     });
 
+    [...investmentTransactions]
+        .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
+        .forEach(tx => {
+            if (!holdingsMap[tx.symbol]) {
+                holdingsMap[tx.symbol] = {
+                    symbol: tx.symbol,
+                    name: tx.symbol, // Use symbol as name if account not found
+                    quantity: 0,
+                    totalCost: 0,
+                    currentValue: 0,
+                    currentPrice: 0,
+                    type: 'Standard',
+                    subType: 'Stock'
+                };
+            }
+            const holding = holdingsMap[tx.symbol];
+            
+            const q = Number(tx.quantity) || 0;
+            const p = Number(tx.price) || 0;
+
+            if (tx.type?.toLowerCase() === 'buy') {
+                holding.quantity += q;
+                holding.totalCost += q * p;
+            } else {
+                const avgCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
+                holding.totalCost -= q * avgCost;
+                holding.quantity -= q;
+                if (holding.quantity < 0.000001) {
+                    holding.quantity = 0;
+                    holding.totalCost = 0;
+                } else if (holding.totalCost < 0) {
+                    holding.totalCost = 0;
+                }
+            }
+        });
+
     Object.values(holdingsMap).forEach(h => {
         const price = prices[h.symbol] ?? 0;
         h.currentPrice = price;
         h.currentValue = h.quantity * price;
+        h.remainingQuantity = h.quantity;
     });
 
     const holdings = Object.values(holdingsMap);
