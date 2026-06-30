@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { normalizeMerchantKey } from '../utils/brandfetch';
+import { applyTransactionRulesToFields } from '../utils/rules';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AddTransactionModalProps {
@@ -82,6 +83,7 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
+  const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
 
   const defaultAccountId = useMemo(() => {
     const primary = accounts.find(a => a.isPrimary);
@@ -282,35 +284,59 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     setPrincipalPayment(newPrincipal.toFixed(2));
   };
 
-  const handleDescriptionBlur = () => {
-    if (!merchant && description) {
-        const potentialMerchant = description;
-        setMerchant(potentialMerchant);
-        
-        // Try to apply rules based on description if merchant field was empty
-        applyMerchantRules(potentialMerchant);
-    }
+  const applyRules = (merchantName: string, descText: string, amountText: string) => {
+      // 1. Merchant rule - if merchant already exists/keys and has category configured, it takes absolute precedence!
+      const key = normalizeMerchantKey(merchantName || descText);
+      if (key) {
+          const mRule = merchantRules[key];
+          if (mRule && mRule.category) {
+              setCategory(mRule.category);
+              if (mRule.defaultDescription) {
+                  setDescription(mRule.defaultDescription);
+              }
+              if (merchantName && merchantName !== merchant) {
+                  setMerchant(merchantName);
+              }
+              return;
+          }
+      }
+
+      // 2. Rule engine (IF-WHEN-THEN rules)
+      const rawTx = {
+          description: descText || '',
+          merchant: merchantName || '',
+          category: category || '',
+          amount: parseFloat(amountText) || 0,
+          type: type || 'expense'
+      };
+
+      const result = applyTransactionRulesToFields(rawTx, merchantRules, transactionRules);
+
+      if (result.category) {
+          setCategory(result.category);
+      }
+      if (result.merchant && result.merchant !== merchantName) {
+          setMerchant(result.merchant);
+      }
+      if (result.description && result.description !== descText) {
+          setDescription(result.description);
+      }
   };
 
-  // Auto-apply merchant rules
-  const applyMerchantRules = (merchantName: string) => {
-      const key = normalizeMerchantKey(merchantName);
-      if (!key) return;
-
-      const rule = merchantRules[key];
-      if (rule) {
-          if (rule.category) setCategory(rule.category);
-          if (rule.defaultDescription) setDescription(rule.defaultDescription);
-      }
+  const handleDescriptionBlur = () => {
+    let currentMerchant = merchant;
+    if (!merchant && description) {
+        currentMerchant = description;
+        setMerchant(currentMerchant);
+    }
+    applyRules(currentMerchant, description, amount);
   };
 
   const handleMerchantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setMerchant(val);
-      // Debounce or just check on significant change? For now, instant feedback is nice.
-      // But we check only if value length > 2 to avoid noise
       if (val.length > 2) {
-          applyMerchantRules(val);
+          applyRules(val, description, amount);
       }
   };
 
@@ -710,6 +736,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 step="0.01" 
                                 value={amount} 
                                 onChange={e => setAmount(e.target.value)} 
+                                onBlur={() => applyRules(merchant, description, amount)}
                                 className="bg-transparent border-none text-right text-4xl font-black text-light-text dark:text-dark-text placeholder-black/5 dark:placeholder-white/5 focus:ring-0 py-0 tracking-tighter tabular-nums w-48" 
                                 placeholder="0.00" 
                                 autoFocus
@@ -770,7 +797,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                             type="button"
                                                             onClick={() => {
                                                                 setMerchant(name);
-                                                                applyMerchantRules(name);
+                                                                applyRules(name, description, amount);
                                                                 setShowMerchantSuggestions(false);
                                                             }}
                                                             className="w-full text-left px-3.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text flex items-center justify-between transition-colors group"

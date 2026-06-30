@@ -47,6 +47,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'columns');
   const [splitAssetsLiabilities, setSplitAssetsLiabilities] = useLocalStorage<boolean>('crystal_split_assets_liabilities', true);
+  const [viewStyle, setViewStyle] = useLocalStorage<'detailed' | 'minimal'>('crystal_accounts_view_style', 'detailed');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as any);
@@ -346,46 +347,60 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             {/* Subtle background glow based on active segment */}
             <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-6 lg:gap-8">
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8">
                 {/* Left Side: Portfolio Display */}
-                <div className="flex flex-col xl:flex-row xl:items-center gap-6 lg:gap-8 flex-1">
-                    <div 
-                        onClick={() => setActiveSegment('all')}
-                        className="cursor-pointer group/nw w-full sm:w-auto"
-                    >
-                        <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                            <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
-                            <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                <div className="flex flex-col xl:flex-row xl:items-center gap-4 lg:gap-8 flex-1 min-w-0">
+                    <div className="flex items-center justify-between sm:block w-full sm:w-auto">
+                        <div 
+                            onClick={() => setActiveSegment('all')}
+                            className="cursor-pointer group/nw min-w-0"
+                        >
+                            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                                <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
+                                <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                                    {formatCurrency(segmentValues.all, 'EUR')}
+                                </h2>
+                                {activeSegment === 'all' && (
+                                    <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                                )}
+                            </div>
                         </div>
-                        <div className="flex items-baseline gap-2">
-                            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
-                                {formatCurrency(segmentValues.all, 'EUR')}
-                            </h2>
-                            {activeSegment === 'all' && (
-                                <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-                            )}
+
+                        {/* Mobile Add Account Button right next to Portfolio Value */}
+                        <div className="sm:hidden shrink-0">
+                            <button 
+                                onClick={() => setAddModalOpen(true)} 
+                                className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3 !text-xs !rounded-xl flex items-center gap-1`}
+                            >
+                                <span className="material-symbols-outlined text-sm">add</span>
+                                <span>Add Account</span>
+                            </button>
                         </div>
-                        {/* Compact Sparkline */}
-                        <div className="h-6 mt-2 sm:mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity max-w-[150px] sm:max-w-[200px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={globalMetrics.trendData}>
-                                    <Area 
-                                        type="monotone" 
-                                        dataKey="value" 
-                                        stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} 
-                                        strokeWidth={2} 
-                                        fill="transparent" 
-                                        animationDuration={2000}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
+                    </div>
+
+                    {/* Compact Sparkline - hidden on mobile */}
+                    <div className="hidden sm:block h-6 mt-2 sm:mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity max-w-[150px] sm:max-w-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={globalMetrics.trendData}>
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="value" 
+                                    stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} 
+                                    strokeWidth={2} 
+                                    fill="transparent" 
+                                    animationDuration={2000}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
 
                     <div className="hidden xl:block w-px h-16 bg-black/5 dark:bg-white/10" />
 
-                    {/* Segment Grid - High Density Tiles */}
-                    <div className="flex-1 lg:flex-[2] grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {/* Segment Grid - High Density Tiles - scrollable on mobile */}
+                    <div className="flex-1 lg:flex-[2] flex overflow-x-auto lg:grid lg:grid-cols-4 gap-2 sm:gap-4 pb-1 lg:pb-0 no-scrollbar snap-x snap-mandatory max-w-full">
                         {segments.filter(s => s.id !== 'all').map(seg => {
                             const isActive = activeSegment === seg.id;
                             const val = segmentValues[seg.id as keyof typeof segmentValues];
@@ -393,17 +408,17 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                 <div 
                                     key={seg.id}
                                     onClick={() => setActiveSegment(seg.id)}
-                                    className={`group cursor-pointer p-3 sm:p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}
+                                    className={`group cursor-pointer p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all border shrink-0 sm:shrink lg:shrink-0 w-[120px] sm:w-auto snap-start ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent bg-black/[0.01] dark:bg-white/[0.01]'}`}
                                 >
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                            <span className="material-symbols-outlined text-lg">{seg.icon}</span>
+                                    <div className="flex items-center justify-between mb-1 sm:mb-1.5">
+                                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                            <span className="material-symbols-outlined text-base sm:text-lg">{seg.icon}</span>
                                         </div>
                                         {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
-                                        <span className={`text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                        <span className={`text-[9px] sm:text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                        <span className={`text-sm sm:text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
                                             {formatCurrency(val, 'EUR')}
                                         </span>
                                     </div>
@@ -413,8 +428,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </div>
                 </div>
 
-                {/* Main Action - Add Account */}
-                <div className="shrink-0">
+                {/* Main Action - Add Account - hidden on mobile */}
+                <div className="hidden sm:block shrink-0">
                     <button 
                         onClick={() => setAddModalOpen(true)} 
                         className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add`}
@@ -426,14 +441,14 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
 
             {/* Integrated Details Tray & Controls */}
-            <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-6">
+            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-black/5 dark:border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                 <AnimatePresence mode="wait">
                     <motion.div 
                         key={activeSegment}
                         initial={{ opacity: 0, x: -1 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 1 }}
-                        className="flex flex-wrap items-center gap-x-8 gap-y-3"
+                        className="hidden sm:flex flex-wrap items-center gap-x-8 gap-y-3"
                     >
                         {segmentMetrics.details.map((detail, i) => (
                              <div key={i} className="flex items-center gap-3">
@@ -472,6 +487,15 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </div>
                     
                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
+                        <button onClick={() => setViewStyle('detailed')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'detailed' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Standard Cards">
+                            <span className="material-symbols-outlined text-[18px]">style</span>
+                        </button>
+                        <button onClick={() => setViewStyle('minimal')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'minimal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Minimalist Rows">
+                            <span className="material-symbols-outlined text-[18px]">density_medium</span>
+                        </button>
+                    </div>
+
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
                         <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Grid Layout">
                             <span className="material-symbols-outlined text-[18px]">grid_view</span>
                         </button>
@@ -508,6 +532,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         defaultExpanded={true}
                         layoutMode={layoutMode} 
                         showCollapseAll={true}
+                        viewStyle={viewStyle}
                     />
                 </div>
 
@@ -532,6 +557,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         defaultExpanded={true}
                         layoutMode={layoutMode} 
                         showCollapseAll={true}
+                        viewStyle={viewStyle}
                     />
                 </div>
             </div>
@@ -554,6 +580,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     defaultExpanded={true}
                     layoutMode={layoutMode} 
                     showCollapseAll={true}
+                    viewStyle={viewStyle}
                 />
             </div>
         )}
@@ -577,6 +604,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     isCollapsible={true} 
                     defaultExpanded={false} 
                     layoutMode={layoutMode} 
+                    viewStyle={viewStyle}
                 />
             </div>
         )}

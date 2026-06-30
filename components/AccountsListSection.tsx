@@ -24,6 +24,7 @@ interface AccountsListSectionProps {
     defaultExpanded?: boolean;
     layoutMode: 'stacked' | 'columns';
     showCollapseAll?: boolean;
+    viewStyle?: 'detailed' | 'minimal';
 }
 
 const AccountsListSection: React.FC<AccountsListSectionProps> = ({ 
@@ -44,7 +45,8 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
     isCollapsible = true, 
     defaultExpanded = true, 
     layoutMode,
-    showCollapseAll = false
+    showCollapseAll = false,
+    viewStyle = 'detailed'
 }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -222,6 +224,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                                 onDrop={(e) => handleDrop(e, acc.id)}
                                                 onDragEnd={handleDragEnd}
                                                 onContextMenu={(e) => onContextMenu(e, acc)}
+                                                viewStyle={viewStyle}
                                             />
                                         ))}
                                     </div>

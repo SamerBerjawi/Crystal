@@ -43,7 +43,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
 
   const modalContent = (
     <div 
-      className={`fixed inset-0 flex items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-sm p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-md p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >

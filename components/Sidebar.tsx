@@ -35,7 +35,7 @@ const NAV_GROUPS = [
   },
   {
     title: 'Configuration',
-    items: ['Settings']
+    items: ['Settings', 'Merchants', 'Rules']
   }
 ];
 

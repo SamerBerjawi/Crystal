@@ -32,6 +32,7 @@ const pageRegistry = {
   Subscriptions: { path: '/subscriptions', loader: () => import('./pages/Subscriptions') },
   'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
   Merchants: { path: '/merchants', loader: () => import('./pages/Merchants') },
+  Rules: { path: '/rules', loader: () => import('./pages/Rules') },
 } as const;
 
 const Dashboard = lazy(pageRegistry.Dashboard.loader);
@@ -58,6 +59,7 @@ const Documentation = lazy(pageRegistry.Documentation.loader);
 const SubscriptionsPage = lazy(pageRegistry.Subscriptions.loader);
 const InvoicesPage = lazy(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazy(pageRegistry.Merchants.loader);
+const RulesPage = lazy(pageRegistry.Rules.loader);
 
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
@@ -67,6 +69,7 @@ import { createDemoUser, emptyFinancialData, initialFinancialData } from './demo
 import { v4 as uuidv4 } from 'uuid';
 import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
+import { applyTransactionRulesToFields } from './utils/rules';
 import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
@@ -1155,7 +1158,27 @@ const App: React.FC = () => {
   const handleSaveTransaction = useCallback((transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete: string[] = [], options?: { autoSpareChange?: boolean }) => {
     const finalTxArray = [...transactionDataArray];
 
-    // Apply Regex Categorization rules
+    // Apply Rule Engine Rules (IF-WHEN-THEN rules)
+    const merchantRules = preferences.merchantRules || {};
+    const transactionRules = preferences.transactionRules || [];
+    finalTxArray.forEach(tx => {
+      const res = applyTransactionRulesToFields(
+        {
+          description: tx.description || '',
+          merchant: tx.merchant || '',
+          category: tx.category || '',
+          amount: Number(tx.amount) || 0,
+          type: tx.type || 'expense'
+        },
+        merchantRules,
+        transactionRules
+      );
+      tx.merchant = res.merchant;
+      tx.description = res.description;
+      tx.category = res.category;
+    });
+
+    // Apply Regex Categorization rules (Fallback / Legacy)
     const activeRegexRules = preferences.regexCategorizationRules?.filter(r => r.isActive) || [];
     if (activeRegexRules.length > 0) {
       finalTxArray.forEach(tx => {
@@ -2182,6 +2205,7 @@ const App: React.FC = () => {
       case 'Subscriptions': return <SubscriptionsPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;
       case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
+      case 'Rules': return <RulesPage preferences={preferences} setPreferences={setPreferences} transactions={transactions} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} setCurrentPage={setCurrentPage} />;
       default: return <div>Page not found</div>;
     }
   };

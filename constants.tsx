@@ -12,7 +12,7 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
       <svg
         width={size}
         height={size}
-        viewBox="0 0 128 128"
+        viewBox="0 0 512 512"
         role="img"
         aria-label="Crystal ball logo"
         xmlns="http://www.w3.org/2000/svg"
@@ -22,57 +22,53 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
         }}
       >
         <defs>
-          <radialGradient id="crystal-orb" cx="50%" cy="32%" r="60%">
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="55%" stopColor="#E9ECF7" />
-            <stop offset="100%" stopColor="#C8CEE4" />
-          </radialGradient>
-          <linearGradient id="crystal-base" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#575D86" />
-            <stop offset="100%" stopColor="#2F335A" />
+          <linearGradient id="base-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#f08b53" />
+            <stop offset="28%" stopColor="#f08b53" />
+            <stop offset="28.1%" stopColor="#fca065" />
+            <stop offset="100%" stopColor="#fca065" />
           </linearGradient>
-          <linearGradient id="crystal-base-shine" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#8389B3" stopOpacity="0.15" />
-            <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#8389B3" stopOpacity="0.15" />
+
+          <linearGradient id="stand-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#fbda5c" />
+            <stop offset="34%" stopColor="#fbda5c" />
+            <stop offset="34.1%" stopColor="#fde675" />
+            <stop offset="100%" stopColor="#fde675" />
           </linearGradient>
+
+          <linearGradient id="ball-bg-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#50256e" />
+            <stop offset="38%" stopColor="#50256e" />
+            <stop offset="38.1%" stopColor="#5f2d7b" />
+            <stop offset="100%" stopColor="#5f2d7b" />
+          </linearGradient>
+
+          <linearGradient id="cloud-grad-logo" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#a585c7" />
+            <stop offset="38%" stopColor="#a585c7" />
+            <stop offset="38.1%" stopColor="#bca2dc" />
+            <stop offset="100%" stopColor="#bca2dc" />
+          </linearGradient>
+
+          <clipPath id="ball-clip-logo">
+            <circle cx="256" cy="216" r="180" />
+          </clipPath>
         </defs>
-        <circle
-          cx="64"
-          cy="54"
-          r="44"
-          fill="url(#crystal-orb)"
-          stroke="#E3E8F7"
-          strokeWidth="2"
-        />
-        <circle cx="46" cy="36" r="12" fill="#FFFFFF" opacity="0.6" />
-        <circle cx="78" cy="44" r="6" fill="#FFFFFF" opacity="0.35" />
-        <path
-          d="M16 92h96v4c0 15.5-21.5 26-48 26S16 111.5 16 96z"
-          fill="url(#crystal-base)"
-        />
-        <path
-          d="M24 98c0 10.667 17.4 18 40 18s40-7.333 40-18"
-          fill="none"
-          stroke="url(#crystal-base-shine)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          opacity="0.6"
-        />
-        <ellipse cx="64" cy="94" rx="46" ry="6" fill="#1F223C" opacity="0.25" />
-        <g fill="#FFD159" stroke="#FF9800" strokeWidth="1.5" strokeLinejoin="round">
-          <path
-            d="M8 0L12 8L20 8L12 12L8 20L4 12L-4 12L4 8Z"
-            transform="translate(98 28) scale(0.55)"
-          />
-          <path
-            d="M8 0L12 8L20 8L12 12L8 20L4 12L-4 12L4 8Z"
-            transform="translate(78 12) scale(0.4)"
-          />
-          <path
-            d="M8 0L12 8L20 8L12 12L8 20L4 12L-4 12L4 8Z"
-            transform="translate(36 32) scale(0.35)"
-          />
+
+        <path d="M 126 380 L 386 380 L 421 460 L 91 460 Z" fill="url(#stand-grad-logo)" />
+
+        <rect x="66" y="460" width="380" height="40" rx="20" fill="url(#base-grad-logo)" />
+
+        <g clipPath="url(#ball-clip-logo)">
+          <circle cx="256" cy="216" r="180" fill="url(#ball-bg-grad-logo)" />
+
+          <path d="M 70 230 C 110 160, 160 160, 180 200 C 210 130, 290 130, 320 200 C 350 150, 410 150, 442 230 L 442 410 L 70 410 Z" fill="url(#cloud-grad-logo)" />
+
+          <path d="M 175 60 Q 175 115 230 115 Q 175 115 175 170 Q 175 115 120 115 Q 175 115 175 60 Z" fill="#fee77d" />
+
+          <path d="M 370 175 Q 370 230 425 230 Q 370 230 370 285 Q 370 230 315 230 Q 370 230 370 175 Z" fill="#fee77d" />
+
+          <path d="M 220 255 Q 220 300 265 300 Q 220 300 220 345 Q 220 300 175 300 Q 220 300 220 255 Z" fill="#fee77d" />
         </g>
       </svg>
     </div>
@@ -129,6 +125,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Categories', icon: 'category' },
   { name: 'Tags', icon: 'sell' },
   { name: 'Merchants', icon: 'storefront' },
+  { name: 'Rules', icon: 'settings_suggest' },
   { name: 'Integrations', icon: 'api' },
   { name: 'Data Management', icon: 'database' },
   { name: 'Documentation', icon: 'auto_stories' },
@@ -152,6 +149,7 @@ export const ITEM_COLORS: Record<string, string> = {
   'Categories': 'sky',
   'Tags': 'pink',
   'Merchants': 'indigo',
+  'Rules': 'teal',
   'Integrations': 'emerald',
   'Data Management': 'amber',
   'Documentation': 'blue',

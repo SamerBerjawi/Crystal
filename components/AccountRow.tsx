@@ -25,9 +25,10 @@ interface AccountRowProps {
     onDragEnd: (e: React.DragEvent) => void;
     onContextMenu: (e: React.MouseEvent) => void;
     isLinkedToEnableBanking?: boolean;
+    viewStyle?: 'detailed' | 'minimal';
 }
 
-const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu, isLinkedToEnableBanking = false }) => {
+const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu, isLinkedToEnableBanking = false, viewStyle = 'detailed' }) => {
     const { loanPaymentOverrides } = useScheduleContext();
     const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
     const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
@@ -221,6 +222,129 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     };
 
     const glowColor = glowColors[account.type] || 'rgba(156, 163, 175, 0.25)';
+
+    if (viewStyle === 'minimal') {
+        return (
+            <div 
+                draggable={isDraggable}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                onDragEnd={onDragEnd}
+                onContextMenu={onContextMenu}
+                onClick={onClick}
+                className={`
+                    relative group cursor-pointer
+                    w-full bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5
+                    p-3.5 sm:p-4 flex items-center justify-between gap-4 min-h-[72px]
+                    transition-all duration-200 hover:bg-black/[0.01] dark:hover:bg-white/[0.01] hover:-translate-y-0.5 hover:shadow-sm
+                    ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
+                    ${dragClasses} ${dragOverClasses}
+                `}
+                style={{ 
+                    borderLeftWidth: '4px',
+                    borderLeftColor: currentConfig.text.includes('blue') ? '#3b82f6' : 
+                                    currentConfig.text.includes('emerald') ? '#10b981' :
+                                    currentConfig.text.includes('rose') ? '#f43f5e' :
+                                    currentConfig.text.includes('violet') ? '#8b5cf6' :
+                                    currentConfig.text.includes('amber') ? '#f59e0b' :
+                                    currentConfig.text.includes('teal') ? '#14b8a6' :
+                                    currentConfig.text.includes('sky') ? '#0ea5e9' :
+                                    currentConfig.text.includes('slate') ? '#64748b' :
+                                    currentConfig.text.includes('orange') ? '#f97316' :
+                                    currentConfig.text.includes('lime') ? '#84cc16' :
+                                    currentConfig.text.includes('red') ? '#ef4444' : '#3b82f6'
+                }}
+            >
+                {/* Left Section: Icon and Account Info */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${currentConfig.bg} ${currentConfig.text} flex items-center justify-center border ${currentConfig.border} shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}>
+                        {showLogo ? (
+                            <img src={logoUrl!} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
+                        ) : (
+                            <span className="material-symbols-outlined text-lg sm:text-xl">{iconName}</span>
+                        )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
+                            {account.name}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                            <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                                {account.financialInstitution || account.type}
+                            </p>
+                            {account.last4 && (
+                                <span className="text-[10px] font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-40 shrink-0">
+                                    • {account.last4}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Middle Section: Small Sparkline (Hidden on tiny screens/mobile to avoid masking name) */}
+                <div className="hidden sm:flex items-center gap-3 shrink-0">
+                    <div className="h-8 w-20 opacity-30 group-hover:opacity-85 transition-opacity">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={sparklineData}>
+                                <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={1.5} fill="transparent" isAnimationActive={false} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                     </div>
+                </div>
+
+                {/* Right Section: Balance and Trend */}
+                <div className="flex items-center gap-3 shrink-0 text-right pr-1">
+                    <div className="flex flex-col items-end">
+                        <p className="text-sm sm:text-base font-black text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur truncate leading-none">
+                            {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            {account.currency !== 'EUR' && (
+                                <p className="text-[10px] font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-40">
+                                    {formatCurrency(displayBalance, account.currency)}
+                                </p>
+                            )}
+                            {transactions.length > 0 && Math.abs(trend) > 0 && (
+                                <div className="flex items-center gap-0.5 text-[10px] font-bold shrink-0">
+                                    <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                        {isPositiveTrend ? '▲' : '▼'}
+                                    </span>
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono opacity-60">
+                                        {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {isLinkedToEnableBanking && (
+                         <span className="material-symbols-outlined text-emerald-500 text-sm animate-pulse shrink-0" title="Live Sync Active">sync</span>
+                    )}
+                </div>
+
+                {/* Action Bar Overlay - absolutely positioned to not take up flex space and cause horizontal margins */}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30 bg-white/95 dark:bg-dark-card/95 py-1.5 pl-2 rounded-l-xl border-l border-y border-black/5 dark:border-white/5 shadow-md">
+                    <button 
+                        onClick={handleAdjustBalanceClick} 
+                        className="w-7 h-7 flex items-center justify-center rounded-md bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
+                        title="Adjust Balance"
+                        disabled={isComputedAccount}
+                    >
+                        <span className="material-symbols-outlined text-[15px]">tune</span>
+                    </button>
+                    <button 
+                        onClick={handleEditClick} 
+                        className="w-7 h-7 flex items-center justify-center rounded-md bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
+                        title="Edit Account"
+                    >
+                        <span className="material-symbols-outlined text-[15px]">edit</span>
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div 

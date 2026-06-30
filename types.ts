@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // Financial data and page definitions
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
     type: AccountType;
@@ -483,6 +483,51 @@ export interface RegexCategorizationRule {
   description?: string;
 }
 
+export type RuleFieldCondition = 'description' | 'merchant' | 'amount' | 'type';
+export type RuleOperator = 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with';
+export type RuleFieldAction = 'merchant' | 'description' | 'category';
+
+export interface TransactionRuleCondition {
+  field: RuleFieldCondition;
+  operator: RuleOperator;
+  value: string;
+}
+
+export interface TransactionRuleAction {
+  field: RuleFieldAction;
+  value: string;
+}
+
+export interface TransactionRule {
+  id: string;
+  name: string;
+  isActive: boolean;
+  conditions: TransactionRuleCondition[];
+  actions: TransactionRuleAction[];
+  priority?: number; // Order/priority of evaluation (higher numbers executed first)
+}
+
+export interface RuleExecutionLog {
+  id: string;
+  ruleId: string;
+  ruleName: string;
+  timestamp: string;
+  txId: string;
+  txDescription: string;
+  txAmount: number;
+  changeDetails: string;
+}
+
+export interface RuleRunBackup {
+  timestamp: string;
+  transactions: {
+    id: string;
+    originalCategory: string;
+    originalMerchant: string;
+    originalDescription: string;
+  }[];
+}
+
 export interface AppPreferences {
   currency: string;
   language: string;
@@ -504,6 +549,9 @@ export interface AppPreferences {
   dashboardLayouts?: Record<string, WidgetConfig[]>;
   showBalanceAdjustments?: boolean;
   regexCategorizationRules?: RegexCategorizationRule[];
+  transactionRules?: TransactionRule[];
+  lastRuleRunBackup?: RuleRunBackup;
+  ruleExecutionLogs?: RuleExecutionLog[];
 }
 
 // New types for Bills & Payments
