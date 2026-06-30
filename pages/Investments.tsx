@@ -3,8 +3,9 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
+import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import EditAccountModal from '../components/EditAccountModal';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
@@ -44,7 +45,7 @@ interface InvestmentsProps {
     onViewAccount?: (accountId: string) => void;
 }
 
-type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant';
+type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change';
 
 // Investments main component
 const Investments: React.FC<InvestmentsProps> = ({
@@ -80,13 +81,15 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
     const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useSafeState(false);
     const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
+    const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
+    const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
-    // Include only Stocks, ETFs, Crypto for the Investments page
+    // Include Stocks, ETFs, Crypto, and Spare Change for the Investments page
     const investmentAccounts = useMemo(() => (
         accounts || []
-    ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
+    ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto', 'Spare Change'].includes(a.subType || '')), [accounts]);
 
     const activeInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status !== 'closed'), [investmentAccounts]);
     const closedInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status === 'closed'), [investmentAccounts]);
@@ -427,15 +430,41 @@ const Investments: React.FC<InvestmentsProps> = ({
     }, [displayHoldings, fetchFromSmartBinding, fetchFromTwelveData, isUpdatingAllPrices, onManualPriceChange]);
 
     const holdingsByType = useMemo(() => {
-        const groups = new Map<string, typeof displayHoldings>();
+        const groups = new Map<string, any[]>();
         displayHoldings.forEach((holding) => {
             const key = holding.type === 'Warrant' ? 'Warrants' : (holding.subType || 'Other');
             const existing = groups.get(key) || [];
             existing.push(holding);
             groups.set(key, existing);
         });
+
+        if (activeSegment === 'all' || activeSegment === 'Spare Change') {
+            const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
+            if (spareAccounts.length > 0) {
+                const spareHoldings = spareAccounts.map(acc => {
+                    const linkedAcc = accounts?.find(a => a.id === acc.linkedAccountId);
+                    const txs = transactionsByAccount[acc.id] || [];
+                    const roundUpsCount = txs.filter(t => t.amount > 0).length;
+
+                    return {
+                        symbol: acc.name,
+                        name: linkedAcc ? `Linked: ${linkedAcc.name}` : 'Round-up Savings',
+                        quantity: roundUpsCount,
+                        totalCost: acc.balance,
+                        currentValue: acc.balance,
+                        currentPrice: acc.balance,
+                        type: 'Standard',
+                        subType: 'Spare Change',
+                        isSpareChange: true,
+                        account: acc
+                    };
+                });
+                groups.set('Spare Change', spareHoldings);
+            }
+        }
+
         return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-    }, [displayHoldings]);
+    }, [displayHoldings, activeSegment, activeInvestmentAccounts, accounts, transactionsByAccount]);
 
     // Segment Values for Header
     const segmentValues = useMemo(() => {
@@ -443,17 +472,27 @@ const Investments: React.FC<InvestmentsProps> = ({
         const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
         const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
         const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
+        const spareChangeVal = activeInvestmentAccounts
+            .filter(a => a.subType === 'Spare Change')
+            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
         
         return {
-            all: globalOverview.totalValue,
+            all: globalOverview.totalValue + spareChangeVal,
             Stock: stocks.totalValue,
             ETF: etfs.totalValue,
             Crypto: crypto.totalValue,
-            Warrant: warrantsOnly.totalValue
+            Warrant: warrantsOnly.totalValue,
+            'Spare Change': spareChangeVal
         };
     }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, globalOverview.totalValue]);
 
     const segmentMetrics = useMemo(() => {
+        const currentSegmentValue = activeSegment === 'all'
+            ? totalValue + (segmentValues['Spare Change'] || 0)
+            : activeSegment === 'Spare Change'
+                ? segmentValues['Spare Change']
+                : totalValue;
+
         const totalGainLoss = totalValue - totalCostBasis;
         const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
         
@@ -469,16 +508,28 @@ const Investments: React.FC<InvestmentsProps> = ({
                 { label: 'Active Grants', value: activeHoldings.length.toString(), icon: 'list_alt' },
                 { label: 'Unrealized PnL', value: formatCurrency(totalGainLoss, 'EUR'), icon: 'show_chart' },
             ];
+        } else if (activeSegment === 'Spare Change') {
+            const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
+            const spareAccountIds = new Set(spareAccounts.map(a => a.id));
+            const totalRoundups = transactions
+                .filter(t => spareAccountIds.has(t.accountId) && t.amount > 0)
+                .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
+
+            details = [
+                { label: 'Total Saved', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'savings' },
+                { label: 'Round-ups Count', value: transactions.filter(t => spareAccountIds.has(t.accountId) && t.amount > 0).length.toString(), icon: 'tag' },
+                { label: 'Active Portfolios', value: spareAccounts.length.toString(), icon: 'folder' },
+            ];
         }
 
-        return { totalValue, details };
-    }, [activeOverview, activeSegment, grantedCapital, activeHoldings.length]);
+        return { totalValue: currentSegmentValue, details };
+    }, [activeOverview, activeSegment, grantedCapital, activeHoldings.length, activeInvestmentAccounts, transactions, segmentValues, totalValue, totalCostBasis, investedCapital]);
 
     const trendData = useMemo(() => {
         // Mock trend data for investments since we don't have historical snapshots here
         // We'll base it on current value with some random fluctuations for the sparkline effect
         const data = [];
-        const baseValue = globalOverview.totalValue;
+        const baseValue = segmentValues.all;
         for (let i = 0; i < 30; i++) {
             data.push({
                 date: i.toString(),
@@ -486,7 +537,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             });
         }
         return data;
-    }, [globalOverview.totalValue]);
+    }, [segmentValues.all]);
 
     const segments: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
         { id: 'all', label: 'All Assets', icon: 'dashboard', color: 'indigo' },
@@ -494,6 +545,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         { id: 'ETF', label: 'ETFs', icon: 'account_tree', color: 'teal' },
         { id: 'Crypto', label: 'Crypto', icon: 'currency_bitcoin', color: 'amber' },
         { id: 'Warrant', label: 'Warrants', icon: 'card_membership', color: 'rose' },
+        { id: 'Spare Change', label: 'Spare Change', icon: 'savings', color: 'emerald' },
     ];
 
     const heroGradient = activeSegment === 'Stock'
@@ -504,7 +556,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                 ? 'from-amber-500 via-orange-600 to-yellow-700'
                 : activeSegment === 'Warrant'
                     ? 'from-rose-500 via-rose-600 to-pink-700'
-                    : 'from-indigo-600 via-violet-700 to-purple-800';
+                    : activeSegment === 'Spare Change'
+                        ? 'from-emerald-500 via-teal-600 to-cyan-700'
+                        : 'from-indigo-600 via-violet-700 to-purple-800';
 
     return (
         <div className="relative">
@@ -697,111 +751,176 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     <span>{activeSegment === 'all' ? 'All Holdings' : `${segments.find(s => s.id === activeSegment)?.label} Positions`}</span>
                                 </div>
                             </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-white dark:bg-dark-card">
-                                    <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5">
-                                        <th className="py-4 pl-4 sm:pl-6">Instrument</th>
-                                        <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
-                                        <th className="py-4 text-right hidden lg:table-cell">Qty</th>
-                                        <th className="py-4 text-right hidden md:table-cell">Cost</th>
-                                        <th className="py-4 text-right">Market</th>
-                                        <th className="py-4 text-right">G/L</th>
-                                        <th className="py-4 text-center pr-4 sm:pr-6 w-32">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
-                                    {holdingsByType.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} className="py-12 text-center text-gray-400 italic">
-                                                No active holdings found. Start by adding a transaction.
-                                            </td>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-white dark:bg-dark-card">
+                                        <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5">
+                                            <th className="py-4 pl-4 sm:pl-6">Instrument</th>
+                                            <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
+                                            <th className="py-4 text-right hidden lg:table-cell">Qty</th>
+                                            <th className="py-4 text-right hidden md:table-cell">Cost</th>
+                                            <th className="py-4 text-right">Market</th>
+                                            <th className="py-4 text-right">G/L</th>
+                                            <th className="py-4 text-center pr-4 sm:pr-6 w-32">Actions</th>
                                         </tr>
-                                    ) : (
-                                        holdingsByType.flatMap(([typeName, holdings]) => ([
-                                            <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
-                                                <td colSpan={7} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
-                                                    {typeName}
+                                    </thead>
+                                    <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
+                                        {holdingsByType.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="py-12 text-center text-gray-400 italic">
+                                                    No active holdings found. Start by adding a transaction.
                                                 </td>
-                                            </tr>,
-                                            ...holdings.map(holding => {
-                                                const gainLoss = holding.currentValue - holding.totalCost;
-                                                const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
-                                                const isPositive = gainLoss >= 0;
-                                                const holdingAccount = accountBySymbol.get(holding.symbol);
-                                                const isClosed = holdingAccount?.status === 'closed';
+                                            </tr>
+                                        ) : (
+                                            holdingsByType.flatMap(([typeName, holdings]) => ([
+                                                <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
+                                                    <td colSpan={7} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                                                        {typeName}
+                                                    </td>
+                                                </tr>,
+                                                ...holdings.map(holding => {
+                                                    if (holding.isSpareChange) {
+                                                        const acc = holding.account;
+                                                        return (
+                                                            <tr 
+                                                                key={acc.id} 
+                                                                className="group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer"
+                                                                onClick={() => handleAccountClick(acc.id)}
+                                                            >
+                                                                <td className="py-4 pl-6">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                                                            <span className="material-symbols-outlined text-base">savings</span>
+                                                                        </div>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{acc.name}</p>
+                                                                            <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-4 text-right hidden sm:table-cell">
+                                                                    <span className="text-sm font-medium text-gray-400 dark:text-gray-500">Auto-Save</span>
+                                                                </td>
+                                                                <td className="py-4 text-right hidden lg:table-cell">
+                                                                    <span className="text-sm font-medium dark:text-gray-300">{holding.quantity} saves</span>
+                                                                </td>
+                                                                <td className="py-4 text-right hidden md:table-cell">
+                                                                    <span className="text-sm font-mono text-gray-500 privacy-blur">-</span>
+                                                                </td>
+                                                                <td className="py-4 text-right">
+                                                                    <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(acc.balance, acc.currency)}</span>
+                                                                </td>
+                                                                <td className="py-4 text-right">
+                                                                    <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full inline-block">
+                                                                        Active
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
+                                                                    <div className="flex items-center justify-center gap-1">
+                                                                        <button 
+                                                                            onClick={() => handleOpenAccountModal(acc)}
+                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
+                                                                            title="Edit Account Settings"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-base">edit_note</span>
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => { setAdjustingAccount(acc); setAdjustModalOpen(true); }}
+                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
+                                                                            title="Adjust Balance"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-base">payments</span>
+                                                                        </button>
+                                                                        <button 
+                                                                            onClick={() => handleAccountClick(acc.id)}
+                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
+                                                                            title="Account Details"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-base">analytics</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    }
 
-                                                return (
-                                                    <tr 
-                                                        key={holding.symbol} 
-                                                        className={`group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer ${isClosed ? 'opacity-50' : ''}`}
-                                                        onClick={() => onOpenHoldingDetail(holding.symbol)}
-                                                    >
-                                                        <td className="py-4 pl-6">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
-                                                                    {holding.symbol.substring(0, 2)}
+                                                    const gainLoss = holding.currentValue - holding.totalCost;
+                                                    const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
+                                                    const isPositive = gainLoss >= 0;
+                                                    const holdingAccount = accountBySymbol.get(holding.symbol);
+                                                    const isClosed = holdingAccount?.status === 'closed';
+
+                                                    return (
+                                                        <tr 
+                                                            key={holding.symbol} 
+                                                            className={`group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer ${isClosed ? 'opacity-50' : ''}`}
+                                                            onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                                        >
+                                                            <td className="py-4 pl-6">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
+                                                                        {holding.symbol.substring(0, 2)}
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
+                                                                        <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
-                                                                    <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                            </td>
+                                                            <td className="py-4 text-right hidden sm:table-cell">
+                                                                <span className="text-sm font-mono dark:text-white privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
+                                                            </td>
+                                                            <td className="py-4 text-right hidden lg:table-cell">
+                                                                <span className="text-sm font-medium dark:text-gray-300">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                                                            </td>
+                                                            <td className="py-4 text-right hidden md:table-cell">
+                                                                <span className="text-sm font-mono text-gray-500 privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
+                                                            </td>
+                                                            <td className="py-4 text-right">
+                                                                <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
+                                                            </td>
+                                                            <td className="py-4 text-right">
+                                                                <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                    {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
                                                                 </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-4 text-right hidden sm:table-cell">
-                                                            <span className="text-sm font-mono dark:text-white privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
-                                                        </td>
-                                                        <td className="py-4 text-right hidden lg:table-cell">
-                                                            <span className="text-sm font-medium dark:text-gray-300">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                                                        </td>
-                                                        <td className="py-4 text-right hidden md:table-cell">
-                                                            <span className="text-sm font-mono text-gray-500 privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
-                                                        </td>
-                                                        <td className="py-4 text-right">
-                                                            <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
-                                                        </td>
-                                                        <td className="py-4 text-right">
-                                                            <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                                {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
-                                                            </div>
-                                                            <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
-                                                                {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
-                                                            <div className="flex items-center justify-center gap-1">
-                                                                <button 
-                                                                    onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice || null)}
-                                                                    className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
-                                                                    title="Set / Scrape Price"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-base">edit_note</span>
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleOpenModal({ id: '', type: 'buy', symbol: holding.symbol, name: holding.name, quantity: 1, price: holding.currentPrice || 0, date: toLocalISOString(new Date()) })}
-                                                                    className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
-                                                                    title="Trade Asset"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-base">swap_horiz</span>
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => onOpenHoldingDetail(holding.symbol)}
-                                                                    className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
-                                                                    title="Holding Details"
-                                                                >
-                                                                    <span className="material-symbols-outlined text-base">analytics</span>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        ]))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Card>
+                                                                <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
+                                                                    {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
+                                                                <div className="flex items-center justify-center gap-1">
+                                                                    <button 
+                                                                        onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice || null)}
+                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
+                                                                        title="Set / Scrape Price"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-base">edit_note</span>
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => handleOpenModal({ id: '', type: 'buy', symbol: holding.symbol, name: holding.name, quantity: 1, price: holding.currentPrice || 0, date: toLocalISOString(new Date()) })}
+                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
+                                                                        title="Trade Asset"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-base">swap_horiz</span>
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
+                                                                        title="Holding Details"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-base">analytics</span>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            ]))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
 
                     <Card className="!p-0 overflow-hidden">
                         <div className="px-6 py-5 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
@@ -993,6 +1112,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             </div>
 
+
+
             {/* Closed Accounts Section */}
             {closedInvestmentAccounts.length > 0 && activeSegment === 'all' && (
                 <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
@@ -1013,6 +1134,33 @@ const Investments: React.FC<InvestmentsProps> = ({
                         layoutMode="stacked"
                     />
                 </div>
+            )}
+
+            {/* Balance Adjustment Modal */}
+            {isAdjustModalOpen && adjustingAccount && (
+                <BalanceAdjustmentModal
+                    onClose={() => {
+                        setAdjustingAccount(null);
+                        setAdjustModalOpen(false);
+                    }}
+                    onSave={(adjustmentAmount, date, notes) => {
+                        const txData: Omit<Transaction, 'id'> = {
+                            accountId: adjustingAccount.id,
+                            date,
+                            description: 'Balance Adjustment',
+                            merchant: notes || 'Manual balance correction',
+                            amount: adjustmentAmount,
+                            category: 'Income',
+                            type: adjustmentAmount >= 0 ? 'income' : 'expense',
+                            currency: adjustingAccount.currency,
+                            isBalanceAdjustment: true,
+                        };
+                        saveTransaction([txData], []);
+                        setAdjustingAccount(null);
+                        setAdjustModalOpen(false);
+                    }}
+                    account={adjustingAccount}
+                />
             )}
         </div>
     </div>

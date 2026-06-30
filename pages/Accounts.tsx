@@ -75,6 +75,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
                    return !acc.symbol; 
                }
+               // Hide spare change accounts from accounts page to show on investments page
+               if (acc.subType === 'Spare Change') {
+                   return false;
+               }
                return true;
           }
           return true;
