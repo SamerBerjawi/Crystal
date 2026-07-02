@@ -25,8 +25,8 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
         if (active && payload && payload.length) {
             const date = parseLocalDate(label);
             return (
-                <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
-                    <p className="font-black text-light-text-secondary dark:text-dark-text-secondary mb-2 uppercase tracking-widest text-[10px] opacity-60">
+                <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
+                    <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-widest text-[10px]">
                         {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                     <p className="text-primary-500 font-mono font-black text-lg tracking-tighter">

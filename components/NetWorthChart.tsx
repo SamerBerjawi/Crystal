@@ -46,9 +46,9 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         const forecastPayload = payload.find((p: any) => p.dataKey === 'forecast');
 
         return (
-          <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 min-w-[180px] animate-in fade-in zoom-in duration-200">
-            <div className="mb-3 pb-2 border-b border-black/5 dark:border-white/5">
-                <p className="font-bold text-light-text dark:text-dark-text text-xs uppercase tracking-wider">
+          <div className="bg-white dark:bg-neutral-900 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800/80 min-w-[180px] animate-in fade-in zoom-in duration-200">
+            <div className="mb-3 pb-2 border-b border-neutral-200 dark:border-neutral-800/80">
+                <p className="font-bold text-neutral-800 dark:text-neutral-100 text-xs uppercase tracking-wider">
                     {parseLocalDate(label).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
             </div>
@@ -56,10 +56,10 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             <div className="space-y-3">
                 {historyPayload && (
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-1">Actual Net Worth</span>
+                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-1">Actual Net Worth</span>
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                            <span className="text-lg font-black text-light-text dark:text-dark-text font-mono tracking-tighter">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                            <span className="text-lg font-black text-neutral-800 dark:text-neutral-100 font-mono tracking-tighter">
                                 {formatCurrency(historyPayload.value, 'EUR')}
                             </span>
                         </div>
@@ -68,9 +68,9 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
                 
                 {forecastPayload && (
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-1">Forecasted</span>
+                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-1">Forecasted</span>
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                             <span className="text-lg font-black text-primary-500 font-mono tracking-tighter">
                                 {formatCurrency(forecastPayload.value, 'EUR')}
                             </span>

@@ -71,9 +71,9 @@ const writeSavedViews = (views: SavedReportView[]) => {
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+      <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
         {label && (
-          <p className="text-[10px] font-bold tracking-widest mb-2 text-light-text-secondary dark:text-dark-text-secondary">
+          <p className="text-[10px] font-bold tracking-widest mb-2 text-neutral-500 dark:text-neutral-400">
             {typeof label === 'number' ? `Day ${label}` : label}
           </p>
         )}
@@ -82,9 +82,9 @@ const ChartTooltip = ({ active, payload, label }: any) => {
             <div key={index} className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
-                <span className="text-[10px] font-bold tracking-wider text-light-text dark:text-dark-text opacity-80">{entry.name}:</span>
+                <span className="text-[10px] font-bold tracking-wider text-neutral-600 dark:text-neutral-300">{entry.name}:</span>
               </div>
-              <span className="text-xs font-bold text-light-text dark:text-dark-text privacy-blur">
+              <span className="text-xs font-bold text-neutral-800 dark:text-neutral-100 privacy-blur">
                 €{entry.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>

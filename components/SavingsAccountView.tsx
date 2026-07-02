@@ -82,11 +82,23 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
   const projectedAnnualInterest = (account.balance * apy) / 100;
   const projectedMonthlyInterest = projectedAnnualInterest / 12;
 
+  // Set the reference date to today if there is recent transaction activity,
+  // or fall back to the latest transaction date in the past (e.g. 2024 for demo data).
+  const referenceDate = useMemo(() => {
+    if (transactions.length === 0) return new Date();
+    const latestTxDate = new Date(Math.max(...transactions.map(t => t.parsedDate.getTime())));
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return latestTxDate > thirtyDaysAgo ? today : latestTxDate;
+  }, [transactions]);
+
   const interestHistory = useMemo(() => {
     const data = [];
-    const today = new Date();
+    const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
+    const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+
     for (let i = 11; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
         const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
@@ -94,43 +106,68 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
         const interestTxs = transactions
             .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
             .filter(({ tx, parsedDate }) => {
+                 const cat = allCategories.find(c => c.id === tx.category);
+                 const categoryName = cat ? cat.name : tx.category;
+                 const matchesCategory = categoryName && categoryName.toLowerCase().includes('interest');
+                 const matchesDescription = tx.description && tx.description.toLowerCase().includes('interest');
                  return parsedDate >= startOfMonth && 
                         parsedDate <= endOfMonth && 
                         tx.type === 'income' &&
-                        (tx.category.toLowerCase().includes('interest') || tx.description.toLowerCase().includes('interest'));
+                        (matchesCategory || matchesDescription);
             });
         
-        const totalInterest = interestTxs.reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
-        data.push({ name: monthKey, value: totalInterest });
+        const actualInterest = interestTxs.reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
+
+        // Estimate balance at the end of this month
+        let estBalance = account.balance;
+        sortedTxs.forEach(({ tx, parsedDate }) => {
+            if (parsedDate > endOfMonth) {
+                estBalance -= tx.amount;
+            }
+        });
+        if (estBalance < 0) estBalance = 0;
+
+        const projectedInterest = (estBalance * apy) / 100 / 12;
+
+        data.push({ 
+            name: monthKey, 
+            actual: actualInterest,
+            projected: projectedInterest,
+            value: actualInterest > 0 ? actualInterest : projectedInterest,
+            isProjected: actualInterest === 0
+        });
     }
     return data;
-  }, [transactions, showBalanceAdjustments]);
+  }, [transactions, account.balance, account.apy, referenceDate, allCategories, showBalanceAdjustments]);
 
   const totalInterestYTD = useMemo(() => {
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const startOfYear = new Date(referenceDate.getFullYear(), 0, 1);
       return transactions
         .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-        .filter(({ tx, parsedDate }) => 
-            parsedDate >= startOfYear && 
-            tx.type === 'income' && 
-            (tx.category.toLowerCase().includes('interest') || tx.description.toLowerCase().includes('interest'))
-        )
+        .filter(({ tx, parsedDate }) => {
+             const cat = allCategories.find(c => c.id === tx.category);
+             const categoryName = cat ? cat.name : tx.category;
+             const matchesCategory = categoryName && categoryName.toLowerCase().includes('interest');
+             const matchesDescription = tx.description && tx.description.toLowerCase().includes('interest');
+             return parsedDate >= startOfYear && 
+                 parsedDate <= referenceDate &&
+                 tx.type === 'income' && 
+                 (matchesCategory || matchesDescription);
+        })
         .reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
-  }, [transactions, showBalanceAdjustments]);
+  }, [transactions, referenceDate, allCategories, showBalanceAdjustments]);
 
   // --- 2. Balance History ---
   const balanceHistory = useMemo(() => {
     const data = [];
     let currentBalance = account.balance;
-    const today = new Date();
-    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
     const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
     const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
     
     sortedTxs.forEach(({ tx, parsedDate }) => {
-         if (parsedDate > today) return; 
+         if (parsedDate > referenceDate) return; 
          const dateStr = toLocalISOString(parsedDate);
          dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
     });
@@ -144,7 +181,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
         iterDate.setDate(iterDate.getDate() - 1);
     }
     return data.reverse();
-  }, [account.balance, transactions, showBalanceAdjustments]);
+  }, [account.balance, transactions, referenceDate, showBalanceAdjustments]);
 
   // --- 3. Linked Goals ---
   const linkedGoals = useMemo(() => {
@@ -354,16 +391,22 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                          borderRadius: '24px', 
                                          boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
                                      }}
-                                     itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#10B981' }}
+                                     itemStyle={{ fontSize: '12px', fontWeight: '900' }}
                                      labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
-                                     formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Interest']}
+                                     formatter={(val: number, name: any, props: any) => {
+                                         const isProj = props.payload?.isProjected;
+                                         return [
+                                             `${formatCurrency(val, account.currency)}`, 
+                                             isProj ? 'Projected Yield' : 'Actual Interest'
+                                         ];
+                                     }}
                                  />
                                 <Bar dataKey="value" radius={[12, 12, 12, 12]} barSize={24}>
-                                    {interestHistory.map((entry, index) => (
+                                    {interestHistory.map((entry: any, index: number) => (
                                         <Cell 
                                             key={`cell-${index}`} 
-                                            fill="#10B981" 
-                                            fillOpacity={index === interestHistory.length - 1 ? 1 : 0.4}
+                                            fill={entry.isProjected ? "#3B82F6" : "#10B981"} 
+                                            fillOpacity={entry.isProjected ? 0.3 : (index === interestHistory.length - 1 ? 1 : 0.4)}
                                         />
                                     ))}
                                 </Bar>
