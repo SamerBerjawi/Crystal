@@ -14,9 +14,12 @@ interface RecurringTransactionModalProps {
     recurringTransactionToEdit?: (Omit<RecurringTransaction, 'id'> & { id?: string }) | null;
 }
 
-const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
+const CategoryOptions: React.FC<{ categories: Category[], showTransferOption?: boolean }> = ({ categories, showTransferOption }) => (
   <>
     <option value="">Select a category</option>
+    {showTransferOption && (
+      <option value="Transfer">Transfer</option>
+    )}
     {categories.map(parentCat => (
       <optgroup key={parentCat.id} label={parentCat.name}>
         <option value={parentCat.name}>{parentCat.name}</option>
@@ -122,7 +125,11 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
 
     useEffect(() => {
         if (!isEditing) {
-            setCategory('');
+            if (type === 'transfer') {
+                setCategory('Transfer');
+            } else {
+                setCategory('');
+            }
         }
     }, [type, isEditing]);
 
@@ -172,7 +179,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             description,
             merchant,
             amount: parseFloat(amount),
-            category: isTransfer ? 'Transfer' : category,
+            category: isTransfer ? (category || 'Transfer') : category,
             type,
             currency: fromAccount.currency,
             frequency,
@@ -233,26 +240,19 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-light-text-secondary select-none">€</span>
                             </div>
                         </div>
-                        {type !== 'transfer' ? (
-                            <div>
-                                <label htmlFor="rec-category" className={labelStyle}>Category</label>
-                                <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-14`} required>
-                                        <CategoryOptions categories={activeCategories} />
-                                    </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                </div>
+                        <div>
+                            <label htmlFor="rec-category" className={labelStyle}>Category</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-14`} required={type !== 'transfer'}>
+                                    <CategoryOptions categories={activeCategories} showTransferOption={type === 'transfer'} />
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
-                        ) : (
-                             <div>
-                                <label htmlFor="rec-description" className={labelStyle}>Description</label>
-                                <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-bold`} placeholder="e.g., Savings" required />
-                            </div>
-                        )}
+                        </div>
                     </div>
                     
-                    {/* Description & Merchant for non-transfers */}
-                    {type !== 'transfer' && (
+                    {/* Description & Merchant */}
+                    {type !== 'transfer' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label htmlFor="rec-merchant" className={labelStyle}>Merchant</label>
@@ -262,6 +262,11 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                 <label htmlFor="rec-description" className={labelStyle}>Internal Description</label>
                                 <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-14`} placeholder="e.g., Monthly Subscription" required />
                             </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <label htmlFor="rec-description" className={labelStyle}>Description</label>
+                            <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-bold`} placeholder="e.g., Savings Transfer" required />
                         </div>
                     )}
                     

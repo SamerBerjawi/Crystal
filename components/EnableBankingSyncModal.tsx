@@ -85,7 +85,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 transition-opacity">
-      <div className="w-full max-w-lg bg-white dark:bg-dark-card text-gray-900 dark:text-dark-text rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 p-6 space-y-6 animate-fade-in-up">
+      <div className="w-full max-w-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 p-6 space-y-6 animate-fade-in-up">
         
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
@@ -100,7 +100,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 p-1 rounded-full transition-colors"
+            className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-black/5 dark:hover:bg-white/10 p-1 rounded-full transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -111,7 +111,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           
           {/* Option 1: Transactions from a date */}
           <div
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'full' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'full' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-neutral-200 dark:border-neutral-800 hover:bg-black/5 dark:hover:bg-white/5'}`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'full' }))}
           >
             <div className="flex items-start gap-3">
@@ -136,12 +136,12 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
                                     max={maxDate}
                                     value={clampDate(state.syncStartDate) || ''}
                                     onChange={(e) => setState(prev => ({ ...prev, syncStartDate: clampDate(e.target.value) || '' }))}
-                                    className={`${INPUT_BASE_STYLE} text-sm flex-1`}
+                                    className="h-10 w-full rounded-xl px-4 border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 text-sm flex-1"
                                 />
                                 <button 
                                     type="button"
                                     onClick={handleSetToday}
-                                    className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-xs font-semibold transition-colors text-light-text dark:text-dark-text"
+                                    className="px-3 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-semibold transition-colors text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700"
                                 >
                                     Today
                                 </button>
@@ -154,7 +154,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
 
           {/* Option 2: Sync only new transactions */}
           <div
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'incremental' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'incremental' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-neutral-200 dark:border-neutral-800 hover:bg-black/5 dark:hover:bg-white/5'}`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'incremental', updateBalance: true }))}
           >
             <div className="flex items-start gap-3">
@@ -170,7 +170,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
 
           {/* Option 3: Balance Only */}
           <div
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'none' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'none' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-neutral-200 dark:border-neutral-800 hover:bg-black/5 dark:hover:bg-white/5'}`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'none', updateBalance: true }))}
           >
              <div className="flex items-start gap-3">

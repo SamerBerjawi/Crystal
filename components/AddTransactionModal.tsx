@@ -36,9 +36,14 @@ interface AddTransactionModalProps {
   };
 }
 
-const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
+const CategoryOptions: React.FC<{ categories: Category[], showTransferOption?: boolean }> = ({ categories, showTransferOption }) => (
   <>
     <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="">Select Category</option>
+    {showTransferOption && (
+      <option className="bg-white dark:bg-gray-900 text-black dark:text-white font-semibold" value="Transfer">
+        Transfer (Internal)
+      </option>
+    )}
     {categories.map(parentCat => (
       <optgroup className="bg-gray-100 dark:bg-gray-800 text-black dark:text-white font-semibold" key={parentCat.id} label={parentCat.name}>
         <option className="bg-white dark:bg-gray-900 text-black dark:text-white font-normal" value={parentCat.name}>{parentCat.name}</option>
@@ -377,6 +382,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             const baseDescription = transactionToEdit.description.replace(/Transfer to .*|Transfer from .*/, 'Account Transfer');
             setDescription(baseDescription);
             setMerchant(transactionToEdit.merchant || 'Internal Transfer');
+            setCategory(transactionToEdit.category || 'Transfer');
         } else {
             setType(transactionToEdit.type);
             if (transactionToEdit.type === 'income') {
@@ -482,7 +488,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   
   useEffect(() => {
     if (!isEditing) {
-        setCategory(initialCategory || '');
+        if (type === 'transfer') {
+            setCategory(initialCategory || 'Transfer');
+        } else {
+            setCategory(initialCategory || '');
+        }
     }
   }, [type, isEditing, initialCategory]);
 
@@ -535,7 +545,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             description: description || `Transfer to ${toAcc.name}`,
             merchant: merchant || 'Internal Transfer',
             amount: -Math.abs(totalAmount),
-            category: 'Transfer',
+            category: category || 'Transfer',
             type: 'expense',
             currency: fromAcc.currency,
             transferId,
@@ -550,7 +560,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             description: description || `Transfer from ${fromAcc.name}`,
             merchant: merchant || 'Internal Transfer',
             amount: Math.abs(totalAmount),
-            category: 'Transfer',
+            category: category || 'Transfer',
             type: 'income',
             currency: toAcc.currency,
             transferId,
@@ -850,12 +860,22 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     </div>
                                 </div>
 
-                                {type !== 'transfer' && (
+                                {type !== 'transfer' ? (
                                     <div>
                                         <label className={labelStyle}>Category</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
                                             <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
                                                 <CategoryOptions categories={activeCategories} />
+                                            </select>
+                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="md:col-span-2">
+                                        <label className={labelStyle}>Category</label>
+                                        <div className={SELECT_WRAPPER_STYLE}>
+                                            <select id="tx-category" value={category} onChange={e => setCategory(e.target.value || 'Transfer')} className={`${SELECT_STYLE} h-10 font-bold text-sm`}>
+                                                <CategoryOptions categories={activeCategories} showTransferOption />
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
                                         </div>

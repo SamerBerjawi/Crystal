@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import EnableBankingSyncModal from '../components/EnableBankingSyncModal';
+import HistoricalBalanceTrend from '../components/HistoricalBalanceTrend';
 
 // Lazy load view components
 const PropertyAccountView = React.lazy(() => import('../components/PropertyAccountView'));
@@ -546,6 +547,10 @@ const AccountDetail: React.FC<{
             <Suspense fallback={<div className="flex justify-center p-10"><div className="animate-spin h-8 w-8 border-2 border-primary-500 rounded-full border-t-transparent"></div></div>}>
                 {renderContent()}
             </Suspense>
+
+            <div className="mt-8">
+                <HistoricalBalanceTrend account={account} transactions={transactions} />
+            </div>
         </>
     );
 };

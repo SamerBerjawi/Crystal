@@ -685,30 +685,53 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
       // Iterate through raw selectedIds to handle transfers properly
       for (const selectedId of selectedIds) {
-          let originalTx: Transaction | undefined;
-          
           if (selectedId.startsWith('transfer-')) {
                const transferId = selectedId.replace('transfer-', '');
-               originalTx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+               const pairExpense = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+               const pairIncome = transactions.find(t => t.transferId === transferId && t.type === 'income');
                
-               // If we are converting a transfer to a category, we need to delete the income side counterpart
-               if (originalTx) {
-                   const counterpart = transactions.find(t => t.transferId === transferId && t.id !== originalTx.id);
-                   if (counterpart) idsToDelete.push(counterpart.id);
+               if (pairExpense) {
+                   transactionUpdates.push({
+                       ...pairExpense,
+                       category: newCategoryName
+                   });
+               }
+               if (pairIncome) {
+                   transactionUpdates.push({
+                       ...pairIncome,
+                       category: newCategoryName
+                   });
                }
           } else {
-               originalTx = transactions.find(t => t.id === selectedId);
-          }
-
-          if (originalTx) {
-              const newAmount = newType === 'income' ? Math.abs(originalTx.amount) : -Math.abs(originalTx.amount);
-              transactionUpdates.push({ 
-                  ...originalTx, 
-                  category: newCategoryName,
-                  type: newType,
-                  amount: newAmount,
-                  transferId: undefined // Remove transfer link if it was one
-              });
+               const originalTx = transactions.find(t => t.id === selectedId);
+               if (originalTx) {
+                   if (originalTx.transferId) {
+                       const transferId = originalTx.transferId;
+                       const pairExpense = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+                       const pairIncome = transactions.find(t => t.transferId === transferId && t.type === 'income');
+                       
+                       if (pairExpense && !transactionUpdates.some(ut => ut.id === pairExpense.id)) {
+                           transactionUpdates.push({
+                               ...pairExpense,
+                               category: newCategoryName
+                           });
+                       }
+                       if (pairIncome && !transactionUpdates.some(ut => ut.id === pairIncome.id)) {
+                           transactionUpdates.push({
+                               ...pairIncome,
+                               category: newCategoryName
+                           });
+                       }
+                   } else {
+                       const newAmount = newType === 'income' ? Math.abs(originalTx.amount) : -Math.abs(originalTx.amount);
+                       transactionUpdates.push({ 
+                           ...originalTx, 
+                           category: newCategoryName,
+                           type: newType,
+                           amount: newAmount
+                       });
+                   }
+               }
           }
       }
       
@@ -1548,8 +1571,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     }
 
                     const categoryDetails = getCategoryDetails(tx.category, allCategories);
-                    const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
-                    const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
+                    const categoryColor = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (categoryDetails.color || '#A0AEC0');
+                    const categoryIcon = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'swap_horiz' : (categoryDetails.icon || 'category');
                     const merchantKey = normalizeMerchantKey(tx.merchant);
                     const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
                     const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);

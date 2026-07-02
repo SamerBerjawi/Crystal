@@ -78,8 +78,8 @@ const TransactionList: React.FC<TransactionListProps> = ({
           : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');
         
             const catDetails = categoryDetailsMap.get(tx.category) || {};
-        const icon = isTransfer ? 'swap_horiz' : (catDetails.icon || catDetails.parentIcon || 'sell');
-        const categoryColor = isTransfer ? '#64748B' : (catDetails.color || '#A0AEC0');
+        const icon = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'swap_horiz' : (catDetails.icon || catDetails.parentIcon || 'sell');
+        const categoryColor = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (catDetails.color || '#A0AEC0');
         
         const accentColor = isTransfer 
           ? 'rgba(59, 130, 246, 0.4)' 
