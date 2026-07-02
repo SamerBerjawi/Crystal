@@ -178,7 +178,6 @@ const Reports: React.FC = () => {
   }, [merchantLogoOverrides, merchantRules]);
 
   const merchantLogoUrls = useMemo(() => {
-    if (!brandfetchClientId) return {} as Record<string, string>;
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant || tx.description);
       if (!key || acc[key]) return acc;

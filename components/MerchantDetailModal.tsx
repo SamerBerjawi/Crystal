@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Category, MerchantRule } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { toast } from 'sonner';
 
 interface MerchantDetailModalProps {
     isOpen: boolean;
@@ -55,6 +56,49 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     const [isHidden, setIsHidden] = useState(initialRule?.isHidden || false);
     const [defaultDescription, setDefaultDescription] = useState(initialRule?.defaultDescription || '');
     const [notes, setNotes] = useState(initialRule?.notes || '');
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const isCustomUpload = logo.startsWith('data:image/') || logo.startsWith('http://') || logo.startsWith('https://');
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleFile = (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please upload an image file (PNG, JPG, SVG, WEBP, etc.)');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                setLogo(reader.result);
+                toast.success('Custom logo loaded successfully!');
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+        }
+    };
 
     // Initialize with smart guesses if rule doesn't exist
     useEffect(() => {
@@ -190,18 +234,75 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                             </p>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                             <div>
-                                <label className={labelStyle}>Brand Domain</label>
-                                <input 
-                                    type="text" 
-                                    value={logo} 
-                                    onChange={e => setLogo(e.target.value)} 
-                                    className={INPUT_BASE_STYLE} 
-                                    placeholder="e.g. netflix.com" 
-                                />
-                             </div>
-                             <div>
+                        <div className="space-y-4 pt-2 border-t border-black/5 dark:border-white/5">
+                            <h4 className="text-xs font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Brand Identity</h4>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {isCustomUpload ? (
+                                    <div className="flex flex-col justify-between p-4 bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl h-[100px]">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-white flex items-center justify-center p-1 shrink-0">
+                                                <img src={logo} className="max-w-full max-h-full object-contain" alt="Custom logo" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-light-text dark:text-dark-text truncate">Custom Logo Loaded</p>
+                                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate">Using manual image asset</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setLogo('')} 
+                                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 self-start transition-colors"
+                                        >
+                                            Remove Custom Logo
+                                        </button>
+                                    </div>
+                                ) : (
+                                     <div>
+                                        <label className={labelStyle}>Brand Domain</label>
+                                        <input 
+                                            type="text" 
+                                            value={logo} 
+                                            onChange={e => setLogo(e.target.value)} 
+                                            className={INPUT_BASE_STYLE} 
+                                            placeholder="e.g. netflix.com" 
+                                        />
+                                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                            Auto-fetches matching telemetry from Brandfetch.
+                                        </p>
+                                     </div>
+                                )}
+
+                                {isCustomUpload ? (
+                                    <div className="flex flex-col justify-center">
+                                         <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Logo Precedence</p>
+                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 leading-relaxed">
+                                             This custom logo overrides Brandfetch lookups and is synchronized globally across all of your telemetry reports.
+                                         </p>
+                                    </div>
+                                ) : (
+                                    <div 
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all h-[100px] ${isDragging ? 'border-primary-500 bg-primary-500/5' : 'border-black/10 dark:border-white/10 hover:border-primary-500/40 hover:bg-black/[0.01] dark:hover:bg-white/[0.01]'}`}
+                                    >
+                                        <input 
+                                            ref={fileInputRef}
+                                            type="file" 
+                                            accept="image/*" 
+                                            onChange={handleFileChange} 
+                                            className="hidden" 
+                                        />
+                                        <span className="material-symbols-outlined text-xl text-light-text-secondary dark:text-dark-text-secondary mb-0.5">upload_file</span>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text">Upload Custom Logo</p>
+                                        <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Drag-and-drop or click here</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
                                 <label className={labelStyle}>Website URL</label>
                                 <input 
                                     type="text" 
@@ -210,7 +311,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     className={INPUT_BASE_STYLE} 
                                     placeholder="https://..." 
                                 />
-                             </div>
+                            </div>
                         </div>
 
                         <div>

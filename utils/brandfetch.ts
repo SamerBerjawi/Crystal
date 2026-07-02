@@ -62,6 +62,14 @@ export const getMerchantLogoUrl = (
   overrides?: Record<string, string>,
   options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback },
 ): string | null => {
+  const normalizedKey = normalizeMerchantKey(merchant);
+  if (normalizedKey) {
+    const override = overrides?.[normalizedKey];
+    if (override && (override.startsWith('data:image/') || override.startsWith('http://') || override.startsWith('https://'))) {
+      return override;
+    }
+  }
+
   if (!clientId) return null;
   const identifier = buildMerchantIdentifier(merchant, overrides);
   if (!identifier) return null;

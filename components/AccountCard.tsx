@@ -46,18 +46,30 @@ const AccountCard: React.FC<AccountCardProps> = ({
     const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
     const { loanPaymentOverrides } = useScheduleContext();
     
+    const merchantLogoOverrides = usePreferencesSelector(p => {
+        const rules = p.merchantRules || {};
+        const legacy = p.merchantLogoOverrides || {};
+        const ruleLogoOverrides = Object.entries(rules).reduce((acc, [key, r]) => {
+            if (r.logo) acc[key] = r.logo;
+            return acc;
+        }, {} as Record<string, string>);
+        return { ...legacy, ...ruleLogoOverrides };
+    });
+    
     const [logoError, setLogoError] = React.useState(false);
 
     const logoUrl = React.useMemo(() => {
-        if (logoError || !brandfetchClientId) return null;
+        if (logoError) return null;
+        if (account.financialInstitution) {
+            const url = getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 });
+            if (url) return url;
+        }
+        if (!brandfetchClientId) return null;
         if (account.type === 'Credit Card' && account.cardNetwork) {
             return getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId);
         }
-        if (account.financialInstitution) {
-            return getMerchantLogoUrl(account.financialInstitution, brandfetchClientId);
-        }
         return null;
-    }, [account, brandfetchClientId, logoError]);
+    }, [account, brandfetchClientId, logoError, merchantLogoOverrides]);
     
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card's onClick from firing

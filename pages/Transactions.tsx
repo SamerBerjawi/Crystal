@@ -325,7 +325,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
 
   const merchantLogoUrls = useMemo(() => {
-    if (!brandfetchClientId) return {} as Record<string, string>;
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key || acc[key]) return acc;

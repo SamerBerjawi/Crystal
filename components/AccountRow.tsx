@@ -181,12 +181,13 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     }
 
     const logoUrl = useMemo(() => {
+        if (account.financialInstitution) {
+            const url = getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 });
+            if (url) return url;
+        }
         if (!brandfetchClientId) return null;
         if (account.type === 'Credit Card' && account.cardNetwork) {
             return getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId);
-        }
-        if (account.financialInstitution) {
-            return getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 });
         }
         return null;
     }, [account, brandfetchClientId, merchantLogoOverrides]);
