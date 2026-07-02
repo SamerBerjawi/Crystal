@@ -45,7 +45,7 @@ interface InvestmentsProps {
     onViewAccount?: (accountId: string) => void;
 }
 
-type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change';
+type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change' | 'Pension Fund' | 'Other';
 
 // Investments main component
 const Investments: React.FC<InvestmentsProps> = ({
@@ -86,10 +86,10 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
-    // Include Stocks, ETFs, Crypto, and Spare Change for the Investments page
+    // Include all Investment accounts for the Investments page
     const investmentAccounts = useMemo(() => (
         accounts || []
-    ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto', 'Spare Change'].includes(a.subType || '')), [accounts]);
+    ).filter(a => a.type === 'Investment'), [accounts]);
 
     const activeInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status !== 'closed'), [investmentAccounts]);
     const closedInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status === 'closed'), [investmentAccounts]);
@@ -431,6 +431,8 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     const holdingsByType = useMemo(() => {
         const groups = new Map<string, any[]>();
+        
+        // Add regular holdings
         displayHoldings.forEach((holding) => {
             const key = holding.type === 'Warrant' ? 'Warrants' : (holding.subType || 'Other');
             const existing = groups.get(key) || [];
@@ -438,30 +440,69 @@ const Investments: React.FC<InvestmentsProps> = ({
             groups.set(key, existing);
         });
 
-        if (activeSegment === 'all' || activeSegment === 'Spare Change') {
-            const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
-            if (spareAccounts.length > 0) {
-                const spareHoldings = spareAccounts.map(acc => {
-                    const linkedAcc = accounts?.find(a => a.id === acc.linkedAccountId);
-                    const txs = transactionsByAccount[acc.id] || [];
-                    const roundUpsCount = txs.filter(t => t.amount > 0).length;
+        // Add non-symbol accounts (portfolios / brokerages / pension funds / spare change)
+        const nonSymbolAccounts = activeInvestmentAccounts.filter(a => !a.symbol);
+        
+        // Filter non-symbol accounts based on activeSegment
+        const filteredNonSymbol = nonSymbolAccounts.filter(acc => {
+            if (activeSegment === 'all') return true;
+            return acc.subType === activeSegment;
+        });
 
-                    return {
-                        symbol: acc.name,
-                        name: linkedAcc ? `Linked: ${linkedAcc.name}` : 'Round-up Savings',
-                        quantity: roundUpsCount,
-                        totalCost: acc.balance,
-                        currentValue: acc.balance,
-                        currentPrice: acc.balance,
-                        type: 'Standard',
-                        subType: 'Spare Change',
-                        isSpareChange: true,
-                        account: acc
-                    };
-                });
-                groups.set('Spare Change', spareHoldings);
+        filteredNonSymbol.forEach(acc => {
+            let key = 'Other Portfolios';
+            if (acc.subType === 'Spare Change') {
+                key = 'Spare Change';
+            } else if (acc.subType === 'Pension Fund') {
+                key = 'Pension Funds';
+            } else if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
+                key = 'Brokerage Cash';
             }
-        }
+
+            const linkedAcc = accounts?.find(a => a.id === acc.linkedAccountId);
+            const txs = transactionsByAccount[acc.id] || [];
+            
+            // Quantity calculation based on type
+            let quantity = txs.length;
+            let qtyLabel = 'transactions';
+            let subtext = '';
+
+            if (acc.subType === 'Spare Change') {
+                quantity = txs.filter(t => t.amount > 0).length;
+                qtyLabel = `${quantity} saves`;
+                subtext = linkedAcc ? `Linked: ${linkedAcc.name}` : 'Round-up Savings';
+            } else if (acc.subType === 'Pension Fund') {
+                quantity = acc.expectedRetirementYear || 0;
+                qtyLabel = quantity ? `Target: ${quantity}` : 'No target';
+                subtext = 'Pension Portfolio';
+            } else if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
+                quantity = txs.length;
+                qtyLabel = `${quantity} trades`;
+                subtext = `${acc.subType} Brokerage Account`;
+            } else {
+                quantity = txs.length;
+                qtyLabel = `${quantity} items`;
+                subtext = 'Alternative Portfolio';
+            }
+
+            const holdingObj = {
+                symbol: acc.name,
+                name: subtext,
+                quantity: quantity,
+                qtyLabel: qtyLabel,
+                totalCost: acc.balance,
+                currentValue: acc.balance,
+                currentPrice: acc.balance,
+                type: 'Standard',
+                subType: acc.subType,
+                isCustomAccount: true,
+                account: acc
+            };
+
+            const existing = groups.get(key) || [];
+            existing.push(holdingObj);
+            groups.set(key, existing);
+        });
 
         return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }, [displayHoldings, activeSegment, activeInvestmentAccounts, accounts, transactionsByAccount]);
@@ -472,26 +513,40 @@ const Investments: React.FC<InvestmentsProps> = ({
         const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
         const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
         const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
-        const spareChangeVal = activeInvestmentAccounts
-            .filter(a => a.subType === 'Spare Change')
-            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
         
+        // Non-symbol account values by subtype
+        const nonSymbolBalancesByType: Record<string, number> = {};
+        activeInvestmentAccounts.forEach(acc => {
+            if (!acc.symbol) {
+                const sub = acc.subType || 'Other';
+                const eurVal = convertToEur(acc.balance, acc.currency);
+                nonSymbolBalancesByType[sub] = (nonSymbolBalancesByType[sub] || 0) + eurVal;
+            }
+        });
+
+        const stockExtra = nonSymbolBalancesByType['Stock'] || 0;
+        const etfExtra = nonSymbolBalancesByType['ETF'] || 0;
+        const cryptoExtra = nonSymbolBalancesByType['Crypto'] || 0;
+        const spareChangeVal = nonSymbolBalancesByType['Spare Change'] || 0;
+        const pensionVal = nonSymbolBalancesByType['Pension Fund'] || 0;
+        const otherVal = nonSymbolBalancesByType['Other'] || 0;
+
+        const totalNonSymbol = Object.values(nonSymbolBalancesByType).reduce((a, b) => a + b, 0);
+
         return {
-            all: globalOverview.totalValue + spareChangeVal,
-            Stock: stocks.totalValue,
-            ETF: etfs.totalValue,
-            Crypto: crypto.totalValue,
+            all: globalOverview.totalValue + totalNonSymbol,
+            Stock: stocks.totalValue + stockExtra,
+            ETF: etfs.totalValue + etfExtra,
+            Crypto: crypto.totalValue + cryptoExtra,
             Warrant: warrantsOnly.totalValue,
-            'Spare Change': spareChangeVal
+            'Spare Change': spareChangeVal,
+            'Pension Fund': pensionVal,
+            Other: otherVal
         };
     }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, globalOverview.totalValue]);
 
     const segmentMetrics = useMemo(() => {
-        const currentSegmentValue = activeSegment === 'all'
-            ? totalValue + (segmentValues['Spare Change'] || 0)
-            : activeSegment === 'Spare Change'
-                ? segmentValues['Spare Change']
-                : totalValue;
+        const currentSegmentValue = segmentValues[activeSegment] || 0;
 
         const totalGainLoss = totalValue - totalCostBasis;
         const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
@@ -511,14 +566,23 @@ const Investments: React.FC<InvestmentsProps> = ({
         } else if (activeSegment === 'Spare Change') {
             const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
             const spareAccountIds = new Set(spareAccounts.map(a => a.id));
-            const totalRoundups = transactions
-                .filter(t => spareAccountIds.has(t.accountId) && t.amount > 0)
-                .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
-
             details = [
                 { label: 'Total Saved', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'savings' },
                 { label: 'Round-ups Count', value: transactions.filter(t => spareAccountIds.has(t.accountId) && t.amount > 0).length.toString(), icon: 'tag' },
                 { label: 'Active Portfolios', value: spareAccounts.length.toString(), icon: 'folder' },
+            ];
+        } else if (activeSegment === 'Pension Fund') {
+            const pensionAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund');
+            details = [
+                { label: 'Total Pension Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'assured_workload' },
+                { label: 'Active Funds', value: pensionAccounts.length.toString(), icon: 'folder' },
+                { label: 'Avg Retirement Target', value: pensionAccounts.some(a => a.expectedRetirementYear) ? Math.round(pensionAccounts.filter(a => a.expectedRetirementYear).reduce((sum, a) => sum + (a.expectedRetirementYear || 0), 0) / pensionAccounts.filter(a => a.expectedRetirementYear).length).toString() : 'N/A', icon: 'calendar_today' },
+            ];
+        } else if (activeSegment === 'Other') {
+            const otherAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Other');
+            details = [
+                { label: 'Other Asset Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'folder_shared' },
+                { label: 'Active Portfolios', value: otherAccounts.length.toString(), icon: 'folder' },
             ];
         }
 
@@ -539,14 +603,27 @@ const Investments: React.FC<InvestmentsProps> = ({
         return data;
     }, [segmentValues.all]);
 
-    const segments: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
-        { id: 'all', label: 'All Assets', icon: 'dashboard', color: 'indigo' },
-        { id: 'Stock', label: 'Stocks', icon: 'show_chart', color: 'blue' },
-        { id: 'ETF', label: 'ETFs', icon: 'account_tree', color: 'teal' },
-        { id: 'Crypto', label: 'Crypto', icon: 'currency_bitcoin', color: 'amber' },
-        { id: 'Warrant', label: 'Warrants', icon: 'card_membership', color: 'rose' },
-        { id: 'Spare Change', label: 'Spare Change', icon: 'savings', color: 'emerald' },
-    ];
+    const segments = useMemo(() => {
+        const base: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
+            { id: 'all', label: 'All Assets', icon: 'dashboard', color: 'indigo' },
+            { id: 'Stock', label: 'Stocks', icon: 'show_chart', color: 'blue' },
+            { id: 'ETF', label: 'ETFs', icon: 'account_tree', color: 'teal' },
+            { id: 'Crypto', label: 'Crypto', icon: 'currency_bitcoin', color: 'amber' },
+            { id: 'Warrant', label: 'Warrants', icon: 'card_membership', color: 'rose' },
+        ];
+
+        if (activeInvestmentAccounts.some(a => a.subType === 'Spare Change')) {
+            base.push({ id: 'Spare Change', label: 'Spare Change', icon: 'savings', color: 'emerald' });
+        }
+        if (activeInvestmentAccounts.some(a => a.subType === 'Pension Fund')) {
+            base.push({ id: 'Pension Fund', label: 'Pension', icon: 'assured_workload', color: 'purple' });
+        }
+        if (activeInvestmentAccounts.some(a => a.subType === 'Other')) {
+            base.push({ id: 'Other', label: 'Other', icon: 'folder_shared', color: 'gray' });
+        }
+
+        return base;
+    }, [activeInvestmentAccounts]);
 
     const heroGradient = activeSegment === 'Stock'
         ? 'from-blue-500 via-blue-600 to-indigo-700'
@@ -558,7 +635,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                     ? 'from-rose-500 via-rose-600 to-pink-700'
                     : activeSegment === 'Spare Change'
                         ? 'from-emerald-500 via-teal-600 to-cyan-700'
-                        : 'from-indigo-600 via-violet-700 to-purple-800';
+                        : activeSegment === 'Pension Fund'
+                            ? 'from-purple-500 via-indigo-600 to-violet-700'
+                            : activeSegment === 'Other'
+                                ? 'from-slate-500 via-gray-600 to-neutral-700'
+                                : 'from-indigo-600 via-violet-700 to-purple-800';
 
     return (
         <div className="relative">
@@ -779,8 +860,39 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                     </td>
                                                 </tr>,
                                                 ...holdings.map(holding => {
-                                                    if (holding.isSpareChange) {
+                                                    if (holding.isCustomAccount) {
                                                         const acc = holding.account;
+                                                        // Resolve icons and colors dynamically
+                                                        let icon = 'account_balance_wallet';
+                                                        let iconColorClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+                                                        let headerLabel = 'Cash Balance';
+                                                        let badgeLabel = 'Active';
+                                                        let badgeColorClass = 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20';
+
+                                                        if (acc.subType === 'Spare Change') {
+                                                            icon = 'savings';
+                                                            iconColorClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+                                                            headerLabel = 'Auto-Save';
+                                                        } else if (acc.subType === 'Pension Fund') {
+                                                            icon = 'assured_workload';
+                                                            iconColorClass = 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+                                                            headerLabel = 'Retirement';
+                                                            badgeLabel = 'Pension';
+                                                            badgeColorClass = 'text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-900/20';
+                                                        } else if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
+                                                            icon = 'account_balance_wallet';
+                                                            iconColorClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+                                                            headerLabel = 'Brokerage Cash';
+                                                            badgeLabel = acc.subType || 'Brokerage';
+                                                            badgeColorClass = 'text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/20';
+                                                        } else {
+                                                            icon = 'folder';
+                                                            iconColorClass = 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+                                                            headerLabel = 'Asset Balance';
+                                                            badgeLabel = 'Portfolio';
+                                                            badgeColorClass = 'text-gray-600 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-900/20';
+                                                        }
+
                                                         return (
                                                             <tr 
                                                                 key={acc.id} 
@@ -789,8 +901,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                             >
                                                                 <td className="py-4 pl-6">
                                                                     <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                                            <span className="material-symbols-outlined text-base">savings</span>
+                                                                        <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${iconColorClass}`}>
+                                                                            <span className="material-symbols-outlined text-base">{icon}</span>
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
                                                                             <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{acc.name}</p>
@@ -799,10 +911,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-4 text-right hidden sm:table-cell">
-                                                                    <span className="text-sm font-medium text-gray-400 dark:text-gray-500">Auto-Save</span>
+                                                                    <span className="text-sm font-medium text-gray-400 dark:text-gray-500">{headerLabel}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right hidden lg:table-cell">
-                                                                    <span className="text-sm font-medium dark:text-gray-300">{holding.quantity} saves</span>
+                                                                    <span className="text-sm font-medium dark:text-gray-300">{holding.qtyLabel}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right hidden md:table-cell">
                                                                     <span className="text-sm font-mono text-gray-500 privacy-blur">-</span>
@@ -811,8 +923,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(acc.balance, acc.currency)}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right">
-                                                                    <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full inline-block">
-                                                                        Active
+                                                                    <div className={`text-[10px] font-bold ${badgeColorClass} px-2 py-0.5 rounded-full inline-block`}>
+                                                                        {badgeLabel}
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>

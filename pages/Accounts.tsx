@@ -70,16 +70,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   
   const visibleAccounts = useMemo(() => {
       return accounts.filter(acc => {
-          // Hide underlying warrant accounts from main view as they are managed via Warrants page
+          // Hide all investment accounts from accounts page to show on investments page instead
           if (acc.type === 'Investment') {
-               if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
-                   return !acc.symbol; 
-               }
-               // Hide spare change accounts from accounts page to show on investments page
-               if (acc.subType === 'Spare Change') {
-                   return false;
-               }
-               return true;
+              return false;
           }
           return true;
       });
