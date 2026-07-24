@@ -271,7 +271,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     };
 
     const entry = mapping[status];
-    return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${entry.color}`}>{entry.label}</span>;
+    return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold  tracking-wide ${entry.color}`}>{entry.label}</span>;
   };
 
   useEffect(() => {
@@ -338,13 +338,13 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
               Note: credentials are stored in this browser only and are not encrypted.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Local Storage</span>
+          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider">Local Storage</span>
         </div>
 
         <div className="grid gap-6">
             <div className="grid gap-4 sm:grid-cols-2">
                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider block">Application ID (kid)</label>
+                    <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider block">Application ID (kid)</label>
                     <input
                     type="text"
                     name="applicationId"
@@ -355,7 +355,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                     />
                 </div>
                  <div className="space-y-2">
-                     <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider block">Country code</label>
+                     <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider block">Country code</label>
                     <div className="flex gap-2">
                         <input
                             type="text"
@@ -363,7 +363,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                             value={formState.countryCode}
                             onChange={handleFormChange}
                             placeholder="FI"
-                            className={`${INPUT_BASE_STYLE} w-20 text-center uppercase`}
+                            className={`${INPUT_BASE_STYLE} w-20 text-center `}
                         />
                         <button
                             type="button"
@@ -377,7 +377,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
             </div>
           
             <div className="space-y-2">
-                <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider block">Client certificate (PEM)</label>
+                <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider block">Client certificate (PEM)</label>
                 <textarea
                 name="clientCertificate"
                 value={formState.clientCertificate}
@@ -454,7 +454,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         <div className="p-4 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <h4 className="text-lg font-extrabold text-light-text dark:text-dark-text">{connection.selectedBank || 'Bank Connection'}</h4>
+                                    <h4 className="text-lg font-bold text-light-text dark:text-dark-text">{connection.selectedBank || 'Bank Connection'}</h4>
                                     {renderStatusBadge(connection.status)}
                                 </div>
                                 <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-mono mt-1 opacity-70">
@@ -537,7 +537,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">BALANCE</p>
+                                                    <p className="text-[10px]  font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">BALANCE</p>
                                                     <p className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight">
                                                         {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
@@ -563,7 +563,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                 
                                                 {/* Col 1: Link Target */}
                                                 <div className="space-y-3">
-                                                    <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">LINK TARGET</p>
+                                                    <p className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider">LINK TARGET</p>
                                                     <div className="flex flex-col gap-2">
                                                          <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                                             <input type="radio" name={`${rowKey}-mode`} checked={(rowState.mode || 'existing') === 'existing'} onChange={() => handleLinkChange(rowKey, { mode: 'existing' })} className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300" />
@@ -612,7 +612,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
                                                 {/* Col 2: Sync Start */}
                                                 <div className="space-y-3">
-                                                    <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">SYNC START</p>
+                                                    <p className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider">SYNC START</p>
                                                     <input
                                                         type="date"
                                                         className={`${INPUT_BASE_STYLE} !text-sm`}
@@ -628,7 +628,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
                                                 {/* Col 3: Actions */}
                                                 <div className="space-y-3">
-                                                    <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">ACTIONS</p>
+                                                    <p className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider">ACTIONS</p>
                                                     <button
                                                         onClick={() => {
                                                             const syncStartDate = clampSyncDate(rowState.syncStartDate || defaultSyncStart);

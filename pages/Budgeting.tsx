@@ -253,11 +253,11 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2 block">Available Liquidity</h2>
-                            <h2 className="text-4xl font-black tracking-tighter leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
+                            <h2 className="text-[10px] font-bold tracking-[0.3em] text-white/40 mb-2 block">Available Liquidity</h2>
+                            <h2 className="text-4xl font-bold tracking-tighter leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${totalRemaining >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'} animate-pulse`}></div>
-                                <span className={`text-[10px] font-black uppercase tracking-[0.1em] ${totalRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                <span className={`text-[10px] font-black  tracking-[0.1em] ${totalRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {totalRemaining >= 0 ? 'Surplus Projection' : 'Deficit Expected'}
                                 </span>
                             </div>
@@ -329,8 +329,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                     <span className="material-symbols-outlined text-xl">category</span>
                  </div>
                  <div>
-                    <h3 className="text-base font-black uppercase tracking-tight text-light-text dark:text-dark-text">Control Center</h3>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 leading-none">Category Allocation & Performance</p>
+                    <h3 className="text-base font-bold tracking-tight text-light-text dark:text-dark-text">Control Center</h3>
+                    <p className="text-[9px] font-black  tracking-[0.2em] opacity-40 leading-none">Category Allocation & Performance</p>
                  </div>
               </div>
 
@@ -362,7 +362,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                     <div className="w-20 h-20 rounded-[2rem] bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 mx-auto mb-6 flex items-center justify-center shadow-lg">
                         <span className="material-symbols-outlined text-4xl opacity-20">savings</span>
                     </div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-60">No financial guardrails detected</p>
+                    <p className="text-xs font-black  tracking-[0.2em] mb-2 opacity-60">No financial guardrails detected</p>
                     <p className="text-[11px] font-bold opacity-30 max-w-[240px] mx-auto text-center">Your spending categories are currently unmapped. Initialize them in settings to start tracking.</p>
                  </div>
               )}
@@ -374,8 +374,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                   
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-0.5">Portfolio</p>
-                        <h3 className="text-xs font-black uppercase tracking-tight text-light-text dark:text-dark-text leading-none">Allocation</h3>
+                        <p className="text-[10px] font-black  tracking-[0.2em] opacity-40 mb-0.5">Portfolio</p>
+                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text leading-none">Allocation</h3>
                     </div>
                     <span className="material-symbols-outlined opacity-20 group-hover:rotate-45 transition-transform text-lg">pie_chart</span>
                   </div>
@@ -404,7 +404,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                         <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-30 leading-none mb-1">Total</p>
+                         <p className="text-[8px] font-black  tracking-[0.2em] opacity-30 leading-none mb-1">Total</p>
                          <p className="text-lg font-black tracking-tighter leading-none">€{(totalBudgeted/1000).toFixed(1)}k</p>
                     </div>
                   </div>
@@ -413,7 +413,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                        {allocationData.slice(0, 4).map(item => (
                             <div key={item.name} className="flex items-center gap-1.5 font-bold">
                                 <div className="w-1 h-1 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                <span className="text-[8px] font-black uppercase tracking-wider opacity-40 truncate">{item.name}</span>
+                                <span className="text-[8px] font-black  tracking-wider opacity-40 truncate">{item.name}</span>
                             </div>
                        ))}
                   </div>
@@ -422,8 +422,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
               <Card className="!p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-2xl relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-0.5">Critical</p>
-                        <h3 className="text-xs font-black uppercase tracking-tight text-light-text dark:text-dark-text leading-none">Watchlist</h3>
+                        <p className="text-[10px] font-black  tracking-[0.2em] opacity-40 mb-0.5">Critical</p>
+                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text leading-none">Watchlist</h3>
                     </div>
                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
                   </div>
@@ -442,7 +442,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                                 const isOver = pct > 100;
                                 return (
                                     <div key={b.id} className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 hover:scale-[1.01] transition-transform duration-300">
-                                        <span className="text-[10px] font-black uppercase tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
+                                        <span className="text-[10px] font-black  tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
                                         <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-600' : 'bg-amber-500/10 text-amber-600'}`}>
                                             <span className="text-[10px] font-black tracking-tighter leading-none">{pct.toFixed(0)}</span>
                                             <span className="text-[7px] font-black opacity-30">%</span>
@@ -453,7 +453,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                       ) : (
                           <div className="text-center py-6 opacity-30 flex flex-col items-center gap-2">
                               <span className="material-symbols-outlined text-2xl">verified_user</span>
-                              <p className="text-[9px] font-black uppercase tracking-[0.2em]">Safely within limits</p>
+                              <p className="text-[9px] font-black  tracking-[0.2em]">Safely within limits</p>
                           </div>
                       )}
                   </div>

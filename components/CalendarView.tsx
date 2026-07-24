@@ -99,14 +99,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ items, goals, accounts, onE
         <Card className="p-0 overflow-hidden border-none shadow-xl bg-white dark:bg-dark-card">
             <div className="p-6 border-b border-black/5 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50/50 dark:bg-white/5">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black tracking-tight text-light-text dark:text-dark-text">
+                    <h2 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">
                         {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </h2>
                     <div className="flex bg-white dark:bg-dark-fill rounded-lg p-1 shadow-sm border border-black/5 dark:border-white/5">
                         <button onClick={prevMonth} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors">
                             <span className="material-symbols-outlined text-xl">chevron_left</span>
                         </button>
-                        <button onClick={goToToday} className="px-3 py-1 text-xs font-bold uppercase tracking-wider hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors">
+                        <button onClick={goToToday} className="px-3 py-1 text-xs font-bold  tracking-wider hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors">
                             Today
                         </button>
                         <button onClick={nextMonth} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-md transition-colors">
@@ -118,19 +118,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({ items, goals, accounts, onE
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Income</span>
+                        <span className="text-[10px] font-bold  tracking-wider opacity-60">Income</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Expense</span>
+                        <span className="text-[10px] font-bold  tracking-wider opacity-60">Expense</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Transfer</span>
+                        <span className="text-[10px] font-bold  tracking-wider opacity-60">Transfer</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Goal</span>
+                        <span className="text-[10px] font-bold  tracking-wider opacity-60">Goal</span>
                     </div>
                 </div>
             </div>
@@ -138,7 +138,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ items, goals, accounts, onE
             <div className="grid grid-cols-7 bg-gray-100 dark:bg-white/5 gap-px">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                     <div key={day} className="bg-gray-50 dark:bg-dark-card p-3 text-center">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
+                        <span className="text-[10px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
                             {day}
                         </span>
                     </div>

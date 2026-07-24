@@ -144,7 +144,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
     const clientLogo = getMerchantLogoUrl(entityName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
     const showLogo = clientLogo && !logoLoadError;
 
-    const labelStyle = "block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary mb-2";
+    const labelStyle = "block text-[10px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary mb-2";
 
     return (
         <Modal onClose={onClose} title={isEditing ? `Modify ${type === 'quote' ? 'Proposal' : 'Invoice'}` : `Initialize ${type === 'quote' ? 'Proposal' : 'Invoice'}`} size="3xl">
@@ -172,7 +172,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                                             key={s}
                                             type="button"
                                             onClick={() => setStatus(s)}
-                                            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                                            className={`flex-1 py-2 text-[9px] font-black  tracking-widest rounded-xl transition-all ${
                                                 status === s 
                                                 ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' 
                                                 : 'text-gray-400 opacity-60 hover:opacity-100'
@@ -212,7 +212,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Document Logistics */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-8 rounded-[2rem] border border-black/5 dark:border-white/5 space-y-8">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                             <span className="material-symbols-outlined text-primary-500 text-lg">assured_workload</span>
                             Document Parameters
                         </h4>
@@ -223,7 +223,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                                     type="text" 
                                     value={number} 
                                     onChange={e => setNumber(e.target.value)} 
-                                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-6 h-14 text-sm font-black uppercase tracking-[0.2em] outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm" 
+                                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-6 h-14 text-sm font-black  tracking-[0.2em] outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm" 
                                     required 
                                 />
                             </div>
@@ -234,7 +234,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                                         type="date" 
                                         value={date} 
                                         onChange={e => setDate(e.target.value)} 
-                                        className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 h-14 text-xs font-black uppercase tracking-tighter outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm" 
+                                        className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 h-14 text-xs font-black  tracking-tighter outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm" 
                                         required 
                                     />
                                 </div>
@@ -244,7 +244,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                                         type="date" 
                                         value={dueDate} 
                                         onChange={e => setDueDate(e.target.value)} 
-                                        className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 h-14 text-xs font-black uppercase tracking-tighter outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm" 
+                                        className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 h-14 text-xs font-black  tracking-tighter outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm" 
                                     />
                                 </div>
                             </div>
@@ -254,7 +254,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     {/* Client Information */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-8 rounded-[2rem] border border-black/5 dark:border-white/5 space-y-8">
                         <div className="flex justify-between items-center">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-blue-500 text-lg">corporate_fare</span>
                                 Entity Identification
                             </h4>
@@ -295,12 +295,12 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                 {/* 3. Ledger Line Entries */}
                 <div className="bg-white dark:bg-black/20 rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden shadow-sm">
                     <div className="p-8 pb-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
-                         <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-3">
+                         <h4 className="text-[10px] font-bold tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-3">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             Billable Resource Allocation
                         </h4>
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{items.length} Elements</span>
+                            <span className="text-[10px] font-black text-gray-400  tracking-widest">{items.length} Elements</span>
                         </div>
                     </div>
                     
@@ -308,10 +308,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-gray-50/50 dark:bg-white/[0.02]">
                                 <tr className="border-b border-black/5 dark:border-white/5">
-                                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Execution Details / Metadata</th>
-                                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary text-right w-24">Quant.</th>
-                                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary text-right w-36">Rate</th>
-                                    <th className="px-8 py-5 text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary text-right w-44">Yield</th>
+                                    <th className="px-8 py-5 text-[9px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Execution Details / Metadata</th>
+                                    <th className="px-8 py-5 text-[9px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary text-right w-24">Quant.</th>
+                                    <th className="px-8 py-5 text-[9px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary text-right w-36">Rate</th>
+                                    <th className="px-8 py-5 text-[9px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary text-right w-44">Yield</th>
                                     <th className="px-2 py-5 w-14"></th>
                                 </tr>
                             </thead>
@@ -371,7 +371,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     <button 
                         type="button" 
                         onClick={handleAddItem} 
-                        className="w-full py-8 text-[11px] font-black uppercase tracking-[0.4em] text-primary-500 hover:bg-primary-500/5 transition-all flex items-center justify-center gap-3 border-t border-black/5 dark:border-white/5 active:bg-primary-500/[0.08]"
+                        className="w-full py-8 text-[11px] font-black  tracking-[0.4em] text-primary-500 hover:bg-primary-500/5 transition-all flex items-center justify-center gap-3 border-t border-black/5 dark:border-white/5 active:bg-primary-500/[0.08]"
                     >
                         <span className="material-symbols-outlined text-xl leading-none">add_circle</span> 
                         Initialize New Entry Node
@@ -385,7 +385,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                         <textarea 
                             value={notes} 
                             onChange={e => setNotes(e.target.value)} 
-                            className="w-full bg-white dark:bg-black/20 border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 text-sm font-bold leading-relaxed outline-none focus:ring-2 focus:ring-primary-500/20 transition-all min-h-[220px] shadow-sm placeholder:text-[10px] placeholder:uppercase placeholder:tracking-widest placeholder:opacity-30" 
+                            className="w-full bg-white dark:bg-black/20 border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 text-sm font-bold leading-relaxed outline-none focus:ring-2 focus:ring-primary-500/20 transition-all min-h-[220px] shadow-sm placeholder:text-[10px]  placeholder:tracking-widest placeholder:opacity-30" 
                             placeholder="Specify payment rail identifiers (IBAN/SWIFT), tax registration numbers, and contractual maturity conditions..." 
                         />
                     </div>
@@ -393,16 +393,16 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     <div className="lg:col-span-5 bg-light-fill dark:bg-dark-fill/50 p-10 rounded-[3rem] border border-black/5 dark:border-white/5 space-y-8 shadow-inner relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 blur-3xl rounded-full -translate-y-12 translate-x-12" />
                         
-                        <h4 className="text-[12px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary border-b border-black/10 dark:border-white/10 pb-6">Ledger Summation</h4>
+                        <h4 className="text-[12px] font-bold tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary border-b border-black/10 dark:border-white/10 pb-6">Ledger Summation</h4>
                         
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-50 uppercase tracking-[0.2em] text-[10px]">Basis Subtotal</span>
+                                <span className="font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-50  tracking-[0.2em] text-[10px]">Basis Subtotal</span>
                                 <span className="font-black tabular-nums text-lg">{formatCurrency(totals.subtotal, currency)}</span>
                             </div>
 
                             <div className="flex justify-between items-center group/field">
-                                <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-50 uppercase tracking-[0.2em]">Operational Correction</span>
+                                <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-50  tracking-[0.2em]">Operational Correction</span>
                                 <div className="relative">
                                     <input 
                                         type="number" 
@@ -417,7 +417,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                             </div>
 
                             <div className="flex justify-between items-center group/field">
-                                <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-50 uppercase tracking-[0.2em]">Fiscal Leverage (VAT %)</span>
+                                <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-50  tracking-[0.2em]">Fiscal Leverage (VAT %)</span>
                                 <div className="relative">
                                     <input 
                                         type="number" 
@@ -432,9 +432,9 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                             </div>
 
                             <div className="pt-10 border-t-2 border-dashed border-black/10 dark:border-white/10 flex flex-col items-end gap-2">
-                                <span className="text-[9px] font-black uppercase text-primary-500 tracking-[0.5em] animate-pulse">Aggregate Settlement</span>
+                                <span className="text-[9px] font-black  text-primary-500 tracking-[0.5em] animate-pulse">Aggregate Settlement</span>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-black text-gray-300 uppercase">{currency}</span>
+                                    <span className="text-sm font-black text-gray-300 ">{currency}</span>
                                     <div className="font-black text-5xl tabular-nums text-primary-600 dark:text-primary-400 tracking-tighter drop-shadow-2xl">
                                         {formatCurrency(totals.total, currency).split(currency)[0]}
                                         <span className="text-4xl">{formatCurrency(totals.total, currency).split(currency)[1]}</span>
@@ -446,8 +446,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                 </div>
 
                 <div className="flex justify-end gap-3 pt-10 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-14 px-10 uppercase tracking-[0.2em] text-[10px] font-black rounded-2xl`}>Retract Order</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-14 px-12 gap-4 group animate-glow uppercase tracking-[0.2em] text-[10px] font-black rounded-2xl`}>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-14 px-10  tracking-[0.2em] text-[10px] font-black rounded-2xl`}>Retract Order</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-14 px-12 gap-4 group animate-glow  tracking-[0.2em] text-[10px] font-black rounded-2xl`}>
                         Commit to Ledger
                         <span className="material-symbols-outlined text-2xl transition-transform group-hover:translate-x-2">send_and_archive</span>
                     </button>

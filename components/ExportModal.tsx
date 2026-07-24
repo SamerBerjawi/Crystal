@@ -99,7 +99,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                 {/* Data Types */}
                 <div>
                     <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Include Data</h4>
+                        <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Include Data</h4>
                         <label className="flex items-center gap-2 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 px-2 py-1 rounded transition-colors">
                              <input 
                                 type="checkbox" 
@@ -149,7 +149,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                 {/* Filters (Transactions Only) */}
                 {selectedTypes.includes('transactions') && (
                     <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 space-y-4 animate-fade-in-up">
-                         <h4 className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Transaction Filters</h4>
+                         <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Transaction Filters</h4>
                          
                          <div className="grid grid-cols-2 gap-4">
                              <div>

@@ -40,18 +40,18 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-neutral-900 p-5 rounded-[20px] shadow-2xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-xl">
-          <p className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 mb-4 tracking-[0.2em] uppercase">{label}</p>
+          <p className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 mb-4 tracking-[0.2em] ">{label}</p>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-6">
-                <span className="text-[10px] font-bold tracking-widest text-neutral-600 dark:text-neutral-300 uppercase">Principal</span>
+                <span className="text-[10px] font-bold tracking-widest text-neutral-600 dark:text-neutral-300 ">Principal</span>
                 <span className="text-sm font-black text-blue-500 tabular-nums">{formatCurrency(payload[0].value, currency)}</span>
             </div>
             <div className="flex items-center justify-between gap-6">
-                <span className="text-[10px] font-bold tracking-widest text-neutral-600 dark:text-neutral-300 uppercase">Interest</span>
+                <span className="text-[10px] font-bold tracking-widest text-neutral-600 dark:text-neutral-300 ">Interest</span>
                 <span className="text-sm font-black text-rose-500 tabular-nums">{formatCurrency(payload[1].value, currency)}</span>
             </div>
             <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800/80 flex items-center justify-between gap-6">
-                <span className="text-[10px] font-bold tracking-widest text-neutral-500 dark:text-neutral-400 uppercase">Balance</span>
+                <span className="text-[10px] font-bold tracking-widest text-neutral-500 dark:text-neutral-400 ">Balance</span>
                 <span className="text-sm font-black text-neutral-850 dark:text-neutral-100 tabular-nums">{formatCurrency(payload[0].payload.balance, currency)}</span>
             </div>
           </div>

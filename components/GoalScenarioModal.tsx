@@ -104,7 +104,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
     };
 
     const isSubGoal = !!parentId;
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
     const modalTitle = isEditing ? 'Edit Goal' : (isSubGoal ? 'Add Item to Goal' : 'New Goal');
 
     const getAmountLabels = () => {
@@ -131,21 +131,21 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         <button
                             type="button"
                             onClick={() => { setIsBucket(false); setType('one-time'); }}
-                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            className={`flex-1 py-3 text-[10px] font-black  tracking-widest rounded-xl transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Target Date
                         </button>
                         <button
                             type="button"
                             onClick={() => { setIsBucket(false); setType('recurring'); }}
-                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            className={`flex-1 py-3 text-[10px] font-black  tracking-widest rounded-xl transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Recurring
                         </button>
                          <button
                             type="button"
                             onClick={() => setIsBucket(true)}
-                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            className={`flex-1 py-3 text-[10px] font-black  tracking-widest rounded-xl transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Goal Bucket
                         </button>
@@ -174,7 +174,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                 )}
 
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary-500 text-lg">flag</span>
                         Objective Parameters
                     </h4>
@@ -199,7 +199,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     {/* Left Column: Progress & Classification */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                          <div className="space-y-6">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">donut_large</span>
                                 Progress Metrics
                             </h4>
@@ -222,7 +222,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                  <div className="space-y-2">
                                      <label className={labelStyle}>Logical Classification</label>
                                      <div className={SELECT_WRAPPER_STYLE}>
-                                         <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-tight`}>
+                                         <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={`${SELECT_STYLE} h-14 font-black  tracking-tight`}>
                                              <option value="savings">Saving Strategy</option>
                                              <option value="expense">Spending Target</option>
                                              <option value="income">Income Objective</option>
@@ -234,7 +234,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         </div>
 
                         <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">event</span>
                                 Temporal Configuration
                             </h4>
@@ -248,7 +248,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                     <div className="space-y-2">
                                         <label className={labelStyle}>Frequency</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-widest`}>
+                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black  tracking-widest`}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -266,7 +266,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     {/* Right Column: Execution & Integration */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                         <div className="space-y-6">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">savings</span>
                                 Contribution Strategy
                             </h4>
@@ -290,7 +290,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         </div>
 
                         <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">account_tree</span>
                                 Network Integration
                             </h4>
@@ -301,7 +301,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                         <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={`${SELECT_STYLE} h-14 font-black`}>
                                             <option value="">Decoupled Status</option>
                                             {Object.entries(groupedAccounts).map(([type, group]) => (
-                                                <optgroup key={type} label={type} className="font-black uppercase tracking-widest bg-gray-50 dark:bg-dark-bg p-2 h-10">
+                                                <optgroup key={type} label={type} className="font-black  tracking-widest bg-gray-50 dark:bg-dark-bg p-2 h-10">
                                                     {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                                 </optgroup>
                                             ))}
@@ -314,7 +314,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                      <div className="bg-primary-500/5 dark:bg-primary-500/10 p-4 rounded-2xl border border-primary-500/20">
                                         <div className="flex items-center gap-2">
                                             <span className="material-symbols-outlined text-primary-500 text-base">subdirectory_arrow_right</span>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary-600">Sub-Goal Active</span>
+                                            <span className="text-[10px] font-black  tracking-widest text-primary-600">Sub-Goal Active</span>
                                         </div>
                                     </div>
                                 )}
@@ -325,8 +325,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                 )}
                 
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow uppercase tracking-widest text-[10px] font-black`}>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}>
                         {isEditing ? 'Commit Objective' : 'Deploy Goal'}
                         <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">track_changes</span>
                     </button>

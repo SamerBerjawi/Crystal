@@ -28,8 +28,8 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                         <span className="material-symbols-outlined text-xl">{iconName}</span>
                     </div>
                         <div className="text-right">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
-                        <h3 className="text-2xl font-black text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</h3>
+                        <p className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
+                        <h3 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</h3>
                     </div>
                 </div>
                 

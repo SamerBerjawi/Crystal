@@ -34,14 +34,14 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-white dark:bg-dark-card p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm text-center relative overflow-hidden group">
                         <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary-500/5 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-50 mb-2">Current Benchmark</p>
+                        <p className="text-[10px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-50 mb-2">Current Benchmark</p>
                         <p className="text-2xl font-black tabular-nums tracking-tighter text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">
                             {formatCurrency(account.balance, account.currency)}
                         </p>
                     </div>
                     <div className="bg-white dark:bg-dark-card p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm text-center relative overflow-hidden group">
                         <div className={`absolute -top-12 -right-12 w-24 h-24 ${(parseFloat(newValue) - account.balance) >= 0 ? 'bg-emerald-500/5' : 'bg-rose-500/5'} blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700`} />
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-50 mb-2">Projected Appreciation</p>
+                        <p className="text-[10px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-50 mb-2">Projected Appreciation</p>
                         <p className={`text-2xl font-black tabular-nums tracking-tighter ${(parseFloat(newValue) - account.balance) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                             {(parseFloat(newValue) - account.balance) >= 0 ? '+' : ''}{formatCurrency(parseFloat(newValue) - account.balance, account.currency)}
                         </p>
@@ -55,12 +55,12 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                             <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-orange-500 text-lg">assessment</span>
                             </div>
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary">Valuation Specifications</h3>
+                            <h3 className="text-[10px] font-bold tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary">Valuation Specifications</h3>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                             <div className="md:col-span-3">
-                                <label htmlFor="new-value" className="block text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-3 ml-1">Market Assessment</label>
+                                <label htmlFor="new-value" className="block text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-3 ml-1">Market Assessment</label>
                                 <div className="relative group">
                                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 font-black text-sm">{account.currency === 'EUR' ? '€' : account.currency === 'USD' ? '$' : account.currency}</span>
                                     <input
@@ -78,7 +78,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                             </div>
                             
                             <div className="md:col-span-2">
-                                <label htmlFor="valuation-date" className="block text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-3 ml-1">Effective Date</label>
+                                <label htmlFor="valuation-date" className="block text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-3 ml-1">Effective Date</label>
                                 <input
                                     id="valuation-date"
                                     type="date"
@@ -93,8 +93,8 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                 </div>
 
                 <div className="flex justify-end gap-4 p-2">
-                    <button type="button" onClick={onClose} className="h-14 px-8 rounded-2xl text-[10px] uppercase font-black tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-all">Cancel</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-14 px-10 rounded-2xl text-[10px] uppercase font-black tracking-[0.2em] shadow-lg shadow-primary-500/20`}>Confirm New Valuation</button>
+                    <button type="button" onClick={onClose} className="h-14 px-8 rounded-2xl text-[10px]  font-black tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-all">Cancel</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-14 px-10 rounded-2xl text-[10px]  font-black tracking-[0.2em] shadow-lg shadow-primary-500/20`}>Confirm New Valuation</button>
                 </div>
             </form>
 
@@ -104,7 +104,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                         <div className="w-8 h-8 rounded-xl bg-gray-500/10 flex items-center justify-center">
                             <span className="material-symbols-outlined text-gray-500 text-lg">history_edu</span>
                         </div>
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary">Valuation History Ledger</h3>
+                        <h3 className="text-[10px] font-bold tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary">Valuation History Ledger</h3>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar p-2">
@@ -113,7 +113,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                                 <div className="absolute top-0 left-0 w-1 h-full bg-primary-500 opacity-0 group-hover/entry:opacity-100 transition-opacity" />
                                 <div className="space-y-1">
                                     <p className="text-base font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(entry.price, account.currency)}</p>
-                                    <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/40 uppercase tracking-widest">{parseLocalDate(entry.date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/40  tracking-widest">{parseLocalDate(entry.date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button 

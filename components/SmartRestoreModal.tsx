@@ -188,7 +188,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                             </div>
                             
                             <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 dark:bg-white/5 p-2 rounded-xl">
-                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider px-2">Bulk Actions</span>
+                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider px-2">Bulk Actions</span>
                                 <div className="flex bg-white dark:bg-black/40 p-1 rounded-lg shadow-sm">
                                     <button 
                                         type="button"

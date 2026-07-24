@@ -5,6 +5,7 @@ import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getCardNetworkLogoUrl } from '../utils/brandfetch';
 
@@ -56,7 +57,7 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             </div>
             <div className="mt-6 relative z-10">
                 <p className="text-[11px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
-                <h4 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                <h4 className="text-3xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
                 {subValue && <p className="text-xs font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
@@ -146,9 +147,20 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   }, [transactions, showBalanceAdjustments]);
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText="Liability Account"
+        subText={`${account.currency} Credit Line`}
+        primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex items-center gap-6">
               <button 
                   onClick={onBack}
@@ -162,10 +174,10 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Credit Line</span>
                   </div>
-                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5 overflow-hidden">
+                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl ${logoUrl ? 'bg-white dark:bg-white/10' : 'bg-black/5 dark:bg-white/10'} flex items-center justify-center shrink-0 overflow-hidden`}>
                         {logoUrl ? (
-                            <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+                            <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                         ) : (
                             <span className="material-symbols-outlined text-primary-500 text-2xl">credit_card</span>
                         )}
@@ -210,9 +222,9 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                              </div>
                              
                              {logoUrl ? (
-                                <img src={logoUrl} alt="" className="h-10 object-contain rounded-lg" onError={() => setLogoError(true)} />
+                                <img src={logoUrl} alt="" className="w-10 h-10 object-cover rounded-xl shrink-0 overflow-hidden" onError={() => setLogoError(true)} />
                              ) : (
-                                <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm uppercase">{account.cardNetwork || 'PLATINUM'}</span>
+                                <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm ">{account.cardNetwork || 'PLATINUM'}</span>
                              )}
                         </div>
                         
@@ -315,7 +327,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                         boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
                                     }}
                                     itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#f97316' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8',  marginBottom: '4px', letterSpacing: '0.1em' }}
                                     formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Spending']}
                                 />
                                 <Bar dataKey="value" radius={[12, 12, 12, 12]}>
@@ -394,8 +406,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                     <div className="py-2 px-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Statement activity</h3>
-                            <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Active billing cycle transactions</p>
+                            <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1">Statement activity</h3>
+                            <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest ">Active billing cycle transactions</p>
                         </div>
                     </div>
                     <div className="flex-grow min-h-[400px]">

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ScheduledItem, RecurringTransaction } from '../types';
+import { ScheduledItem, RecurringTransaction, BillPayment } from '../types';
 import { Account } from '../types';
 import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 
@@ -13,9 +13,10 @@ interface ScheduledItemRowProps {
     isReadOnly?: boolean;
     compact?: boolean;
     onEndSeries?: (item: ScheduledItem) => void;
+    onExpireBill?: (bill: BillPayment) => void;
 }
 
-const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onEdit, onDelete, onPost, isReadOnly = false, compact = false, onEndSeries }) => {
+const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onEdit, onDelete, onPost, isReadOnly = false, compact = false, onEndSeries, onExpireBill }) => {
     
     const isIncome = item.type === 'income' || item.type === 'deposit';
     const isTransfer = item.type === 'transfer';
@@ -25,7 +26,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
     
     // Check overdue based on local ISO string comparison
     const todayStr = toLocalISOString(new Date());
-    const isOverdue = !item.isRecurring && item.date < todayStr && !isSkipped;
+    const isOverdue = item.date < todayStr && !isSkipped;
     
     const dueDate = parseLocalDate(item.date);
     const day = dueDate.getDate();
@@ -39,7 +40,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
         const freq = rt.frequency || 'recurring';
         subText += ` • ${freq.charAt(0).toUpperCase() + freq.slice(1)}`;
     } else {
-        subText += ` • One-time`;
+        subText += ` • One-time Bill`;
     }
 
     const amountColor = isIncome 
@@ -68,31 +69,54 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
         </div>
 
         {/* Date Block */}
-        <div className={`relative z-10 flex-shrink-0 flex flex-col items-center justify-center ${compact ? 'w-12 h-12 rounded-2xl' : 'w-16 h-16 rounded-[1.25rem]'} border shadow-inner transition-colors duration-300 ${isOverdue ? 'bg-rose-500/10 border-rose-500/20 shadow-rose-500/5' : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10 shadow-black/5'}`}>
-            <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} font-black uppercase tracking-[0.2em] transition-colors ${isOverdue ? 'text-rose-500' : 'text-light-text-secondary/60 dark:text-dark-text-secondary/60'}`}>{month}</span>
-            <span className={`${compact ? 'text-lg' : 'text-2xl'} font-black leading-none tabular-nums tracking-tighter ${isOverdue ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>{day}</span>
+        <div className={`relative z-10 flex-shrink-0 flex flex-col items-center justify-center ${compact ? 'w-12 h-12 rounded-2xl' : 'w-16 h-16 rounded-[1.25rem]'} border shadow-inner transition-colors duration-300 ${
+            isOverdue 
+                ? (item.isRecurring 
+                    ? 'bg-indigo-500/10 border-indigo-500/20 shadow-indigo-500/5' 
+                    : 'bg-rose-500/10 border-rose-500/20 shadow-rose-500/5') 
+                : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10 shadow-black/5'
+        }`}>
+            <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} font-black tracking-[0.2em] transition-colors ${
+                isOverdue 
+                    ? (item.isRecurring ? 'text-indigo-500 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400') 
+                    : 'text-light-text-secondary/60 dark:text-dark-text-secondary/60'
+            }`}>{month}</span>
+            <span className={`${compact ? 'text-lg' : 'text-2xl'} font-black leading-none tabular-nums tracking-tighter ${
+                isOverdue 
+                    ? (item.isRecurring ? 'text-indigo-600 dark:text-indigo-300' : 'text-rose-600 dark:text-rose-300') 
+                    : 'text-light-text dark:text-dark-text'
+            }`}>{day}</span>
         </div>
 
         {/* Content */}
         <div className="relative z-10 flex-grow min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-                <h4 className={`font-black text-light-text dark:text-dark-text truncate tracking-tight transition-colors group-hover:text-primary-500 ${compact ? 'text-base' : 'text-lg'} ${strikethroughClass}`}>{item.description}</h4>
-                <div className="flex gap-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <h4 className={`font-bold text-light-text dark:text-dark-text truncate tracking-tight transition-colors group-hover:text-primary-500 ${compact ? 'text-base' : 'text-lg'} ${strikethroughClass}`}>{item.description}</h4>
+                <div className="flex gap-1.5 items-center">
                     {item.isOverride && !isSkipped && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 uppercase tracking-widest border border-amber-500/10">MOD</span>
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 tracking-widest border border-amber-500/10">MOD</span>
                     )}
-                    {isOverdue && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/10 text-rose-600 dark:text-rose-400 uppercase tracking-widest border border-rose-500/10 animate-pulse">LATE</span>
+                    {isOverdue && item.isRecurring && (
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 tracking-wider border border-indigo-500/30 flex items-center gap-1 animate-pulse">
+                            <span className="material-symbols-outlined text-[12px]">repeat</span>
+                            RECURRING OVERDUE
+                        </span>
+                    )}
+                    {isOverdue && !item.isRecurring && (
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 tracking-wider border border-rose-500/30 flex items-center gap-1 animate-pulse">
+                            <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                            ONE-TIME OVERDUE
+                        </span>
                     )}
                     {isSkipped && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 uppercase tracking-widest">SKIP</span>
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 tracking-widest">SKIP</span>
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-3 text-[11px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60 uppercase tracking-widest">
+            <div className="flex items-center gap-3 text-[11px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60 tracking-widest">
                 <span>{weekday}</span>
                 <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
-                <span className="flex items-center gap-2 truncate">
+                <span className="flex items-center gap-1.5 truncate">
                     <span className="material-symbols-outlined text-sm">{isTransfer ? 'sync_alt' : (item.isRecurring ? 'repeat' : 'description')}</span>
                     {subText}
                 </span>
@@ -116,6 +140,17 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                         <span className="material-symbols-outlined text-[18px]">check</span>
                     </button>
                 )}
+
+                {!item.isRecurring && onExpireBill && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onExpireBill(item.originalItem as BillPayment); }}
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white active:scale-95 transition-all" 
+                        title="Mark as Expired"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">event_busy</span>
+                    </button>
+                )}
+
                 <button 
                     onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                     className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 text-light-text-secondary hover:bg-primary-500 hover:text-white active:scale-95 transition-all" 
@@ -134,7 +169,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                     {isMenuOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-1.5 z-50 animate-fade-in-up origin-top-right overflow-hidden">
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-1.5 z-50 animate-fade-in-up origin-top-right overflow-hidden">
                              {item.isRecurring && onEndSeries && (
                                 <button
                                     type="button"
@@ -144,15 +179,31 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                                         setIsMenuOpen(false);
                                         onEndSeries(item); 
                                     }}
-                                    className="w-full text-left px-4 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-amber-600 transition-colors"
+                                    className="w-full text-left px-4 py-3 text-[11px] font-black tracking-widest hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-amber-600 transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-base">stop_circle</span>
                                     Stop Series
                                 </button>
                             )}
+
+                            {!item.isRecurring && onExpireBill && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        setIsMenuOpen(false);
+                                        onExpireBill(item.originalItem as BillPayment); 
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-[11px] font-black tracking-widest hover:bg-amber-500 hover:text-white flex items-center gap-3 text-amber-600 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-base">event_busy</span>
+                                    Mark as Expired
+                                </button>
+                            )}
+
                             <button
                                 onClick={(e) => { e.stopPropagation(); onDelete(item.originalItem.id, item.isRecurring); setIsMenuOpen(false); }}
-                                className="w-full text-left px-4 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white flex items-center gap-3 text-rose-600 transition-colors"
+                                className="w-full text-left px-4 py-3 text-[11px] font-black tracking-widest hover:bg-rose-500 hover:text-white flex items-center gap-3 text-rose-600 transition-colors"
                             >
                                 <span className="material-symbols-outlined text-base">delete_forever</span>
                                 Purge All

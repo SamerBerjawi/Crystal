@@ -30,7 +30,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
         </div>
         <div>
           <h3 className="font-bold text-light-text dark:text-dark-text text-lg tracking-tight">{title}</h3>
-          {description && <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-60 uppercase tracking-tight">{description}</p>}
+          {description && <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-60  tracking-tight">{description}</p>}
         </div>
       </div>
       <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
@@ -59,7 +59,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
         >
           <div className="relative">
             {profileImageError || !user.profilePictureUrl ? (
-              <div className="w-24 h-24 rounded-2xl border-4 border-white dark:border-dark-card shadow-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-3xl font-black uppercase">
+              <div className="w-24 h-24 rounded-2xl border-4 border-white dark:border-dark-card shadow-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-3xl font-black ">
                 {user.firstName?.charAt(0)}
                 {user.lastName?.charAt(0)}
               </div>
@@ -77,11 +77,11 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             </div>
           </div>
           <div className="flex-grow text-center sm:text-left">
-            <h2 className="text-2xl font-black text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors leading-tight">{user.firstName} {user.lastName}</h2>
+            <h2 className="text-2xl font-bold text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors leading-tight">{user.firstName} {user.lastName}</h2>
             <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">{user.email}</p>
             <div className="flex items-center justify-center sm:justify-start gap-2 mt-4">
-               <span className="px-3 py-1 rounded-lg bg-primary-500 text-white text-[10px] font-black uppercase tracking-widest">{user.role}</span>
-               <span className="px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800/30">Verified</span>
+               <span className="px-3 py-1 rounded-lg bg-primary-500 text-white text-[10px] font-black  tracking-widest">{user.role}</span>
+               <span className="px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black  tracking-widest border border-emerald-200 dark:border-emerald-800/30">Verified</span>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-2 text-primary-500 font-bold text-sm">
@@ -95,7 +95,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* App Settings Group */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
+          <h3 className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
             <span className="material-symbols-outlined text-base">tune</span>
             Experience
           </h3>
@@ -126,7 +126,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
 
         {/* Workspace Organization Group */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
+          <h3 className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
             <span className="material-symbols-outlined text-base">category</span>
             Workspace
           </h3>
@@ -156,7 +156,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
 
            {/* System Group inside right col for balance */}
            <div className="pt-4 space-y-4">
-            <h3 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
+            <h3 className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-[0.2em] ml-2 opacity-50 flex items-center gap-2">
               <span className="material-symbols-outlined text-base">settings_system_daydream</span>
               Infrastructure
             </h3>
@@ -183,7 +183,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
        {/* Version Info */}
        <div className="flex justify-center items-center gap-4 pt-12">
           <div className="h-px bg-black/5 dark:bg-white/5 flex-grow max-w-[100px]"></div>
-          <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">Crystal Edition v1.0.0</p>
+          <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest opacity-40">Crystal Edition v1.0.0</p>
           <div className="h-px bg-black/5 dark:bg-white/5 flex-grow max-w-[100px]"></div>
        </div>
 

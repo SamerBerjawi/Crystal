@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { formatCurrency, parseLocalDate } from '../utils';
+import React, { useMemo } from 'react';
+import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
 import Card from './Card';
 import { AreaChart, Area, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Currency } from '../types';
@@ -61,10 +61,16 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
       const textColor = isGreen ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
       const strokeColor = isGreen ? '#10B981' : '#F43F5E';
 
+      const dataWithTrend = useMemo(() => {
+        if (!data || data.length === 0) return [];
+        const trendVals = calculateTrendLine(data, 'value');
+        return data.map((d, i) => ({ ...d, trend: trendVals[i] }));
+      }, [data]);
+
       return (
         <div className="flex flex-col h-full justify-between">
             <div>
-                <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{label}</p>
+                <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{label}</p>
                 <p className={`text-xl font-bold ${textColor}`}>
                     {formatCurrency(amount, currency as Currency)}
                 </p>
@@ -76,12 +82,20 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
             </div>
             <div className="h-10 w-full mt-2 opacity-60">
                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
+                    <LineChart data={dataWithTrend}>
                         <Line 
                             type="monotone" 
                             dataKey="value" 
                             stroke={strokeColor} 
                             strokeWidth={2} 
+                            dot={false} 
+                        />
+                        <Line 
+                            type="monotone" 
+                            dataKey="trend" 
+                            stroke="#6366f1" 
+                            strokeWidth={1.5} 
+                            strokeDasharray="3 3"
                             dot={false} 
                         />
                     </LineChart>
@@ -97,20 +111,20 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
         <div className="p-6 pb-4">
              <div className="flex justify-between items-start mb-2">
                 <div>
-                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
-                    <h3 className={`text-3xl font-extrabold tracking-tight ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+                    <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
+                    <h3 className={`text-3xl font-bold tracking-tight ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
                         {formatCurrency(netBalance, currency as Currency, { showPlusSign: true })}
                     </h3>
                 </div>
                 <div className={`px-3 py-1 rounded-lg flex flex-col items-center justify-center ${savingsBgClass}`}>
                     <span className={`text-lg font-bold ${savingsColorClass}`}>{savingsRate.toFixed(0)}%</span>
-                    <span className={`text-[10px] font-bold uppercase ${savingsColorClass} opacity-80`}>Savings</span>
+                    <span className={`text-[10px] font-bold  ${savingsColorClass} opacity-80`}>Savings</span>
                 </div>
              </div>
 
              {/* Visualization Bar */}
              <div className="mt-4">
-                <div className="flex justify-between text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
+                <div className="flex justify-between text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
                     <span>Out {Math.min(expenseRatio, 100).toFixed(0)}%</span>
                     <span>In 100%</span>
                 </div>

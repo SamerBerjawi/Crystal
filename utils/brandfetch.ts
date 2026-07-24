@@ -9,7 +9,7 @@ export const buildMerchantIdentifier = (
   overrides?: Record<string, string>,
 ): string | null => {
   const normalizedKey = normalizeMerchantKey(merchant);
-  
+
   // 1. Check for manual override first (User defined mapping in Settings > Merchants)
   const override = normalizedKey ? overrides?.[normalizedKey] : undefined;
 
@@ -18,8 +18,8 @@ export const buildMerchantIdentifier = (
     // If the user explicitly clears it or sets a name without a dot (e.g. "Amazon"), 
     // we return null to force the Lettermark/Icon fallback.
     if (trimmed.includes('.') && trimmed.length > 3) {
-        // Strip protocols and www if present in override
-        return trimmed.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+      // Strip protocols and www if present in override
+      return trimmed.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
     }
     return null;
   }
@@ -31,18 +31,18 @@ export const buildMerchantIdentifier = (
   // Split by common separators to find something that looks like a domain
   const chunks = base.split(/[\s*|/]/);
   for (const chunk of chunks) {
-      // Basic sanitization for the chunk
-      const sanitized = chunk.replace(/[^a-z0-9.-]/g, '');
-      if (sanitized.length < 4) continue;
+    // Basic sanitization for the chunk
+    const sanitized = chunk.replace(/[^a-z0-9.-]/g, '');
+    if (sanitized.length < 4) continue;
 
-      const parts = sanitized.split('.');
-      if (parts.length > 1) {
-          const lastPart = parts[parts.length - 1];
-          // Check if it looks like a valid TLD (2-12 characters)
-          if (/^[a-z]{2,12}$/.test(lastPart)) {
-              return sanitized;
-          }
+    const parts = sanitized.split('.');
+    if (parts.length > 1) {
+      const lastPart = parts[parts.length - 1];
+      // Check if it looks like a valid TLD (2-12 characters)
+      if (/^[a-z]{2,12}$/.test(lastPart)) {
+        return sanitized;
       }
+    }
   }
 
   // 3. Fallback: Entire sanitized name if it looks like it could be a domain 
@@ -50,7 +50,7 @@ export const buildMerchantIdentifier = (
   const sanitizedAll = base.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0].replace(/[^a-z0-9.-]/g, '');
   const partsAll = sanitizedAll.split('.');
   if (partsAll.length > 1 && /^[a-z]{2,12}$/.test(partsAll[partsAll.length - 1])) {
-      return sanitizedAll;
+    return sanitizedAll;
   }
 
   return null;

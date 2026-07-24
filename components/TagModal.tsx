@@ -53,7 +53,7 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
             
             {/* Name Input */}
             <div>
-                <label htmlFor="tag-name" className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-2">
+                <label htmlFor="tag-name" className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-2">
                     Tag Name
                 </label>
                 <div className="relative">
@@ -75,14 +75,14 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
 
             {/* Appearance Section */}
             <div>
-                <label className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-3">
+                <label className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-3">
                     Style & Icon
                 </label>
                 
                 <div className="flex flex-col gap-4">
                      {/* Preview */}
                     <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col items-center justify-center gap-2">
-                        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider font-semibold">Preview</span>
+                        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider font-semibold">Preview</span>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold shadow-sm transition-all duration-300" style={{ backgroundColor: `${color}20`, color: color }}>
                             <span className="material-symbols-outlined text-lg">{icon}</span>
                             {name || 'Tag Name'}

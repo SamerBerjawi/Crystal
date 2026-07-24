@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate, toLocalISOString } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate, toLocalISOString, calculateTrendLine } from '../utils';
 import { FinancialGoal, Account } from '../types';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
@@ -60,7 +60,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
         <div className="bg-white dark:bg-neutral-900 p-4 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md text-sm max-w-[320px] z-50">
           <div className="flex justify-between items-center mb-3 border-b border-neutral-200 dark:border-neutral-800/80 pb-2">
               <p className="font-bold text-neutral-800 dark:text-neutral-100">{formattedDate}</p>
-              {isHistory && <span className="text-[10px] uppercase font-black bg-gray-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 px-2 py-0.5 rounded">History</span>}
+              {isHistory && <span className="text-[10px]  font-black bg-gray-100 dark:bg-white/10 text-neutral-600 dark:text-neutral-300 px-2 py-0.5 rounded">History</span>}
           </div>
           
           {showIndividualLines ? (
@@ -73,7 +73,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
                           <div key={entry.dataKey} className="flex justify-between gap-6 text-xs">
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                <span className="text-neutral-500 dark:text-neutral-400 font-bold truncate max-w-[140px] uppercase tracking-wider text-[10px]">{name}</span>
+                                <span className="text-neutral-500 dark:text-neutral-400 font-bold truncate max-w-[140px]  tracking-wider text-[10px]">{name}</span>
                               </div>
                               <span className="font-mono font-black text-neutral-800 dark:text-neutral-100">{formatCurrency(entry.value, 'EUR')}</span>
                           </div>
@@ -83,7 +83,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
           ) : (
              <div className="mb-4">
                 <div className="flex justify-between items-end">
-                    <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-black uppercase tracking-widest">Balance</span>
+                    <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-black  tracking-widest">Balance</span>
                     <span className="text-lg font-black text-primary-500 font-mono tracking-tighter">{formatCurrency(payload[0].value, 'EUR')}</span>
                 </div>
              </div>
@@ -91,7 +91,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
           
           {dailySummary && dailySummary.length > 0 && (
             <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800/80">
-                <p className="text-[10px] font-black text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-2">Transactions</p>
+                <p className="text-[10px] font-black text-neutral-500 dark:text-neutral-400  tracking-widest mb-2">Transactions</p>
                 <div className="space-y-2">
                     {summaryToShow.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-start text-xs gap-3">
@@ -102,7 +102,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
                         </div>
                     ))}
                     {remainingCount > 0 && (
-                        <p className="text-[10px] text-primary-500 font-black uppercase tracking-widest text-center mt-2">
+                        <p className="text-[10px] text-primary-500 font-black  tracking-widest text-center mt-2">
                             + {remainingCount} more
                         </p>
                     )}
@@ -110,7 +110,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
             </div>
           )}
           {!isHistory && (
-              <div className="mt-3 text-[10px] text-neutral-400 dark:text-neutral-500 text-center font-bold uppercase tracking-widest">
+              <div className="mt-3 text-[10px] text-neutral-400 dark:text-neutral-500 text-center font-bold  tracking-widest">
                   Click point for details
               </div>
           )}
@@ -129,6 +129,15 @@ const yAxisTickFormatter = (value: number) => {
 const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true, onDataPointClick }) => {
   
   const todayStr = toLocalISOString(new Date());
+
+  const chartDataWithTrend = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    const trendValues = calculateTrendLine(data, 'value');
+    return data.map((d, idx) => ({
+      ...d,
+      trend: trendValues[idx]
+    }));
+  }, [data]);
 
   // Group goals by date to handle overlapping labels
   const goalsByDate = useMemo(() => {
@@ -243,7 +252,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
       <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         {showIndividualLines ? (
              <LineChart 
-                data={data} 
+                data={chartDataWithTrend} 
                 margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
                 onClick={handleChartClick}
              >
@@ -310,7 +319,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
              </LineChart>
         ) : (
             <AreaChart 
-                data={data} 
+                data={chartDataWithTrend} 
                 margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
                 onClick={handleChartClick}
             >
@@ -400,6 +409,17 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                   dot={false} 
                   activeDot={{ r: 6, strokeWidth: 4, stroke: '#fff', fill: '#6366F1' }} 
                   cursor="pointer"
+                  connectNulls
+              />
+              <Line 
+                  type="monotone" 
+                  dataKey="trend" 
+                  name="Trend Line" 
+                  stroke="#10B981" 
+                  strokeWidth={2}
+                  strokeDasharray="4 4" 
+                  dot={false} 
+                  activeDot={false}
                   connectNulls
               />
               

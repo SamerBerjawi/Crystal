@@ -108,7 +108,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
         <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] ios-regular z-[100] overflow-hidden animate-fade-in-up !backdrop-blur-xl bg-white/40 dark:bg-black/40">
           {/* Quick Filters Section */}
           <div className="p-4">
-            <h4 className="px-1 pb-3 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest">Quick filters</h4>
+            <h4 className="px-1 pb-3 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Quick filters</h4>
             <div className="grid grid-cols-2 gap-2">
               <QuickFilterButton onClick={handleSelectAll}>All Accounts</QuickFilterButton>
               <QuickFilterButton onClick={handleSelectLiquid}>Liquid Only</QuickFilterButton>
@@ -129,7 +129,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
                 if (!groupAccounts || groupAccounts.length === 0) return null;
                 return (
                     <div key={type} className="mb-3">
-                        <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1 opacity-70">{type}</h4>
+                        <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-1 opacity-70">{type}</h4>
                         {groupAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
                     </div>
                 );
@@ -137,7 +137,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
             
             {closedAccounts.length > 0 && (
               <div className="mt-3 pt-3 border-t border-white/10">
-                <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1 opacity-70">Closed accounts</h4>
+                <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-1 opacity-70">Closed accounts</h4>
                 {closedAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>
             )}

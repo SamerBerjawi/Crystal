@@ -36,7 +36,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
         onClose();
     };
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
     
     const groupedPaymentAccounts = useMemo(() => {
         const paymentAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
@@ -62,14 +62,14 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
                     <button 
                         type="button" 
                         onClick={() => setType('payment')} 
-                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'payment' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black  tracking-widest rounded-xl transition-all ${type === 'payment' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Expenditure
                     </button>
                     <button 
                         type="button" 
                         onClick={() => setType('deposit')} 
-                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'deposit' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black  tracking-widest rounded-xl transition-all ${type === 'deposit' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Acquisition
                     </button>
@@ -78,7 +78,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
                 {/* Hero Amount Input */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-8 rounded-[2rem] border border-black/5 dark:border-white/5">
                     <div className="flex flex-col items-center">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary/60 mb-4 text-center">Settlement Value</label>
+                        <label className="text-[10px] font-black  tracking-[0.2em] text-light-text-secondary/60 mb-4 text-center">Settlement Value</label>
                         <div className="relative w-full max-w-[280px]">
                             <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-black text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity ${amount ? 'opacity-100' : 'opacity-30'}`}>
                                 €
@@ -103,7 +103,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
                 <div className="space-y-6">
                     <div>
                         <label htmlFor="desc" className={labelStyle}>Operational Description</label>
-                        <input id="desc" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} !h-14 !text-xl font-black uppercase tracking-tight`} placeholder="e.g. Q2 TAXES" required />
+                        <input id="desc" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} !h-14 !text-xl font-black  tracking-tight`} placeholder="e.g. Q2 TAXES" required />
                     </div>
                 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

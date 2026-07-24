@@ -146,7 +146,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                 expand_more
                             </span>
                         </div>
-                        <h3 className="text-m font-black text-light-text dark:text-dark-text uppercase tracking-[0.2em]">{title}</h3>
+                        <h3 className="text-m font-bold text-light-text dark:text-dark-text tracking-[0.2em]">{title}</h3>
                         <span className="bg-primary-100 dark:bg-primary-900/30 text-[10px] font-black px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
                     </div>
                     <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4 mr-4"></div>
@@ -165,7 +165,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                     <div className="flex items-center gap-3">
                         {headerIcon}
                         <div>
-                            <h3 className="text-xl font-black uppercase tracking-[0.3em] text-light-text dark:text-dark-text">{title}</h3>
+                            <h3 className="text-xl font-bold tracking-[0.3em] text-light-text dark:text-dark-text">{title}</h3>
                             {headerSubtitle && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-black opacity-100 mt-1">{headerSubtitle}</p>}
                         </div>
                     </div>

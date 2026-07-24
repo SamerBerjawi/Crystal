@@ -61,9 +61,9 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
                </div>
             )}
             <div className="overflow-hidden">
-              <h2 className={`${isCompact ? 'text-[11px]' : 'text-[14px]'} font-black text-light-text dark:text-dark-text tracking-tight uppercase`}>{title}</h2>
+              <h2 className={`${isCompact ? 'text-xs' : 'text-base'} font-bold text-light-text dark:text-dark-text tracking-tight`}>{title}</h2>
               {subtitle && (
-                <p className={`${isCompact ? 'text-[10px]' : 'text-[11px]'} text-light-text dark:text-dark-text tracking-wider`}>{subtitle}</p>
+                <p className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70`}>{subtitle}</p>
               )}
             </div>
           </div>
@@ -74,7 +74,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
                 <select 
                   value={currentWidth} 
                   onChange={(e) => onWidthChange(Number(e.target.value))}
-                  className="bg-transparent text-[10px] font-bold uppercase tracking-tighter px-1 outline-none cursor-pointer text-light-text-secondary dark:text-dark-text-secondary"
+                  className="bg-transparent text-[10px] font-bold  tracking-tighter px-1 outline-none cursor-pointer text-light-text-secondary dark:text-dark-text-secondary"
                 >
                   {widthOptions.map(opt => (
                     <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800 text-light-text dark:text-dark-text">{opt.label}</option>

@@ -240,7 +240,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         <div className="absolute top-0 right-0 z-20 flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
             <button
                 onClick={() => setViewMode('category')}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all ${
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest  transition-all ${
                     viewMode === 'category' 
                     ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm' 
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
@@ -250,7 +250,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             </button>
             <button
                 onClick={() => setViewMode('detailed')}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all ${
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest  transition-all ${
                     viewMode === 'detailed' 
                     ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm' 
                     : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'

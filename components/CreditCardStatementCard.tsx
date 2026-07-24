@@ -77,7 +77,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
         return (
             <div className={`p-3 rounded-xl border ${isHighlight ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-gray-50 dark:bg-white/5 border-transparent'}`}>
                 <div className="flex justify-between items-center mb-1.5">
-                    <h4 className={`text-xs font-semibold tracking-wider ${isHighlight ? 'text-blue-700 dark:text-blue-300' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{title}</h4>
+                    <h4 className={`text-xs font-semibold tracking-tight ${isHighlight ? 'text-blue-700 dark:text-blue-300' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{title}</h4>
                 </div>
                 <div className="space-y-0.5">
                     <div className="flex justify-between items-end">

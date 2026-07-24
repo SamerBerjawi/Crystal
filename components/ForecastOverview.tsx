@@ -56,7 +56,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                             className={`p-3 rounded-xl border ${statusColor}`}
                         >
                             <div className="flex justify-between items-start mb-1.5">
-                                <span className="text-xs font-bold uppercase tracking-wider opacity-70">{item.period}</span>
+                                <span className="text-xs font-bold  tracking-wider opacity-70">{item.period}</span>
                                 <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
                             </div>
 

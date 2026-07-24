@@ -74,6 +74,8 @@ import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { useBillNotifications } from './hooks/useBillNotifications';
+import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
@@ -338,7 +340,7 @@ const App: React.FC = () => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
   });
-  
+
   const [preferences, setPreferences] = useState<AppPreferences>(emptyFinancialData.preferences);
   const [incomeCategories, setIncomeCategories] = useState<Category[]>(emptyFinancialData.incomeCategories);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>(emptyFinancialData.expenseCategories);
@@ -415,7 +417,7 @@ const App: React.FC = () => {
       setDirtySignal(signal => signal + 1);
     }
   }, []);
-  
+
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || streakUpdatedRef.current) return;
 
@@ -459,9 +461,9 @@ const App: React.FC = () => {
   const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
     accounts.filter(acc => acc.type === 'Investment' && acc.symbol).forEach(acc => {
-        const symbol = acc.symbol as string;
-        resolved[symbol] = manualWarrantPrices[symbol] ?? null;
-      });
+      const symbol = acc.symbol as string;
+      resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+    });
     warrants.forEach(warrant => {
       const symbol = warrant.isin;
       if (resolved[symbol] === undefined) {
@@ -504,7 +506,7 @@ const App: React.FC = () => {
     if (typeof window === 'undefined') return;
     const nextPath = path || '/';
     try {
-      if (replace) { window.history.replaceState(null, '', nextPath); } 
+      if (replace) { window.history.replaceState(null, '', nextPath); }
       else { window.history.pushState(null, '', nextPath); }
     } catch (e) {
       console.warn('Navigation state update failed, falling back to in-memory navigation:', e);
@@ -528,19 +530,19 @@ const App: React.FC = () => {
   }, [currentPath, navigateToPath]);
 
   useEffect(() => {
-    if (isPrivacyMode) { document.body.classList.add('privacy-mode'); } 
+    if (isPrivacyMode) { document.body.classList.add('privacy-mode'); }
     else { document.body.classList.remove('privacy-mode'); }
   }, [isPrivacyMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const tw = (window as any).tailwind;
     if (!tw || !tw.colors) return;
-    
+
     const colorName = currentPageColor;
     const palette = tw.colors[colorName];
-    
+
     if (palette && typeof palette === 'object') {
       Object.entries(palette).forEach(([shade, value]) => {
         if (typeof value === 'string') {
@@ -584,12 +586,12 @@ const App: React.FC = () => {
   const clearPendingTransactionFilters = useCallback(() => {
     transactionsViewFilters.current = {};
   }, []);
-  
+
   useEffect(() => {
-      const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'local';
-      if (!preferences.timezone) {
-          setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
-      }
+    const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'local';
+    if (!preferences.timezone) {
+      setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
+    }
   }, [preferences.timezone]);
 
   const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
@@ -615,8 +617,8 @@ const App: React.FC = () => {
         const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
         const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
+          hasChanges = true;
+          return { ...account, balance: calculatedBalance };
         }
       }
       return account;
@@ -656,7 +658,7 @@ const App: React.FC = () => {
       setPredictions(dataToLoad.predictions || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-      if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); } 
+      if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
       else { setUserStats(emptyFinancialData.userStats!); }
       streakUpdatedRef.current = false;
       setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
@@ -683,7 +685,7 @@ const App: React.FC = () => {
       try {
         const targets: Currency[] = ['USD', 'GBP', 'BTC', 'RON', 'EUR'];
         const rates = await fetchAllExchangeRates('EUR', targets, preferences.twelveDataApiKey!);
-        
+
         setPreferences(prev => {
           const hasChanged = JSON.stringify(prev.conversionRates) !== JSON.stringify(rates);
           if (!hasChanged) return prev;
@@ -698,12 +700,12 @@ const App: React.FC = () => {
 
     // Fetch on load
     fetchRates();
-    
+
     // Refresh every 4 hours
     const interval = setInterval(fetchRates, 4 * 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty]);
-  
+
   const handleEnterDemoMode = () => {
     loadAllFinancialData(null, { useDemoDefaults: true });
     setDemoUser(createDemoUser());
@@ -712,9 +714,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const authAndLoad = async () => {
-        const data = await checkAuthStatus();
-        if (data) { loadAllFinancialData(data, { skipNextSave: true }); } 
-        else { setIsDataLoaded(true); }
+      const data = await checkAuthStatus();
+      if (data) { loadAllFinancialData(data, { skipNextSave: true }); }
+      else { setIsDataLoaded(true); }
     };
     if (!isDemoMode) { authAndLoad(); }
   }, [isDemoMode]);
@@ -730,9 +732,9 @@ const App: React.FC = () => {
     setHasCompletedOnboarding(true);
     setIsOnboardingOpen(false);
   };
-  
+
   const handleSetUser = useCallback((updates: Partial<User>) => {
-    if (isDemoMode) { setDemoUser(prev => prev ? {...prev, ...updates} as User : null); } 
+    if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); }
     else { setUser(updates); }
   }, [isDemoMode, setUser]);
 
@@ -798,8 +800,8 @@ const App: React.FC = () => {
   const saveData = useCallback(
     async (data: FinancialData, options?: { keepalive?: boolean; suppressErrors?: boolean; allowEmpty?: boolean }): Promise<boolean> => {
       if (!options?.allowEmpty && !hasMaterialData(data)) {
-          console.warn('Skipping auto-save of empty data payload to prevent potential data loss.');
-          return false;
+        console.warn('Skipping auto-save of empty data payload to prevent potential data loss.');
+        return false;
       }
       const now = toLocalDateTimeString(new Date());
       const payload = { ...data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, ...(options?.allowEmpty ? { allowEmpty: true } : {}), };
@@ -844,46 +846,46 @@ const App: React.FC = () => {
   );
 
   const handleRestoreData = useCallback((data: FinancialData) => {
-      restoreInProgressRef.current = true;
-      skipNextSaveRef.current = true;
+    restoreInProgressRef.current = true;
+    skipNextSaveRef.current = true;
 
-      // Create restoration summary
-      const summaryParts: string[] = [];
-      if (data.accounts?.length) summaryParts.push(`${data.accounts.length} accounts`);
-      if (data.transactions?.length) summaryParts.push(`${data.transactions.length} transactions`);
-      if (data.budgets?.length) summaryParts.push(`${data.budgets.length} budgets`);
-      if (data.recurringTransactions?.length) summaryParts.push(`${data.recurringTransactions.length} repeating items`);
-      if (data.financialGoals?.length) summaryParts.push(`${data.financialGoals.length} goals`);
-      
-      const summaryText = summaryParts.length > 0 
-        ? `Restored: ${summaryParts.join(', ')}`
-        : 'Restored full system snapshot';
+    // Create restoration summary
+    const summaryParts: string[] = [];
+    if (data.accounts?.length) summaryParts.push(`${data.accounts.length} accounts`);
+    if (data.transactions?.length) summaryParts.push(`${data.transactions.length} transactions`);
+    if (data.budgets?.length) summaryParts.push(`${data.budgets.length} budgets`);
+    if (data.recurringTransactions?.length) summaryParts.push(`${data.recurringTransactions.length} repeating items`);
+    if (data.financialGoals?.length) summaryParts.push(`${data.financialGoals.length} goals`);
 
-      const historyItem: ImportExportHistoryItem = {
-        id: `restore-${uuidv4()}`,
-        type: 'restore',
-        dataType: 'snapshot',
-        fileName: 'Cloud Snapshot',
-        date: new Date().toISOString(),
-        status: 'Complete',
-        itemCount: summaryParts.length,
-        details: summaryText
-      };
+    const summaryText = summaryParts.length > 0
+      ? `Restored: ${summaryParts.join(', ')}`
+      : 'Restored full system snapshot';
 
-      // Add to history
-      const updatedHistory = [historyItem, ...(data.importExportHistory || [])];
-      const dataWithHistory = { ...data, importExportHistory: updatedHistory };
+    const historyItem: ImportExportHistoryItem = {
+      id: `restore-${uuidv4()}`,
+      type: 'restore',
+      dataType: 'snapshot',
+      fileName: 'Cloud Snapshot',
+      date: new Date().toISOString(),
+      status: 'Complete',
+      itemCount: summaryParts.length,
+      details: summaryText
+    };
 
-      if (data.userProfile) { handleSetUser(data.userProfile); }
-      loadAllFinancialData(dataWithHistory);
-      if (!isDemoMode && isAuthenticated) {
-           saveData(dataWithHistory, { suppressErrors: true })
-            .catch(console.error)
-            .finally(() => { restoreInProgressRef.current = false; skipNextSaveRef.current = false; });
-      } else {
-          restoreInProgressRef.current = false;
-          skipNextSaveRef.current = false;
-      }
+    // Add to history
+    const updatedHistory = [historyItem, ...(data.importExportHistory || [])];
+    const dataWithHistory = { ...data, importExportHistory: updatedHistory };
+
+    if (data.userProfile) { handleSetUser(data.userProfile); }
+    loadAllFinancialData(dataWithHistory);
+    if (!isDemoMode && isAuthenticated) {
+      saveData(dataWithHistory, { suppressErrors: true })
+        .catch(console.error)
+        .finally(() => { restoreInProgressRef.current = false; skipNextSaveRef.current = false; });
+    } else {
+      restoreInProgressRef.current = false;
+      skipNextSaveRef.current = false;
+    }
   }, [isAuthenticated, isDemoMode, loadAllFinancialData, saveData, handleSetUser]);
 
   useEffect(() => {
@@ -911,45 +913,45 @@ const App: React.FC = () => {
       if (!isDataLoaded || dirtySlicesRef.current.size === 0) return;
       const payloadSignature = JSON.stringify(dataToSave);
       if (payloadSignature === lastSavedSignatureRef.current) return;
-      saveData(dataToSave, { keepalive: true, suppressErrors: true }).catch(() => {});
+      saveData(dataToSave, { keepalive: true, suppressErrors: true }).catch(() => { });
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [dataToSave, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
-  
+
   useEffect(() => {
     if (accounts.length > accountOrder.length) {
-        const orderedAccountIds = new Set(accountOrder);
-        const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
-        setAccountOrder(prev => [...prev, ...newAccountIds]);
+      const orderedAccountIds = new Set(accountOrder);
+      const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
+      setAccountOrder(prev => [...prev, ...newAccountIds]);
     } else if (accounts.length < accountOrder.length) {
-        const accountIds = new Set(accounts.map(a => a.id));
-        setAccountOrder(prev => prev.filter(id => accountIds.has(id)));
+      const accountIds = new Set(accounts.map(a => a.id));
+      setAccountOrder(prev => prev.filter(id => accountIds.has(id)));
     }
   }, [accounts, accountOrder, setAccountOrder]);
 
   useEffect(() => {
     if (tasks.length > taskOrder.length) {
-        const orderedTaskIds = new Set(taskOrder);
-        const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
-        setTaskOrder(prev => [...prev, ...newTaskIds]);
+      const orderedTaskIds = new Set(taskOrder);
+      const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
+      setTaskOrder(prev => [...prev, ...newTaskIds]);
     } else if (tasks.length < taskOrder.length) {
-        const taskIds = new Set(tasks.map(t => t.id));
-        setTaskOrder(prev => prev.filter(id => taskIds.has(id)));
+      const taskIds = new Set(tasks.map(t => t.id));
+      setTaskOrder(prev => prev.filter(id => taskIds.has(id)));
     }
   }, [tasks, taskOrder, setTaskOrder]);
 
   const handleSignIn = async (email: string, password: string) => {
     setIsDataLoaded(false);
     const financialData = await signIn(email, password);
-    if (financialData) { loadAllFinancialData(financialData, { skipNextSave: true }); } 
+    if (financialData) { loadAllFinancialData(financialData, { skipNextSave: true }); }
     else { setIsDataLoaded(true); }
   };
 
   const handleSignUp = async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {
     setIsDataLoaded(false);
     const financialData = await signUp(newUserData);
-    if (financialData) { loadAllFinancialData(financialData, { skipNextSave: true }); } 
+    if (financialData) { loadAllFinancialData(financialData, { skipNextSave: true }); }
     else { setIsDataLoaded(true); }
   };
 
@@ -965,7 +967,7 @@ const App: React.FC = () => {
 
   const handleLogout = useCallback(() => {
     if (!isDemoMode && isAuthenticated && isDataLoaded) {
-      saveData(latestDataRef.current).catch(err => {}).finally(finalizeLogout);
+      saveData(latestDataRef.current).catch(err => { }).finally(finalizeLogout);
       return;
     }
     finalizeLogout();
@@ -973,89 +975,89 @@ const App: React.FC = () => {
 
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
-    
+
     let finalAccountId: string;
     let isNew = false;
-    
+
     if (accountData.id) {
-        finalAccountId = accountData.id;
+      finalAccountId = accountData.id;
     } else {
-        finalAccountId = `acc-${uuidv4()}`;
-        isNew = true;
+      finalAccountId = `acc-${uuidv4()}`;
+      isNew = true;
     }
 
     const savedAccount = { ...accountWithDefaults, id: finalAccountId } as Account;
     if (isNew) savedAccount.status = 'open';
 
     setAccounts(prev => {
-        // 1. Update/Add the primary account
-        let nextAccounts: Account[];
-        if (isNew) {
-            nextAccounts = [...prev, savedAccount];
-        } else {
-            nextAccounts = prev.map(acc => acc.id === finalAccountId ? savedAccount : acc);
-        }
+      // 1. Update/Add the primary account
+      let nextAccounts: Account[];
+      if (isNew) {
+        nextAccounts = [...prev, savedAccount];
+      } else {
+        nextAccounts = prev.map(acc => acc.id === finalAccountId ? savedAccount : acc);
+      }
 
-        // 2. Handle Primary status logic
-        if (savedAccount.isPrimary) {
-            nextAccounts = nextAccounts.map(acc => {
-                if (acc.type === savedAccount.type && acc.id !== savedAccount.id && acc.isPrimary) {
-                    return { ...acc, isPrimary: false };
-                }
-                return acc;
-            });
-        }
+      // 2. Handle Primary status logic
+      if (savedAccount.isPrimary) {
+        nextAccounts = nextAccounts.map(acc => {
+          if (acc.type === savedAccount.type && acc.id !== savedAccount.id && acc.isPrimary) {
+            return { ...acc, isPrimary: false };
+          }
+          return acc;
+        });
+      }
 
-        // 3. Bidirectional Linking Logic
-        // If savedAccount is a Loan, link to its Asset
-        if (savedAccount.type === 'Loan' && savedAccount.linkedAssetId) {
-            nextAccounts = nextAccounts.map(acc => {
-                if (acc.id === savedAccount.linkedAssetId) {
-                    return { ...acc, linkedLoanId: savedAccount.id };
-                }
-                // Clear previous links if this asset was linked to another loan
-                if (acc.linkedLoanId === savedAccount.id && acc.id !== savedAccount.linkedAssetId) {
-                    return { ...acc, linkedLoanId: undefined };
-                }
-                return acc;
-            });
-        }
-        
-        // If savedAccount is an Asset (Property/Vehicle), link to its Loan
-        if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && savedAccount.linkedLoanId) {
-            nextAccounts = nextAccounts.map(acc => {
-                if (acc.id === savedAccount.linkedLoanId) {
-                    return { ...acc, linkedAssetId: savedAccount.id };
-                }
-                // Clear previous links if this loan was linked to another asset
-                if (acc.linkedAssetId === savedAccount.id && acc.id !== savedAccount.linkedLoanId) {
-                    return { ...acc, linkedAssetId: undefined };
-                }
-                return acc;
-            });
-        }
+      // 3. Bidirectional Linking Logic
+      // If savedAccount is a Loan, link to its Asset
+      if (savedAccount.type === 'Loan' && savedAccount.linkedAssetId) {
+        nextAccounts = nextAccounts.map(acc => {
+          if (acc.id === savedAccount.linkedAssetId) {
+            return { ...acc, linkedLoanId: savedAccount.id };
+          }
+          // Clear previous links if this asset was linked to another loan
+          if (acc.linkedLoanId === savedAccount.id && acc.id !== savedAccount.linkedAssetId) {
+            return { ...acc, linkedLoanId: undefined };
+          }
+          return acc;
+        });
+      }
 
-        // 4. Handle Link Removals
-        // If it's a Loan and linkedAssetId was removed
-        if (savedAccount.type === 'Loan' && !savedAccount.linkedAssetId) {
-             nextAccounts = nextAccounts.map(acc => {
-                if (acc.linkedLoanId === savedAccount.id) {
-                    return { ...acc, linkedLoanId: undefined };
-                }
-                return acc;
-            });
-        }
-        // If it's an Asset and linkedLoanId was removed
-        if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && !savedAccount.linkedLoanId) {
-             nextAccounts = nextAccounts.map(acc => {
-                if (acc.linkedAssetId === savedAccount.id) {
-                    return { ...acc, linkedAssetId: undefined };
-                }
-                return acc;
-            });
-        }
+      // If savedAccount is an Asset (Property/Vehicle), link to its Loan
+      if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && savedAccount.linkedLoanId) {
+        nextAccounts = nextAccounts.map(acc => {
+          if (acc.id === savedAccount.linkedLoanId) {
+            return { ...acc, linkedAssetId: savedAccount.id };
+          }
+          // Clear previous links if this loan was linked to another asset
+          if (acc.linkedAssetId === savedAccount.id && acc.id !== savedAccount.linkedLoanId) {
+            return { ...acc, linkedAssetId: undefined };
+          }
+          return acc;
+        });
+      }
 
-        return nextAccounts;
+      // 4. Handle Link Removals
+      // If it's a Loan and linkedAssetId was removed
+      if (savedAccount.type === 'Loan' && !savedAccount.linkedAssetId) {
+        nextAccounts = nextAccounts.map(acc => {
+          if (acc.linkedLoanId === savedAccount.id) {
+            return { ...acc, linkedLoanId: undefined };
+          }
+          return acc;
+        });
+      }
+      // If it's an Asset and linkedLoanId was removed
+      if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && !savedAccount.linkedLoanId) {
+        nextAccounts = nextAccounts.map(acc => {
+          if (acc.linkedAssetId === savedAccount.id) {
+            return { ...acc, linkedAssetId: undefined };
+          }
+          return acc;
+        });
+      }
+
+      return nextAccounts;
     });
   };
 
@@ -1080,18 +1082,18 @@ const App: React.FC = () => {
         type: 'income',
         currency: account.currency
       };
-      
+
       setTransactions(txs => [incomeTx!, ...txs]);
     }
 
     setAccounts(prev => {
       return prev.map(acc => {
         if (acc.id === accountId) {
-          return { 
-            ...acc, 
-            status: 'closed' as const, 
+          return {
+            ...acc,
+            status: 'closed' as const,
             closureDetails: incomeTx ? { ...details, transactionId: incomeTx.id } : details,
-            balance: 0 
+            balance: 0
           };
         }
         if (incomeTx && acc.id === details.incomeAccountId) {
@@ -1120,9 +1122,9 @@ const App: React.FC = () => {
     setAccounts(prev => {
       return prev.map(acc => {
         if (acc.id === accountId) {
-          return { 
-            ...acc, 
-            status: 'open' as const, 
+          return {
+            ...acc,
+            status: 'open' as const,
             closureDetails: undefined,
             balance: details.value
           };
@@ -1140,9 +1142,9 @@ const App: React.FC = () => {
     if (!accountToDelete) return;
     const impactedRecurringIds = new Set(recurringTransactions.filter(rt => rt.accountId === accountId || rt.toAccountId === accountId).map(rt => rt.id));
     setAccounts(prev => prev.filter(acc => acc.id !== accountId).map(acc => {
-        if (acc.linkedAssetId === accountId) return { ...acc, linkedAssetId: undefined };
-        if (acc.linkedLoanId === accountId) return { ...acc, linkedLoanId: undefined };
-        return acc;
+      if (acc.linkedAssetId === accountId) return { ...acc, linkedAssetId: undefined };
+      if (acc.linkedLoanId === accountId) return { ...acc, linkedLoanId: undefined };
+      return acc;
     }));
     setTransactions(prev => prev.filter(tx => tx.accountId !== accountId));
     setInvestmentTransactions(prev => prev.filter(tx => tx.symbol !== accountToDelete.symbol));
@@ -1196,26 +1198,26 @@ const App: React.FC = () => {
         }
       });
     }
-    
+
     // Automatic Spare Change Logic
     if (options?.autoSpareChange) {
       transactionDataArray.forEach(tx => {
         if (tx.id) return; // Only for brand new transactions
         if (tx.transferId?.startsWith('spare-')) return; // Avoid recursive spare change
         if (tx.type !== 'expense') return; // Only for outflows (spending or outgoing transfer side)
-        
-        const linkedSpareChangeAccount = accounts.find(a => 
-          a.type === 'Investment' && 
-          a.subType === 'Spare Change' && 
+
+        const linkedSpareChangeAccount = accounts.find(a =>
+          a.type === 'Investment' &&
+          a.subType === 'Spare Change' &&
           a.linkedAccountId === tx.accountId
         );
-        
+
         if (linkedSpareChangeAccount) {
           const absVal = Math.abs(tx.amount);
           const remainder = absVal % 1;
           const cleanRemainder = parseFloat(remainder.toFixed(2));
           const spareAmount = cleanRemainder === 0 ? 0 : parseFloat((1.00 - cleanRemainder).toFixed(2));
-          
+
           if (spareAmount > 0) {
             const spareTransferId = `spare-${uuidv4()}`;
             const sourceAcc = accounts.find(a => a.id === tx.accountId);
@@ -1252,133 +1254,133 @@ const App: React.FC = () => {
     const transactionsToUpdate: Transaction[] = [];
     const transactionsToAdd: Transaction[] = [];
     if (transactionIdsToDelete.length > 0) {
-        const transactionsToDelete = transactions.filter(t => transactionIdsToDelete.includes(t.id));
-        transactionsToDelete.forEach(tx => {
-            const account = accounts.find(a => a.id === tx.accountId);
-            let changeAmount = tx.amount;
-            if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
-            balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
-        });
+      const transactionsToDelete = transactions.filter(t => transactionIdsToDelete.includes(t.id));
+      transactionsToDelete.forEach(tx => {
+        const account = accounts.find(a => a.id === tx.accountId);
+        let changeAmount = tx.amount;
+        if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
+        balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
+      });
     }
     finalTxArray.forEach(transactionData => {
-        if (transactionData.id && transactions.some(t => t.id === transactionData.id)) {
-            const updatedTx = { ...transactions.find(t => t.id === transactionData.id), ...transactionData } as Transaction;
-            const originalTx = transactions.find(t => t.id === updatedTx.id);
-            if (originalTx) {
-                const originalAccount = accounts.find(a => a.id === originalTx.accountId);
-                let originalChangeAmount = originalTx.amount;
-                if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
-                balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
-                const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
-                let updatedChangeAmount = updatedTx.amount;
-                if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
-                balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
-                transactionsToUpdate.push(updatedTx);
-            }
-        } else {
-            const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: `txn-${uuidv4()}` } as Transaction;
-            const account = accounts.find(a => a.id === newTx.accountId);
-            let changeAmount = newTx.amount;
-            if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
-            balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
-            transactionsToAdd.push(newTx);
+      if (transactionData.id && transactions.some(t => t.id === transactionData.id)) {
+        const updatedTx = { ...transactions.find(t => t.id === transactionData.id), ...transactionData } as Transaction;
+        const originalTx = transactions.find(t => t.id === updatedTx.id);
+        if (originalTx) {
+          const originalAccount = accounts.find(a => a.id === originalTx.accountId);
+          let originalChangeAmount = originalTx.amount;
+          if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
+          balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
+          const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
+          let updatedChangeAmount = updatedTx.amount;
+          if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
+          balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
+          transactionsToUpdate.push(updatedTx);
         }
+      } else {
+        const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: `txn-${uuidv4()}` } as Transaction;
+        const account = accounts.find(a => a.id === newTx.accountId);
+        let changeAmount = newTx.amount;
+        if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
+        balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
+        transactionsToAdd.push(newTx);
+      }
     });
     setTransactions(prev => {
-        let intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
-        const updatedTransactions = intermediateState.map(t => transactionsToUpdate.find(ut => ut.id === t.id) || t);
-        return [...updatedTransactions, ...transactionsToAdd];
+      let intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
+      const updatedTransactions = intermediateState.map(t => transactionsToUpdate.find(ut => ut.id === t.id) || t);
+      return [...updatedTransactions, ...transactionsToAdd];
     });
     setAccounts(prevAccounts => prevAccounts.map(account => {
-            if (balanceChanges[account.id]) {
-                const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
-                const newBalance = account.balance + changeInAccountCurrency;
-                return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
-            }
-            return account;
-        })
+      if (balanceChanges[account.id]) {
+        const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
+        const newBalance = account.balance + changeInAccountCurrency;
+        return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
+      }
+      return account;
+    })
     );
   }, [accounts, transactions, preferences]);
 
   const handleDeleteTransactions = (transactionIds: string[]) => { if (transactionIds.length > 0) handleSaveTransaction([], transactionIds); };
   const handleSaveInvestmentTransaction = (invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {
-      const symbol = invTxData.symbol.toUpperCase();
-      const type = invTxData.type?.toLowerCase();
+    const symbol = invTxData.symbol.toUpperCase();
+    const type = invTxData.type?.toLowerCase();
 
-      // Calculate current holdings for this symbol excluding the transaction being edited (if editing)
-      let currentHoldingQty = 0;
-      investmentTransactions.forEach(t => {
-          if (t.symbol?.toUpperCase() === symbol && t.id !== invTxData.id) {
-              const q = Number(t.quantity) || 0;
-              if (t.type?.toLowerCase() === 'buy') {
-                  currentHoldingQty += q;
-              } else if (t.type?.toLowerCase() === 'sell') {
-                  currentHoldingQty -= q;
-              }
-          }
-      });
-      warrants.forEach(w => {
-          if (w.isin?.toUpperCase() === symbol) {
-              currentHoldingQty += Number(w.quantity) || 0;
-          }
-      });
-
-      if (type === 'sell') {
-          const sellQty = Number(invTxData.quantity) || 0;
-          if (sellQty > currentHoldingQty) {
-              toast.error(`Cannot process sale of ${sellQty} shares. You only hold ${currentHoldingQty} shares of ${symbol}.`);
-              return;
-          }
+    // Calculate current holdings for this symbol excluding the transaction being edited (if editing)
+    let currentHoldingQty = 0;
+    investmentTransactions.forEach(t => {
+      if (t.symbol?.toUpperCase() === symbol && t.id !== invTxData.id) {
+        const q = Number(t.quantity) || 0;
+        if (t.type?.toLowerCase() === 'buy') {
+          currentHoldingQty += q;
+        } else if (t.type?.toLowerCase() === 'sell') {
+          currentHoldingQty -= q;
+        }
       }
-
-      let nextTxList: InvestmentTransaction[];
-      if (invTxData.id) {
-          nextTxList = investmentTransactions.map(t => t.id === invTxData.id ? { ...t, ...invTxData } as InvestmentTransaction : t);
-          setInvestmentTransactions(nextTxList);
-      } else {
-          const newTx = { ...invTxData, id: `inv-txn-${uuidv4()}` } as InvestmentTransaction;
-          nextTxList = [...investmentTransactions, newTx];
-          setInvestmentTransactions(nextTxList);
-          if (cashTxData) handleSaveTransaction([cashTxData]);
+    });
+    warrants.forEach(w => {
+      if (w.isin?.toUpperCase() === symbol) {
+        currentHoldingQty += Number(w.quantity) || 0;
       }
+    });
 
-      // Calculate remaining quantity of this symbol based on the updated transactions list
-      let remainingQtyForSymbol = 0;
-      nextTxList.forEach(t => {
-          if (t.symbol?.toUpperCase() === symbol) {
-              const q = Number(t.quantity) || 0;
-              if (t.type?.toLowerCase() === 'buy') {
-                  remainingQtyForSymbol += q;
-              } else if (t.type?.toLowerCase() === 'sell') {
-                  remainingQtyForSymbol -= q;
-              }
-          }
-      });
-      warrants.forEach(w => {
-          if (w.isin?.toUpperCase() === symbol) {
-              remainingQtyForSymbol += Number(w.quantity) || 0;
-          }
-      });
-
-      // Recalculate remaining balance or quantity based on final holding quantity and current asset price
-      const price = assetPrices[symbol] ?? invTxData.price;
-      const finalBalance = remainingQtyForSymbol * price;
-
-      if (newAccount) {
-          const accountWithBalance = { ...newAccount, balance: finalBalance };
-          handleSaveAccount(accountWithBalance);
+    if (type === 'sell') {
+      const sellQty = Number(invTxData.quantity) || 0;
+      if (sellQty > currentHoldingQty) {
+        toast.error(`Cannot process sale of ${sellQty} shares. You only hold ${currentHoldingQty} shares of ${symbol}.`);
+        return;
       }
+    }
 
-      // Update the accounts state for the matching Investment account
-      setAccounts(prevAccounts => prevAccounts.map(account => {
-          if (account.symbol?.toUpperCase() === symbol && account.type === 'Investment') {
-              return {
-                  ...account,
-                  balance: parseFloat(finalBalance.toFixed(account.currency === 'BTC' ? 8 : 2))
-              };
-          }
-          return account;
-      }));
+    let nextTxList: InvestmentTransaction[];
+    if (invTxData.id) {
+      nextTxList = investmentTransactions.map(t => t.id === invTxData.id ? { ...t, ...invTxData } as InvestmentTransaction : t);
+      setInvestmentTransactions(nextTxList);
+    } else {
+      const newTx = { ...invTxData, id: `inv-txn-${uuidv4()}` } as InvestmentTransaction;
+      nextTxList = [...investmentTransactions, newTx];
+      setInvestmentTransactions(nextTxList);
+      if (cashTxData) handleSaveTransaction([cashTxData]);
+    }
+
+    // Calculate remaining quantity of this symbol based on the updated transactions list
+    let remainingQtyForSymbol = 0;
+    nextTxList.forEach(t => {
+      if (t.symbol?.toUpperCase() === symbol) {
+        const q = Number(t.quantity) || 0;
+        if (t.type?.toLowerCase() === 'buy') {
+          remainingQtyForSymbol += q;
+        } else if (t.type?.toLowerCase() === 'sell') {
+          remainingQtyForSymbol -= q;
+        }
+      }
+    });
+    warrants.forEach(w => {
+      if (w.isin?.toUpperCase() === symbol) {
+        remainingQtyForSymbol += Number(w.quantity) || 0;
+      }
+    });
+
+    // Recalculate remaining balance or quantity based on final holding quantity and current asset price
+    const price = assetPrices[symbol] ?? invTxData.price;
+    const finalBalance = remainingQtyForSymbol * price;
+
+    if (newAccount) {
+      const accountWithBalance = { ...newAccount, balance: finalBalance };
+      handleSaveAccount(accountWithBalance);
+    }
+
+    // Update the accounts state for the matching Investment account
+    setAccounts(prevAccounts => prevAccounts.map(account => {
+      if (account.symbol?.toUpperCase() === symbol && account.type === 'Investment') {
+        return {
+          ...account,
+          balance: parseFloat(finalBalance.toFixed(account.currency === 'BTC' ? 8 : 2))
+        };
+      }
+      return account;
+    }));
   };
   const handleDeleteInvestmentTransaction = (id: string) => { setInvestmentTransactions(prev => prev.filter(t => t.id !== id)); };
   const handleSaveRecurringTransaction = (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => {
@@ -1414,33 +1416,33 @@ const App: React.FC = () => {
   const handleDeleteTask = (taskId: string) => { setTasks(prev => removeEntityById(prev, taskId)); };
   const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
     let warrantId = warrantData.id;
-    if (warrantData.id) { 
-        setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w)); 
-    } 
+    if (warrantData.id) {
+      setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w));
+    }
     else {
-        warrantId = `warr-${uuidv4()}`;
-        setWarrants(prev => [...prev, { ...warrantData, id: warrantId } as Warrant]);
-        if (warrantData.isin && !accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase())) {
-            handleSaveAccount({ name: warrantData.name || 'Warrant', type: 'Investment', subType: 'ETF', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
-        }
+      warrantId = `warr-${uuidv4()}`;
+      setWarrants(prev => [...prev, { ...warrantData, id: warrantId } as Warrant]);
+      if (warrantData.isin && !accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase())) {
+        handleSaveAccount({ name: warrantData.name || 'Warrant', type: 'Investment', subType: 'ETF', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
+      }
     }
 
     // Sync tax payments to billsAndPayments
     if (warrantId) {
-        setBillsAndPayments(prev => {
-            const otherBills = prev.filter(b => b.warrantId !== warrantId);
-            const newBills: BillPayment[] = (warrantData.taxPayments || []).map((tp, index) => ({
-                id: `bill-tax-${warrantId}-${index}`,
-                description: `Tax Payment: ${warrantData.name} (${warrantData.isin})`,
-                amount: -tp.amount,
-                type: 'payment',
-                currency: 'EUR',
-                dueDate: tp.dueDate,
-                status: 'unpaid',
-                warrantId: warrantId
-            }));
-            return [...otherBills, ...newBills];
-        });
+      setBillsAndPayments(prev => {
+        const otherBills = prev.filter(b => b.warrantId !== warrantId);
+        const newBills: BillPayment[] = (warrantData.taxPayments || []).map((tp, index) => ({
+          id: `bill-tax-${warrantId}-${index}`,
+          description: `Tax Payment: ${warrantData.name} (${warrantData.isin})`,
+          amount: -tp.amount,
+          type: 'payment',
+          currency: 'EUR',
+          dueDate: tp.dueDate,
+          status: 'unpaid',
+          warrantId: warrantId
+        }));
+        return [...otherBills, ...newBills];
+      });
     }
   };
   const handleDeleteWarrant = (warrantId: string) => {
@@ -1451,34 +1453,34 @@ const App: React.FC = () => {
       setManualWarrantPrices(prev => { const updated = { ...prev }; delete updated[warrantToDelete.isin]; return updated; });
     }
   };
-  const handleManualWarrantPrice = (isin: string, priceOrEntries: number | null | {date: string, price: number}[], date?: string) => {
+  const handleManualWarrantPrice = (isin: string, priceOrEntries: number | null | { date: string, price: number }[], date?: string) => {
     if (Array.isArray(priceOrEntries)) {
-        setPriceHistory((prev: Record<string, PriceHistoryEntry[]>) => {
-            const historyMap = new Map<string, PriceHistoryEntry>((prev[isin] || []).map((item: PriceHistoryEntry) => [item.date, item]));
-            priceOrEntries.forEach((entry: {date: string, price: number}) => historyMap.set(entry.date, entry as PriceHistoryEntry));
-            const newList = Array.from(historyMap.values()).sort((a: PriceHistoryEntry, b: PriceHistoryEntry) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            const latest = newList.length > 0 ? newList[newList.length - 1] : null;
-            setManualWarrantPrices(cp => { const np = { ...cp }; if (latest) np[isin] = latest.price; else if (newList.length === 0) delete np[isin]; return np; });
-            return { ...prev, [isin]: newList };
-        });
-        setLastUpdated(new Date());
-        return;
+      setPriceHistory((prev: Record<string, PriceHistoryEntry[]>) => {
+        const historyMap = new Map<string, PriceHistoryEntry>((prev[isin] || []).map((item: PriceHistoryEntry) => [item.date, item]));
+        priceOrEntries.forEach((entry: { date: string, price: number }) => historyMap.set(entry.date, entry as PriceHistoryEntry));
+        const newList = Array.from(historyMap.values()).sort((a: PriceHistoryEntry, b: PriceHistoryEntry) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const latest = newList.length > 0 ? newList[newList.length - 1] : null;
+        setManualWarrantPrices(cp => { const np = { ...cp }; if (latest) np[isin] = latest.price; else if (newList.length === 0) delete np[isin]; return np; });
+        return { ...prev, [isin]: newList };
+      });
+      setLastUpdated(new Date());
+      return;
     }
     setPriceHistory((prev: Record<string, PriceHistoryEntry[]>) => {
-        let newList = prev[isin] ? [...prev[isin]] : [];
-        const targetDate = date || toLocalISOString(new Date());
-        if (priceOrEntries === null) { 
-            newList = newList.filter((item: PriceHistoryEntry) => item.date !== targetDate); 
-        } 
-        else {
-            const index = newList.findIndex((item: PriceHistoryEntry) => item.date === targetDate);
-            if (index > -1) newList[index] = { date: targetDate, price: priceOrEntries };
-            else newList.push({ date: targetDate, price: priceOrEntries });
-        }
-        newList.sort((a: PriceHistoryEntry, b: PriceHistoryEntry) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        const latest = newList.length > 0 ? newList[newList.length - 1] : null;
-        setManualWarrantPrices(cp => { const np = { ...cp }; if (latest) np[isin] = latest.price; else if (priceOrEntries === null && newList.length === 0) delete np[isin]; return np; });
-        return { ...prev, [isin]: newList };
+      let newList = prev[isin] ? [...prev[isin]] : [];
+      const targetDate = date || toLocalISOString(new Date());
+      if (priceOrEntries === null) {
+        newList = newList.filter((item: PriceHistoryEntry) => item.date !== targetDate);
+      }
+      else {
+        const index = newList.findIndex((item: PriceHistoryEntry) => item.date === targetDate);
+        if (index > -1) newList[index] = { date: targetDate, price: priceOrEntries };
+        else newList.push({ date: targetDate, price: priceOrEntries });
+      }
+      newList.sort((a: PriceHistoryEntry, b: PriceHistoryEntry) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const latest = newList.length > 0 ? newList[newList.length - 1] : null;
+      setManualWarrantPrices(cp => { const np = { ...cp }; if (latest) np[isin] = latest.price; else if (priceOrEntries === null && newList.length === 0) delete np[isin]; return np; });
+      return { ...prev, [isin]: newList };
     });
     setLastUpdated(new Date());
   };
@@ -1486,9 +1488,9 @@ const App: React.FC = () => {
     setTags(prev => upsertEntity(prev, tagData, () => `tag-${uuidv4()}`));
   };
   const handleDeleteTag = (tagId: string) => {
-      setTags(prev => prev.filter(t => t.id !== tagId));
-      setTransactions(prev => prev.map(tx => tx.tagIds?.includes(tagId) ? { ...tx, tagIds: tx.tagIds.filter(id => id !== tagId) } : tx));
-      if (transactionsViewFilters.current.tagId === tagId) transactionsViewFilters.current.tagId = null;
+    setTags(prev => prev.filter(t => t.id !== tagId));
+    setTransactions(prev => prev.map(tx => tx.tagIds?.includes(tagId) ? { ...tx, tagIds: tx.tagIds.filter(id => id !== tagId) } : tx));
+    if (transactionsViewFilters.current.tagId === tagId) transactionsViewFilters.current.tagId = null;
   };
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
     setBillsAndPayments(prev => upsertEntity(prev, billData, () => `bill-${uuidv4()}`));
@@ -1506,11 +1508,11 @@ const App: React.FC = () => {
   };
   const handleDeleteMembership = (membershipId: string) => { setMemberships(prev => removeEntityById(prev, membershipId)); };
   const handleSaveInvoice = (invoiceData: Omit<Invoice, 'id'> & { id?: string }) => {
-      setInvoices(prev => upsertEntity(prev, invoiceData, () => `inv-${uuidv4()}`));
+    setInvoices(prev => upsertEntity(prev, invoiceData, () => `inv-${uuidv4()}`));
   };
   const handleDeleteInvoice = (id: string) => { setInvoices(prev => removeEntityById(prev, id)); };
   const handleSavePrediction = (predictionData: Omit<Prediction, 'id'> & { id?: string }) => {
-      setPredictions(prev => upsertEntity(prev, predictionData, () => `pred-${uuidv4()}`));
+    setPredictions(prev => upsertEntity(prev, predictionData, () => `pred-${uuidv4()}`));
   };
   const handleDeletePrediction = (id: string) => { setPredictions(prev => removeEntityById(prev, id)); };
 
@@ -1531,29 +1533,29 @@ const App: React.FC = () => {
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
     if (!isAuthenticated) return;
-    
+
     let selectedBankId = '';
     let selectedBankName = '';
     try {
-        const bankData = JSON.parse(payload.selectedBank);
-        selectedBankId = bankData.id;
-        selectedBankName = bankData.name;
+      const bankData = JSON.parse(payload.selectedBank);
+      selectedBankId = bankData.id;
+      selectedBankName = bankData.name;
     } catch (e) {
-        selectedBankName = payload.selectedBank;
+      selectedBankName = payload.selectedBank;
     }
 
     const connectionId = payload.connectionId || `eb-${uuidv4()}`;
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
     const baseConnection: EnableBankingConnection = {
-          id: connectionId,
-          applicationId: (payload.applicationId || '').trim(),
-          countryCode: (payload.countryCode || '').trim().toUpperCase(),
-          clientCertificate: (payload.clientCertificate || '').trim(),
-          status: 'pending',
-          selectedBank: selectedBankName,
-          selectedBankId: selectedBankId,
-          accounts: existingConnection?.accounts || [],
-          ...(existingConnection && { ...existingConnection })
+      id: connectionId,
+      applicationId: (payload.applicationId || '').trim(),
+      countryCode: (payload.countryCode || '').trim().toUpperCase(),
+      clientCertificate: (payload.clientCertificate || '').trim(),
+      status: 'pending',
+      selectedBank: selectedBankName,
+      selectedBankId: selectedBankId,
+      accounts: existingConnection?.accounts || [],
+      ...(existingConnection && { ...existingConnection })
     };
     let nextConnections: EnableBankingConnection[] = [];
     setEnableBankingConnections(prev => { nextConnections = existingConnection ? prev.map(conn => (conn.id === connectionId ? baseConnection : conn)) : [...prev, baseConnection]; return nextConnections; });
@@ -1640,12 +1642,12 @@ const App: React.FC = () => {
     accountDisplayName?: string,
     ownerName?: string,
   ): Transaction | null => {
-    const amountRaw = 
-      providerTx?.transaction_amount?.amount ?? 
-      providerTx?.transaction_amount?.value ?? 
-      providerTx?.amount?.amount ?? 
-      providerTx?.amount?.value ?? 
-      providerTx?.transactionAmount?.amount ?? 
+    const amountRaw =
+      providerTx?.transaction_amount?.amount ??
+      providerTx?.transaction_amount?.value ??
+      providerTx?.amount?.amount ??
+      providerTx?.amount?.value ??
+      providerTx?.transactionAmount?.amount ??
       providerTx?.transactionAmount?.value;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
 
@@ -1653,8 +1655,8 @@ const App: React.FC = () => {
     const isCredit = creditDebit === 'CRDT' || (typeof amountRaw === 'string' && !amountRaw.startsWith('-') && creditDebit !== 'DBIT');
     const signedAmount = Math.abs(Number(amountRaw)) * (isCredit ? 1 : -1);
     // Support negative strings directly if no indicator
-    const finalAmount = (signedAmount === Math.abs(Number(amountRaw)) && typeof amountRaw === 'string' && amountRaw.startsWith('-')) 
-      ? Number(amountRaw) 
+    const finalAmount = (signedAmount === Math.abs(Number(amountRaw)) && typeof amountRaw === 'string' && amountRaw.startsWith('-'))
+      ? Number(amountRaw)
       : signedAmount;
 
     if (Number.isNaN(finalAmount)) return null;
@@ -1702,8 +1704,14 @@ const App: React.FC = () => {
     const sanitizeMerchant = (candidate?: string) => {
       if (!candidate) return undefined;
       const trimmed = candidate.trim();
+      if (!trimmed) return undefined;
+
+      // Filter out raw IBANs and numeric IDs
+      const cleanedForIbanCheck = trimmed.replace(/\s+/g, '');
+      if (/^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(cleanedForIbanCheck)) return undefined;
+
       const normalized = trimmed.toLowerCase();
-      
+
       const identities = [
         accountDisplayName?.trim().toLowerCase(),
         ownerName?.trim().toLowerCase(),
@@ -1711,24 +1719,17 @@ const App: React.FC = () => {
         demoUser ? `${demoUser.firstName} ${demoUser.lastName}`.trim().toLowerCase() : undefined,
       ].filter(Boolean) as string[];
 
-      if (!trimmed) return undefined;
-      
-      // Filter out raw IBANs and numeric IDs
-      const cleanedForIbanCheck = trimmed.replace(/\s+/g, '');
-      if (/^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(cleanedForIbanCheck)) return undefined;
-
       for (const identity of identities) {
         if (normalized === identity) return undefined;
-        // Fuzzy match: if transaction party name is very similar to account holder name, ignore it.
-        // We only do this if the identity is long enough to avoid false positives (e.g. filtering "Nike" if user name is "Nike" - unlikely but possible).
-        if (identity.length > 3 && (normalized.includes(identity) || identity.includes(normalized))) {
+        // If candidate is explicitly an account transfer to/from the user identity
+        if (identity.length > 3 && (normalized.startsWith(`transfer to ${identity}`) || normalized.startsWith(`transfer from ${identity}`) || normalized === `payment to ${identity}`)) {
           return undefined;
         }
-        
+
         const nameParts = identity.split(/\s+/).filter(p => p.length > 2);
         if (nameParts.length >= 2) {
           const hasAllParts = nameParts.every(part => normalized.includes(part));
-          if (hasAllParts && normalized.length < identity.length + 5) {
+          if (hasAllParts && normalized.length < identity.length + 8) {
             return undefined;
           }
         }
@@ -1736,24 +1737,43 @@ const App: React.FC = () => {
 
       // Clean the Name: Remove junk strings like "BE-", "PURCHASE", "WWW.", transaction IDs, or date stamps
       let cleaned = trimmed;
-      // Remove prefixes like "WWW.", "BE-", "PURCHASE"
-      cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|AANKOOP\s*|PAIEMENT\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
+
+      // Clean prefix clutter iteratively (e.g. "CARD PAYMENT - SEPA DIRECT DEBIT GOOGLE AI PRO")
+      let prev = '';
+      while (cleaned !== prev) {
+        prev = cleaned;
+        cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|AANKOOP\s*|PAIEMENT\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
+        cleaned = cleaned.replace(/^(CARD\s+PAYMENT|CARD\s+PURCHASE|CARD|POS|DIRECT\s+DEBIT|SEPA\s+DIRECT\s+DEBIT|SEPA|SOFORT|RECURRING\s+PAYMENT|RECURRING|SUBSCRIPTION|BILL\s+PAYMENT|PAYMENT\s+TO|PAYMENT|STATEMENT)\s*[-:\/]?\s*/i, '');
+        cleaned = cleaned.replace(/^(PAYPAL\s*\*?|SQ\s*\*|TST\s*\*|APPLE\s+BILL|GOOGLE\s*\*|AMZN\s*\*|AMAZON\s*\*|G\.CO\/HELPPAY#?)\s*/i, '');
+      }
+
       // Remove specific bank routing text like "RETAIL BRUSSELS BE "
       cleaned = cleaned.replace(/RETAIL\s+[a-zA-Z\s]+\s+[A-Z]{2}\s+/i, '');
+      // Remove trailing helpline/web URLs like "G.CO/HELPPAY" or "G.CO/PAYHELP"
+      cleaned = cleaned.replace(/\s+G\.CO\/(HELPPAY|PAYHELP|BILL).*/i, '');
+      cleaned = cleaned.replace(/\s+AMZN\.COM\/(BILL|PAY).*/i, '');
       // Remove trailing info separated by * (e.g., AMZN MKTP*29384 -> AMZN MKTP)
       cleaned = cleaned.replace(/\*[A-Z0-9_\-\s]+$/i, '');
       // Remove generic TLDs at the end
       cleaned = cleaned.replace(/\.(COM|NET|ORG|BE|EU|CO\.UK|FR|DE|IT|ES)$/i, '');
-      // Remove generic dates
-      cleaned = cleaned.replace(/\b\d{4}-\d{2}-\d{2}\b/g, ''); 
+      // Remove generic dates and times
+      cleaned = cleaned.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '');
       cleaned = cleaned.replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, '');
-      // Remove obvious long alphanumeric transaction IDs
+      cleaned = cleaned.replace(/\b\d{2}\.\d{2}\.\d{4}\b/g, '');
+      // Remove obvious reference IDs or hashes (e.g. #123456 or 10+ character alphanumerics)
+      cleaned = cleaned.replace(/#\d+/g, '');
       cleaned = cleaned.replace(/\b(?:[A-Z0-9]{10,})\b/g, '');
-      
-      cleaned = cleaned.trim();
 
-      if (cleaned.match(/^AMZN\s*MKTP/i)) {
+      // Normalize whitespace, hyphens, underscores
+      cleaned = cleaned.replace(/[_]/g, ' ').replace(/\s+/g, ' ').trim();
+
+      // Special merchant normalizations & enhancements
+      if (/^AMZN\s*MKTP/i.test(cleaned) || /^AMAZON/i.test(cleaned)) {
         cleaned = 'Amazon';
+      } else if (/^GOOGLE\s*AI\s*PRO/i.test(cleaned) || /^GOOGLE\s*\*?\s*AI\s*PRO/i.test(cleaned)) {
+        cleaned = 'Google AI Pro';
+      } else if (/^FITLIFE\s*GYM/i.test(cleaned) || /^GYM\s*SUBSCRIPTION/i.test(cleaned) || /^FITNESS\s*GYM/i.test(cleaned)) {
+        cleaned = cleaned.match(/^FITLIFE/i) ? 'FitLife Gym' : 'Gym Subscription';
       }
 
       return cleaned || undefined;
@@ -1799,24 +1819,16 @@ const App: React.FC = () => {
 
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
     // for incoming payments (income/refunds) prefer debtor-side fields.
-    
-    // Try to extract a clean merchant from unstructured remittance first, as some banks (like KBC)
-    // put the user's name or generic text in the creditor/debtor field and the actual merchant in the remittance.
+
+    // Try to extract a clean merchant from unstructured remittance first
     const extractMerchantFromRemittance = (remStr: any): string | undefined => {
       if (!remStr) return undefined;
-      // Handle case where it might be an array (common in Enable Banking)
       const actualStr = Array.isArray(remStr) ? remStr[0] : remStr;
       if (typeof actualStr !== 'string') return undefined;
-      
-      const upper = actualStr.toUpperCase();
-      // Look for common "card purchase" prefixes
-      if (upper.includes('RETAIL ') || upper.startsWith('PURCHASE ') || upper.startsWith('AANKOOP') || upper.startsWith('PAIEMENT')) {
-         return sanitizeMerchant(actualStr);
-      }
-      return undefined;
+      return sanitizeMerchant(actualStr);
     };
-    
-    const unstructuredMerchant = 
+
+    const unstructuredMerchant =
       extractMerchantFromRemittance(providerTx?.remittance_information_unstructured) ||
       extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured) ||
       extractMerchantFromRemittance(providerTx?.remittance_information);
@@ -1835,31 +1847,31 @@ const App: React.FC = () => {
       providerTx?.counterparty?.name,
       ...(isCredit
         ? [
-            providerTx?.debtor_name,
-            providerTx?.debtorName,
-            providerTx?.debtor?.name,
-            providerTx?.debtor?.account?.name,
-            providerTx?.debtorAccount?.name,
-            providerTx?.ultimate_debtor,
-            providerTx?.ultimateDebtor,
-            // Fallbacks in case debtor is empty
-            providerTx?.creditor_name,
-            providerTx?.creditorName,
-            providerTx?.creditor?.name,
-          ]
+          providerTx?.debtor_name,
+          providerTx?.debtorName,
+          providerTx?.debtor?.name,
+          providerTx?.debtor?.account?.name,
+          providerTx?.debtorAccount?.name,
+          providerTx?.ultimate_debtor,
+          providerTx?.ultimateDebtor,
+          // Fallbacks in case debtor is empty
+          providerTx?.creditor_name,
+          providerTx?.creditorName,
+          providerTx?.creditor?.name,
+        ]
         : [
-            providerTx?.creditor_name,
-            providerTx?.creditorName,
-            providerTx?.creditor?.name,
-            providerTx?.creditor?.account?.name,
-            providerTx?.creditorAccount?.name,
-            providerTx?.ultimate_creditor,
-            providerTx?.ultimateCreditor,
-            // Fallbacks in case creditor is empty
-            providerTx?.debtor_name,
-            providerTx?.debtorName,
-            providerTx?.debtor?.name,
-          ]),
+          providerTx?.creditor_name,
+          providerTx?.creditorName,
+          providerTx?.creditor?.name,
+          providerTx?.creditor?.account?.name,
+          providerTx?.creditorAccount?.name,
+          providerTx?.ultimate_creditor,
+          providerTx?.ultimateCreditor,
+          // Fallbacks in case creditor is empty
+          providerTx?.debtor_name,
+          providerTx?.debtorName,
+          providerTx?.debtor?.name,
+        ]),
       providerTx?.remittance_information_unstructured,
       providerTx?.remittanceInformationUnstructured,
       providerTx?.remittance_information,
@@ -1935,76 +1947,76 @@ const App: React.FC = () => {
       const shouldUpdateLinkedAccountBalances = syncOptions?.updateBalance ?? true;
       const linkedAccountBalanceUpdates = new Map<string, { balance: number; currency: Currency }>();
       for (const account of accountsFromSession) {
-          const providerAccountId = resolveProviderAccountId(account);
-          if (!providerAccountId) {
-            console.warn('Enable Banking account missing provider account id. Skipping.', account);
-            continue;
-          }
-          const existingAccount = existingAccountsById.get(providerAccountId);
-          const [details, balances] = await Promise.all([
-            fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
-            fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
-          ]);
-          const resolvedBalance = resolveBalanceAmount(balances);
-          const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
-          const existingLinkedAccount = connection.accounts?.find(a => a.id === providerAccountId);
-          const linkedAccountId = existingLinkedAccount?.linkedAccountId;
-          updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: resolvedBalance.amount, linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, lastSyncedAt: toLocalDateTimeString(new Date()) });
+        const providerAccountId = resolveProviderAccountId(account);
+        if (!providerAccountId) {
+          console.warn('Enable Banking account missing provider account id. Skipping.', account);
+          continue;
+        }
+        const existingAccount = existingAccountsById.get(providerAccountId);
+        const [details, balances] = await Promise.all([
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
+        ]);
+        const resolvedBalance = resolveBalanceAmount(balances);
+        const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
+        const existingLinkedAccount = connection.accounts?.find(a => a.id === providerAccountId);
+        const linkedAccountId = existingLinkedAccount?.linkedAccountId;
+        updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: resolvedBalance.amount, linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, lastSyncedAt: toLocalDateTimeString(new Date()) });
 
-          if (shouldUpdateLinkedAccountBalances && linkedAccountId && Number.isFinite(resolvedBalance.amount)) {
-            linkedAccountBalanceUpdates.set(linkedAccountId, {
-              balance: resolvedBalance.amount,
+        if (shouldUpdateLinkedAccountBalances && linkedAccountId && Number.isFinite(resolvedBalance.amount)) {
+          linkedAccountBalanceUpdates.set(linkedAccountId, {
+            balance: resolvedBalance.amount,
+            currency,
+          });
+        }
+
+        const accountTargeted = !syncOptions?.targetAccountIds?.length || syncOptions.targetAccountIds.includes(providerAccountId);
+        if (!shouldSyncTransactions || !linkedAccountId || !accountTargeted) {
+          continue;
+        }
+
+        const dateFrom = syncOptions?.transactionMode === 'incremental'
+          ? (existingLinkedAccount?.lastSyncedAt ? existingLinkedAccount.lastSyncedAt.slice(0, 10) : existingLinkedAccount?.syncStartDate)
+          : (syncOptions?.syncStartDate || existingLinkedAccount?.syncStartDate);
+
+        let continuationKey: string | undefined;
+        const seenPageKeys = new Set<string>();
+        for (let page = 0; page < 100; page += 1) {
+          const txResponse = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
+            method: 'POST',
+            body: JSON.stringify({
+              applicationId: connection.applicationId,
+              clientCertificate: connection.clientCertificate,
+              sessionId: connection.sessionId,
+              dateFrom,
+              continuationKey,
+            }),
+          }).then(res => res.json());
+
+          const bookedTransactions = txResponse?.transactions?.booked || txResponse?.booked || txResponse?.transactions || [];
+          bookedTransactions.forEach((providerTx: any) => {
+            const mappedTx = mapProviderTransaction(
+              providerTx,
+              linkedAccountId,
+              providerAccountId,
               currency,
-            });
-          }
+              connectionId,
+              details?.name || account?.name,
+              details?.owner_name || details?.ownerName,
+            );
+            if (mappedTx) importedTransactions.push(mappedTx);
+          });
 
-          const accountTargeted = !syncOptions?.targetAccountIds?.length || syncOptions.targetAccountIds.includes(providerAccountId);
-          if (!shouldSyncTransactions || !linkedAccountId || !accountTargeted) {
-            continue;
-          }
+          const nextContinuationKey = txResponse?.continuation_key || txResponse?.continuationKey;
+          if (!nextContinuationKey || seenPageKeys.has(nextContinuationKey)) break;
+          seenPageKeys.add(nextContinuationKey);
+          continuationKey = nextContinuationKey;
+        }
 
-          const dateFrom = syncOptions?.transactionMode === 'incremental'
-            ? (existingLinkedAccount?.lastSyncedAt ? existingLinkedAccount.lastSyncedAt.slice(0, 10) : existingLinkedAccount?.syncStartDate)
-            : (syncOptions?.syncStartDate || existingLinkedAccount?.syncStartDate);
-
-          let continuationKey: string | undefined;
-          const seenPageKeys = new Set<string>();
-          for (let page = 0; page < 100; page += 1) {
-            const txResponse = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
-              method: 'POST',
-              body: JSON.stringify({
-                applicationId: connection.applicationId,
-                clientCertificate: connection.clientCertificate,
-                sessionId: connection.sessionId,
-                dateFrom,
-                continuationKey,
-              }),
-            }).then(res => res.json());
-
-            const bookedTransactions = txResponse?.transactions?.booked || txResponse?.booked || txResponse?.transactions || [];
-            bookedTransactions.forEach((providerTx: any) => {
-              const mappedTx = mapProviderTransaction(
-                providerTx,
-                linkedAccountId,
-                providerAccountId,
-                currency,
-                connectionId,
-                details?.name || account?.name,
-                details?.owner_name || details?.ownerName,
-              );
-              if (mappedTx) importedTransactions.push(mappedTx);
-            });
-
-            const nextContinuationKey = txResponse?.continuation_key || txResponse?.continuationKey;
-            if (!nextContinuationKey || seenPageKeys.has(nextContinuationKey)) break;
-            seenPageKeys.add(nextContinuationKey);
-            continuationKey = nextContinuationKey;
-          }
-
-          updatedAccounts[updatedAccounts.length - 1] = {
-            ...updatedAccounts[updatedAccounts.length - 1],
-            lastSyncedAt: toLocalDateTimeString(new Date()),
-          };
+        updatedAccounts[updatedAccounts.length - 1] = {
+          ...updatedAccounts[updatedAccounts.length - 1],
+          lastSyncedAt: toLocalDateTimeString(new Date()),
+        };
       }
 
       if (importedTransactions.length > 0) {
@@ -2013,7 +2025,7 @@ const App: React.FC = () => {
           transactions.filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`) && tx.sureId).map(tx => [tx.sureId as string, tx])
         );
         const existingFingerprints = new Map<string, Transaction>(
-           transactions
+          transactions
             .filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`))
             .map(tx => [`${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`, tx])
         );
@@ -2026,19 +2038,19 @@ const App: React.FC = () => {
           const existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined) || existingFingerprints.get(fingerprint);
 
           if (existing) {
-             if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
-                const updatedTx = { 
-                  ...existing, 
-                  merchant: existing.merchant || tx.merchant, 
-                  description: existing.description || tx.description 
-                };
-                toUpdate.push(updatedTx);
-             }
+            if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
+              const updatedTx = {
+                ...existing,
+                merchant: existing.merchant || tx.merchant,
+                description: existing.description || tx.description
+              };
+              toUpdate.push(updatedTx);
+            }
           } else {
-             deduped.push(tx);
-             existingTxMapCountId.set(tx.id, tx);
-             if (tx.sureId) existingTxMapSureId.set(tx.sureId, tx);
-             existingFingerprints.set(fingerprint, tx);
+            deduped.push(tx);
+            existingTxMapCountId.set(tx.id, tx);
+            if (tx.sureId) existingTxMapSureId.set(tx.sureId, tx);
+            existingFingerprints.set(fingerprint, tx);
           }
         }
 
@@ -2074,7 +2086,7 @@ const App: React.FC = () => {
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
     if (activeConnections.length === 0) return;
-    
+
     setIsSyncingBanks(true);
     try {
       for (const connection of activeConnections) {
@@ -2091,43 +2103,43 @@ const App: React.FC = () => {
   }, []);
 
   const handleLinkEnableBankingAccount = useCallback((connectionId: string, providerAccountId: string, payload: EnableBankingLinkPayload) => {
-      let finalLinkedAccountId: string | undefined = 'linkedAccountId' in payload ? payload.linkedAccountId : undefined;
-      if ('newAccount' in payload) {
-        const generatedId = `acc-${uuidv4()}`;
-        handleSaveAccount({ ...payload.newAccount, id: generatedId });
-        finalLinkedAccountId = generatedId;
-      }
-      if (!finalLinkedAccountId) return;
-      setEnableBankingConnections(prev => prev.map(conn => {
-        if (conn.id !== connectionId) return conn;
-        return { ...conn, accounts: conn.accounts.map(a => a.id === providerAccountId ? { ...a, linkedAccountId: finalLinkedAccountId, syncStartDate: payload.syncStartDate } : a) };
-      }));
-    }, [handleSaveAccount]);
+    let finalLinkedAccountId: string | undefined = 'linkedAccountId' in payload ? payload.linkedAccountId : undefined;
+    if ('newAccount' in payload) {
+      const generatedId = `acc-${uuidv4()}`;
+      handleSaveAccount({ ...payload.newAccount, id: generatedId });
+      finalLinkedAccountId = generatedId;
+    }
+    if (!finalLinkedAccountId) return;
+    setEnableBankingConnections(prev => prev.map(conn => {
+      if (conn.id !== connectionId) return conn;
+      return { ...conn, accounts: conn.accounts.map(a => a.id === providerAccountId ? { ...a, linkedAccountId: finalLinkedAccountId, syncStartDate: payload.syncStartDate } : a) };
+    }));
+  }, [handleSaveAccount]);
 
   const handlePublishImport = async (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccountsArg?: Account[]) => {
-      const importId = `imp-${uuidv4()}`;
-      if (newAccountsArg) { newAccountsArg.forEach(acc => handleSaveAccount(acc)); }
-      if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); } 
-      else if (dataType === 'transactions') { 
-        const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
-        const txsWithImportId = items.map(t => ({ ...t, importId }));
-        handleSaveTransaction(txsWithImportId, [], { autoSpareChange: true }); 
-      }
-      
-      const details = `Imported ${items.length} ${dataType}${newAccountsArg?.length ? ` and created ${newAccountsArg.length} new accounts` : ''}.`;
+    const importId = `imp-${uuidv4()}`;
+    if (newAccountsArg) { newAccountsArg.forEach(acc => handleSaveAccount(acc)); }
+    if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); }
+    else if (dataType === 'transactions') {
+      const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
+      const txsWithImportId = items.map(t => ({ ...t, importId }));
+      handleSaveTransaction(txsWithImportId, [], { autoSpareChange: true });
+    }
 
-      setImportExportHistory(prev => [{ 
-        id: importId, 
-        type: 'import', 
-        dataType, 
-        fileName, 
-        date: toLocalDateTimeString(new Date()), 
-        status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete', 
-        itemCount: items.length, 
-        details,
-        importedData: originalData, 
-        errors, 
-      }, ...prev]);
+    const details = `Imported ${items.length} ${dataType}${newAccountsArg?.length ? ` and created ${newAccountsArg.length} new accounts` : ''}.`;
+
+    setImportExportHistory(prev => [{
+      id: importId,
+      type: 'import',
+      dataType,
+      fileName,
+      date: toLocalDateTimeString(new Date()),
+      status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete',
+      itemCount: items.length,
+      details,
+      importedData: originalData,
+      errors,
+    }, ...prev]);
   };
 
   const handleLogExport = (dataType: ImportDataType, format: 'csv' | 'json', itemCount: number) => {
@@ -2143,21 +2155,52 @@ const App: React.FC = () => {
       details: `Exported ${itemCount} items as ${format.toUpperCase()}.`
     }, ...prev]);
   };
-  
+
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
   const handleDeleteImportedTransactions = (importId: string) => { const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id); if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete); };
   const handleResetAccount = () => { if (user) { allowEmptySaveRef.current = true; loadAllFinancialData(emptyFinancialData); alert("Client-side data reset."); } };
-  
+
   useEffect(() => {
     const root = document.documentElement;
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     root.classList.toggle('dark', isDark);
     safeLocalStorage.setItem('theme', theme);
   }, [theme]);
-  
+
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
   const cashAccounts = useMemo(() => accounts.filter(a => a.type === 'Checking' || a.type === 'Savings'), [accounts]);
+
+  const {
+    upcomingBillNotifications,
+    notificationCount,
+    dismissNotification,
+    clearAllNotifications
+  } = useBillNotifications({
+    recurringTransactions,
+    billsAndPayments
+  });
+
+  const handleNotificationProcessItem = useCallback((item: RecurringTransaction | BillPayment) => {
+    const defaultAccount = cashAccounts[0] || accounts[0];
+    const todayStr = toLocalISOString(new Date());
+
+    if ('status' in item) {
+      handleMarkBillAsPaid(item.id, item.accountId || defaultAccount?.id || '', todayStr);
+      toast.success(`Marked bill "${item.description}" as paid!`);
+    } else {
+      handleSaveTransaction([{
+        accountId: item.accountId || defaultAccount?.id || '',
+        date: todayStr,
+        description: item.description,
+        amount: Math.abs(item.amount),
+        category: item.category || 'Bills & Utilities',
+        type: item.type === 'income' ? 'income' : 'expense',
+        currency: item.currency || defaultAccount?.currency || 'EUR',
+      }]);
+      toast.success(`Recorded payment for "${item.description}"!`);
+    }
+  }, [accounts, cashAccounts, handleMarkBillAsPaid, handleSaveTransaction]);
 
   const linkedEnableBankingAccountIds = useMemo(() => new Set(enableBankingConnections.flatMap(c => (c.accounts || []).map(a => a.linkedAccountId).filter(Boolean))), [enableBankingConnections]);
   const enableBankingLinkMap = useMemo(() => {
@@ -2229,17 +2272,17 @@ const App: React.FC = () => {
   const categoryContextValue = useMemo(() => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }), [expenseCategories, incomeCategories]);
   const tagsContextValue = useMemo(() => ({ tags, saveTag: handleSaveTag, deleteTag: handleDeleteTag }), [tags, handleSaveTag, handleDeleteTag]);
   const budgetsContextValue = useMemo(() => ({ budgets, saveBudget: handleSaveBudget, deleteBudget: handleDeleteBudget }), [budgets, handleDeleteBudget, handleSaveBudget]);
-  const goalsContextValue = useMemo(() => ({ 
-    financialGoals, 
+  const goalsContextValue = useMemo(() => ({
+    financialGoals,
     goalOrder,
-    saveFinancialGoal: handleSaveFinancialGoal, 
+    saveFinancialGoal: handleSaveFinancialGoal,
     deleteFinancialGoal: handleDeleteFinancialGoal,
     setGoalOrder: (order: string[]) => {
       setGoalOrderState(order);
       markSliceDirty('goalOrder');
     }
   }), [financialGoals, goalOrder, handleDeleteFinancialGoal, handleSaveFinancialGoal, markSliceDirty]);
-  const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, ]);
+  const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions,]);
 
   if (isAuthLoading || !isDataLoaded) return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]"><svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>;
 
@@ -2251,60 +2294,83 @@ const App: React.FC = () => {
 
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
-        <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
-             <Toaster position="top-center" expand={true} richColors closeButton />
-             <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
-                {/* Persistent Background Tint & Glow - Moved to be under everything */}
-                <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                    <motion.div 
-                        className="absolute inset-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
-                        animate={{ backgroundColor: GLOW_COLOR.split(',').slice(0, 3).join(',') + ', 0.04)' }}
-                    />
-                    <motion.div 
-                        className="absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] rounded-full pointer-events-none -mr-48 -mt-48 opacity-60 z-0 transition-all duration-1000"
-                        animate={{ backgroundColor: GLOW_COLOR }} 
-                    />
-                    <motion.div 
-                        className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none -ml-32 -mb-32 opacity-40 z-0 transition-all duration-1000"
-                        animate={{ backgroundColor: GLOW_COLOR }} 
-                    />
-                </div>
-                <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
-                <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                    {/* Mobile Header Bar */}
-                    <div className="md:hidden flex items-center h-16 px-4 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-[#0A0A0A]/50 backdrop-blur-md z-20 shrink-0">
-                        <button
-                          onClick={() => setSidebarOpen(true)}
-                          className="p-2 rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                          aria-label="Open navigation menu"
-                        >
-                          <span className="material-symbols-outlined">menu</span>
-                        </button>
-                        <span className="ml-3 font-bold text-lg tracking-tight truncate text-light-text dark:text-dark-text">
-                            {viewingHoldingSymbol ? 'Holding Detail' : (viewingAccountId ? 'Account Detail' : currentPage)}
-                        </span>
-                    </div>
+      <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
+        <Toaster position="top-center" expand={true} richColors closeButton />
+        <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+          {/* Persistent Background Tint & Glow - Moved to be under everything */}
+          <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+            <motion.div
+              className="absolute inset-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
+              animate={{ backgroundColor: GLOW_COLOR.split(',').slice(0, 3).join(',') + ', 0.04)' }}
+            />
+            <motion.div
+              className="absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] rounded-full pointer-events-none -mr-48 -mt-48 opacity-60 z-0 transition-all duration-1000"
+              animate={{ backgroundColor: GLOW_COLOR }}
+            />
+            <motion.div
+              className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none -ml-32 -mb-32 opacity-40 z-0 transition-all duration-1000"
+              animate={{ backgroundColor: GLOW_COLOR }}
+            />
+          </div>
+          <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+            {/* Top Header Bar with Navigation & Notification Center */}
+            <div className="flex items-center justify-between h-16 px-4 md:px-8 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-[#0A0A0A]/50 backdrop-blur-md z-20 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden p-2 rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  aria-label="Open navigation menu"
+                >
+                  <span className="material-symbols-outlined">menu</span>
+                </button>
+                <h1 className="font-bold text-lg md:text-xl tracking-tight truncate text-light-text dark:text-dark-text">
+                  {viewingHoldingSymbol ? 'Holding Detail' : (viewingAccountId ? 'Account Detail' : currentPage)}
+                </h1>
+              </div>
 
-                    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
-                         <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
-                    </main>
-                </div>
-                <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-                {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
-                <CommandCenter 
-                    isOpen={isCommandCenterOpen} 
-                    onClose={() => setIsCommandCenterOpen(false)} 
-                    setCurrentPage={setCurrentPage} 
-                    accounts={accounts} 
-                    transactions={transactions} 
-                    onOpenAccount={handleOpenAccountDetail} 
-                    togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} 
-                    isPrivacyMode={isPrivacyMode} 
-                    theme={theme} 
-                    setTheme={setTheme} 
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setIsCommandCenterOpen(true)}
+                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold transition-all text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5"
+                  title="Search & Quick Actions"
+                >
+                  <span className="material-symbols-outlined text-base">search</span>
+                  <span>Search</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-mono">⌘K</kbd>
+                </button>
+
+                <NotificationCenter
+                  notifications={upcomingBillNotifications}
+                  notificationCount={notificationCount}
+                  onDismiss={dismissNotification}
+                  onClearAll={clearAllNotifications}
+                  onProcessItem={handleNotificationProcessItem}
+                  setCurrentPage={setCurrentPage}
                 />
-             </div>
-        </InsightsViewProvider>
+              </div>
+            </div>
+
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
+              <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
+            </main>
+          </div>
+          <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
+          <CommandCenter
+            isOpen={isCommandCenterOpen}
+            onClose={() => setIsCommandCenterOpen(false)}
+            setCurrentPage={setCurrentPage}
+            accounts={accounts}
+            transactions={transactions}
+            onOpenAccount={handleOpenAccountDetail}
+            togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
+            isPrivacyMode={isPrivacyMode}
+            theme={theme}
+            setTheme={setTheme}
+          />
+        </div>
+      </InsightsViewProvider>
     </FinancialDataProvider>
   );
 };

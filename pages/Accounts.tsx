@@ -13,6 +13,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
+import { MobileAccountsView } from '../components/MobileAccountsView';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -332,12 +333,39 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
         )}
 
-        <PageHeader 
-            markerIcon="account_balance_wallet"
-            markerLabel="Portfolio Overview"
-            title="Accounts & Portfolio"
-            subtitle="Track your liquid capital, property valuations, debt obligations and investments in a single place to calculate real-time net worth."
+        {/* Mobile View */}
+        <MobileAccountsView
+          accounts={accounts}
+          transactions={transactions}
+          globalMetrics={globalMetrics}
+          segmentValues={segmentValues}
+          activeSegment={activeSegment}
+          setActiveSegment={setActiveSegment}
+          filteredAccounts={filteredAccounts}
+          closedAccounts={closedAccounts}
+          transactionsByAccount={transactionsByAccount}
+          warrants={warrants}
+          linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
+          onAccountClick={handleAccountClick}
+          onEditClick={openEditModal}
+          onAdjustBalanceClick={openAdjustModal}
+          onAddAccountClick={() => setAddModalOpen(true)}
+          preferredCurrency={preferredCurrency}
+          conversionRates={conversionRates}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          splitAssetsLiabilities={splitAssetsLiabilities}
+          setSplitAssetsLiabilities={setSplitAssetsLiabilities}
         />
+
+        {/* Desktop View */}
+        <div className="hidden md:block space-y-6">
+          <PageHeader 
+              markerIcon="account_balance_wallet"
+              markerLabel="Portfolio Overview"
+              title="Accounts & Portfolio"
+              subtitle="Track your liquid capital, property valuations, debt obligations and investments in a single place to calculate real-time net worth."
+          />
 
         {/* --- Consolidated Header & Portfolio --- */}
         <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
@@ -605,6 +633,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 />
             </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -819,7 +819,7 @@ const Reports: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
             <div className="space-y-2">
               <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Account</label>
-              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`}>
+              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`}>
                 <option value="all">All Accounts</option>
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -828,19 +828,19 @@ const Reports: React.FC = () => {
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Start date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`} />
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`} />
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">End date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`} />
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`} />
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Merchant</label>
-              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`} />
+              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`} />
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`}>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`}>
                 <option value="all">All Categories</option>
                 <optgroup label="Expenses">
                   {expenseCategories.map(cat => (
@@ -856,7 +856,7 @@ const Reports: React.FC = () => {
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Group by</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold uppercase tracking-tight`}>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`}>
                 <option value="merchant">Merchant</option>
                 <option value="category">Category</option>
               </select>
@@ -1072,7 +1072,7 @@ const Reports: React.FC = () => {
                 <div key={m.label} className="flex items-center justify-between p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-xl hover:shadow-black/5">
                   <div className="flex items-center gap-4">
                     <div className="text-xs font-bold opacity-20 group-hover/row:opacity-50 transition-opacity w-3">{i + 1}</div>
-                    <div className={`w-12 h-12 rounded-[1rem] shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
                       {showMerchantLogo && merchantLogoUrl ? (
                         <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
                       ) : (
@@ -1137,9 +1137,9 @@ const Reports: React.FC = () => {
                         <td className="py-4 px-8">
                           {groupBy === 'merchant' ? (
                             <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                              <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
                                 {showMerchantLogo && merchantLogoUrl ? (
-                                  <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover shadow-inner" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
+                                  <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
                                 ) : (
                                   <span className="text-xs font-bold tracking-widest">{merchantInitial}</span>
                                 )}

@@ -10,81 +10,81 @@ Big.NE = -10;
 Big.PE = 20;
 
 export function safeAdd(a: number, b: number): number {
-  try {
-    return Number(new Big(a).plus(new Big(b)).toFixed(8));
-  } catch (e) {
-    return a + b;
-  }
+    try {
+        return Number(new Big(a).plus(new Big(b)).toFixed(8));
+    } catch (e) {
+        return a + b;
+    }
 }
 
 export function safeSubtract(a: number, b: number): number {
-  try {
-    return Number(new Big(a).minus(new Big(b)).toFixed(8));
-  } catch (e) {
-    return a - b;
-  }
+    try {
+        return Number(new Big(a).minus(new Big(b)).toFixed(8));
+    } catch (e) {
+        return a - b;
+    }
 }
 
 export function safeMultiply(a: number, b: number): number {
-  try {
-    return Number(new Big(a).times(new Big(b)).toFixed(8));
-  } catch (e) {
-    return a * b;
-  }
+    try {
+        return Number(new Big(a).times(new Big(b)).toFixed(8));
+    } catch (e) {
+        return a * b;
+    }
 }
 
 export function safeDivide(a: number, b: number): number {
-  if (b === 0) return 0;
-  try {
-    return Number(new Big(a).div(new Big(b)).toFixed(8));
-  } catch (e) {
-    return a / b;
-  }
+    if (b === 0) return 0;
+    try {
+        return Number(new Big(a).div(new Big(b)).toFixed(8));
+    } catch (e) {
+        return a / b;
+    }
 }
 
 export function safeRound(a: number, decimals: number = 2): number {
-  try {
-    return Number(new Big(a).toFixed(decimals));
-  } catch (e) {
-    return Math.round(a * Math.pow(10, decimals)) / Math.pow(10, decimals);
-  }
+    try {
+        return Number(new Big(a).toFixed(decimals));
+    } catch (e) {
+        return Math.round(a * Math.pow(10, decimals)) / Math.pow(10, decimals);
+    }
 }
 
 const symbolMap: { [key in Currency]: string } = {
-  'USD': '$',
-  'EUR': '€',
-  'GBP': '£',
-  'BTC': 'BTC',
-  'RON': 'lei'
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'BTC': 'BTC',
+    'RON': 'lei'
 };
 
 export function formatCurrency(amount: number, currency: Currency, options?: { showPlusSign?: boolean, compact?: boolean }): string {
-  if (currency === 'BTC') {
-    return `${amount.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 8,
-    })} BTC`;
-  }
+    if (currency === 'BTC') {
+        return `${amount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8,
+        })} BTC`;
+    }
 
-  const formatter = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: options?.compact ? 0 : 2,
-    maximumFractionDigits: options?.compact ? 1 : 2,
-    notation: options?.compact ? 'compact' : 'standard',
-    compactDisplay: 'short'
-  });
+    const formatter = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: options?.compact ? 0 : 2,
+        maximumFractionDigits: options?.compact ? 1 : 2,
+        notation: options?.compact ? 'compact' : 'standard',
+        compactDisplay: 'short'
+    });
 
-  let sign = '';
-  if (amount < 0) {
-    sign = '-';
-  } else if (options?.showPlusSign && amount > 0) {
-    sign = '+';
-  }
+    let sign = '';
+    if (amount < 0) {
+        sign = '-';
+    } else if (options?.showPlusSign && amount > 0) {
+        sign = '+';
+    }
 
-  // Handle both "EUR" and "EUR (€)" formats
-  const cleanCurrency = currency.split(' ')[0] as Currency;
-  const symbol = symbolMap[cleanCurrency] || cleanCurrency;
+    // Handle both "EUR" and "EUR (€)" formats
+    const cleanCurrency = currency.split(' ')[0] as Currency;
+    const symbol = symbolMap[cleanCurrency] || cleanCurrency;
 
-  return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;
+    return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;
 }
 
 export const CONVERSION_RATES: { [key in Currency]?: number } = {
@@ -105,10 +105,10 @@ export const convertToEur = (balance: number, currency: Currency, rates?: Record
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
     if (from === to) return amount;
-    
+
     // Convert from 'from' to EUR
     const amountInEur = safeMultiply(amount, activeRates[from] || 1);
-    
+
     // Convert from EUR to 'to'
     const rateTo = activeRates[to] || 1;
     return safeDivide(amountInEur, rateTo);
@@ -163,7 +163,7 @@ export const parseLocalDate = (dateString: string): Date => {
         if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
             return new Date(parts[0], parts[1] - 1, parts[2]);
         }
-        
+
         const d = new Date(dateString);
         if (isNaN(d.getTime())) {
             console.warn(`Invalid date string: ${dateString}`);
@@ -180,7 +180,7 @@ export const adjustDateForWeekend = (dateStr: string, strategy: WeekendAdjustmen
     if (strategy === 'on') return dateStr;
     const date = parseLocalDate(dateStr);
     const day = date.getDay(); // 0=Sun, 6=Sat
-    
+
     if (day === 0) { // Sunday
         if (strategy === 'before') date.setDate(date.getDate() - 2); // Fri
         if (strategy === 'after') date.setDate(date.getDate() + 1); // Mon
@@ -313,24 +313,24 @@ export function calculateAccountTotals(
 
     analyticsAccounts.forEach(acc => {
         const valueEur = convertToEur(acc.balance, acc.currency);
-        
+
         if (ASSET_TYPES.includes(acc.type)) {
             let assetValue = convertToEur(acc.balance, acc.currency);
-            
+
             if (acc.type === 'Lending') {
                 if (acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
                     const overrides = loanPaymentOverrides[acc.id] || {};
                     const schedule = generateAmortizationSchedule(acc, transactions, overrides);
-                    
+
                     const totalScheduledPrincipal = schedule.reduce((s, p) => safeAdd(s, p.principal), 0);
                     const totalScheduledInterest = schedule.reduce((s, p) => safeAdd(s, p.interest), 0);
 
                     const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.principal) : a, 0);
                     const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.interest) : a, 0);
-                    
+
                     const outstandingPrincipal = Math.max(0, safeSubtract(totalScheduledPrincipal, totalPaidPrincipal));
                     const outstandingInterest = Math.max(0, safeSubtract(totalScheduledInterest, totalPaidInterest));
-                    
+
                     assetValue = convertToEur(safeAdd(outstandingPrincipal, outstandingInterest), acc.currency);
                 } else if (acc.totalAmount) {
                     const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'expense');
@@ -342,7 +342,7 @@ export function calculateAccountTotals(
                     assetValue = convertToEur(outstanding, acc.currency);
                 }
             }
-            
+
             totalAssets = safeAdd(totalAssets, assetValue);
         } else if (DEBT_TYPES.includes(acc.type)) {
             let debtValue = 0;
@@ -350,16 +350,16 @@ export function calculateAccountTotals(
                 if (acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
                     const overrides = loanPaymentOverrides[acc.id] || {};
                     const schedule = generateAmortizationSchedule(acc, transactions, overrides);
-                    
+
                     const totalScheduledPrincipal = schedule.reduce((s, p) => safeAdd(s, p.principal), 0);
                     const totalScheduledInterest = schedule.reduce((s, p) => safeAdd(s, p.interest), 0);
 
                     const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.principal) : a, 0);
                     const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.interest) : a, 0);
-                    
+
                     const outstandingPrincipal = Math.max(0, safeSubtract(totalScheduledPrincipal, totalPaidPrincipal));
                     const outstandingInterest = Math.max(0, safeSubtract(totalScheduledInterest, totalPaidInterest));
-                    
+
                     debtValue = convertToEur(safeAdd(outstandingPrincipal, outstandingInterest), acc.currency);
                 } else if (acc.totalAmount) {
                     const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'income');
@@ -377,7 +377,7 @@ export function calculateAccountTotals(
                 // Negative balance means user owes money (positive debt)
                 // Positive balance means user has surplus (negative debt)
                 debtValue = -valueEur;
-                
+
                 if (acc.type === 'Credit Card') {
                     creditCardDebt = safeAdd(creditCardDebt, debtValue);
                 }
@@ -433,7 +433,7 @@ export function getDateRange(duration: Duration, allTransactions: Transaction[] 
                 }, allTransactions[0].date);
                 const parsedFirst = parseLocalDate(firstDateString);
                 if (!isNaN(parsedFirst.getTime())) {
-                     start.setTime(parsedFirst.getTime());
+                    start.setTime(parsedFirst.getTime());
                 }
             }
             break;
@@ -442,22 +442,22 @@ export function getDateRange(duration: Duration, allTransactions: Transaction[] 
 }
 
 export function fuzzySearch(needle: string, haystack: string): boolean {
-  if (!needle) return true;
-  if (!haystack) return false;
+    if (!needle) return true;
+    if (!haystack) return false;
 
-  const h = haystack.toLowerCase();
-  const n = needle.toLowerCase();
-  
-  let needleIndex = 0;
-  for (let i = 0; i < h.length; i++) {
-    if (h[i] === n[needleIndex]) {
-      needleIndex++;
+    const h = haystack.toLowerCase();
+    const n = needle.toLowerCase();
+
+    let needleIndex = 0;
+    for (let i = 0; i < h.length; i++) {
+        if (h[i] === n[needleIndex]) {
+            needleIndex++;
+        }
+        if (needleIndex === n.length) {
+            return true;
+        }
     }
-    if (needleIndex === n.length) {
-      return true;
-    }
-  }
-  return false;
+    return false;
 }
 
 export const flattenCategories = (categories: Category[], parentId?: string): Omit<Category, 'subCategories'>[] => {
@@ -520,7 +520,7 @@ export function calculateStatementPeriods(statementStartDay: number, paymentDueD
 
         const start = new Date(y, m, statementStartDay);
         const end = new Date(y, m + 1, statementStartDay - 1);
-        
+
         let paymentDue = new Date(end.getFullYear(), end.getMonth(), paymentDueDay);
         if (paymentDue <= end) {
             paymentDue.setMonth(paymentDue.getMonth() + 1);
@@ -600,7 +600,7 @@ export function getCreditCardStatementDetails(
                 continue; // Skip this transaction
             }
         }
-        
+
         // All other transactions (expenses, refunds, non-settlement income) affect the statement balance.
         statementBalance += tx.amount;
     }
@@ -702,7 +702,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
             };
             syntheticPayments.push(syntheticRT);
         }
-        
+
         // Handle upcoming (current and future) statements for forecasting
         const statementDetails = [
             { period: periods.current, type: 'Current' },
@@ -758,7 +758,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
         // 1. Property Taxes (Annual)
         if (property.propertyTaxAmount && property.propertyTaxDate) {
             const taxDate = parseLocalDate(property.propertyTaxDate);
-             syntheticItems.push({
+            syntheticItems.push({
                 id: `prop-tax-${property.id}`,
                 accountId: 'external', // Implicitly external if not linked, or handled during forecasting mapping if account is missing
                 description: `Property Tax: ${property.name}`,
@@ -777,8 +777,8 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
 
         // 2. Home Insurance
         if (property.insuranceAmount && property.insuranceFrequency && property.insurancePaymentDate) {
-             const insDate = parseLocalDate(property.insurancePaymentDate);
-             syntheticItems.push({
+            const insDate = parseLocalDate(property.insurancePaymentDate);
+            syntheticItems.push({
                 id: `prop-ins-${property.id}`,
                 accountId: 'external',
                 description: `Home Insurance: ${property.name} (${property.insuranceProvider || 'Provider'})`,
@@ -797,7 +797,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
 
         // 3. HOA Fees
         if (property.hoaFeeAmount && property.hoaFeeFrequency) {
-             syntheticItems.push({
+            syntheticItems.push({
                 id: `prop-hoa-${property.id}`,
                 accountId: 'external',
                 description: `HOA/Syndic Fees: ${property.name}`,
@@ -816,7 +816,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
 
         // 4. Rental Income
         if (property.isRental && property.rentalIncomeAmount && property.rentalIncomeFrequency) {
-             syntheticItems.push({
+            syntheticItems.push({
                 id: `prop-rent-${property.id}`,
                 accountId: property.linkedAccountId || property.id, // Deposit into linked account or property itself (tracking value)
                 description: `Rental Income: ${property.name}`,
@@ -850,7 +850,7 @@ export function generateBalanceForecast(
         inflationRate?: number;
     }
 ): {
-    chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[]; [key: string]: any })[];
+    chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[];[key: string]: any })[];
     tableData: {
         id: string;
         date: string;
@@ -892,7 +892,7 @@ export function generateBalanceForecast(
         isGoal: boolean;
         originalItem: RecurringTransaction | BillPayment | FinancialGoal;
     };
-    
+
     const dailyEvents = new Map<string, ForecastEvent[]>();
 
     const addEvent = (date: string, event: Omit<ForecastEvent, 'date'>) => {
@@ -933,17 +933,17 @@ export function generateBalanceForecast(
             // Important: We still generate the event even if skipped, but filter it later for balance impact if needed.
             // Or better, handle the logic here: if skipped, don't add to balance, but maybe track it?
             // The requirement is "Visible but strikedout". So we must generate it.
-            
+
             const effectiveDate = override?.date || adjustedDateStr;
             let amount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
-            
+
             // Apply Assumptions
             if (assumptions) {
                 // 1. Savings Boost (Apply to income or transfers to savings)
                 if (assumptions.savingsRateAdjustment && (rt.type === 'income' || (rt.type === 'transfer' && rt.toAccountId))) {
                     amount *= (1 + assumptions.savingsRateAdjustment / 100);
                 }
-                
+
                 // 2. Inflation (Apply to expenses)
                 if (assumptions.inflationRate && rt.type === 'expense') {
                     const yearsFromNow = (nextDate.getTime() - now.getTime()) / (1000 * 3600 * 24 * 365);
@@ -961,28 +961,28 @@ export function generateBalanceForecast(
             if (rt.type === 'transfer') {
                 const fromSelected = accountIds.has(rt.accountId);
                 const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
-                
+
                 if (fromSelected && toSelected) {
                     // Internal transfer within selected accounts
-                     addEvent(effectiveDate, { 
-                         amount: -(override?.amount !== undefined ? override.amount : rt.amount), 
-                         currency: rt.currency, 
-                         description: `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`, 
-                         accountName: accountMap.get(rt.accountId) || 'Unknown',
-                         accountId: rt.accountId,
-                         type: 'Recurring', 
-                         isGoal: false,
-                         originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
+                    addEvent(effectiveDate, {
+                        amount: -(override?.amount !== undefined ? override.amount : rt.amount),
+                        currency: rt.currency,
+                        description: `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`,
+                        accountName: accountMap.get(rt.accountId) || 'Unknown',
+                        accountId: rt.accountId,
+                        type: 'Recurring',
+                        isGoal: false,
+                        originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
                     });
-                    addEvent(effectiveDate, { 
-                         amount: (override?.amount !== undefined ? override.amount : rt.amount), 
-                         currency: rt.currency, 
-                         description: `Transfer from ${accountMap.get(rt.accountId) || 'External'}`, 
-                         accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
-                         accountId: rt.toAccountId,
-                         type: 'Recurring', 
-                         isGoal: false,
-                         originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
+                    addEvent(effectiveDate, {
+                        amount: (override?.amount !== undefined ? override.amount : rt.amount),
+                        currency: rt.currency,
+                        description: `Transfer from ${accountMap.get(rt.accountId) || 'External'}`,
+                        accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
+                        accountId: rt.toAccountId,
+                        type: 'Recurring',
+                        isGoal: false,
+                        originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
                     });
                 } else if (fromSelected) {
                     // Outflow from selected
@@ -991,21 +991,21 @@ export function generateBalanceForecast(
                     addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
                 } else if (toSelected) {
                     // Inflow to selected
-                     accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
-                     amount = override?.amount !== undefined ? override.amount : rt.amount;
-                     addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                    accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
+                    amount = override?.amount !== undefined ? override.amount : rt.amount;
+                    addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
                 }
             } else {
                 accountName = accountMap.get(rt.accountId) || 'Unknown';
                 if (accountIds.has(rt.accountId)) {
-                     addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                    addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
                 }
             }
-            
+
 
             const interval = rt.frequencyInterval || 1;
-             const d = new Date(nextDate); // Base logic on unadjusted date
-             if (rt.frequency === 'monthly') {
+            const d = new Date(nextDate); // Base logic on unadjusted date
+            if (rt.frequency === 'monthly') {
                 const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
                 d.setMonth(d.getMonth() + interval);
                 const year = d.getFullYear();
@@ -1052,16 +1052,16 @@ export function generateBalanceForecast(
             while (nextContribDate <= effectiveEnd) {
                 const dateStr = toLocalISOString(nextContribDate);
                 const amount = isIncomeGoal ? goal.monthlyContribution : -goal.monthlyContribution;
-                
-                addEvent(dateStr, { 
-                    amount, 
-                    currency: goal.currency, 
-                    description: `Goal Contrib: ${goal.name}`, 
-                    accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', 
-                    accountId: goal.paymentAccountId, 
-                    type: 'Financial Goal', 
-                    isGoal: true, 
-                    originalItem: goal 
+
+                addEvent(dateStr, {
+                    amount,
+                    currency: goal.currency,
+                    description: `Goal Contrib: ${goal.name}`,
+                    accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External',
+                    accountId: goal.paymentAccountId,
+                    type: 'Financial Goal',
+                    isGoal: true,
+                    originalItem: goal
                 });
 
                 nextContribDate.setMonth(nextContribDate.getMonth() + 1);
@@ -1080,15 +1080,15 @@ export function generateBalanceForecast(
             if (dueDate >= startDate && dueDate <= forecastEndDate) {
                 // If bill has an accountId and it's selected, map it. If not, it might be general (External)
                 if (!bill.accountId || accountIds.has(bill.accountId)) {
-                     addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: bill.accountId ? accountMap.get(bill.accountId) || 'Unknown' : 'External', accountId: bill.accountId, type: 'Bill/Payment', isGoal: false, originalItem: bill });
+                    addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: bill.accountId ? accountMap.get(bill.accountId) || 'Unknown' : 'External', accountId: bill.accountId, type: 'Bill/Payment', isGoal: false, originalItem: bill });
                 }
             }
         }
     });
 
-    const chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[]; [key: string]: any })[] = [];
+    const chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[];[key: string]: any })[] = [];
     const tableData: any[] = [];
-    
+
     // Initial Balances
     const currentBalances: Record<string, number> = {};
     let runningTotalBalance = 0;
@@ -1098,18 +1098,18 @@ export function generateBalanceForecast(
         currentBalances[acc.id] = balanceEur;
         runningTotalBalance += balanceEur;
     });
-    
+
     let currentDate = new Date(startDate.getTime());
-    
+
     // Market Return Calculation
-    const dailyMarketRate = assumptions?.marketReturn 
-        ? Math.pow(1 + assumptions.marketReturn / 100, 1/365) - 1 
+    const dailyMarketRate = assumptions?.marketReturn
+        ? Math.pow(1 + assumptions.marketReturn / 100, 1 / 365) - 1
         : 0;
 
     while (currentDate <= forecastEndDate) {
         const dateStr = toLocalISOString(currentDate);
         const eventsForDay = dailyEvents.get(dateStr) || [];
-        
+
         // Apply Market Return to Investment Accounts
         if (dailyMarketRate !== 0) {
             accounts.forEach(acc => {
@@ -1122,25 +1122,25 @@ export function generateBalanceForecast(
         }
 
         // Sort expenses first just for table display logic
-        eventsForDay.sort((a,b) => a.amount - b.amount); 
-        
+        eventsForDay.sort((a, b) => a.amount - b.amount);
+
         const dailySummary: { description: string; amount: number; type: string }[] = [];
 
         if (eventsForDay.length > 0) {
             for (const event of eventsForDay) {
                 const amountInEur = convertToEur(event.amount, event.currency);
                 const isSkipped = (event.originalItem as any)?.isSkipped;
-                
+
                 if (!isSkipped) {
                     if (event.accountId && currentBalances[event.accountId] !== undefined) {
                         currentBalances[event.accountId] += amountInEur;
                     }
-                    
+
                     if (event.accountId && accountIds.has(event.accountId)) {
-                         runningTotalBalance += amountInEur;
+                        runningTotalBalance += amountInEur;
                     } else if (!event.accountId) {
-                         // Unassigned bill/income -> affects total view
-                         runningTotalBalance += amountInEur;
+                        // Unassigned bill/income -> affects total view
+                        runningTotalBalance += amountInEur;
                     }
                 }
 
@@ -1152,10 +1152,10 @@ export function generateBalanceForecast(
                 });
             }
         }
-        
+
         // Construct data point
-        const dataPoint: any = { 
-            date: dateStr, 
+        const dataPoint: any = {
+            date: dateStr,
             value: runningTotalBalance,
             dailySummary: dailySummary
         };
@@ -1163,11 +1163,11 @@ export function generateBalanceForecast(
         Object.entries(currentBalances).forEach(([accId, bal]) => {
             dataPoint[accId] = bal;
         });
-        
+
         chartData.push(dataPoint);
         currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     let lowestPoint = { value: Infinity, date: '' };
     if (chartData.length > 0) {
         lowestPoint = chartData.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: chartData[0].value, date: chartData[0].date });
@@ -1178,201 +1178,240 @@ export function generateBalanceForecast(
 
 
 export function generateAmortizationSchedule(
-  account: Account,
-  transactions: Transaction[],
-  overrides: Record<number, Partial<ScheduledPayment>> = {}
+    account: Account,
+    transactions: Transaction[],
+    overrides: Record<number, Partial<ScheduledPayment>> = {}
 ): ScheduledPayment[] {
-  const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth, interestAmount } = account;
+    const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth, interestAmount } = account;
 
-  if (!principalAmount || !duration || !loanStartDate || interestRate === undefined) {
-    return [];
-  }
-
-  const solveMonthlyRateFromTotalInterest = (principal: number, months: number, totalInterest: number) => {
-    if (totalInterest <= 0) {
-      return 0;
+    if (!principalAmount || !duration || !loanStartDate || interestRate === undefined) {
+        return [];
     }
 
-    const totalInterestForRate = (rate: number) => {
-      if (rate === 0) {
-        return 0;
-      }
-      const payment = (principal * (rate * Math.pow(1 + rate, months))) / (Math.pow(1 + rate, months) - 1);
-      return (payment * months) - principal;
-    };
-
-    let low = 0;
-    let high = 1;
-    while (totalInterestForRate(high) < totalInterest && high < 10) {
-      high *= 2;
-    }
-
-    for (let i = 0; i < 60; i++) {
-      const mid = (low + high) / 2;
-      if (totalInterestForRate(mid) >= totalInterest) {
-        high = mid;
-      } else {
-        low = mid;
-      }
-    }
-
-    return high;
-  };
-
-  const targetTotalInterest = interestAmount;
-  const monthlyInterestRate = typeof targetTotalInterest === 'number'
-    ? solveMonthlyRateFromTotalInterest(principalAmount, duration, targetTotalInterest)
-    : (interestRate || 0) / 100 / 12;
-
-    const paymentTransactions = transactions.filter(tx =>
-    tx.accountId === account.id &&
-    tx.transferId &&
-    ( (account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense') )
-  ).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
-
-  const paymentMap = new Map<string, Transaction>();
-  paymentTransactions.forEach(p => {
-    const monthYear = toLocalISOYearMonth(parseLocalDate(p.date));
-    paymentMap.set(monthYear, p);
-  });
-
-  const schedule: ScheduledPayment[] = [];
-  const roundToTwo = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
-  let roundedPrincipalTotal = 0;
-  let roundedInterestTotal = 0;
-  let outstandingBalance = principalAmount; // Use full precision
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Calculate with full precision, without intermediate rounding
-  const standardAmortizedPayment = monthlyInterestRate > 0
-    ? (principalAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, duration))) / (Math.pow(1 + monthlyInterestRate, duration) - 1)
-    : (principalAmount / duration);
-
-  for (let i = 1; i <= duration; i++) {
-    const scheduledDate = parseLocalDate(loanStartDate);
-    scheduledDate.setMonth(scheduledDate.getMonth() + i);
-    const monthYearKey = toLocalISOYearMonth(scheduledDate);
-    
-    const realPaymentForPeriod = paymentMap.get(monthYearKey);
-
-    if (paymentDayOfMonth && !realPaymentForPeriod && scheduledDate >= today) {
-        const year = scheduledDate.getFullYear();
-        const month = scheduledDate.getMonth();
-        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-        scheduledDate.setDate(Math.min(paymentDayOfMonth, lastDayOfMonth));
-    }
-    const dateStr = toLocalISOString(scheduledDate);
-
-    const override = overrides[i];
-    const hasExplicitBreakdown = override?.principal !== undefined || override?.interest !== undefined;
-
-    let totalPayment: number;
-    let principal: number;
-    let interest: number;
-    let status: ScheduledPayment['status'] = 'Upcoming';
-    let transactionId: string | undefined = undefined;
-    let isFinalScheduledPayment = false;
-    
-    // Calculate interest on the high-precision outstanding balance
-    const calculatedInterest = outstandingBalance * monthlyInterestRate;
-    
-    if (outstandingBalance <= 0 && !realPaymentForPeriod) {
-        // Loan is paid off, generate a zero-value entry to maintain schedule length
-        totalPayment = 0;
-        principal = 0;
-        interest = 0;
-    } else if (realPaymentForPeriod) {
-        status = 'Paid';
-        transactionId = realPaymentForPeriod.id;
-        
-        principal = realPaymentForPeriod.principalAmount || 0;
-        interest = realPaymentForPeriod.interestAmount || 0;
-        totalPayment = principal + interest;
-        
-    } else {
-        interest = calculatedInterest;
-
-        let basePayment = standardAmortizedPayment;
-        if (override?.totalPayment) {
-            basePayment = override.totalPayment;
-        } else if (typeof targetTotalInterest !== 'number' && monthlyPayment) {
-            basePayment = monthlyPayment;
+    const solveMonthlyRateFromTotalInterest = (principal: number, months: number, totalInterest: number) => {
+        if (totalInterest <= 0) {
+            return 0;
         }
 
-        if (hasExplicitBreakdown) {
-            if (override?.principal !== undefined && override?.interest !== undefined) {
-                principal = override.principal;
-                interest = override.interest;
+        const totalInterestForRate = (rate: number) => {
+            if (rate === 0) {
+                return 0;
+            }
+            const payment = (principal * (rate * Math.pow(1 + rate, months))) / (Math.pow(1 + rate, months) - 1);
+            return (payment * months) - principal;
+        };
+
+        let low = 0;
+        let high = 1;
+        while (totalInterestForRate(high) < totalInterest && high < 10) {
+            high *= 2;
+        }
+
+        for (let i = 0; i < 60; i++) {
+            const mid = (low + high) / 2;
+            if (totalInterestForRate(mid) >= totalInterest) {
+                high = mid;
+            } else {
+                low = mid;
+            }
+        }
+
+        return high;
+    };
+
+    const targetTotalInterest = interestAmount;
+    const monthlyInterestRate = typeof targetTotalInterest === 'number'
+        ? solveMonthlyRateFromTotalInterest(principalAmount, duration, targetTotalInterest)
+        : (interestRate || 0) / 100 / 12;
+
+    const paymentTransactions = transactions.filter(tx =>
+        tx.accountId === account.id &&
+        tx.transferId &&
+        ((account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense'))
+    ).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
+
+    const paymentMap = new Map<string, Transaction>();
+    paymentTransactions.forEach(p => {
+        const monthYear = toLocalISOYearMonth(parseLocalDate(p.date));
+        paymentMap.set(monthYear, p);
+    });
+
+    const schedule: ScheduledPayment[] = [];
+    const roundToTwo = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+    let roundedPrincipalTotal = 0;
+    let roundedInterestTotal = 0;
+    let outstandingBalance = principalAmount; // Use full precision
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Calculate with full precision, without intermediate rounding
+    const standardAmortizedPayment = monthlyInterestRate > 0
+        ? (principalAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, duration))) / (Math.pow(1 + monthlyInterestRate, duration) - 1)
+        : (principalAmount / duration);
+
+    for (let i = 1; i <= duration; i++) {
+        const scheduledDate = parseLocalDate(loanStartDate);
+        scheduledDate.setMonth(scheduledDate.getMonth() + i);
+        const monthYearKey = toLocalISOYearMonth(scheduledDate);
+
+        const realPaymentForPeriod = paymentMap.get(monthYearKey);
+
+        if (paymentDayOfMonth && !realPaymentForPeriod && scheduledDate >= today) {
+            const year = scheduledDate.getFullYear();
+            const month = scheduledDate.getMonth();
+            const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+            scheduledDate.setDate(Math.min(paymentDayOfMonth, lastDayOfMonth));
+        }
+        const dateStr = toLocalISOString(scheduledDate);
+
+        const override = overrides[i];
+        const hasExplicitBreakdown = override?.principal !== undefined || override?.interest !== undefined;
+
+        let totalPayment: number;
+        let principal: number;
+        let interest: number;
+        let status: ScheduledPayment['status'] = 'Upcoming';
+        let transactionId: string | undefined = undefined;
+        let isFinalScheduledPayment = false;
+
+        // Calculate interest on the high-precision outstanding balance
+        const calculatedInterest = outstandingBalance * monthlyInterestRate;
+
+        if (outstandingBalance <= 0 && !realPaymentForPeriod) {
+            // Loan is paid off, generate a zero-value entry to maintain schedule length
+            totalPayment = 0;
+            principal = 0;
+            interest = 0;
+        } else if (realPaymentForPeriod) {
+            status = 'Paid';
+            transactionId = realPaymentForPeriod.id;
+
+            principal = realPaymentForPeriod.principalAmount || 0;
+            interest = realPaymentForPeriod.interestAmount || 0;
+            totalPayment = principal + interest;
+
+        } else {
+            interest = calculatedInterest;
+
+            let basePayment = standardAmortizedPayment;
+            if (override?.totalPayment) {
+                basePayment = override.totalPayment;
+            } else if (typeof targetTotalInterest !== 'number' && monthlyPayment) {
+                basePayment = monthlyPayment;
+            }
+
+            if (hasExplicitBreakdown) {
+                if (override?.principal !== undefined && override?.interest !== undefined) {
+                    principal = override.principal;
+                    interest = override.interest;
+                    totalPayment = principal + interest;
+                } else if (override?.totalPayment !== undefined && override?.principal !== undefined) {
+                    totalPayment = override.totalPayment;
+                    principal = override.principal;
+                    interest = totalPayment - principal;
+                } else if (override?.totalPayment !== undefined && override?.interest !== undefined) {
+                    totalPayment = override.totalPayment;
+                    interest = override.interest;
+                    principal = totalPayment - interest;
+                } else if (override?.principal !== undefined) {
+                    principal = override.principal;
+                    totalPayment = principal + interest;
+                } else if (override?.interest !== undefined) {
+                    interest = override.interest;
+                    totalPayment = basePayment;
+                    principal = totalPayment - interest;
+                } else {
+                    totalPayment = basePayment;
+                    principal = totalPayment - interest;
+                }
+            } else if (i === duration || outstandingBalance < (basePayment - interest)) {
+                // This is the final payment to clear the balance.
+                principal = outstandingBalance;
                 totalPayment = principal + interest;
-            } else if (override?.totalPayment !== undefined && override?.principal !== undefined) {
-                totalPayment = override.totalPayment;
-                principal = override.principal;
-                interest = totalPayment - principal;
-            } else if (override?.totalPayment !== undefined && override?.interest !== undefined) {
-                totalPayment = override.totalPayment;
-                interest = override.interest;
-                principal = totalPayment - interest;
-            } else if (override?.principal !== undefined) {
-                principal = override.principal;
-                totalPayment = principal + interest;
-            } else if (override?.interest !== undefined) {
-                interest = override.interest;
-                totalPayment = basePayment;
-                principal = totalPayment - interest;
+                isFinalScheduledPayment = true;
             } else {
                 totalPayment = basePayment;
                 principal = totalPayment - interest;
             }
-        } else if (i === duration || outstandingBalance < (basePayment - interest)) {
-            // This is the final payment to clear the balance.
-            principal = outstandingBalance;
-            totalPayment = principal + interest;
-            isFinalScheduledPayment = true;
-        } else {
-            totalPayment = basePayment;
-            principal = totalPayment - interest;
+
+            if (scheduledDate < today) {
+                status = 'Overdue';
+            }
         }
 
-        if (scheduledDate < today) {
-            status = 'Overdue';
-        }
-    }
-    
-    const newOutstandingBalance = outstandingBalance - principal;
+        const newOutstandingBalance = outstandingBalance - principal;
 
-    let roundedPrincipal = roundToTwo(principal);
-    let roundedInterest = roundToTwo(interest);
-    let roundedTotalPayment = roundToTwo(totalPayment);
+        let roundedPrincipal = roundToTwo(principal);
+        let roundedInterest = roundToTwo(interest);
+        let roundedTotalPayment = roundToTwo(totalPayment);
 
-    if (isFinalScheduledPayment && !realPaymentForPeriod && !hasExplicitBreakdown) {
-        const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
-        roundedPrincipal = remainingPrincipal;
-        roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
-        roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
-        if (typeof targetTotalInterest === 'number') {
-            const remainingInterest = roundToTwo(targetTotalInterest - roundedInterestTotal);
-            roundedInterest = Math.max(0, remainingInterest);
+        if (isFinalScheduledPayment && !realPaymentForPeriod && !hasExplicitBreakdown) {
+            const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
+            roundedPrincipal = remainingPrincipal;
+            roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
             roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+            if (typeof targetTotalInterest === 'number') {
+                const remainingInterest = roundToTwo(targetTotalInterest - roundedInterestTotal);
+                roundedInterest = Math.max(0, remainingInterest);
+                roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+            }
         }
+
+        schedule.push({
+            paymentNumber: i,
+            date: dateStr,
+            totalPayment: roundedTotalPayment,
+            principal: roundedPrincipal,
+            interest: roundedInterest,
+            outstandingBalance: roundToTwo(Math.max(0, newOutstandingBalance)),
+            status,
+            transactionId,
+        });
+
+        roundedPrincipalTotal += roundedPrincipal;
+        roundedInterestTotal += roundedInterest;
+
+        // Use high-precision value for the next iteration
+        outstandingBalance = newOutstandingBalance;
+    }
+    return schedule;
+}
+
+/**
+ * Calculates linear regression trend line values for a dataset.
+ * @param data Array of chart data objects
+ * @param getValue Property key or getter function to extract numerical value
+ * @returns Array of trend numbers matching each data point index
+ */
+export function calculateTrendLine<T>(data: T[], getValue: keyof T | ((item: T) => number)): number[] {
+    if (!data || data.length === 0) return [];
+    if (data.length === 1) {
+        const val = typeof getValue === 'function' ? getValue(data[0]) : Number(data[0][getValue]) || 0;
+        return [val];
     }
 
-    schedule.push({
-      paymentNumber: i,
-      date: dateStr,
-      totalPayment: roundedTotalPayment,
-      principal: roundedPrincipal,
-      interest: roundedInterest,
-      outstandingBalance: roundToTwo(Math.max(0, newOutstandingBalance)),
-      status,
-      transactionId,
+    const n = data.length;
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+
+    data.forEach((item, index) => {
+        const y = typeof getValue === 'function' ? getValue(item) : Number(item[getValue]) || 0;
+        sumX += index;
+        sumY += y;
+        sumXY += index * y;
+        sumXX += index * index;
     });
 
-    roundedPrincipalTotal += roundedPrincipal;
-    roundedInterestTotal += roundedInterest;
-    
-    // Use high-precision value for the next iteration
-    outstandingBalance = newOutstandingBalance;
-  }
-  return schedule;
+    const denominator = n * sumXX - sumX * sumX;
+    if (denominator === 0) {
+        const avg = sumY / n;
+        return data.map(() => Number(avg.toFixed(2)));
+    }
+
+    const slope = (n * sumXY - sumX * sumY) / denominator;
+    const intercept = (sumY - slope * sumX) / n;
+
+    return data.map((_, index) => Number((slope * index + intercept).toFixed(2)));
 }

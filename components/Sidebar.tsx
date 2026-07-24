@@ -270,7 +270,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div key={group.title} className={index > 0 ? 'mt-3' : ''}>
                   {!isSidebarCollapsed && (
                     <div className="px-8 mb-2">
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500  tracking-[0.2em]">
                         {group.title}
                       </span>
                     </div>
@@ -371,7 +371,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       
                       <div className={`flex-grow text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>
                           <p className="font-bold text-sm text-gray-900 dark:text-white truncate tracking-tight">{user.firstName} {user.lastName}</p>
-                          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 truncate uppercase tracking-widest">{user.role}</p>
+                          <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 truncate  tracking-widest">{user.role}</p>
                       </div>
                       
                       {!isSidebarCollapsed && (

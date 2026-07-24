@@ -20,7 +20,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
     <Card className="relative overflow-hidden flex flex-col justify-between h-full border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 group">
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex justify-between items-start mb-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
+            <h3 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
             <div className={`p-1.5 rounded-lg ${isPositive ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
                 <span className="material-symbols-outlined text-lg">
                     {title === 'Expenses' ? 'arrow_upward' : 'arrow_downward'}

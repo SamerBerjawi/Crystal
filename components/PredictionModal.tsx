@@ -119,7 +119,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+                    <label className="block text-xs font-bold  text-gray-500 mb-1">
                         {type === 'spending_cap' ? 'Target Category' : type === 'net_worth_goal' ? 'Target Account' : 'Target Asset'}
                     </label>
                     <div className={SELECT_WRAPPER_STYLE}>
@@ -163,7 +163,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+                    <label className="block text-xs font-bold  text-gray-500 mb-1">
                          {type === 'spending_cap' ? 'Limit Amount' : type === 'net_worth_goal' ? 'Target Balance' : 'Target Price'}
                     </label>
                     <input 
@@ -185,7 +185,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Resolution Date</label>
+                    <label className="block text-xs font-bold  text-gray-500 mb-1">Resolution Date</label>
                     <input 
                         type="date" 
                         value={endDate} 

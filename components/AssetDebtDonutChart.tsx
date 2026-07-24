@@ -62,7 +62,7 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-light-text-secondary dark:text-gray-300 text-[10px] uppercase tracking-widest font-black">Net Worth</span>
+            <span className="text-light-text-secondary dark:text-gray-300 text-[10px]  tracking-widest font-black">Net Worth</span>
             <span className="text-2xl lg:text-3xl font-black text-light-text dark:text-white text-center tracking-tight">{formatCurrency(netWorth, 'EUR')}</span>
         </div>
       </div>

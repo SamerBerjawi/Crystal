@@ -165,7 +165,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         
         {/* Stats Overlay */}
         <div className="absolute bottom-4 left-4 z-[1000] bg-white/80 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl shadow-lg border border-white/20 flex flex-col gap-1 min-w-[140px] animate-fade-in-up">
-             <div className="flex items-center gap-2 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+             <div className="flex items-center gap-2 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider">
                  <span className="material-symbols-outlined text-sm">public</span>
                  <span>Explored</span>
              </div>

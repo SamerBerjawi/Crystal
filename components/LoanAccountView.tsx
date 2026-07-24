@@ -6,6 +6,7 @@ import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 
 interface LoanAccountViewProps {
   account: Account;
@@ -120,9 +121,20 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   }, [account, transactions, loanPaymentOverrides, accounts, showBalanceAdjustments]);
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText={isLending ? 'Lending Asset' : 'Liability Engine'}
+        subText={`${account.interestRate}% APR`}
+        primaryAction={{ label: 'Add Payment', icon: 'add', onClick: onAddTransaction }}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex items-center gap-6">
               <button 
                   onClick={onBack}
@@ -184,7 +196,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                         <p className="text-[10px] font-semibold tracking-wider text-slate-400 mb-2">
                             {isLending ? 'Remaining receivable' : 'Total payoff balance'}
                         </p>
-                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12">
+                        <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(loanDetails.totalOutstanding, account.currency)}
                         </h2>
                         
@@ -264,8 +276,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                     </div>
                     <div className="flex justify-between items-center mb-6 relative z-10">
                         <div>
-                             <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase">Amortization trajectory</h3>
-                             <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase mt-1">Principal vs interest distribution</p>
+                             <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40">Amortization trajectory</h3>
+                             <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest  mt-1">Principal vs interest distribution</p>
                         </div>
                     </div>
                     <div className="flex-grow w-full h-[300px] relative z-10">
@@ -284,8 +296,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
            <div className="xl:col-span-8 space-y-6">
                 <div className="flex justify-between items-center px-4">
                     <div>
-                        <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase">Upcoming Obligations</h3>
-                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase mt-1">Structured repayment itinerary</p>
+                        <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40">Upcoming Obligations</h3>
+                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest  mt-1">Structured repayment itinerary</p>
                     </div>
                 </div>
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden shadow-sm p-4">
@@ -310,7 +322,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                     >
                          <div className="flex justify-between items-start mb-8">
                              <div>
-                                 <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 uppercase mb-2">Interconnected Assets</h3>
+                                 <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-2">Interconnected Assets</h3>
                                  <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
                                      Asset portfolio <span className="material-symbols-outlined text-[12px]">arrow_forward</span>
                                  </button>
@@ -339,7 +351,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                 )}
 
                 <div className="bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5">
-                     <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Loan configuration</h3>
+                     <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Loan configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between">
                              <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Term length</span>

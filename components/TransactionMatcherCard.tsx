@@ -37,13 +37,13 @@ export const TransactionMatcherCard: React.FC<TransactionMatcherCardProps> = ({
       <div className="flex items-center gap-2 w-full md:w-auto shrink-0 relative z-10">
         <button
           onClick={onDismiss}
-          className={`${BTN_SECONDARY_STYLE} w-full md:w-auto !py-2 !px-4 text-[10px] font-bold tracking-wider uppercase border border-black/10 dark:border-white/10`}
+          className={`${BTN_SECONDARY_STYLE} w-full md:w-auto !py-2 !px-4 text-[10px] font-bold tracking-wider  border border-black/10 dark:border-white/10`}
         >
           Dismiss All
         </button>
         <button
           onClick={onReview}
-          className={`${BTN_PRIMARY_STYLE} w-full md:w-auto !py-2 !px-4 text-[10px] font-bold tracking-wider uppercase shadow-lg shadow-primary-500/20`}
+          className={`${BTN_PRIMARY_STYLE} w-full md:w-auto !py-2 !px-4 text-[10px] font-bold tracking-wider  shadow-lg shadow-primary-500/20`}
         >
           Review Matches
         </button>

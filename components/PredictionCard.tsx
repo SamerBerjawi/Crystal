@@ -129,7 +129,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
         <Card className={`relative overflow-hidden border ${cardBorder} transition-all hover:shadow-md group`}>
             <div className="flex justify-between items-start mb-4">
                 <div>
-                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeStyle}`}>
+                     <span className={`text-[10px] font-bold  tracking-wider px-2 py-0.5 rounded-full ${badgeStyle}`}>
                          {typeLabel}
                      </span>
                      <h3 className="font-bold text-lg mt-2 truncate max-w-[200px]" title={prediction.targetName}>{prediction.targetName}</h3>
@@ -137,7 +137,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
                 
                 {/* Result Badge */}
                 {!isActive && (
-                    <div className={`rotate-12 px-3 py-1 border-2 font-black uppercase tracking-widest text-sm rounded-lg ${prediction.status === 'won' ? 'border-emerald-500 text-emerald-600 bg-white/80' : 'border-red-500 text-red-600 bg-white/80'}`}>
+                    <div className={`rotate-12 px-3 py-1 border-2 font-black  tracking-widest text-sm rounded-lg ${prediction.status === 'won' ? 'border-emerald-500 text-emerald-600 bg-white/80' : 'border-red-500 text-red-600 bg-white/80'}`}>
                         {prediction.status}
                     </div>
                 )}

@@ -127,7 +127,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
                     {/* Date Picker (Nested) */}
                     {state.transactionMode === 'full' && (
                          <div className="flex flex-col gap-1.5 animate-fade-in-up" onClick={e => e.stopPropagation()}>
-                            <label className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider" htmlFor="enable-banking-sync-start">Import from</label>
+                            <label className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider" htmlFor="enable-banking-sync-start">Import from</label>
                             <div className="flex gap-2">
                                 <input
                                     id="enable-banking-sync-start"

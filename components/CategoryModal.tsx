@@ -90,7 +90,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
         
         {/* Name Input */}
         <div>
-            <label htmlFor="category-name" className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-2">
+            <label htmlFor="category-name" className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-2">
                 Name
             </label>
             <input
@@ -107,7 +107,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
 
         {/* Appearance Section */}
         <div>
-            <label className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-3">
+            <label className="block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-3">
                 Appearance
             </label>
             <div className="flex flex-col sm:flex-row gap-6">

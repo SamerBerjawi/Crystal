@@ -13,7 +13,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       const date = parseLocalDate(label);
       return (
         <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-widest text-[10px]">
+          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2  tracking-widest text-[10px]">
             {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
           <div className="flex items-center gap-2">
@@ -35,7 +35,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
     return (
         <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-40 p-8 text-center">
              <span className="material-symbols-outlined text-3xl mb-2">analytics</span>
-            <p className="text-xs font-bold uppercase tracking-widest">Awaiting Log Data</p>
+            <p className="text-xs font-bold  tracking-widest">Awaiting Log Data</p>
         </div>
     );
   }

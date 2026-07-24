@@ -6,9 +6,9 @@ import React, { Dispatch, SetStateAction } from 'react';
 export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Rules' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
 
 export interface AccountTypeItem {
-    type: AccountType;
-    icon: string;
-    color: string;
+  type: AccountType;
+  icon: string;
+  color: string;
 }
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
@@ -56,18 +56,18 @@ export interface AssetClosureDetails {
 }
 
 export interface MileageLog {
-    id: string;
-    date: string;
-    reading: number;
+  id: string;
+  date: string;
+  reading: number;
 }
 
 export interface PriceHistoryEntry {
-    date: string; // ISO Date YYYY-MM-DD
-    price: number;
+  date: string; // ISO Date YYYY-MM-DD
+  price: number;
 }
 
 export interface Account {
-  id:string;
+  id: string;
   name: string;
   type: AccountType;
   balance: number; // For Vehicle/Property, this is the CURRENT value.
@@ -93,7 +93,7 @@ export interface Account {
   // Investment specific
   subType?: InvestmentSubType;
   expectedRetirementYear?: number; // For Pension Funds
-  
+
   // Other Assets/Liabilities specific
   otherSubType?: OtherAssetSubType | OtherLiabilitySubType;
   counterparty?: string; // Who owes you or who you owe
@@ -162,11 +162,11 @@ export interface Account {
   gardenSize?: number;
   hasTerrace?: boolean;
   terraceSize?: number;
-  
+
   // Property Recurring Costs
   propertyTaxAmount?: number;
   propertyTaxDate?: string; // Next due date
-  
+
   insuranceProvider?: string;
   insurancePolicyNumber?: string;
   insuranceAmount?: number;
@@ -175,7 +175,7 @@ export interface Account {
 
   hoaFeeAmount?: number;
   hoaFeeFrequency?: RecurrenceFrequency;
-  
+
   isRental?: boolean;
   rentalIncomeAmount?: number;
   rentalIncomeFrequency?: RecurrenceFrequency;
@@ -295,16 +295,16 @@ export interface Transaction {
 }
 
 export interface DisplayTransaction extends Transaction {
-    accountName?: string;
-    isTransfer?: boolean;
-    fromAccountName?: string;
-    toAccountName?: string;
-    originalId?: string; // To keep track of the real ID for editing transfers
-    spareChangeAmount?: number;
-    transferExpenseAmount?: number;
-    transferExpenseCurrency?: Currency;
-    transferIncomeAmount?: number;
-    transferIncomeCurrency?: Currency;
+  accountName?: string;
+  isTransfer?: boolean;
+  fromAccountName?: string;
+  toAccountName?: string;
+  originalId?: string; // To keep track of the real ID for editing transfers
+  spareChangeAmount?: number;
+  transferExpenseAmount?: number;
+  transferExpenseCurrency?: Currency;
+  transferIncomeAmount?: number;
+  transferIncomeCurrency?: Currency;
 }
 
 export interface InvestmentTransaction {
@@ -370,15 +370,15 @@ export interface User {
 
 
 export interface Widget {
-    id: string;
-    name: string;
-    component: React.ComponentType<any>;
-    defaultW: number;
-    defaultH: number;
-    // FIX: Add props property to the Widget interface to fix type errors in Dashboard.tsx and AccountDetail.tsx
-    props: any;
-    icon?: string;
-    description?: string;
+  id: string;
+  name: string;
+  component: React.ComponentType<any>;
+  defaultW: number;
+  defaultH: number;
+  // FIX: Add props property to the Widget interface to fix type errors in Dashboard.tsx and AccountDetail.tsx
+  props: any;
+  icon?: string;
+  description?: string;
 }
 
 export interface WidgetConfig {
@@ -414,7 +414,7 @@ export interface FinancialGoal {
   isBucket?: boolean;
   paymentAccountId?: string;
   // One-time
-  date?: string; 
+  date?: string;
   // Recurring
   frequency?: RecurrenceFrequency;
   startDate?: string;
@@ -427,7 +427,7 @@ export interface FinancialGoal {
 
 export interface ContributionPlanStep {
   goalName: string;
-  date: string; 
+  date: string;
   amount: number;
   accountName: string;
   notes?: string;
@@ -442,9 +442,9 @@ export interface Budget {
 }
 
 export interface BudgetSuggestion {
-    categoryName: string;
-    averageSpending: number;
-    suggestedBudget: number;
+  categoryName: string;
+  averageSpending: number;
+  suggestedBudget: number;
 }
 
 export type HistoryType = 'import' | 'export' | 'restore';
@@ -555,18 +555,18 @@ export interface AppPreferences {
 }
 
 // New types for Bills & Payments
-export type BillPaymentStatus = 'unpaid' | 'paid';
+export type BillPaymentStatus = 'unpaid' | 'paid' | 'expired';
 
 export interface BillPayment {
-    id: string;
-    description: string;
-    amount: number; // positive for deposit, negative for payment
-    type: 'deposit' | 'payment';
-    currency: Currency;
-    dueDate: string;
-    status: BillPaymentStatus;
-    accountId?: string; // The account it was paid from/to
-    warrantId?: string;
+  id: string;
+  description: string;
+  amount: number; // positive for deposit, negative for payment
+  type: 'deposit' | 'payment';
+  currency: Currency;
+  dueDate: string;
+  status: BillPaymentStatus;
+  accountId?: string; // The account it was paid from/to
+  warrantId?: string;
 }
 
 export interface AccountDetailProps {
@@ -623,7 +623,7 @@ export interface Invoice {
   number: string;
   date: string; // ISO Date
   dueDate?: string; // ISO Date
-  
+
   // Entity Info (Client if sent, Merchant if received)
   entityName: string;
   entityEmail?: string;
@@ -637,7 +637,7 @@ export interface Invoice {
   taxRate?: number; // %
   taxAmount: number;
   total: number;
-  
+
   // Payment Terms
   paymentTerms?: PaymentTerm[];
 
@@ -646,58 +646,58 @@ export interface Invoice {
 }
 
 export interface UserStats {
-    currentStreak: number;
-    longestStreak: number;
-    lastLogDate: string; // ISO Date YYYY-MM-DD
-    predictionWins?: number;
-    predictionTotal?: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastLogDate: string; // ISO Date YYYY-MM-DD
+  predictionWins?: number;
+  predictionTotal?: number;
 }
 
 export type PredictionType = 'spending_cap' | 'net_worth_goal' | 'price_target';
 export type PredictionStatus = 'active' | 'won' | 'lost';
 
 export interface Prediction {
-    id: string;
-    type: PredictionType;
-    targetId?: string; // Category Name for spending, Account ID for Net Worth (or null for total)
-    targetName: string;
-    targetAmount: number;
-    startDate: string;
-    endDate: string;
-    status: PredictionStatus;
-    finalAmount?: number; // Snapshot when resolved
+  id: string;
+  type: PredictionType;
+  targetId?: string; // Category Name for spending, Account ID for Net Worth (or null for total)
+  targetName: string;
+  targetAmount: number;
+  startDate: string;
+  endDate: string;
+  status: PredictionStatus;
+  finalAmount?: number; // Snapshot when resolved
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
-    accounts: Account[];
-    transactions: Transaction[];
-    investmentTransactions: InvestmentTransaction[];
-    recurringTransactions: RecurringTransaction[];
-    recurringTransactionOverrides?: RecurringTransactionOverride[];
-    loanPaymentOverrides?: LoanPaymentOverrides;
-    financialGoals: FinancialGoal[];
-    goalOrder?: string[];
-    budgets: Budget[];
-    tasks: Task[];
-    taskOrder?: string[];
-    warrants: Warrant[];
-    memberships?: Membership[];
-    importExportHistory: ImportExportHistoryItem[];
-    incomeCategories: Category[];
-    expenseCategories: Category[];
-    preferences: AppPreferences;
-    billsAndPayments: BillPayment[];
-    accountOrder?: string[];
-    tags?: Tag[];
-    manualWarrantPrices?: Record<string, number | undefined>;
-    priceHistory?: Record<string, PriceHistoryEntry[]>; // New field for price history
-    invoices?: Invoice[];
-    userStats?: UserStats;
-    predictions?: Prediction[];
-    enableBankingConnections?: EnableBankingConnection[];
-    lastUpdatedAt?: string;
-    userProfile?: User;
+  accounts: Account[];
+  transactions: Transaction[];
+  investmentTransactions: InvestmentTransaction[];
+  recurringTransactions: RecurringTransaction[];
+  recurringTransactionOverrides?: RecurringTransactionOverride[];
+  loanPaymentOverrides?: LoanPaymentOverrides;
+  financialGoals: FinancialGoal[];
+  goalOrder?: string[];
+  budgets: Budget[];
+  tasks: Task[];
+  taskOrder?: string[];
+  warrants: Warrant[];
+  memberships?: Membership[];
+  importExportHistory: ImportExportHistoryItem[];
+  incomeCategories: Category[];
+  expenseCategories: Category[];
+  preferences: AppPreferences;
+  billsAndPayments: BillPayment[];
+  accountOrder?: string[];
+  tags?: Tag[];
+  manualWarrantPrices?: Record<string, number | undefined>;
+  priceHistory?: Record<string, PriceHistoryEntry[]>; // New field for price history
+  invoices?: Invoice[];
+  userStats?: UserStats;
+  predictions?: Prediction[];
+  enableBankingConnections?: EnableBankingConnection[];
+  lastUpdatedAt?: string;
+  userProfile?: User;
 }
 
 // New types for Tasks feature
@@ -764,16 +764,16 @@ export interface ScheduledPayment {
 
 // FIX: Moved ScheduledItem type from pages/Schedule.tsx to make it globally available.
 export type ScheduledItem = {
-    id: string;
-    isRecurring: boolean;
-    date: string;
-    description: string;
-    amount: number;
-    accountName: string;
-    isTransfer?: boolean;
-    type: 'income' | 'expense' | 'transfer' | 'payment' | 'deposit';
-    originalItem: RecurringTransaction | BillPayment;
-    isOverride?: boolean;
-    originalDateForOverride?: string;
-    isSkipped?: boolean; // New Property
+  id: string;
+  isRecurring: boolean;
+  date: string;
+  description: string;
+  amount: number;
+  accountName: string;
+  isTransfer?: boolean;
+  type: 'income' | 'expense' | 'transfer' | 'payment' | 'deposit';
+  originalItem: RecurringTransaction | BillPayment;
+  isOverride?: boolean;
+  originalDateForOverride?: string;
+  isSkipped?: boolean; // New Property
 };

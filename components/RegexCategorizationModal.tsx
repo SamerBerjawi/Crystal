@@ -134,7 +134,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
     toast.success('Protocol state updated.');
   };
 
-  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
 
   return (
     <Modal onClose={onClose} title="Advanced Regex Categorization Protocols" size="2xl">
@@ -147,7 +147,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
 
         {/* Create Rule Form with standard merchant-form ID */}
         <form id="merchant-form" onSubmit={handleAddRule} className="bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl p-5 border border-black/5 dark:border-white/5 space-y-4">
-          <h4 className="text-xs font-black uppercase tracking-wider text-light-text dark:text-dark-text flex items-center gap-1.5">
+          <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
             <span className="material-symbols-outlined text-sm text-primary-500">add_moderator</span>
             Deploy New Matching Protocol
           </h4>
@@ -208,14 +208,14 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
         {/* Existing Rules List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black uppercase tracking-wider text-light-text dark:text-dark-text opacity-75">
+            <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text opacity-75">
               Deployed Protocols ({rules.length})
             </h4>
             {rules.length > 0 && (
               <button
                 type="button"
                 onClick={onApplyHistoricalRules}
-                className="text-[10px] font-black text-primary-500 hover:text-primary-600 uppercase tracking-wider flex items-center gap-1"
+                className="text-[10px] font-black text-primary-500 hover:text-primary-600  tracking-wider flex items-center gap-1"
                 title="Reparse existing transaction histories against these classifications"
               >
                 <span className="material-symbols-outlined text-sm">history_toggle_off</span>
@@ -259,7 +259,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                               {rule.pattern}
                             </span>
                             <span className="material-symbols-outlined text-[10px] opacity-40">arrow_forward</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                            <span className="text-[10px] font-black  tracking-widest text-emerald-600 dark:text-emerald-400">
                               {rule.category}
                             </span>
                           </div>
