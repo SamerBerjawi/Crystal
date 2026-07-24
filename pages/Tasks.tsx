@@ -184,7 +184,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     <nav className="flex items-center gap-3">
                         <button 
                             onClick={() => setCurrentPage('Settings')} 
-                            className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+                            className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
                         >
                             <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
                                 <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -200,7 +200,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     title="Action Board"
                     subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
                     actions={
-                        <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                        <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
                             <span className="material-symbols-outlined text-xl">add_circle</span>
                             New Operational Task
                         </button>
@@ -244,7 +244,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-2">
                 <div className="flex items-center gap-3">
                     <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
-                    <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Execution Queue</h3>
+                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Execution Queue</h3>
                 </div>
                 
                 <div className="flex items-center gap-4 w-full md:w-auto">
@@ -252,7 +252,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                         <select 
                             value={sortBy} 
                             onChange={e => setSortBy(e.target.value as any)} 
-                            className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+                            className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 py-4 text-[10px] font-black  tracking-widest appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
                         >
                             <option value="manual">Manual Sequence</option>
                             <option value="priority-desc">Priority Sift</option>
@@ -269,7 +269,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
             <section className="space-y-6">
                 <div className="flex items-center gap-3 px-2">
                     <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
-                    <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Temporal Density</h3>
+                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Temporal Density</h3>
                 </div>
                 <div className="w-full overflow-x-auto flex justify-center py-2">
                     <TasksHeatmap tasks={tasks} />
@@ -291,7 +291,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                             <header className="flex justify-between items-center px-4">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-2 h-2 rounded-full ${statusColorMap[status]}`}></div>
-                                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text opacity-80">
+                                    <h3 className="text-[11px] font-bold tracking-[0.2em] text-light-text dark:text-dark-text opacity-80">
                                         {status}
                                     </h3>
                                     <span className="text-[10px] font-black bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-lg opacity-40">
@@ -309,7 +309,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                                 {tasksInColumn.length === 0 ? (
                                     <div className="h-40 border-2 border-dashed border-black/5 dark:border-white/5 rounded-[2rem] flex flex-col items-center justify-center gap-2 opacity-20">
                                         <span className="material-symbols-outlined text-3xl">task_alt</span>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Queue Clear</span>
+                                        <span className="text-[10px] font-black  tracking-widest">Queue Clear</span>
                                     </div>
                                 ) : (
                                     tasksInColumn.map(task => {

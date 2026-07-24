@@ -17,7 +17,7 @@ async function startServer() {
   // AI Proxy Endpoint
   app.post('/api/ai/proxy', async (req, res) => {
     const { endpoint, method, headers, body } = req.body;
-    
+
     try {
       console.log(`Proxying ${method} request to ${endpoint}`);
       const response = await fetch(endpoint, {
@@ -25,7 +25,7 @@ async function startServer() {
         headers,
         body: JSON.stringify(body)
       });
-      
+
       const data = await response.json();
       if (!response.ok) {
         console.error('AI Provider Error:', data);
@@ -42,7 +42,7 @@ async function startServer() {
   app.post('/api/data', (req, res) => {
     res.json({ status: 'ok', message: 'Data saved (mock)' });
   });
-  
+
   app.get('/api/data', (req, res) => {
     res.json({});
   });

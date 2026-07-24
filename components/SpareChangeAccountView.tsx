@@ -6,6 +6,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
 import { useAccountsContext } from '../contexts/DomainProviders';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 
 interface SpareChangeAccountViewProps {
   account: Account;
@@ -57,7 +58,7 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             </div>
             <div className="mt-6 relative z-10">
                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
-                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
                 {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
@@ -134,9 +135,21 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
   const coffeesSaved = Math.floor(totalSaved / 4.50);
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText="Auto-Savings"
+        subText={`Linked: ${sourceAccount?.name || 'External'}`}
+        primaryAction={{ label: 'Manual Link', icon: 'add', onClick: onAddTransaction }}
+        secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex items-center gap-6">
               <button 
                   onClick={onBack}
@@ -150,7 +163,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">Linked: {sourceAccount?.name || 'External'}</span>
                   </div>
-                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
                       <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">{account.icon || 'savings'}</span>
                   </h1>
@@ -249,7 +262,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
            {/* Charting & Activity */}
            <div className="lg:col-span-8 space-y-8">
                 <div className="bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden">
-                    <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight mb-10 flex justify-between items-center relative z-10">
+                    <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-10 flex justify-between items-center relative z-10">
                         Accumulation Pulse
                         <span className="text-[10px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/60">Monthly Savings Velocity</span>
                     </h3>
@@ -272,7 +285,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                                         padding: '16px' 
                                     }}
                                     itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
-                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px',  letterSpacing: '0.1em', fontSize: '10px' }}
                                     formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Savings']}
                                 />
                                 <Bar dataKey="value" fill="#06B6D4" radius={[12, 12, 12, 12]} barSize={40}>
@@ -304,7 +317,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
            <div className="lg:col-span-4 space-y-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Source Account', value: sourceAccount?.name || 'External Link' },
@@ -315,7 +328,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                             { label: 'Logical Serial', value: account.accountNumber, isMono: true }
                         ].filter(i => i.value).map((item, idx) => (
                             <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
                                 <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>

@@ -34,14 +34,14 @@ const sections: Section[] = [
                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                             <span className="material-symbols-outlined text-xl">security</span>
                         </div>
-                        <h4 className="font-black text-[10px] uppercase tracking-widest opacity-40">Security Protocol</h4>
+                        <h4 className="font-bold text-[10px] tracking-tight opacity-40">Security Protocol</h4>
                         <p className="text-xs font-bold leading-relaxed">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
                     </div>
                     <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
                             <span className="material-symbols-outlined text-xl">database</span>
                         </div>
-                        <h4 className="font-black text-[10px] uppercase tracking-widest opacity-40">Local Persistence</h4>
+                        <h4 className="font-bold text-[10px] tracking-tight opacity-40">Local Persistence</h4>
                         <p className="text-xs font-bold leading-relaxed">By default, all telemetry resides within your browser's encrypted sandbox. No data leaves your secure perimeter unless explicitly synchronized.</p>
                     </div>
                 </div>
@@ -67,7 +67,7 @@ const sections: Section[] = [
                         <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
                             <div className="w-8 h-8 rounded-lg bg-purple-500 text-white flex items-center justify-center font-black text-[10px] shrink-0">0{i+1}</div>
                             <div>
-                                <h4 className="text-[11px] font-black uppercase tracking-widest mb-1">{item.title}</h4>
+                                <h4 className="text-[11px] font-bold tracking-tight mb-1">{item.title}</h4>
                                 <p className="text-xs font-bold opacity-60 leading-relaxed">{item.desc}</p>
                             </div>
                         </div>
@@ -88,11 +88,11 @@ const sections: Section[] = [
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary-500">Taxonomy (Categories)</h4>
+                        <h4 className="text-[10px] font-bold tracking-tight text-primary-500">Taxonomy (Categories)</h4>
                         <p className="text-xs font-bold leading-relaxed opacity-70">Strict parent-child relationships. Use for primary structure like "Housing &gt; Rent" or "Transportation &gt; Fuel".</p>
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-500">Semantics (Tags)</h4>
+                        <h4 className="text-[10px] font-bold tracking-tight text-orange-500">Semantics (Tags)</h4>
                         <p className="text-xs font-bold leading-relaxed opacity-70">Multi-dimensional overlays. Apply #vacation, #business, or #trip-2024 to cluster data across different taxonomic branches.</p>
                     </div>
                 </div>
@@ -117,7 +117,7 @@ const sections: Section[] = [
                             { icon: 'pattern', text: 'Recurring Pattern Signal' },
                             { icon: 'rule', text: 'Custom Aggregation Rules' }
                         ].map((item, i) => (
-                            <li key={i} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest opacity-80">
+                            <li key={i} className="flex items-center gap-3 text-xs font-bold  tracking-widest opacity-80">
                                 <span className="material-symbols-outlined text-[18px] opacity-40">{item.icon}</span>
                                 {item.text}
                             </li>
@@ -139,11 +139,11 @@ const sections: Section[] = [
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40">Granular Export</h4>
+                        <h4 className="text-[10px] font-bold tracking-tight opacity-40">Granular Export</h4>
                         <p className="text-xs font-bold leading-relaxed">Extract specific vectors: Accounts, Transactions, Budgets, or Schema patterns. Available in high-density JSON or interoperable CSV formats.</p>
                     </div>
                     <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40">Merge Restorations</h4>
+                        <h4 className="text-[10px] font-bold tracking-tight opacity-40">Merge Restorations</h4>
                         <p className="text-xs font-bold leading-relaxed">Import data without data loss. Use the "Merge" protocol to combine external backup nodes with your current state, resolving conflicts through ID matching.</p>
                     </div>
                 </div>
@@ -169,7 +169,7 @@ const sections: Section[] = [
                         <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
                             <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shrink-0">0{i+1}</div>
                             <div>
-                                <h4 className="text-[11px] font-black uppercase tracking-widest mb-1">{item.title}</h4>
+                                <h4 className="text-[11px] font-bold tracking-tight mb-1">{item.title}</h4>
                                 <p className="text-xs font-bold opacity-60 leading-relaxed">{item.desc}</p>
                             </div>
                         </div>
@@ -227,7 +227,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                 <nav className="flex items-center gap-3">
                     <button 
                       onClick={() => setCurrentPage('Settings')} 
-                      className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+                      className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
                     >
                         <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
                           <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -248,7 +248,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                 {/* Sticky Navigation Sidebar */}
                 <aside className="hidden lg:block w-72 flex-shrink-0">
                     <div className="sticky top-24 space-y-2 p-2 bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl border border-black/5 dark:border-white/5">
-                        <p className="px-4 py-4 text-[9px] font-black uppercase tracking-[0.2em] opacity-40">
+                        <p className="px-4 py-4 text-[9px] font-black  tracking-[0.2em] opacity-40">
                             Manual Index
                         </p>
                         {sections.map(section => (
@@ -264,7 +264,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                 <span className={`material-symbols-outlined text-xl transition-all ${activeSection === section.id ? 'scale-110' : 'opacity-40 scale-90'}`}>
                                     {section.icon}
                                 </span>
-                                <span className="text-[11px] font-black uppercase tracking-widest">{section.title}</span>
+                                <span className="text-[11px] font-black  tracking-widest">{section.title}</span>
                             </button>
                         ))}
                     </div>
@@ -276,7 +276,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                         <button
                             key={section.id}
                             onClick={() => scrollToSection(section.id)}
-                            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black  tracking-widest whitespace-nowrap transition-all ${
                                 activeSection === section.id
                                     ? 'bg-primary-500 text-white shadow-xl shadow-primary-500/20'
                                     : 'bg-black/5 dark:bg-white/5 text-light-text-secondary'
@@ -302,7 +302,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                         <span className="material-symbols-outlined text-3xl">{section.icon}</span>
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text">{section.title}</h2>
+                                        <h2 className="text-xl font-bold tracking-[0.2em] text-light-text dark:text-dark-text">{section.title}</h2>
                                         <div className="h-1 w-12 bg-primary-500 mt-2 rounded-full transform origin-left group-hover:scale-x-150 transition-transform"></div>
                                     </div>
                                 </div>
@@ -316,7 +316,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                     <div className="flex justify-center pt-8">
                         <button 
                             onClick={handleBackToTop}
-                            className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest shadow-sm"
+                            className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-[11px] font-black  tracking-widest shadow-sm"
                         >
                             <span className="material-symbols-outlined group-hover:-translate-y-1 transition-transform">arrow_upward</span>
                             Scroll to Origin

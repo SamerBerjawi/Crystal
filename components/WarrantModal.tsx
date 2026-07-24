@@ -76,7 +76,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
         onClose();
     };
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
     const modalTitle = isEditing ? 'Edit Warrant Grant' : 'Add Warrant Grant';
     
     return (
@@ -102,7 +102,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
 
                 {/* 1. Asset Identity Section */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary-500 text-lg">fingerprint</span>
                         Security Identification
                     </h4>
@@ -115,7 +115,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                 type="text" 
                                 value={isin} 
                                 onChange={e => setIsin(e.target.value)} 
-                                className={`${INPUT_BASE_STYLE} uppercase font-black tracking-widest h-14 !text-xl`} 
+                                className={`${INPUT_BASE_STYLE}  font-black tracking-widest h-14 !text-xl`} 
                                 placeholder="TICKER" 
                                 required 
                                 autoFocus 
@@ -128,7 +128,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                 type="text" 
                                 value={name} 
                                 onChange={e => setName(e.target.value)} 
-                                className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} 
+                                className={`${INPUT_BASE_STYLE} h-14 font-black `} 
                                 placeholder="e.g. CORE ASSETS INC." 
                                 required 
                             />
@@ -138,7 +138,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
 
                 {/* 2. Grant Specifications */}
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary-500 text-lg">contract</span>
                         Exercise Parameters
                     </h4>
@@ -159,20 +159,20 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
 
                     <div className="space-y-2 pt-4">
                         <label htmlFor="grantDate" className={labelStyle}>Inception / Grant Date</label>
-                        <input id="grantDate" type="date" value={grantDate} onChange={e => setGrantDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-tighter`} required />
+                        <input id="grantDate" type="date" value={grantDate} onChange={e => setGrantDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black  tracking-tighter`} required />
                     </div>
                 </div>
 
                 {/* 3. Tax Strategy */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                             <span className="material-symbols-outlined text-amber-500 text-lg">receipt_long</span>
                             Tax Liability Strategy
                         </h4>
                         <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-xl border border-black/5 dark:border-white/5 space-x-1">
-                            <button type="button" onClick={() => setTaxType('percentage')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${taxType === 'percentage' ? 'bg-white dark:bg-dark-card shadow-md text-amber-600' : 'text-gray-400 opacity-60'}`}>%</button>
-                            <button type="button" onClick={() => setTaxType('amount')} className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${taxType === 'amount' ? 'bg-white dark:bg-dark-card shadow-md text-amber-600' : 'text-gray-400 opacity-60'}`}>€</button>
+                            <button type="button" onClick={() => setTaxType('percentage')} className={`px-4 py-2 text-[10px] font-black  tracking-widest rounded-lg transition-all ${taxType === 'percentage' ? 'bg-white dark:bg-dark-card shadow-md text-amber-600' : 'text-gray-400 opacity-60'}`}>%</button>
+                            <button type="button" onClick={() => setTaxType('amount')} className={`px-4 py-2 text-[10px] font-black  tracking-widest rounded-lg transition-all ${taxType === 'amount' ? 'bg-white dark:bg-dark-card shadow-md text-amber-600' : 'text-gray-400 opacity-60'}`}>€</button>
                         </div>
                     </div>
 
@@ -189,7 +189,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                             />
                         </div>
                         <div className="flex flex-col justify-center items-end p-5 bg-white dark:bg-black/20 rounded-[1.5rem] border border-black/5 dark:border-white/5 shadow-sm">
-                            <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-[0.2em] mb-1">Calculated Obligation</span>
+                            <span className="text-[9px] font-black  text-amber-600 dark:text-amber-400 tracking-[0.2em] mb-1">Calculated Obligation</span>
                             <span className="text-3xl font-black text-amber-900 dark:text-amber-200 tabular-nums">{formatCurrency(calculatedTaxAmount, 'EUR')}</span>
                         </div>
                     </div>
@@ -197,11 +197,11 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                     {/* Payment Schedule */}
                     <div className="space-y-6 pt-4">
                         <div className="flex items-center justify-between">
-                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Settlement Sequence</h5>
+                            <h5 className="text-[10px] font-black  tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Settlement Sequence</h5>
                             <button 
                                 type="button" 
                                 onClick={handleAddPayment}
-                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 hover:text-primary-600 group transition-all"
+                                className="flex items-center gap-2 text-[10px] font-black  tracking-[0.2em] text-primary-500 hover:text-primary-600 group transition-all"
                             >
                                 <span className="material-symbols-outlined text-lg group-active:scale-90">add_circle</span>
                                 Add Milestone
@@ -217,7 +217,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                             type="date" 
                                             value={payment.dueDate} 
                                             onChange={e => handleUpdatePayment(payment.id, { dueDate: e.target.value })}
-                                            className={`${INPUT_BASE_STYLE} h-12 !text-[11px] font-black uppercase tracking-widest`}
+                                            className={`${INPUT_BASE_STYLE} h-12 !text-[11px] font-black  tracking-widest`}
                                         />
                                     </div>
                                     <div className="sm:col-span-5 relative space-y-2">
@@ -257,10 +257,10 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                         </span>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${isBalanceZero ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
+                                        <span className={`text-[10px] font-black  tracking-[0.25em] ${isBalanceZero ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
                                             {isBalanceZero ? 'FISCAL EQUILIBRIUM' : 'REMAINING LIABILITY'}
                                         </span>
-                                        <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Settlement Verification</p>
+                                        <p className="text-[9px] font-bold  tracking-widest opacity-60">Settlement Verification</p>
                                     </div>
                                 </div>
                                 <span className={`text-2xl font-black tabular-nums ${isBalanceZero ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
@@ -272,11 +272,11 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 </div>
 
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
                     <button 
                         type="submit" 
                         disabled={!isBalanceZero}
-                        className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-widest text-[10px] font-black ${!isBalanceZero ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                        className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black ${!isBalanceZero ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     >
                         {isEditing ? 'Commit Changes' : 'Confirm Execution'}
                         <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">verified</span>

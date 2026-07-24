@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Budget, Transaction, Category, Duration, Account } from '../types';
-import { formatCurrency, getDateRange, convertToEur, parseLocalDate } from '../utils';
+import { getDateRange, convertToEur, parseLocalDate } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
+import BudgetProgressBar from './BudgetProgressBar';
 
 const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
     for (const parent of categories) {
@@ -66,32 +67,20 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
 
     return (
         <div className="space-y-4 h-full overflow-y-auto pr-2 -mr-4">
-            {budgetData.slice(0, 4).map(budget => {
-                const remaining = budget.amount - budget.spent;
-
-                let progressBarColor = 'bg-primary-500';
-                if (budget.progress > 100) progressBarColor = 'bg-red-500';
-                else if (budget.progress > 80) progressBarColor = 'bg-yellow-500';
-                
-                return (
-                    <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="font-black text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">{budget.categoryName}</span>
-                            <span className="text-[10px] font-black tabular-nums">{budget.progress.toFixed(0)}%</span>
-                        </div>
-                        <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 shadow-inner">
-                            <div
-                                className={`${progressBarColor} h-2 rounded-full transition-all duration-500`}
-                                style={{ width: `${Math.min(budget.progress, 100)}%` }}
-                            ></div>
-                        </div>
-                         <div className="flex justify-between text-[11px] mt-1.5 text-light-text-secondary dark:text-white/50 font-medium tracking-tight">
-                            <span>{formatCurrency(budget.spent, 'EUR')} spent</span>
-                            <span>{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
-                        </div>
-                    </div>
-                );
-            })}
+            {budgetData.slice(0, 4).map(budget => (
+                <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-xl transition-colors">
+                    <BudgetProgressBar
+                        spent={budget.spent}
+                        budgeted={budget.amount}
+                        currency="EUR"
+                        categoryName={budget.categoryName}
+                        variant="compact"
+                        showLabels={true}
+                        showValues={true}
+                        showPercentage={true}
+                    />
+                </div>
+            ))}
         </div>
     );
 };

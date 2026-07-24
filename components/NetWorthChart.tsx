@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, Dot } from 'recharts';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
 import { FinancialGoal } from '../types';
 import { motion } from 'motion/react';
 
@@ -33,10 +33,17 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     showGoals = true,
     goals = []
 }) => {
-  const chartData = useMemo(() => data.map(point => ({
-    ...point,
-    actual: point.value,
-  })), [data]);
+  const chartData = useMemo(() => {
+    const points = data.map(point => ({
+      ...point,
+      actual: point.value !== undefined ? point.value : point.actual,
+    }));
+    const trendValues = calculateTrendLine(points, (item) => item.actual ?? item.forecast ?? 0);
+    return points.map((p, idx) => ({
+      ...p,
+      trend: trendValues[idx]
+    }));
+  }, [data]);
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
@@ -48,7 +55,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         return (
           <div className="bg-white dark:bg-neutral-900 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800/80 min-w-[180px] animate-in fade-in zoom-in duration-200">
             <div className="mb-3 pb-2 border-b border-neutral-200 dark:border-neutral-800/80">
-                <p className="font-bold text-neutral-800 dark:text-neutral-100 text-xs uppercase tracking-wider">
+                <p className="font-bold text-neutral-800 dark:text-neutral-100 text-xs  tracking-wider">
                     {parseLocalDate(label).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
             </div>
@@ -56,7 +63,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             <div className="space-y-3">
                 {historyPayload && (
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-1">Actual Net Worth</span>
+                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400  tracking-widest mb-1">Actual Net Worth</span>
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                             <span className="text-lg font-black text-neutral-800 dark:text-neutral-100 font-mono tracking-tighter">
@@ -68,7 +75,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
                 
                 {forecastPayload && (
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-1">Forecasted</span>
+                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400  tracking-widest mb-1">Forecasted</span>
                         <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                             <span className="text-lg font-black text-primary-500 font-mono tracking-tighter">
@@ -162,7 +169,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             wrapperStyle={{ 
                 fontSize: '10px', 
                 fontWeight: '900', 
-                textTransform: 'uppercase', 
+                 
                 letterSpacing: '0.05em',
                 paddingBottom: '0px',
                 marginTop: '-15px'
@@ -240,6 +247,18 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             strokeWidth={3}
             filter="url(#glow)"
             activeDot={{ r: 6, fill: 'white', stroke: '#10B981', strokeWidth: 3 }}
+          />
+
+          <Line 
+            type="monotone" 
+            dataKey="trend" 
+            name="Trend Line" 
+            stroke="#8B5CF6" 
+            strokeWidth={2} 
+            strokeDasharray="4 4" 
+            dot={false} 
+            activeDot={false}
+            connectNulls
           />
         </AreaChart>
       </ResponsiveContainer>

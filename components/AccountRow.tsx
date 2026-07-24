@@ -260,9 +260,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             >
                 {/* Left Section: Icon and Account Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${currentConfig.bg} ${currentConfig.text} flex items-center justify-center border ${currentConfig.border} shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}>
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}>
                         {showLogo ? (
-                            <img src={logoUrl!} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
+                            <img src={logoUrl!} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
                         ) : (
                             <span className="material-symbols-outlined text-lg sm:text-xl">{iconName}</span>
                         )}
@@ -390,39 +390,39 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             />
 
             {/* Action Bar Overlay */}
-            <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30">
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-30">
                 <button 
                     onClick={handleAdjustBalanceClick} 
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
+                    className="w-11 h-11 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl sm:rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
                     title="Adjust Balance"
                     disabled={isComputedAccount}
                 >
-                    <span className="material-symbols-outlined text-base">tune</span>
+                    <span className="material-symbols-outlined text-lg sm:text-base">tune</span>
                 </button>
                 <button 
                     onClick={handleEditClick} 
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
+                    className="w-11 h-11 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl sm:rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
                     title="Edit Account"
                 >
-                    <span className="material-symbols-outlined text-base">edit</span>
+                    <span className="material-symbols-outlined text-lg sm:text-base">edit</span>
                 </button>
             </div>
 
             <div className="relative z-10 h-full flex flex-col justify-between">
                 <div>
                     <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${currentConfig.bg} ${currentConfig.text} flex items-center justify-center border ${currentConfig.border} transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
                             {showLogo ? (
-                                <img src={logoUrl!} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+                                <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                             ) : (
                                 <span className="material-symbols-outlined text-xl sm:text-2xl">{iconName}</span>
                             )}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[9px] sm:text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate uppercase">
+                            <p className="text-[9px] sm:text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate ">
                                 {account.financialInstitution || account.type}
                             </p>
-                            <h3 className="text-lg sm:text-xl font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
+                            <h3 className="text-lg sm:text-xl font-bold text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
                                 {account.name}
                             </h3>
                         </div>
@@ -451,7 +451,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono">
                                     {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}
                                 </span>
-                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase">
+                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 ">
                                     90d
                                 </span>
                             </div>

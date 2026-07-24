@@ -64,7 +64,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
-              className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl flex-1 transition-all duration-300 relative ${isActive ? getColorClasses(item.color || '', true) : 'text-light-text-secondary/40 dark:text-dark-text-secondary/30'}`}
+              aria-label={item.label}
+              className={`flex flex-col items-center justify-center py-2.5 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${isActive ? getColorClasses(item.color || '', true) : 'text-light-text-secondary/40 dark:text-dark-text-secondary/30'}`}
             >
               {isActive && (
                 <>

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { convertToEur, formatCurrency, generateAmortizationSchedule, parseLocalDate, toLocalISOString } from '../utils';
+import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { convertToEur, formatCurrency, generateAmortizationSchedule, parseLocalDate, toLocalISOString, calculateTrendLine } from '../utils';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 
 interface HistoricalBalanceTrendProps {
@@ -77,13 +77,19 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     }
 
     const data = history.reverse();
+    const trendValues = calculateTrendLine(data, 'value');
+    const dataWithTrend = data.map((item, index) => ({
+      ...item,
+      trend: trendValues[index]
+    }));
+
     const startVal = data[0]?.value ?? 0;
     const endVal = data[data.length - 1]?.value ?? 0;
     const changeVal = endVal - startVal;
     const pct = startVal !== 0 ? (changeVal / Math.abs(startVal)) * 100 : 0;
 
     return {
-      chartData: data,
+      chartData: dataWithTrend,
       startBalance: startVal,
       endBalance: endVal,
       netChange: changeVal,
@@ -98,17 +104,29 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const date = parseLocalDate(label);
+      const val = payload.find((p: any) => p.dataKey === 'value')?.value;
+      const trendVal = payload.find((p: any) => p.dataKey === 'trend')?.value;
       return (
         <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-1.5 uppercase tracking-wider text-[10px]">
+          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-1.5 tracking-wider text-[10px]">
             {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-1">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chartColor }} />
-            <span className="font-mono font-black text-sm text-neutral-800 dark:text-neutral-100">
-              {formatCurrency(payload[0].value, account.currency)}
+            <span className="text-xs text-neutral-500 dark:text-neutral-400">Balance:</span>
+            <span className="font-mono font-bold text-sm text-neutral-800 dark:text-neutral-100">
+              {formatCurrency(val, account.currency)}
             </span>
           </div>
+          {trendVal !== undefined && (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">Trendline:</span>
+              <span className="font-mono font-semibold text-xs text-indigo-600 dark:text-indigo-400">
+                {formatCurrency(trendVal, account.currency)}
+              </span>
+            </div>
+          )}
         </div>
       );
     }
@@ -134,7 +152,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
 
         <div className="flex items-center gap-6 bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 px-5 py-3 rounded-2xl">
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase tracking-widest">Net Change</p>
+            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50  tracking-widest">Net Change</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`material-symbols-outlined text-sm font-bold ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {isPositiveTrend ? 'arrow_upward' : 'arrow_downward'}
@@ -149,7 +167,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
           </div>
           <div className="w-px h-8 bg-black/10 dark:bg-white/10" />
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase tracking-widest">Start Balance</p>
+            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50  tracking-widest">Start Balance</p>
             <p className="text-sm font-bold font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
               {formatCurrency(startBalance, account.currency)}
             </p>
@@ -199,6 +217,17 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
               fill={`url(#${gradientId})`}
               dot={false}
               activeDot={{ r: 6, strokeWidth: 0, fill: chartColor }}
+              name="Balance"
+            />
+            <Line
+              type="monotone"
+              dataKey="trend"
+              stroke="#6366f1"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              activeDot={false}
+              name="Trend Line"
             />
           </AreaChart>
         </ResponsiveContainer>

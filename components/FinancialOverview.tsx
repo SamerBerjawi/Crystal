@@ -43,7 +43,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 <span className="material-symbols-outlined text-primary-500 text-sm">account_balance</span>
                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Net worth</span>
                             </div>
-                            <h2 className="text-3xl sm:text-4xl font-black text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">
+                            <h2 className="text-3xl sm:text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">
                                 {formatCurrency(netWorth, currency as Currency)}
                             </h2>
                             <div className="flex items-center gap-2 mt-1">
@@ -66,7 +66,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                      {/* Flow */}
                      <div className="p-3 sm:p-4 flex flex-col justify-center">
                          <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>
-                         <h3 className={`text-sm sm:text-xl font-black tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
+                         <h3 className={`text-sm sm:text-xl font-bold tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
                              {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })}
                          </h3>
                          <div className="mt-2 flex items-center gap-1.5">
@@ -87,8 +87,8 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                         </p>
                         <div className="h-4 sm:h-6 w-full mt-2 sm:mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{v:10}, {v:15}, {v:12}, {v:20}, {v:18}]}>
-                                    <Line type="monotone" dataKey={incomeSparkline.length > 0 ? "value" : "v"} stroke="#10b981" strokeWidth={1.5} dot={false} />
+                                <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{value:10}, {value:15}, {value:12}, {value:20}, {value:18}]}>
+                                    <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={1.5} dot={false} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -104,8 +104,8 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                         </p>
                         <div className="h-4 sm:h-6 w-full mt-2 sm:mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{v:20}, {v:12}, {v:25}, {v:15}, {v:22}]}>
-                                    <Line type="monotone" dataKey={expenseSparkline.length > 0 ? "value" : "v"} stroke="#f43f5e" strokeWidth={1.5} dot={false} />
+                                <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{value:20}, {value:12}, {value:25}, {value:15}, {value:22}]}>
+                                    <Line type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={1.5} dot={false} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>

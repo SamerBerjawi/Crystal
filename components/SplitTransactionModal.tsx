@@ -85,13 +85,13 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
         <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/10">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Original Transaction</p>
+              <p className="text-xs font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Original Transaction</p>
               <p className="font-bold text-lg">{transaction.description}</p>
               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{transaction.category}</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-mono font-black">{formatCurrency(totalAmount, transaction.currency)}</p>
-              <p className={`text-xs font-bold uppercase ${Math.abs(remaining) < 0.01 ? 'text-green-500' : 'text-red-500'}`}>
+              <p className={`text-xs font-bold  ${Math.abs(remaining) < 0.01 ? 'text-green-500' : 'text-red-500'}`}>
                 {Math.abs(remaining) < 0.01 ? 'Fully Allocated' : `Remaining: ${formatCurrency(remaining, transaction.currency)}`}
               </p>
             </div>
@@ -102,7 +102,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
           {splits.map((split, index) => (
             <div key={split.id} className="grid grid-cols-12 gap-3 items-end p-3 rounded-xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-sm relative group">
               <div className="col-span-5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 mb-1 block">Description</label>
+                <label className="text-[10px] font-black  tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 mb-1 block">Description</label>
                 <input
                   type="text"
                   value={split.description}
@@ -112,7 +112,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                 />
               </div>
               <div className="col-span-3">
-                <label className="text-[10px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 mb-1 block">Category</label>
+                <label className="text-[10px] font-black  tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 mb-1 block">Category</label>
                 <div className={SELECT_WRAPPER_STYLE}>
                   <select
                     value={split.category}
@@ -128,7 +128,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                 </div>
               </div>
               <div className="col-span-3 text-right">
-                <label className="text-[10px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mr-1 mb-1 block">Amount</label>
+                <label className="text-[10px] font-black  tracking-wider text-light-text-secondary dark:text-dark-text-secondary mr-1 mb-1 block">Amount</label>
                 <div className="relative">
                   <input
                     type="number"

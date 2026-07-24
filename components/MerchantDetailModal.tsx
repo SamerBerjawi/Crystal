@@ -155,7 +155,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     const allCategories = [...expenseCategories, ...incomeCategories];
     const previewLogoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, { [logoKey]: logo || logoKey }, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 });
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
 
     return (
         <Modal onClose={onClose} title="Merchant Details">
@@ -163,9 +163,9 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                 
                 {/* Header */}
                 <div className="flex items-center gap-4">
-                     <div className="w-16 h-16 rounded-xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden flex items-center justify-center bg-white dark:bg-dark-card">
+                     <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center bg-white dark:bg-white/10">
                          {previewLogoUrl ? (
-                             <img src={previewLogoUrl} alt={merchantName} className="w-full h-full object-contain" />
+                             <img src={previewLogoUrl} alt={merchantName} className="w-full h-full object-cover" />
                          ) : (
                              <span className="text-2xl font-bold text-gray-400">{merchantName.charAt(0)}</span>
                          )}
@@ -178,7 +178,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                      {website.replace(/^https?:\/\//, '')} <span className="material-symbols-outlined text-[10px]">open_in_new</span>
                                  </a>
                              )}
-                             {isHidden && <span className="text-[10px] bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-gray-500 font-bold uppercase tracking-wide">Hidden</span>}
+                             {isHidden && <span className="text-[10px] bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-gray-500 font-bold  tracking-wide">Hidden</span>}
                          </div>
                      </div>
                 </div>
@@ -235,7 +235,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                         </div>
                         
                         <div className="space-y-4 pt-2 border-t border-black/5 dark:border-white/5">
-                            <h4 className="text-xs font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Brand Identity</h4>
+                            <h4 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">Brand Identity</h4>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {isCustomUpload ? (
@@ -252,7 +252,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         <button 
                                             type="button" 
                                             onClick={() => setLogo('')} 
-                                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 self-start transition-colors"
+                                            className="text-[10px] font-black  tracking-widest text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 self-start transition-colors"
                                         >
                                             Remove Custom Logo
                                         </button>
@@ -275,7 +275,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
 
                                 {isCustomUpload ? (
                                     <div className="flex flex-col justify-center">
-                                         <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Logo Precedence</p>
+                                         <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">Logo Precedence</p>
                                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 leading-relaxed">
                                              This custom logo overrides Brandfetch lookups and is synchronized globally across all of your telemetry reports.
                                          </p>
@@ -296,7 +296,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             className="hidden" 
                                         />
                                         <span className="material-symbols-outlined text-xl text-light-text-secondary dark:text-dark-text-secondary mb-0.5">upload_file</span>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text">Upload Custom Logo</p>
+                                        <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Upload Custom Logo</p>
                                         <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Drag-and-drop or click here</p>
                                     </div>
                                 )}
@@ -341,21 +341,21 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                     <div className="space-y-6">
                         <div className="grid grid-cols-3 gap-4">
                              <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1">Lifetime</p>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1">Lifetime</p>
                                  <p className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(stats.totalAmount, 'EUR')}</p>
                              </div>
                              <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1">Avg Ticket</p>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1">Avg Ticket</p>
                                  <p className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(stats.averageAmount, 'EUR')}</p>
                              </div>
                              <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1">Transactions</p>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1">Transactions</p>
                                  <p className="text-lg font-bold text-light-text dark:text-dark-text">{stats.totalCount}</p>
                              </div>
                         </div>
 
                         <div className="h-48 w-full">
-                            <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-2">Spending Trend (6mo)</h4>
+                            <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-2">Spending Trend (6mo)</h4>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={stats.chartData}>
                                     <Tooltip 

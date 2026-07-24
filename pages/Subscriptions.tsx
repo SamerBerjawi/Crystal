@@ -418,7 +418,7 @@ const Subscriptions: React.FC = () => {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-2 opacity-60">
-                                     <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.1em]">{formatCurrency(yearlySpend, 'EUR')} / Year</span>
+                                     <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.1em]">{formatCurrency(yearlySpend, 'EUR')} / Year</span>
                                 </div>
                             </div>
 
@@ -477,7 +477,7 @@ const Subscriptions: React.FC = () => {
                                                 <span className="material-symbols-outlined text-base text-amber-500/70">timer</span>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Expiring 30d</span>
+                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Expiring 30d</span>
                                                 <span className="text-sm font-black text-light-text dark:text-dark-text">{expiringMemberships}</span>
                                             </div>
                                         </div>
@@ -486,7 +486,7 @@ const Subscriptions: React.FC = () => {
                                                 <span className="material-symbols-outlined text-base text-primary-500/70">category</span>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Categories</span>
+                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Categories</span>
                                                 <span className="text-sm font-black text-light-text dark:text-dark-text">{sortedMembershipCategories.length}</span>
                                             </div>
                                         </div>
@@ -498,7 +498,7 @@ const Subscriptions: React.FC = () => {
                                                 <span className="material-symbols-outlined text-base text-rose-500/70">event_upcoming</span>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Next 7 Days</span>
+                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Next 7 Days</span>
                                                 <span className="text-sm font-black text-light-text dark:text-dark-text">{dueSoonCount}</span>
                                             </div>
                                         </div>
@@ -507,7 +507,7 @@ const Subscriptions: React.FC = () => {
                                                 <span className="material-symbols-outlined text-base text-primary-500/70">subscriptions</span>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Active Subscriptions</span>
+                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Active Subscriptions</span>
                                                 <span className="text-sm font-black text-light-text dark:text-dark-text">{totalCount}</span>
                                             </div>
                                         </div>
@@ -537,7 +537,7 @@ const Subscriptions: React.FC = () => {
                                     <div className="relative z-10">
                                         <div className="flex items-center gap-3 mb-6 bg-white/10 w-fit px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/20">
                                             <span className="material-symbols-outlined text-sm text-yellow-300">verified</span>
-                                            <h3 className="text-xs font-black uppercase tracking-widest text-white/90">Smart Detection</h3>
+                                            <h3 className="text-xs font-bold tracking-tight text-white/90">Smart Detection</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {detectedSubscriptions.map((sub) => {
@@ -547,19 +547,19 @@ const Subscriptions: React.FC = () => {
                                                     <div key={sub.key} className="bg-white/10 backdrop-blur-2xl px-5 py-4 rounded-3xl border border-white/10 flex flex-col justify-between group hover:bg-white/20 transition-all">
                                                         <div className="flex items-start justify-between gap-4 mb-4">
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/20 shadow-xl ${hasLogo ? 'bg-white' : 'bg-white/10'}`}>
-                                                                    {hasLogo ? (<img src={logoUrl!} alt="" className="w-full h-full object-contain" onError={() => handleLogoError(logoUrl!)} />) : (<span className="text-lg font-black text-white/40">{sub.merchant.charAt(0).toUpperCase()}</span>)}
+                                                                <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center overflow-hidden ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-white/10'}`}>
+                                                                    {hasLogo ? (<img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />) : (<span className="text-lg font-black text-white/40">{sub.merchant.charAt(0).toUpperCase()}</span>)}
                                                                 </div>
                                                                 <div className="min-w-0">
-                                                                    <h4 className="text-white font-black text-sm tracking-tight truncate leading-none mb-1">{sub.merchant}</h4>
-                                                                    <span className="text-[9px] font-black uppercase text-white/50 tracking-widest">{sub.frequency}</span>
+                                                                    <h4 className="text-white font-bold text-sm tracking-tight truncate leading-none mb-1">{sub.merchant}</h4>
+                                                                    <span className="text-[9px] font-black  text-white/50 tracking-widest">{sub.frequency}</span>
                                                                 </div>
                                                             </div>
                                                             <p className="text-base font-black text-white tracking-tighter">{formatCurrency(sub.amount, sub.currency)}</p>
                                                         </div>
                                                         <div className="flex gap-2">
-                                                            <button onClick={() => handleIgnore(sub.key)} className="flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white/100 hover:bg-white/10 rounded-lg">Ignore</button>
-                                                            <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest bg-white text-primary-700 rounded-lg shadow-lg">Track</button>
+                                                            <button onClick={() => handleIgnore(sub.key)} className="flex-1 py-1.5 text-[9px] font-black  tracking-widest text-white/40 hover:text-white/100 hover:bg-white/10 rounded-lg">Ignore</button>
+                                                            <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 text-[9px] font-black  tracking-widest bg-white text-primary-700 rounded-lg shadow-lg">Track</button>
                                                         </div>
                                                     </div>
                                                 )
@@ -571,7 +571,7 @@ const Subscriptions: React.FC = () => {
 
                             <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm">
                                 <div className="flex items-center justify-between pb-6 border-b border-black/5 dark:border-white/5 mb-6">
-                                    <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
+                                    <div className="flex items-center gap-3 text-xs font-bold  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
                                          <span className="material-symbols-outlined text-primary-500">subscriptions</span>
                                          <span>Active Subscriptions</span>
                                     </div>
@@ -601,12 +601,12 @@ const Subscriptions: React.FC = () => {
                                                     <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex items-center gap-4">
-                                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white shadow-sm' : 'bg-gray-200 dark:bg-white/10'}`}>
-                                                                    {hasLogo ? (<img src={logoUrl!} alt="" className="w-8 h-8 object-contain" onError={() => handleLogoError(logoUrl!)} />) : (<span className="text-xl font-black text-gray-400 truncate">{merchantName.charAt(0)}</span>)}
+                                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-200 dark:bg-white/10'}`}>
+                                                                    {hasLogo ? (<img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />) : (<span className="text-xl font-black text-gray-400 truncate">{merchantName.charAt(0)}</span>)}
                                                                 </div>
                                                                 <div className="min-w-0">
-                                                                    <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate leading-tight uppercase tracking-tight">{merchantName}</h4>
-                                                                    <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary tracking-widest uppercase opacity-60">{sub.frequency}</p>
+                                                                    <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{merchantName}</h4>
+                                                                    <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary tracking-widest  opacity-60">{sub.frequency}</p>
                                                                 </div>
                                                             </div>
                                                             <div className="text-right">
@@ -617,7 +617,7 @@ const Subscriptions: React.FC = () => {
                                                         <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
                                                             <div className="flex items-center gap-2">
                                                                 <span className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-rose-500 animate-pulse' : isDueSoon ? 'bg-orange-500' : 'bg-emerald-500'}`} />
-                                                                <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.1em]">
+                                                                <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.1em]">
                                                                     {isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due ${nextDueDate.toLocaleDateString()}`}
                                                                 </span>
                                                             </div>
@@ -647,7 +647,7 @@ const Subscriptions: React.FC = () => {
                                         return (
                                             <div key={category} className="space-y-6">
                                                 <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/5">
-                                                    <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                                    <h4 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                                         {category}
                                                         <span className="px-2 py-0.5 rounded-full bg-light-fill dark:bg-dark-fill text-[9px] font-black">{cards.length}</span>
                                                     </h4>
@@ -671,7 +671,7 @@ const Subscriptions: React.FC = () => {
                                     <div className="w-20 h-20 bg-light-fill dark:bg-dark-fill rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300 dark:text-gray-700 shadow-inner">
                                         <span className="material-symbols-outlined text-4xl">loyalty</span>
                                     </div>
-                                    <h3 className="text-lg font-black text-light-text dark:text-dark-text tracking-tighter">Your wallet is empty</h3>
+                                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tighter">Your wallet is empty</h3>
                                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mt-2 font-medium">Keep your cards and programs in one place.</p>
                                     <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} mt-8`}>Add Card</button>
                                 </div>

@@ -5,6 +5,7 @@ import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar, Cell } from 'recharts';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 
 interface CashAccountViewProps {
   account: Account;
@@ -55,7 +56,7 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             </div>
             <div className="mt-6 relative z-10">
                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
-                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
                 {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
@@ -145,9 +146,21 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   }, [account.balance, totalOutflow]);
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText="Cash Asset"
+        subText={`${account.currency} Physical Reserve`}
+        primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
+        secondaryAction={{ label: 'Adjust', icon: 'balance', onClick: onAdjustBalance }}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex items-center gap-6">
               <button 
                   onClick={onBack}
@@ -293,7 +306,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                         padding: '16px' 
                                     }}
                                     itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
-                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px',  letterSpacing: '0.1em', fontSize: '10px' }}
                                     formatter={(value: number, name: string) => [`${formatCurrency(value, account.currency)}`, name]}
                                 />
                                 <Bar dataKey="income" name="Intake" stackId="a" fill="#10B981" radius={[0, 0, 12, 12]} />
@@ -310,8 +323,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
             <div className="lg:col-span-8 bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                 <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                     <div>
-                        <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Reserve journal</h3>
-                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Complete history of manual flow logs</p>
+                        <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1">Reserve journal</h3>
+                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest ">Complete history of manual flow logs</p>
                     </div>
                 </div>
                 <div className="flex-grow min-h-[400px]">
@@ -328,7 +341,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
            <div className="lg:col-span-4 space-y-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Settlement Engine', value: account.currency },
@@ -337,7 +350,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                             { label: 'Logical Serial', value: account.id.slice(0, 8), isMono: true }
                         ].map((item, idx) => (
                             <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
                                 <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>
@@ -352,7 +365,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                             </div>
                             <p className="text-[10px] font-bold text-emerald-500 tracking-wider">Physical Reserve</p>
                         </div>
-                        <p className="text-xs font-medium text-light-text-secondary/70 dark:text-dark-text-secondary/90 leading-relaxed uppercase tracking-tighter">
+                        <p className="text-xs font-medium text-light-text-secondary/70 dark:text-dark-text-secondary/90 leading-relaxed  tracking-tighter">
                             Assets are verified through periodic manual reconciliation procedures.
                         </p>
                     </div>

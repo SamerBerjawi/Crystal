@@ -166,7 +166,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         onClose();
     };
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-2";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-2";
     const modalTitle = isEditing ? 'Edit Transaction' : 'Add Transaction';
     const totalValue = (parseFloat(quantity) || 0) * (parseFloat(price) || 0);
 
@@ -184,14 +184,14 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                     <button 
                         type="button" 
                         onClick={() => setType('buy')} 
-                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${type === 'buy' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-md ring-1 ring-emerald-500/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 opacity-60'}`}
+                        className={`flex-1 py-3 text-[10px] font-black  tracking-[0.2em] rounded-xl transition-all ${type === 'buy' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-md ring-1 ring-emerald-500/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 opacity-60'}`}
                     >
                         Execute Buy
                     </button>
                     <button 
                         type="button" 
                         onClick={() => setType('sell')} 
-                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${type === 'sell' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-md ring-1 ring-rose-500/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 opacity-60'}`}
+                        className={`flex-1 py-3 text-[10px] font-black  tracking-[0.2em] rounded-xl transition-all ${type === 'sell' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-md ring-1 ring-rose-500/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 opacity-60'}`}
                     >
                         Execute Sell
                     </button>
@@ -199,7 +199,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                 
                 {/* 2. Hero Amount Section */}
                 <div className="bg-white dark:bg-black/20 p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 space-y-4 flex flex-col items-center shadow-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-70">Projected Total Value</p>
+                    <p className="text-[10px] font-black  tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-70">Projected Total Value</p>
                     <div className="relative group w-full max-w-[320px] flex justify-center py-2">
                         <div className="text-7xl font-black tracking-tighter tabular-nums flex items-baseline gap-3 text-light-text dark:text-dark-text">
                             <span className="text-3xl text-gray-300 dark:text-gray-700 font-medium">€</span>
@@ -211,7 +211,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
 
                 {/* 3. Asset Details Card */}
                 <div className="p-6 bg-light-fill dark:bg-dark-fill/50 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary-500 text-lg">database</span>
                         Asset Parameters
                     </h4>
@@ -231,7 +231,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                     }} 
                                     onFocus={() => setShowSuggestions(true)}
                                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                    className={`${INPUT_BASE_STYLE} uppercase pl-12 font-black h-14 tracking-widest !text-xl`} 
+                                    className={`${INPUT_BASE_STYLE}  pl-12 font-black h-14 tracking-widest !text-xl`} 
                                     placeholder="TICKER..." 
                                     required 
                                     autoFocus 
@@ -258,7 +258,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                             }}
                                         >
                                             <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 group-active:scale-95 transition-transform">{acc.symbol}</span>
-                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate font-black uppercase tracking-widest opacity-60">{acc.name}</span>
+                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate font-black  tracking-widest opacity-60">{acc.name}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -267,7 +267,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
 
                         <div className="space-y-2">
                             <label htmlFor="inv-date" className={labelStyle}>Fiscal Execution Date</label>
-                            <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-tighter`} required />
+                            <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black  tracking-tighter`} required />
                         </div>
                     </div>
 
@@ -294,13 +294,13 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                             <span className="material-symbols-outlined text-emerald-500">inventory_2</span>
                                         </div>
                                         <div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-400">Available Inventory</span>
+                                            <span className="text-[10px] font-black  tracking-widest text-emerald-800 dark:text-emerald-400">Available Inventory</span>
                                             <p className="text-lg font-black tabular-nums">{currentQuantity.toLocaleString()}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2 w-full sm:w-auto">
                                         {[0.25, 0.5, 1].map(p => (
-                                            <button key={p} type="button" onClick={() => setQuantity(String(currentQuantity * p))} className="flex-1 sm:flex-none px-4 py-2 text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-xl hover:brightness-95 active:scale-95 transition-all uppercase tracking-widest">
+                                            <button key={p} type="button" onClick={() => setQuantity(String(currentQuantity * p))} className="flex-1 sm:flex-none px-4 py-2 text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-xl hover:brightness-95 active:scale-95 transition-all  tracking-widest">
                                                 {p * 100}%
                                             </button>
                                         ))}
@@ -311,12 +311,12 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                                     <div className="space-y-2">
                                         <label htmlFor="inv-name" className={labelStyle}>Asset Designation</label>
-                                        <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 text-sm font-black uppercase`} placeholder="COMPANY NAME" required />
+                                        <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={`${INPUT_BASE_STYLE} h-12 text-sm font-black `} placeholder="COMPANY NAME" required />
                                     </div>
                                     <div className="space-y-2">
                                         <label className={labelStyle}>Instrument Sub-Type</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-12 text-sm font-black uppercase tracking-widest`} required>
+                                            <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-12 text-sm font-black  tracking-widest`} required>
                                                 {INVESTMENT_SUB_TYPES.map(subType => <option key={subType} value={subType}>{subType}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -337,8 +337,8 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                     <span className="material-symbols-outlined">payments</span>
                                 </div>
                                 <div className="space-y-0.5">
-                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text">Funding Pipeline</h4>
-                                    <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary font-black tracking-widest uppercase opacity-60">Automated Ledger Posting</p>
+                                    <h4 className="text-[11px] font-bold tracking-[0.2em] text-light-text dark:text-dark-text">Funding Pipeline</h4>
+                                    <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary font-black tracking-widest  opacity-60">Automated Ledger Posting</p>
                                 </div>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -351,10 +351,10 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                             <div className="pt-6 mt-6 border-t border-primary-500/10 animate-fade-in space-y-2">
                                 <label className={labelStyle}>Origin / Target Node</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black uppercase tracking-tight`} required>
+                                    <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black  tracking-tight`} required>
                                         <option value="" disabled className="text-gray-400">SELECT LIQUIDITY NODE...</option>
                                         {Object.entries(groupedCashAccounts).map(([type, group]) => (
-                                            <optgroup key={type} label={type} className="font-black uppercase tracking-widest bg-gray-50 dark:bg-dark-bg p-2 text-[10px]">
+                                            <optgroup key={type} label={type} className="font-black  tracking-widest bg-gray-50 dark:bg-dark-bg p-2 text-[10px]">
                                                 {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                             </optgroup>
                                         ))}
@@ -367,8 +367,8 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                 )}
                 
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-widest text-[10px] font-black`}>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black`}>
                         {isEditing ? 'Commit Changes' : 'Execute Order'}
                         <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">rocket_launch</span>
                     </button>

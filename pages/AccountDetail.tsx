@@ -548,9 +548,11 @@ const AccountDetail: React.FC<{
                 {renderContent()}
             </Suspense>
 
-            <div className="mt-8">
-                <HistoricalBalanceTrend account={account} transactions={transactions} />
-            </div>
+            {account.type !== 'Checking' && account.type !== 'Savings' && (
+                <div className="mt-8">
+                    <HistoricalBalanceTrend account={account} transactions={transactions} />
+                </div>
+            )}
         </>
     );
 };

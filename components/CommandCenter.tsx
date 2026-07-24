@@ -182,7 +182,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                            <span className="material-symbols-outlined text-[22px] sm:text-[24px]">{item.icon}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className={`font-black text-[13px] sm:text-sm uppercase tracking-widest truncate ${index === selectedIndex ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                          <p className={`font-black text-[13px] sm:text-sm  tracking-widest truncate ${index === selectedIndex ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
                             {item.title}
                           </p>
                           {item.subtitle && (
@@ -192,7 +192,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                       </div>
                       {index === selectedIndex && (
                         <div className="hidden sm:flex items-center gap-2 pr-2">
-                            <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Select</span>
+                            <span className="text-[10px] font-black text-white/60  tracking-[0.2em]">Select</span>
                             <kbd className="px-2 py-1 rounded-lg bg-white/20 text-[10px] font-black text-white">ENTER</kbd>
                         </div>
                       )}
@@ -214,14 +214,14 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2">
                     <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-black text-gray-500 shadow-sm">↑↓</kbd>
-                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Navigate</span>
+                    <span className="text-[10px] text-gray-400  font-black tracking-widest">Navigate</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-[10px] font-black text-gray-500 shadow-sm">Enter</kbd>
-                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Execute</span>
+                    <span className="text-[10px] text-gray-400  font-black tracking-widest">Execute</span>
                   </div>
                </div>
-               <div className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] opacity-40">
+               <div className="text-[10px] text-gray-400 font-black  tracking-[0.2em] opacity-40">
                   Shortcut: <kbd className="font-mono text-primary-500">⌘ K</kbd>
                </div>
             </div>

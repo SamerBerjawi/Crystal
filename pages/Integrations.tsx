@@ -54,7 +54,7 @@ const ApiKeyCard = ({
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
                     <span className="material-symbols-outlined text-2xl">{icon}</span>
                 </div>
-                <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isConfigured ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10'}`}>
+                <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold  tracking-wide border ${isConfigured ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10'}`}>
                     {isConfigured ? 'Active' : 'Setup Required'}
                 </div>
             </div>
@@ -133,7 +133,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
         <nav className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -154,7 +154,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
       <section className="space-y-6">
           <div className="flex items-center gap-3 px-2">
               <div className="w-2 h-6 bg-primary-500 rounded-full"></div>
-              <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Intelligence & Enrichment</h3>
+              <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Intelligence & Enrichment</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <ApiKeyCard
@@ -186,7 +186,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
       <section className="space-y-6">
            <div className="flex items-center gap-3 px-2">
               <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
-              <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-widest opacity-60">Synchronization Vault</h3>
+              <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Synchronization Vault</h3>
           </div>
           <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
                <EnableBankingIntegrationCard

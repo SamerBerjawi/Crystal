@@ -21,10 +21,10 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-neutral-900 p-4 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider text-[10px]">{`${payload[0].name}`}</p>
+          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2  tracking-wider text-[10px]">{`${payload[0].name}`}</p>
           <div className="flex items-center justify-between gap-6">
             <span className="text-xs font-black" style={{ color: payload[0].payload.fill }}>{formatCurrency(payload[0].value, 'EUR')}</span>
-            <span className="text-[10px] font-black text-neutral-700 dark:text-neutral-300 uppercase tracking-widest">{`(${(payload[0].percent * 100).toFixed(1)}%)`}</span>
+            <span className="text-[10px] font-black text-neutral-700 dark:text-neutral-300  tracking-widest">{`(${(payload[0].percent * 100).toFixed(1)}%)`}</span>
           </div>
         </div>
       );
@@ -66,7 +66,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
                         verticalAlign="middle" 
                         align="right" 
                         formatter={(value: string) => (
-                            <span className="text-[10px] font-bold text-light-text-secondary dark:text-gray-300 uppercase tracking-widest">{value}</span>
+                            <span className="text-[10px] font-bold text-light-text-secondary dark:text-gray-300  tracking-widest">{value}</span>
                         )}
                     />
                 )}
@@ -76,7 +76,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
             className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none"
             style={{ left: textLeft }}
         >
-            <span className="text-light-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-widest leading-none mb-1">Total Value</span>
+            <span className="text-light-text-secondary dark:text-gray-400 text-xs font-bold  tracking-widest leading-none mb-1">Total Value</span>
             <span className="text-2xl font-black text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</span>
         </div>
     </div>

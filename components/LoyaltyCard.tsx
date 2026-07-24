@@ -101,12 +101,12 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
         {/* Top: Branding */}
         <div className="flex justify-between items-start">
              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl backdrop-blur-xl flex items-center justify-center overflow-hidden border border-white/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 ${hasLogo ? 'bg-white' : 'bg-white/10'}`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-white/10'}`}>
                     {hasLogo ? (
                         <img 
                             src={logoUrl!} 
                             alt={membership.provider} 
-                            className="w-8 h-8 object-contain" 
+                            className="w-full h-full object-cover" 
                             onError={() => setLogoError(true)}
                         />
                     ) : (
@@ -115,15 +115,15 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                 </div>
                 
                 <div className="flex flex-col">
-                    <h3 className="font-black text-xl leading-none drop-shadow-lg tracking-tight uppercase">{membership.provider}</h3>
+                    <h3 className="font-bold text-xl leading-none drop-shadow-lg tracking-tight">{membership.provider}</h3>
                     {membership.tier && (
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mt-1">{membership.category || 'Membership'}</span>
+                        <span className="text-[10px] font-black  tracking-[0.2em] text-white/60 mt-1">{membership.category || 'Membership'}</span>
                     )}
                 </div>
              </div>
              
              {membership.tier && (
-                <div className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-xl border border-white/10 shadow-lg group-hover:bg-white transition-colors group-hover:text-black">
+                <div className="px-3 py-1 rounded-xl text-[9px] font-black  tracking-widest bg-white/20 backdrop-blur-xl border border-white/10 shadow-lg group-hover:bg-white transition-colors group-hover:text-black">
                     {membership.tier}
                 </div>
              )}
@@ -135,7 +135,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                 onClick={handleCopyId}
                 className="group/id inline-flex flex-col text-left hover:bg-white/10 p-2 -ml-2 rounded-2xl transition-all duration-300 relative w-fit"
              >
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/50 mb-1">Asset ID</span>
+                <span className="text-[9px] font-black  tracking-widest text-white/50 mb-1">Asset ID</span>
                 <div className="flex items-center gap-4">
                     <span className="font-mono text-2xl font-bold tracking-[0.15em] drop-shadow-xl text-white">
                         {membership.memberId}
@@ -152,11 +152,11 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
         {/* Bottom Details Grid */}
         <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
              <div className="flex flex-col gap-1">
-                <span className="text-[8px] font-black uppercase tracking-widest text-white/40">Holder</span>
+                <span className="text-[8px] font-black  tracking-widest text-white/40">Holder</span>
                 <span className="text-xs font-black tracking-tight truncate">{membership.holderName || 'Card Holder'}</span>
              </div>
              <div className="flex flex-col gap-1 text-right">
-                <span className="text-[8px] font-black uppercase tracking-widest text-white/40">Status / Balance</span>
+                <span className="text-[8px] font-black  tracking-widest text-white/40">Status / Balance</span>
                 <span className="text-xs font-black tracking-tight text-white tabular-nums">
                     {membership.points || (isExpired ? 'EXPIRED' : formattedExpiry !== 'Never' ? `VAL: ${formattedExpiry}` : 'ACTIVE')}
                 </span>

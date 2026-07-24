@@ -34,7 +34,7 @@ interface EntityItem {
 const StatCard: React.FC<{ title: string; value: string | number; icon: string; colorClass: string }> = ({ title, value, icon, colorClass }) => (
     <div className="bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
         <div>
-            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
+            <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
             <p className="text-2xl font-bold text-light-text dark:text-dark-text">{value}</p>
         </div>
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}>
@@ -161,7 +161,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const hiddenMerchants = usePreferencesSelector(p => p.hiddenMerchants || []);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'count' | 'value' | 'recent'>('count');
+  const [sortBy, setSortBy] = useState<'name' | 'count' | 'value' | 'recent'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list'); // Default to list for better management view
   const [showHidden, setShowHidden] = useState(false);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
@@ -507,7 +507,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         <nav className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -537,7 +537,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {/* Telemetry Optimization Center Action Panel */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between bg-black/[0.02]/5 dark:bg-zinc-800/40 p-4 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm">
             <div className="flex flex-col justify-center">
-                <h3 className="text-xs font-black uppercase tracking-wider text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
+                <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
                 <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
                     Deploy complex regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
                 </p>
@@ -546,14 +546,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                 <button
                     onClick={handleRefreshLogos}
                     disabled={isRefreshing}
-                    className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-500/40 text-white text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
+                    className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-500/40 text-white text-[10px] font-black  tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
                 >
                     <span className={`material-symbols-outlined text-sm ${isRefreshing ? 'animate-spin' : ''}`}>sync_saved_locally</span>
                     {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
                 </button>
                 <button
                     onClick={() => setIsRegexModalOpen(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-dark-card hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text border border-black/5 dark:border-white/5 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
+                    className="flex items-center gap-2 bg-white dark:bg-dark-card hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text border border-black/5 dark:border-white/5 text-[10px] font-black  tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
                 >
                     <span className="material-symbols-outlined text-sm">assignment_turned_in</span>
                     Regex Routing Rules
@@ -564,7 +564,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {/* Real-time Enrichment Progress Indicator */}
         {isRefreshing && (
             <div className="bg-primary-500/10 border border-primary-500/20 rounded-3xl p-5 space-y-3 animate-pulse">
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                <div className="flex justify-between items-center text-[10px] font-black  tracking-widest text-primary-600 dark:text-primary-400">
                     <span>Branding Telemetry Lookup Pipeline In Progress</span>
                     <span>{refreshProgress.current} / {refreshProgress.total}</span>
                 </div>
@@ -613,7 +613,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     placeholder="Query entities..." 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold uppercase tracking-widest placeholder:text-light-text-secondary/30 dark:placeholder:text-dark-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold  tracking-widest placeholder:text-light-text-secondary/30 dark:placeholder:text-dark-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
                 />
            </div>
            
@@ -629,7 +629,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                       <div className="w-10 h-6 bg-black/5 dark:bg-white/5 rounded-full peer-checked:bg-primary-500 transition-colors"></div>
                       <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-4 transition-transform shadow-sm"></div>
                    </div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
+                   <span className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
                </label>
 
                <div className="h-8 w-px bg-black/5 dark:bg-white/5"></div>
@@ -653,7 +653,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                    <select 
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value as any)} 
-                        className="appearance-none bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-xl pl-4 pr-10 py-3 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm cursor-pointer"
+                        className="appearance-none bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-xl pl-4 pr-10 py-3 text-[10px] font-black  tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm cursor-pointer"
                    >
                        <option value="count">Most Frequent</option>
                        <option value="value">Highest Volume</option>
@@ -672,9 +672,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-3xl opacity-20">search_off</span>
               </div>
-              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Zero Results Found</p>
+              <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Zero Results Found</p>
               {stats.missingCount > 0 && (
-                  <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mt-4">
+                  <p className="text-[10px] font-bold text-orange-500  tracking-widest mt-4">
                     Audit required: {stats.missingCount} ambiguous records detected.
                   </p>
               )}
@@ -698,7 +698,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     className={`relative group bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-3xl p-6 cursor-pointer hover:border-primary-500/20 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 ${isHidden ? 'opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
                 >
                     <div className="flex justify-between items-start mb-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white' : 'bg-gradient-to-br from-black/[0.02] to-black/[0.1] dark:from-white/[0.02] dark:to-white/[0.1]'}`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gradient-to-br from-black/[0.02] to-black/[0.1] dark:from-white/[0.02] dark:to-white/[0.1]'}`}>
                             {hasLogo && previewUrl ? (
                               <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
                             ) : (
@@ -706,11 +706,11 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                             )}
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
+                            <span className={`text-[9px] font-black  tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
                                 {entity.type === 'Institution' ? 'Core' : 'Merch'}
                             </span>
                             {entity.rule?.category && (
-                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase tracking-tighter truncate max-w-[100px]">
+                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-tighter truncate max-w-[100px]">
                                     {entity.rule.category}
                                 </span>
                             )}
@@ -719,14 +719,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
                     <div className="space-y-4">
                         <div>
-                            <h3 className="font-black text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40 uppercase tracking-widest">
+                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest">
                                 {entity.count} Observed Events
                             </p>
                         </div>
                         
                         <div className="pt-4 border-t border-black/5 dark:border-white/5">
-                            <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-40 uppercase tracking-widest mb-1">
+                            <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest mb-1">
                                 Cumulative
                             </p>
                             <p className={`font-mono font-black text-xl tracking-tighter ${accentColor}`}>
@@ -743,12 +743,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               <table className="w-full text-left text-sm border-collapse">
                   <thead>
                       <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Identifier</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Classification</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Frequency</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Last Sync</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Activity Trend (6m)</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest text-right">Total Exposure</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">Identifier</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">Classification</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Frequency</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Last Sync</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Activity Trend (6m)</th>
+                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Total Exposure</th>
                           <th className="px-8 py-5 w-20"></th>
                       </tr>
                   </thead>
@@ -767,7 +767,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                               >
                                   <td className="px-8 py-5">
                                       <div className="flex items-center gap-4">
-                                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white' : 'bg-black/5 dark:bg-white/5'}`}>
+                                           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-black/5 dark:bg-white/5'}`}>
                                                 {hasLogo && previewUrl ? (
                                                     <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
                                                 ) : (
@@ -775,24 +775,24 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                 )}
                                            </div>
                                            <div className="flex items-center gap-2">
-                                              <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors uppercase tracking-tight">{entity.name}</span>
+                                              <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors  tracking-tight">{entity.name}</span>
                                               {isHidden && <span className="material-symbols-outlined text-sm text-gray-400">visibility_off</span>}
                                            </div>
                                       </div>
                                   </td>
                                   <td className="px-8 py-5">
                                       {entity.rule?.category ? (
-                                          <span className="inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
+                                          <span className="inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black  tracking-widest bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
                                               {entity.rule.category}
                                           </span>
                                       ) : (
-                                          <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30 uppercase tracking-[0.2em] italic">Unclassified</span>
+                                          <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30  tracking-[0.2em] italic">Unclassified</span>
                                       )}
                                   </td>
-                                  <td className="px-8 py-5 text-right font-black text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase tracking-widest">
+                                  <td className="px-8 py-5 text-right font-black text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-widest">
                                       {entity.count} Events
                                   </td>
-                                  <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-[10px] font-black uppercase tracking-widest opacity-40">
+                                  <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-[10px] font-black  tracking-widest opacity-40">
                                       {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' }) : 'INF'}
                                   </td>
                                   <td className="px-8 py-5">

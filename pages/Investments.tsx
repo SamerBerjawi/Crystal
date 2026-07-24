@@ -805,7 +805,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             <span className="material-symbols-outlined text-base text-primary-500/70">{detail.icon}</span>
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">{detail.label}</span>
+                                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">{detail.label}</span>
                                             <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
                                         </div>
                                      </div>
@@ -814,7 +814,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         </AnimatePresence>
 
                         <div className="flex items-center gap-3 flex-wrap">
-                             <label className="flex items-center gap-2 text-[10px] bg-light-fill dark:bg-dark-fill px-4 h-9 rounded-xl font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                             <label className="flex items-center gap-2 text-[10px] bg-light-fill dark:bg-dark-fill px-4 h-9 rounded-xl font-bold  tracking-widest text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                 <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                                 <span>Inactive</span>
                             </label>
@@ -827,7 +827,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <div className="xl:col-span-8 space-y-8">
                         <Card className="!p-0 overflow-hidden border-none shadow-sm">
                             <div className="px-6 py-5 flex justify-between items-center border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                                <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
+                                <div className="flex items-center gap-3 text-xs font-bold  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
                                     <span className="material-symbols-outlined text-primary-500">list_alt</span>
                                     <span>{activeSegment === 'all' ? 'All Holdings' : `${segments.find(s => s.id === activeSegment)?.label} Positions`}</span>
                                 </div>
@@ -835,7 +835,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-white dark:bg-dark-card">
-                                        <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5">
+                                        <tr className="text-[10px] font-bold text-gray-400  tracking-[0.2em] border-b border-black/5 dark:border-white/5">
                                             <th className="py-4 pl-4 sm:pl-6">Instrument</th>
                                             <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
                                             <th className="py-4 text-right hidden lg:table-cell">Qty</th>
@@ -855,7 +855,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         ) : (
                                             holdingsByType.flatMap(([typeName, holdings]) => ([
                                                 <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
-                                                    <td colSpan={7} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                                                    <td colSpan={7} className="py-2 pl-6 text-[10px] font-black  tracking-widest text-primary-600 dark:text-primary-400">
                                                         {typeName}
                                                     </td>
                                                 </tr>,
@@ -1053,8 +1053,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             {item.type.substring(0, 1)}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold dark:text-white uppercase tracking-tight">{item.symbol}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
+                                            <p className="text-sm font-bold dark:text-white  tracking-tight">{item.symbol}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold  tracking-widest">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
                                         </div>
                                     </div>
                                     <div className="text-right flex items-center gap-6">
@@ -1084,8 +1084,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                      {/* Exposure Chart */}
                     <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
-                            <button className="text-[10px] font-bold text-primary-500 uppercase tracking-widest hover:underline">Analysis</button>
+                            <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
+                            <button className="text-[10px] font-bold text-primary-500  tracking-widest hover:underline">Analysis</button>
                         </div>
                         <div className="h-48 relative mb-6">
                             <ResponsiveContainer width="100%" height="100%">
@@ -1118,7 +1118,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold tracking-widest">Total</span>
+                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary  font-bold tracking-widest">Total</span>
                                 <span className="text-lg font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(totalValue, 'EUR')}</span>
                             </div>
                         </div>
@@ -1139,7 +1139,7 @@ const Investments: React.FC<InvestmentsProps> = ({
 
                     {/* Performance Rankings */}
                     <Card>
-                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
+                        <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
                         <div className="space-y-4">
                             {displayHoldings
                                 .map(h => ({ ...h, gain: h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
@@ -1165,7 +1165,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     {/* Historic Performance / Realized Gains Widget */}
                     <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">workspace_premium</span>
                                 <span>Realized Return</span>
                             </h3>
@@ -1175,12 +1175,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                         </div>
 
                         <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.03] mb-6">
-                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 uppercase">Total Realized Returns</span>
+                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Total Realized Returns</span>
                             <div className="flex items-baseline gap-2 mt-1">
                                 <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(realizedPerformance.totalRealizedGain, 'EUR')}
                                 </h4>
-                                <span className="text-[10px] text-gray-400 font-bold uppercase">
+                                <span className="text-[10px] text-gray-400 font-bold ">
                                     {realizedPerformance.winsCount + realizedPerformance.lossesCount} closed trades
                                 </span>
                             </div>

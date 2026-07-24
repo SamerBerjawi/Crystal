@@ -87,7 +87,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
     onClose();
   };
 
-  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1";
+  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1";
 
   return (
     <>
@@ -130,7 +130,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                         type="text" 
                         value={provider} 
                         onChange={e => setProvider(e.target.value)} 
-                        className={`${INPUT_BASE_STYLE} !text-2xl !h-14 font-black tracking-tight uppercase`} 
+                        className={`${INPUT_BASE_STYLE} !text-2xl !h-14 font-black tracking-tight `} 
                         placeholder="e.g. Starbucks" 
                         required 
                         autoFocus 

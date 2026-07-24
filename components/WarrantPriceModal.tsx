@@ -406,14 +406,14 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                             <button
                                 type="button"
                                 onClick={() => setMode('single')}
-                                className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${mode === 'single' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
+                                className={`flex-1 py-2.5 text-[10px] font-black  tracking-widest rounded-xl transition-all ${mode === 'single' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
                             >
                                 Single Entry
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setMode('bulk')}
-                                className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${mode === 'bulk' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
+                                className={`flex-1 py-2.5 text-[10px] font-black  tracking-widest rounded-xl transition-all ${mode === 'bulk' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
                             >
                                 Bulk Manifest
                             </button>
@@ -424,8 +424,8 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                 <span className="material-symbols-outlined text-amber-500">analytics</span>
                             </div>
                             <div className="space-y-0.5 text-left">
-                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-600 dark:text-amber-400 opacity-70">Current Asset</span>
-                                <p className="text-lg font-black text-light-text dark:text-dark-text uppercase tracking-tight truncate max-w-[240px]">{name}</p>
+                                <span className="text-[10px] font-black  tracking-[0.25em] text-amber-600 dark:text-amber-400 opacity-70">Current Asset</span>
+                                <p className="text-lg font-black text-light-text dark:text-dark-text  tracking-tight truncate max-w-[240px]">{name}</p>
                             </div>
                         </div>
                     </div>
@@ -435,7 +435,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                     <div className="space-y-8 animate-fade-in">
                         {/* Entry Card */}
                         <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">payments</span>
                                 Valuation Parameters
                             </h4>
@@ -447,7 +447,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                         type="date"
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
-                                        className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest`}
+                                        className={`${INPUT_BASE_STYLE} h-14 font-black  tracking-widest`}
                                         required
                                         disabled={!!initialEntry}
                                     />
@@ -477,13 +477,13 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                         <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
                                             <span className="material-symbols-outlined text-lg">auto_fix</span>
                                         </div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 dark:text-indigo-400">Autonomous Retrieval</span>
+                                        <span className="text-[10px] font-black  tracking-[0.25em] text-indigo-600 dark:text-indigo-400">Autonomous Retrieval</span>
                                     </div>
                                     <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
                                         <button
                                             type="button"
                                             onClick={handleFetchLatestPrice}
-                                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${!isFetching ? 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card' : 'opacity-50'}`}
+                                            className={`px-3 py-1.5 text-[9px] font-black  tracking-widest rounded-lg transition-all ${!isFetching ? 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card' : 'opacity-50'}`}
                                             disabled={isFetching}
                                         >
                                             {isFetching ? 'Syncing...' : 'Twelve Data'}
@@ -491,7 +491,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                         <button
                                             type="button"
                                             onClick={() => setIsSmartFetcherOpen(prev => !prev)}
-                                            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${isSmartFetcherOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card'}`}
+                                            className={`px-3 py-1.5 text-[9px] font-black  tracking-widest rounded-lg transition-all ${isSmartFetcherOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card'}`}
                                         >
                                             Smart Fetch
                                         </button>
@@ -502,7 +502,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     <div className="p-6 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-200/30 dark:border-indigo-800/20 space-y-6 animate-fade-in">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black uppercase tracking-widest text-indigo-900/40 dark:text-indigo-300/40 px-1">Source URL</label>
+                                                <label className="text-[9px] font-black  tracking-widest text-indigo-900/40 dark:text-indigo-300/40 px-1">Source URL</label>
                                                 <input
                                                     type="url"
                                                     value={smartFetcherUrl}
@@ -512,7 +512,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                 />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[9px] font-black uppercase tracking-widest text-indigo-900/40 dark:text-indigo-300/40 px-1">Session Data (Cookies)</label>
+                                                <label className="text-[9px] font-black  tracking-widest text-indigo-900/40 dark:text-indigo-300/40 px-1">Session Data (Cookies)</label>
                                                 <input
                                                     type="text"
                                                     value={smartFetcherCookies}
@@ -527,7 +527,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                             <button
                                                 type="button"
                                                 onClick={() => handleSmartFetcher()}
-                                                className="flex-1 h-12 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                                                className="flex-1 h-12 bg-indigo-600 text-white text-[10px] font-black  tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                                                 disabled={smartFetcherStatus === 'loading'}
                                             >
                                                 <span className="material-symbols-outlined text-lg">{smartFetcherStatus === 'loading' ? 'sync' : 'radar'}</span>
@@ -551,9 +551,9 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                 <div className="flex items-center justify-between px-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="material-symbols-outlined text-sm text-indigo-600">center_focus_strong</span>
-                                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</p>
+                                                        <p className="text-[10px] font-black  tracking-[0.2em] text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</p>
                                                     </div>
-                                                    <span className="text-[9px] font-black text-indigo-600/50 px-2 py-0.5 rounded-full bg-indigo-600/5 uppercase">Select Binding</span>
+                                                    <span className="text-[9px] font-black text-indigo-600/50 px-2 py-0.5 rounded-full bg-indigo-600/5 ">Select Binding</span>
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-auto pr-2 custom-scrollbar">
                                                     {smartFetcherCandidates.map(candidate => (
@@ -567,7 +567,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                             />
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="font-black text-xl tabular-nums mb-1 tracking-tight">€{candidate.value}</p>
-                                                                <p className="text-[9px] font-black opacity-60 truncate uppercase tracking-tighter">{candidate.context}</p>
+                                                                <p className="text-[9px] font-black opacity-60 truncate  tracking-tighter">{candidate.context}</p>
                                                             </div>
                                                             {smartFetcherSelection === candidate.id && <span className="material-symbols-outlined text-base absolute top-3 right-3 text-white/50">check_circle</span>}
                                                         </label>
@@ -576,7 +576,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                 <button
                                                     type="button"
                                                     onClick={applySmartSelection}
-                                                    className="w-full h-12 bg-white dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-xl border border-indigo-600/20 hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
+                                                    className="w-full h-12 bg-white dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black  tracking-widest rounded-xl border border-indigo-600/20 hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
                                                     disabled={!smartFetcherSelection}
                                                 >
                                                     Finalize & Bind Selector
@@ -592,11 +592,11 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                     <div className="space-y-8 animate-fade-in">
                         <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                             <div className="flex items-center justify-between">
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                     <span className="material-symbols-outlined text-primary-500 text-lg">description</span>
                                     Input Stream
                                 </h4>
-                                <div className="text-[9px] font-black text-primary-500/50 px-2 py-0.5 rounded-full bg-primary-500/5 uppercase tracking-widest">TSV/CSV Format</div>
+                                <div className="text-[9px] font-black text-primary-500/50 px-2 py-0.5 rounded-full bg-primary-500/5  tracking-widest">TSV/CSV Format</div>
                             </div>
                             <textarea
                                 id="bulk-data"
@@ -613,7 +613,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                             <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
                                                 <span className="material-symbols-outlined text-emerald-500 text-base">task_alt</span>
                                             </div>
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">{bulkPreview.length} Validated Data Points Detected</span>
+                                            <span className="text-[10px] font-black  tracking-[0.2em] text-emerald-700 dark:text-emerald-400">{bulkPreview.length} Validated Data Points Detected</span>
                                         </div>
                                     </motion.div>
                                 )}
@@ -625,18 +625,18 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                 <div className="flex justify-between items-center pt-8 border-t border-black/5 dark:border-white/5">
                      <div className="w-32">
                         {mode === 'single' ? (
-                            <button type="button" onClick={handleClear} className="h-12 px-6 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all active:scale-95">
+                            <button type="button" onClick={handleClear} className="h-12 px-6 text-[10px] font-black  tracking-widest text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all active:scale-95">
                                 {initialEntry ? 'Purge Record' : 'Reset Inputs'}
                             </button>
                         ) : (
-                            <button type="button" onClick={() => setBulkData('')} className="h-12 px-6 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 rounded-xl transition-all">Clear All</button>
+                            <button type="button" onClick={() => setBulkData('')} className="h-12 px-6 text-[10px] font-black  tracking-widest text-gray-400 hover:text-gray-600 rounded-xl transition-all">Clear All</button>
                         )}
                      </div>
                     <div className="flex gap-3">
-                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
+                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
                         <button 
                             type="submit" 
-                            className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-widest text-[10px] font-black disabled:opacity-50`} 
+                            className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black disabled:opacity-50`} 
                             disabled={mode === 'bulk' && bulkPreview.length === 0}
                         >
                             {mode === 'bulk' ? 'Commit Batch' : 'Log Valuation'}

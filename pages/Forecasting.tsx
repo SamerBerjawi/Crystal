@@ -57,7 +57,7 @@ const CACHE_KEYS = {
 const MetricCard: React.FC<{ title: string; value: string; subValue?: string; icon: string; colorClass: string; trend?: 'up' | 'down' | 'neutral' }> = ({ title, value, subValue, icon, colorClass, trend }) => (
     <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full relative overflow-hidden group">
         <div className="flex justify-between items-start mb-3 relative z-10">
-            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</span>
+            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">{title}</span>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClass} bg-opacity-10 dark:bg-opacity-20 group-hover:scale-110 transition-transform duration-300`}>
                 <span className="material-symbols-outlined text-xl">{icon}</span>
             </div>
@@ -1103,7 +1103,7 @@ const Forecasting: React.FC = () => {
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">stacked_line_chart</span>
-                                <span className="text-xs font-bold uppercase tracking-wider">Combined</span>
+                                <span className="text-xs font-bold  tracking-wider">Combined</span>
                             </button>
                             <button 
                                 onClick={() => setShowIndividualLines(true)}
@@ -1161,14 +1161,14 @@ const Forecasting: React.FC = () => {
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">grid_view</span>
-                                <span className="text-xs font-bold uppercase tracking-wider">Grid</span>
+                                <span className="text-xs font-bold  tracking-wider">Grid</span>
                             </button>
                             <button 
                                 onClick={() => setViewMode('table')}
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'table' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">table_rows</span>
-                                <span className="text-xs font-bold uppercase tracking-wider">Table</span>
+                                <span className="text-xs font-bold  tracking-wider">Table</span>
                             </button>
                         </div>
                     </div>
@@ -1180,7 +1180,7 @@ const Forecasting: React.FC = () => {
                         {/* Monthly Target Schedule Summary */}
                         <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
                             <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10 flex justify-between items-center">
-                                <h2 className="text-xs font-bold tracking-widest text-primary-500">Monthly Target Schedule</h2>
+                                <h2 className="text-xs font-bold tracking-tight text-primary-500">Monthly Target Schedule</h2>
                                 <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
                                     <button 
                                         onClick={() => setScheduleMode('account')}
@@ -1210,7 +1210,7 @@ const Forecasting: React.FC = () => {
                                                 <div key={account.id} className="space-y-3 group/account text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className={`w-2 h-2 rounded-full ${accColor}`} />
-                                                        <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase group-hover/account:text-primary-500 transition-colors">{account.name}</p>
+                                                        <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text  group-hover/account:text-primary-500 transition-colors">{account.name}</p>
                                                     </div>
                                                     
                                                     <div className="space-y-1">
@@ -1219,23 +1219,23 @@ const Forecasting: React.FC = () => {
                                                             const monthName = date.toLocaleDateString('default', { month: 'short', year: 'numeric' });
                                                             return (
                                                                 <div key={monthKey} className="flex justify-between items-center py-2.5 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                                                                    <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors uppercase">{monthName}</span>
+                                                                    <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors ">{monthName}</span>
                                                                     <div className="flex items-center gap-4">
                                                                         {breakdown.income > 0 && (
                                                                             <div className="flex flex-col items-end">
-                                                                                <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5 uppercase tracking-tighter">Income</span>
+                                                                                <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5  tracking-tighter">Income</span>
                                                                                 <span className="text-[13px] font-black text-emerald-500 tracking-tighter tabular-nums">{formatCurrency(breakdown.income, account.currency)}</span>
                                                                             </div>
                                                                         )}
                                                                         {breakdown.savings > 0 && (
                                                                             <div className="flex flex-col items-end">
-                                                                                <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5 uppercase tracking-tighter">Savings</span>
+                                                                                <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5  tracking-tighter">Savings</span>
                                                                                 <span className="text-[13px] font-black text-primary-500 tracking-tighter tabular-nums">{formatCurrency(breakdown.savings, account.currency)}</span>
                                                                             </div>
                                                                         )}
                                                                         {breakdown.expense > 0 && (
                                                                             <div className="flex flex-col items-end">
-                                                                                <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5 uppercase tracking-tighter">Expense</span>
+                                                                                <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5  tracking-tighter">Expense</span>
                                                                                 <span className="text-[13px] font-black text-rose-500 tracking-tighter tabular-nums">{formatCurrency(breakdown.expense, account.currency)}</span>
                                                                             </div>
                                                                         )}
@@ -1252,29 +1252,29 @@ const Forecasting: React.FC = () => {
                                             <div key={month.monthKey} className="space-y-3 group/date text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-30" />
-                                                    <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase group-hover/date:text-primary-500 transition-colors">{month.monthName}</p>
+                                                    <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text  group-hover/date:text-primary-500 transition-colors">{month.monthName}</p>
                                                 </div>
                                                 
                                                 <div className="space-y-1">
                                                     {month.accounts.map((account) => (
                                                         <div key={account.id} className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                                                            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors uppercase">{account.name}</span>
+                                                            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors ">{account.name}</span>
                                                             <div className="flex items-center gap-4">
                                                                 {account.income > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5 uppercase tracking-tighter">Income</span>
+                                                                        <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5  tracking-tighter">Income</span>
                                                                         <span className="text-[13px] font-black text-emerald-500 tracking-tighter tabular-nums">{formatCurrency(account.income, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.savings > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5 uppercase tracking-tighter">Savings</span>
+                                                                        <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5  tracking-tighter">Savings</span>
                                                                         <span className="text-[13px] font-black text-primary-500 tracking-tighter tabular-nums">{formatCurrency(account.savings, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.expense > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5 uppercase tracking-tighter">Expense</span>
+                                                                        <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5  tracking-tighter">Expense</span>
                                                                         <span className="text-[13px] font-black text-rose-500 tracking-tighter tabular-nums">{formatCurrency(account.expense, account.currency)}</span>
                                                                     </div>
                                                                 )}
@@ -1295,7 +1295,7 @@ const Forecasting: React.FC = () => {
                         </Card>
                         <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
                             <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
-                                <h2 className="text-sm font-black tracking-widest mb-1 uppercase">Global Performance</h2>
+                                <h2 className="text-sm font-bold tracking-tight mb-1">Global Performance</h2>
                             </div>
                             
                             <div className="p-6 space-y-7">
@@ -1303,14 +1303,14 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase">Total Income Target</span>
+                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Total Income Target</span>
                                             <p className="text-3xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                 {formatCurrency(globalIncomeGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <span className="text-sm font-black tabular-nums">{globalIncomeGoalTarget > 0 ? ((globalIncomeGoalCurrent / globalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span>
-                                            <p className="text-[11px] font-black opacity-50 tracking-widest uppercase">of {formatCurrency(globalIncomeGoalTarget, 'EUR')}</p>
+                                            <p className="text-[11px] font-black opacity-50 tracking-widest ">of {formatCurrency(globalIncomeGoalTarget, 'EUR')}</p>
                                         </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
@@ -1325,14 +1325,14 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase">Total Savings Target</span>
+                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Total Savings Target</span>
                                             <p className="text-3xl font-black tracking-tighter text-primary-500 tabular-nums">
                                                 {formatCurrency(globalSavingsGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <span className="text-sm font-black tabular-nums">{globalSavingsGoalTarget > 0 ? ((globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span>
-                                            <p className="text-[11px] font-black opacity-50 tracking-widest uppercase">of {formatCurrency(globalSavingsGoalTarget, 'EUR')}</p>
+                                            <p className="text-[11px] font-black opacity-50 tracking-widest ">of {formatCurrency(globalSavingsGoalTarget, 'EUR')}</p>
                                         </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
@@ -1347,14 +1347,14 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase">Total Expense Target</span>
+                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Total Expense Target</span>
                                             <p className="text-3xl font-black tracking-tighter text-rose-600 dark:text-rose-400 tabular-nums">
                                                 {formatCurrency(globalExpenseGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
                                         <div className="text-right">
                                             <span className="text-sm font-black tabular-nums">{globalExpenseGoalTarget > 0 ? ((globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100).toFixed(0) : 0}%</span>
-                                            <p className="text-[11px] font-black opacity-50 tracking-widest uppercase">of {formatCurrency(globalExpenseGoalTarget, 'EUR')}</p>
+                                            <p className="text-[11px] font-black opacity-50 tracking-widest ">of {formatCurrency(globalExpenseGoalTarget, 'EUR')}</p>
                                         </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
@@ -1368,8 +1368,8 @@ const Forecasting: React.FC = () => {
                                 {/* Account Specific Section */}
                                 <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text uppercase">Account Breakdown</p>
-                                        <p className="text-[11px] font-black text-primary-500 tracking-widest uppercase">Global</p>
+                                        <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Account Breakdown</p>
+                                        <p className="text-[11px] font-black text-primary-500 tracking-widest ">Global</p>
                                     </div>
                                     <div className="space-y-6">
                                         {globalAccountBreakdown.map((accGroup, index) => {
@@ -1390,12 +1390,12 @@ const Forecasting: React.FC = () => {
                                                 <div key={accGroup.id} className="space-y-3 group/acc border-l-2 border-black/5 dark:border-white/5 pl-3">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`w-2.5 h-2.5 rounded-full ${accColor}`} />
-                                                        <span className="text-[12px] font-black text-light-text dark:text-dark-text tracking-widest truncate uppercase">{accGroup.name}</span>
+                                                        <span className="text-[12px] font-black text-light-text dark:text-dark-text tracking-widest truncate ">{accGroup.name}</span>
                                                     </div>
 
                                                     {hasIncome && (
                                                         <div className="space-y-1">
-                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">
+                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">
                                                                 <span className="opacity-60">Income</span>
                                                                 <span>{formatCurrency(accGroup.income.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.income.target, accGroup.currency)}</span></span>
                                                             </div>
@@ -1410,7 +1410,7 @@ const Forecasting: React.FC = () => {
 
                                                     {hasSavings && (
                                                         <div className="space-y-1">
-                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">
+                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">
                                                                 <span className="opacity-60">Savings</span>
                                                                 <span>{formatCurrency(accGroup.savings.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.savings.target, accGroup.currency)}</span></span>
                                                             </div>
@@ -1425,7 +1425,7 @@ const Forecasting: React.FC = () => {
 
                                                     {hasExpense && (
                                                         <div className="space-y-1">
-                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">
+                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">
                                                                 <span className="opacity-60">Expenses</span>
                                                                 <span>{formatCurrency(accGroup.expense.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.expense.target, accGroup.currency)}</span></span>
                                                             </div>
@@ -1483,7 +1483,7 @@ const Forecasting: React.FC = () => {
                                                 <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
                                                      <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
                                                 </div>
-                                                <h4 className="text-xl font-black text-light-text dark:text-dark-text mb-2 tracking-tight">No Goals Found</h4>
+                                                <h4 className="text-xl font-bold text-light-text dark:text-dark-text mb-2 tracking-tight">No Goals Found</h4>
                                                 <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-8 opacity-60">
                                                     {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
                                                 </p>
@@ -1518,11 +1518,11 @@ const Forecasting: React.FC = () => {
                         </div>
                     </div>
                      <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-                         <div className="flex items-center gap-2 text-[12px] font-black bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-full border border-red-100 dark:border-red-900/30 uppercase tracking-widest">
+                         <div className="flex items-center gap-2 text-[12px] font-black bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-full border border-red-100 dark:border-red-900/30  tracking-widest">
                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                             Global Lowest
                         </div>
-                        <div className="flex items-center gap-2 text-[12px] font-black bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-4 py-2 rounded-full border border-amber-100 dark:border-amber-900/30 uppercase tracking-widest">
+                        <div className="flex items-center gap-2 text-[12px] font-black bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-4 py-2 rounded-full border border-amber-100 dark:border-amber-900/30  tracking-widest">
                             <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                             Monthly Lowest
                         </div>
@@ -1548,11 +1548,11 @@ const Forecasting: React.FC = () => {
                                         <tr className="bg-light-fill/50 dark:bg-dark-fill/30 sticky top-[53px] z-20 backdrop-blur-sm">
                                             <td colSpan={6} className="px-6 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-[14px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-tighter">
+                                                    <span className="text-[14px] font-black text-primary-600 dark:text-primary-400  tracking-tighter">
                                                         {group.monthName} {group.year}
                                                     </span>
                                                     <div className="h-px flex-1 bg-gradient-to-r from-primary-500/20 to-transparent"></div>
-                                                    <span className="text-[12px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
+                                                    <span className="text-[12px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">
                                                         {group.rows.length} Events
                                                     </span>
                                                 </div>

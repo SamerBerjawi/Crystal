@@ -21,9 +21,9 @@ const StatCard: React.FC<StatCardProps> = ({
             <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div className="min-w-0 relative z-10 w-full">
-            <p className="text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase opacity-60 group-hover:opacity-100 transition-opacity">{title}</p>
+            <p className="text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary  opacity-60 group-hover:opacity-100 transition-opacity">{title}</p>
             <p className="text-2xl md:text-3xl font-black text-light-text dark:text-dark-text tracking-tighter mt-1 leading-none group-hover:text-primary-500 transition-colors">{value}</p>
-            {subtext && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1.5 font-bold truncate opacity-60 uppercase tracking-tight">{subtext}</p>}
+            {subtext && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1.5 font-bold truncate opacity-60  tracking-tight">{subtext}</p>}
         </div>
     </div>
 );

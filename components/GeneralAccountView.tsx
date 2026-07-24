@@ -7,8 +7,10 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import HistoricalBalanceTrend from './HistoricalBalanceTrend';
 
 interface GeneralAccountViewProps {
   account: Account;
@@ -22,6 +24,7 @@ interface GeneralAccountViewProps {
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
   showBalanceAdjustments?: boolean;
+  onAdjustBalance?: () => void;
 }
 
 const getCardGradient = (id: string) => {
@@ -103,6 +106,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
   showBalanceAdjustments = true,
+  onAdjustBalance,
 }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
@@ -259,9 +263,21 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const cardGradient = getCardGradient(account.id);
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText={`${account.type} Asset`}
+        subText={account.financialInstitution || 'Vault'}
+        primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
+        secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6 relative">
           <div className="flex items-center gap-4 sm:gap-6">
               <button 
                   onClick={onBack}
@@ -308,9 +324,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                    
                    <div className="relative z-10">
                         <div className="flex justify-between items-start mb-8 sm:mb-12">
-                             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ios-regular !bg-white/10 dark:!bg-white/[0.05] border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
+                             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                                   {logoUrl ? (
-                                      <img src={logoUrl} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+                                      <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                                   ) : (
                                       <span className="material-symbols-outlined text-2xl sm:text-3xl font-light">credit_card</span>
                                   )}
@@ -321,15 +337,15 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                              </div>
                         </div>
                         
-                        <p className="text-[9px] sm:text-[10px] font-black text-white/70 mb-1 sm:mb-2 uppercase tracking-wider">Managed Capital</p>
-                        <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg privacy-blur truncate">
+                        <p className="text-[9px] sm:text-[10px] font-black text-white/70 mb-1 sm:mb-2  tracking-wider">Managed Capital</p>
+                        <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter tabular-nums drop-shadow-lg privacy-blur truncate">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                    </div>
 
                    <div className="relative z-10 pt-6 sm:pt-10 border-t border-white/5 flex justify-between items-end">
                        <div>
-                           <p className="text-[10px] sm:text-[11px] tracking-wider text-white/50 font-bold mb-1 uppercase">Verified Holder</p>
+                           <p className="text-[10px] sm:text-[11px] tracking-wider text-white/50 font-bold mb-1 ">Verified Holder</p>
                            <p className="font-semibold text-xs sm:text-sm text-white tracking-widest truncate max-w-[150px]">{account.cardholderName || account.name}</p>
                        </div>
                        <span className="text-[9px] sm:text-[10px] font-bold bg-white/10 px-2 py-1 rounded-lg border border-white/10">{account.currency}</span>
@@ -338,7 +354,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 
                {/* Infrastructure Configuration (Integrated with Card Context) */}
                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 group overflow-hidden">
-                   <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Infrastructure Configuration</h3>
+                   <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8">Infrastructure Configuration</h3>
                    <div className="space-y-4 sm:space-y-6">
                        {[
                            { label: 'Clearing Institution', value: account.financialInstitution },
@@ -350,7 +366,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                            { label: 'Yield Maturity', value: account.apy ? `${account.apy}% APY` : '—' }
                        ].filter(i => i.value).map((item, idx) => (
                            <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-3 sm:pb-4 last:border-0 last:pb-0">
-                               <p className="text-[9px] sm:text-[10px] font-bold tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                               <p className="text-[9px] sm:text-[10px] font-bold tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
                                <p className={`text-xs sm:text-sm font-black text-light-text dark:text-dark-text tracking-tight shrink-0 ml-4 ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                    {item.value}
                                </p>
@@ -393,58 +409,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                     />
                 </div>
 
-                {/* Liquidity Trajectory Chart */}
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden h-full min-h-[300px]">
-                    <div className="absolute top-0 right-0 p-8 opacity-5">
-                         <span className="material-symbols-outlined text-8xl">show_chart</span>
-                    </div>
-                    <div className="flex justify-between items-center mb-10 relative z-10">
-                        <div>
-                             <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Liquidity Trajectory</h3>
-                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/70 mt-1 tracking-wider">30-day cleared balance cycle</p>
-                        </div>
-                        <div className="text-right">
-                             <p className="text-[10px] font-bold text-emerald-500 tracking-wider bg-emerald-500/10 px-2 py-1 rounded-lg">Real-Time Sync</p>
-                        </div>
-                    </div>
-                    
-                    <div className="flex-grow w-full h-full relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={balanceHistory}>
-                                <defs>
-                                    <linearGradient id="generalLineGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.06} />
-                                <XAxis 
-                                    dataKey="date" 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} 
-                                    tickFormatter={(val) => parseLocalDate(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                    minTickGap={30}
-                                />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} width={40} />
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        backgroundColor: 'var(--light-card)', 
-                                        backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
-                                        WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                        border: 'none', 
-                                        borderRadius: '24px', 
-                                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
-                                    }}
-                                    itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#3b82f6' }}
-                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
-                                    formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Balance']}
-                                />
-                                <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={4} fill="url(#generalLineGradient)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
+                {/* 6-Month Balance Trend Chart */}
+                <HistoricalBalanceTrend account={account} transactions={allTransactions} />
            </div>
       </div>
 
@@ -454,8 +420,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-full min-h-[600px]">
                     <div className="py-2 px-6 sm:px-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1 uppercase">Account Ledger</h3>
-                            <p className="text-[9px] sm:text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest uppercase">Complete history of financial flows</p>
+                            <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1">Account Ledger</h3>
+                            <p className="text-[9px] sm:text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest ">Complete history of financial flows</p>
                         </div>
                     </div>
                     <div className="flex-grow overflow-hidden">
@@ -474,7 +440,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Upcoming Obligations */}
                 <div className="bg-white dark:bg-dark-card rounded-[2rem] sm:rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-10 group relative overflow-hidden">
-                    <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Upcoming Obligations</h3>
+                    <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8">Upcoming Obligations</h3>
                     <div className="space-y-6">
                         {upcomingPayments.length > 0 ? (
                             upcomingPayments.map((p, idx) => (
@@ -502,7 +468,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 {/* Interconnected Assets */}
                 {(linkedCreditCards.length > 0 || linkedGoals.length > 0) && (
                     <div className="bg-white dark:bg-dark-card rounded-[2rem] sm:rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-10 group overflow-hidden">
-                        <h3 className="text-[10px] sm:text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8 uppercase">Interconnected Assets</h3>
+                        <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8">Interconnected Assets</h3>
                         <div className="space-y-4">
                             {linkedCreditCards.map(c => (
                                 <button key={c.id} onClick={() => setViewingAccountId(c.id)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">

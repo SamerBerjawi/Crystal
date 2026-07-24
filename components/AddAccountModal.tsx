@@ -345,7 +345,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     onAdd(newAccountData);
   };
   
-  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
   
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
 
@@ -379,7 +379,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             
             <div className="flex-grow w-full space-y-4">
               <div>
-                <label htmlFor="account-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary mb-2 block">Ledger Identifier</label>
+                <label htmlFor="account-name" className="text-[10px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary mb-2 block">Ledger Identifier</label>
                 <input
                     id="account-name"
                     type="text"
@@ -444,7 +444,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             {(showBankingDetails || ['Checking', 'Savings', 'Credit Card'].includes(type)) && (
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">account_balance</span>
                             Banking Core
                         </h4>
@@ -502,7 +502,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                 <span className="material-symbols-outlined">credit_card</span>
                             </div>
                             <div className="flex flex-col">
-                                <h4 className={`text-[10px] font-black uppercase tracking-widest ${hasCard ? 'text-indigo-600' : 'text-gray-500'}`}>Physical/Virtual Card</h4>
+                                <h4 className={`text-[10px] font-bold tracking-tight ${hasCard ? 'text-indigo-600' : 'text-gray-500'}`}>Physical/Virtual Card</h4>
                                 <span className="text-[10px] font-bold text-gray-400">Toggle card logistics</span>
                             </div>
                         </div>
@@ -543,7 +543,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                 </div>
                                 <div>
                                     <label htmlFor="cardholderName" className={labelStyle}>Embossed Name</label>
-                                    <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} placeholder="Cardholder" />
+                                    <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black `} placeholder="Cardholder" />
                                 </div>
                             </div>
                         </div>
@@ -555,7 +555,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             {type === 'Investment' && (
               <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                 <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                         <span className="material-symbols-outlined text-lg">trending_up</span>
                         Market Logistics
                     </h4>
@@ -574,7 +574,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                     {['Stock', 'ETF', 'Crypto'].includes(subType) && (
                         <div>
                              <label htmlFor="symbol" className={labelStyle}>Ticker Symbol</label>
-                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest`} placeholder="AAPL" />
+                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black  tracking-widest`} placeholder="AAPL" />
                         </div>
                     )}
                     {subType === 'Pension Fund' && (
@@ -611,7 +611,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             {type === 'Other Assets' && (
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                    <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">category</span>
                             Asset Specifications
                         </h4>
@@ -648,7 +648,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             {type === 'Other Liabilities' && (
                  <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-rose-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">money_off</span>
                             Liability Metrics
                         </h4>
@@ -684,14 +684,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             {(type === 'Loan' || type === 'Lending') && (
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">request_quote</span>
                             Financial Obligation
                         </h4>
                     </div>
                     
                     <div className="bg-primary-500/5 p-4 rounded-2xl border border-primary-500/10 mb-2">
-                        <p className="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1 italic">Computational Logic Active</p>
+                        <p className="text-[10px] font-black text-primary-600 dark:text-primary-400  tracking-widest mb-1 italic">Computational Logic Active</p>
                         <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">Input any dual values; the tertiary will resolve automatically.</p>
                     </div>
 
@@ -722,7 +722,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                     <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-6">
                         <div className="flex items-center gap-2">
                              <span className="material-symbols-outlined text-primary-500">event_repeat</span>
-                             <h5 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Amortization Schedule</h5>
+                             <h5 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Amortization Schedule</h5>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -777,7 +777,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
              {type === 'Vehicle' && (
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                   <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">directions_car</span>
                             Automotive Registry
                         </h4>
@@ -793,7 +793,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                               <>
                                 <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <p className="text-white text-[10px] font-black uppercase tracking-widest text-center">Replace Profile Image</p>
+                                    <p className="text-white text-[10px] font-black  tracking-widest text-center">Replace Profile Image</p>
                                 </div>
                               </>
                           ) : (
@@ -802,7 +802,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                       <span className="material-symbols-outlined text-3xl text-primary-500">add_a_photo</span>
                                   </div>
                                   <div className="text-center">
-                                      <p className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Asset Visualization</p>
+                                      <p className="text-[10px] font-black text-light-text dark:text-dark-text  tracking-widest">Asset Visualization</p>
                                       <p className="text-[10px] font-bold text-gray-400">Secure image upload</p>
                                   </div>
                               </div>
@@ -812,15 +812,15 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div><label htmlFor="make" className={labelStyle}>Manufacturer</label><input id="make" type="text" value={make} onChange={e=>setMake(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} placeholder="e.g., Porsche" /></div>
-                    <div><label htmlFor="model" className={labelStyle}>Designation</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase`} placeholder="e.g., 911 GT3" /></div>
+                    <div><label htmlFor="make" className={labelStyle}>Manufacturer</label><input id="make" type="text" value={make} onChange={e=>setMake(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black `} placeholder="e.g., Porsche" /></div>
+                    <div><label htmlFor="model" className={labelStyle}>Designation</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black `} placeholder="e.g., 911 GT3" /></div>
                     <div><label htmlFor="year" className={labelStyle}>Model Year</label><input id="year" type="number" value={year} onChange={e=>setYear(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} placeholder="2024" /></div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div><label htmlFor="regCode" className={labelStyle}>Jurisdiction</label><input id="regCode" type="text" value={registrationCountryCode} onChange={e=>setRegistrationCountryCode(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase text-center tracking-widest`} placeholder="EU" /></div>
-                    <div><label htmlFor="plate" className={labelStyle}>License Identity</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase tracking-widest text-center`} placeholder="PLATE" /></div>
-                    <div><label htmlFor="vin" className={labelStyle}>Chassis VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black uppercase text-center text-xs`} placeholder="IDENTIFIER" /></div>
+                    <div><label htmlFor="regCode" className={labelStyle}>Jurisdiction</label><input id="regCode" type="text" value={registrationCountryCode} onChange={e=>setRegistrationCountryCode(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black  text-center tracking-widest`} placeholder="EU" /></div>
+                    <div><label htmlFor="plate" className={labelStyle}>License Identity</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black  tracking-widest text-center`} placeholder="PLATE" /></div>
+                    <div><label htmlFor="vin" className={labelStyle}>Chassis VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black  text-center text-xs`} placeholder="IDENTIFIER" /></div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -844,7 +844,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                     key={o} 
                                     type="button" 
                                     onClick={() => setVehicleOwnership(o)} 
-                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-xl text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black  tracking-[0.2em] transition-all duration-300 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-xl text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                                  >
                                     {o}
                                  </button>
@@ -896,7 +896,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
              {type === 'Property' && (
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8 animate-fade-in-up">
                    <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">home</span>
                             Real Estate Specifications
                         </h4>
@@ -914,7 +914,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                         </div>
                          <div><label htmlFor="purchasePrice" className={labelStyle}>Acquisition Capital</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} disabled={isLoanForPropertyLinked} /></div>
                       </div>
-                      <div><label htmlFor="address" className={labelStyle}>Geospatial Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black placeholder-black/20 dark:placeholder-white/20 uppercase text-xs`} placeholder="STREET, CITY, ZIP" /></div>
+                      <div><label htmlFor="address" className={labelStyle}>Geospatial Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black placeholder-black/20 dark:placeholder-white/20  text-xs`} placeholder="STREET, CITY, ZIP" /></div>
                       
                       <div className="grid grid-cols-3 gap-6">
                          <div><label htmlFor="propertySize" className={labelStyle}>Internal (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-center`} /></div>
@@ -934,7 +934,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasBasement ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                          >
                             <span className="material-symbols-outlined">{hasBasement ? 'check_box' : 'check_box_outline_blank'}</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Basement</span>
+                            <span className="text-[10px] font-black  tracking-widest leading-none">Basement</span>
                          </button>
                          <button 
                             type="button" 
@@ -942,7 +942,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasAttic ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                          >
                             <span className="material-symbols-outlined">{hasAttic ? 'check_box' : 'check_box_outline_blank'}</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Attic</span>
+                            <span className="text-[10px] font-black  tracking-widest leading-none">Attic</span>
                          </button>
                       </div>
 
@@ -958,7 +958,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasGarden ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                          >
                             <span className="material-symbols-outlined">{hasGarden ? 'psychology' : 'check_box_outline_blank'}</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Garden Zone</span>
+                            <span className="text-[10px] font-black  tracking-widest leading-none">Garden Zone</span>
                          </button>
                          <div>
                             <label htmlFor="gardenSize" className={labelStyle}>Exterior Area (m²)</label>
@@ -973,7 +973,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasTerrace ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                          >
                             <span className="material-symbols-outlined">{hasTerrace ? 'deck' : 'check_box_outline_blank'}</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Terrace / Balcony</span>
+                            <span className="text-[10px] font-black  tracking-widest leading-none">Terrace / Balcony</span>
                          </button>
                          <div>
                             <label htmlFor="terraceSize" className={labelStyle}>Refined Exterior (m²)</label>
@@ -1011,13 +1011,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                    <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-8">
                         <div className="flex items-center gap-2">
                              <span className="material-symbols-outlined text-primary-500">sync_alt</span>
-                             <h4 className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-widest">Recurring Obligations & Cashflow</h4>
+                             <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Recurring Obligations & Cashflow</h4>
                         </div>
                         
                         <div className="space-y-8">
                             {/* Property Tax */}
                             <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-primary-600 block mb-2">Municipal Assessments</label>
+                                <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Municipal Assessments</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div><label htmlFor="propTaxAmt" className={labelStyle}>Annual Assessment</label><input id="propTaxAmt" type="number" step="0.01" value={propertyTaxAmount} onChange={e=>setPropertyTaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-rose-500`} placeholder="0.00" /></div>
                                     <div><label htmlFor="propTaxDate" className={labelStyle}>Ordinal Maturity Date</label><input id="propTaxDate" type="date" value={propertyTaxDate} onChange={e=>setPropertyTaxDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
@@ -1026,7 +1026,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
                              {/* Home Insurance */}
                              <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-primary-600 block mb-2">Asset Indemnity</label>
+                                <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Asset Indemnity</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div><label htmlFor="insProvider" className={labelStyle}>Underwriting Entity</label><input id="insProvider" type="text" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
                                     <div><label htmlFor="insPolicy" className={labelStyle}>Policy Instrument No.</label><input id="insPolicy" type="text" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} /></div>
@@ -1048,7 +1048,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             
                             {/* HOA Fees */}
                              <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-primary-600 block mb-2">Commonhold Contribution</label>
+                                <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Commonhold Contribution</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div><label htmlFor="hoaAmount" className={labelStyle}>Levy Amount</label><input id="hoaAmount" type="number" step="0.01" value={hoaFeeAmount} onChange={e=>setHoaFeeAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
                                     <div>
@@ -1071,7 +1071,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                             <span className="material-symbols-outlined">real_estate_agent</span>
                                         </div>
                                         <div className="flex flex-col">
-                                            <h4 className={`text-[10px] font-black uppercase tracking-widest ${isRental ? 'text-emerald-600' : 'text-gray-500'}`}>Rental Monetization</h4>
+                                            <h4 className={`text-[10px] font-bold tracking-tight ${isRental ? 'text-emerald-600' : 'text-gray-500'}`}>Rental Monetization</h4>
                                             <span className="text-[10px] font-bold text-gray-400">Generate inward cashflow</span>
                                         </div>
                                     </div>
@@ -1110,7 +1110,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             {type === 'Credit Card' && (
               <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                    <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                        <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">credit_card</span>
                             Credit Architecture
                         </h4>
@@ -1151,7 +1151,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                 className="flex justify-between items-center w-full group focus:outline-none p-4 rounded-2xl hover:bg-white dark:hover:bg-dark-card transition-all duration-300 shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5"
               >
                   <div className="text-left">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Designation</p>
+                      <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Designation</p>
                       <p className="text-[10px] font-bold text-gray-400 mt-1">Set as the apex default for this category</p>
                   </div>
                   <div className="relative inline-flex items-center cursor-pointer">
@@ -1167,7 +1167,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                 className="flex justify-between items-center w-full group focus:outline-none p-4 rounded-2xl hover:bg-white dark:hover:bg-dark-card transition-all duration-300 shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5"
               >
                   <div className="text-left">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Analytical Integration</p>
+                      <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Analytical Integration</p>
                       <p className="text-[10px] font-bold text-gray-400 mt-1">Include in systemic net-worth & fiscal reporting</p>
                   </div>
                   <div className="relative inline-flex items-center cursor-pointer">

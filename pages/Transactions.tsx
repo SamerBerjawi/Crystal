@@ -1019,7 +1019,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                   if (!group || group.length === 0) return null;
                   return (
                       <div key={type} className="mb-2">
-                          <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">{type}</h4>
+                          <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">{type}</h4>
                           {group.map(acc => (
                               <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                                   <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
@@ -1031,7 +1031,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
               })}
               {closed.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                      <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Closed</h4>
+                      <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Closed</h4>
                       {closed.map(acc => (
                           <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                               <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
@@ -1643,11 +1643,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
                             <div className="flex-1 flex lg:grid lg:grid-cols-12 gap-4 items-center min-w-0 z-10">
                                 {/* Column 1: Description */}
-                                <div className="flex-1 lg:col-span-4 flex items-center gap-4 min-w-0">
-                                    <div className="relative group/logo shrink-0">
-                                        <div className="absolute -inset-1 bg-gradient-to-tr from-primary-500/20 to-transparent rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
+                                <div className="flex-1 lg:col-span-4 flex items-center gap-3.5 min-w-0">
+                                    <div className="shrink-0">
                                         <div
-                                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-white border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card relative overflow-hidden transition-transform group-hover/logo:scale-105 duration-300`}
+                                            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white overflow-hidden shrink-0 ${showMerchantLogo ? 'bg-white dark:bg-white/10' : ''}`}
                                             style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
                                         >
                                             {showMerchantLogo && merchantLogoUrl ? (
@@ -1661,15 +1660,15 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                             ) : merchantInitial ? (
                                                 <span className="text-sm font-black tracking-widest">{merchantInitial}</span>
                                             ) : (
-                                                <span className="material-symbols-outlined text-2xl">{categoryIcon}</span>
+                                                <span className="material-symbols-outlined text-xl">{categoryIcon}</span>
                                             )}
                                         </div>
                                     </div>
                                     <div className="min-w-0 flex-grow">
                                         <div className="flex items-center gap-2 mb-0.5">
-                                            <p className="font-semibold text-[14px] sm:text-[16px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
-                                            {tx.recurringSourceId && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500">repeat</span>}
-                                            {tx.notes && <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary-500/40 shrink-0">notes</span>}
+                                            <p className="font-semibold text-[14px] sm:text-[15px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
+                                            {tx.recurringSourceId && <span className="material-symbols-outlined text-[13px] text-primary-500 shrink-0">repeat</span>}
+                                            {tx.notes && <span className="material-symbols-outlined text-[13px] text-primary-500/40 shrink-0">notes</span>}
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-x-2">
                                             <span className="text-[11px] sm:text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-60 truncate max-w-[150px]">
@@ -1681,7 +1680,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                                     <span className="material-symbols-outlined text-[9px]">account_balance_wallet</span>
                                                     <span className="text-[8px] sm:text-[9px] font-medium truncate max-w-[50px] sm:max-w-[80px]">{accountName}</span>
                                                 </div>
-                                                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-lg font-bold uppercase tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
+                                                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-lg font-bold tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
                                                     <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}></span>
                                                     <span className="truncate max-w-[60px] sm:max-w-[70px]">{tx.category || 'Unset'}</span>
                                                 </span>
@@ -1691,25 +1690,27 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 </div>
 
                                 {/* Column 2: Account */}
-                                <div className="hidden lg:flex col-span-2 items-center gap-4 min-w-0">
-                                    <div className="shrink-0 group/inst transition-transform group-hover:scale-110">
+                                <div className="hidden lg:flex col-span-2 items-center gap-3 min-w-0">
+                                    <div className="shrink-0">
                                         {showInstitutionLogo ? (
-                                            <img 
-                                                src={institutionLogoUrl!} 
-                                                alt="" 
-                                                className="w-12 h-12 object-contain rounded-2xl shadow-sm bg-white dark:bg-white/10 border border-black/5 dark:border-white/10" 
-                                                referrerPolicy="no-referrer"
-                                                onError={() => handleLogoError(institutionLogoUrl!)}
-                                            />
+                                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shrink-0 bg-white dark:bg-white/10 flex items-center justify-center">
+                                                <img 
+                                                    src={institutionLogoUrl!} 
+                                                    alt="" 
+                                                    className="w-full h-full object-cover" 
+                                                    referrerPolicy="no-referrer"
+                                                    onError={() => handleLogoError(institutionLogoUrl!)}
+                                                />
+                                            </div>
                                         ) : (
-                                            <div className="w-12 h-12 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
-                                                <span className="material-symbols-outlined text-2xl text-light-text-secondary dark:text-dark-text-secondary opacity-40">account_balance</span>
+                                            <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded-2xl shrink-0">
+                                                <span className="material-symbols-outlined text-xl text-light-text-secondary dark:text-dark-text-secondary opacity-40">account_balance</span>
                                             </div>
                                         )}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-[15px] font-semibold text-light-text dark:text-dark-text truncate tracking-tight leading-tight">{accountName}</p>
-                                        <p className="text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-40 leading-tight tracking-tighter">{accountSub}</p>
+                                        <p className="text-[14px] font-semibold text-light-text dark:text-dark-text truncate tracking-tight leading-tight">{accountName}</p>
+                                        <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-40 leading-tight tracking-tighter">{accountSub}</p>
                                     </div>
                                 </div>
 

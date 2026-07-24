@@ -155,14 +155,14 @@ const InvoicesPage: React.FC = () => {
                                 <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
                                     <span className={`material-symbols-outlined ${stat.color} text-2xl`}>{stat.icon}</span>
                                 </div>
-                                <span className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest">METRIC Node {idx + 1}</span>
+                                <span className="text-[10px] font-black text-gray-300 dark:text-gray-700  tracking-widest">METRIC Node {idx + 1}</span>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary/60">{stat.label}</p>
-                                <h3 className="text-3xl font-black tabular-nums tracking-tighter privacy-blur">
+                                <p className="text-[9px] font-black  tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary/60">{stat.label}</p>
+                                <h3 className="text-3xl font-bold tabular-nums tracking-tighter privacy-blur">
                                     {formatCurrency(stat.value, currencyCode)}
                                 </h3>
-                                <p className="text-[10px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-widest">{stat.desc}</p>
+                                <p className="text-[10px] font-bold text-gray-300 dark:text-gray-600  tracking-widest">{stat.desc}</p>
                             </div>
                         </div>
                     </div>
@@ -177,14 +177,14 @@ const InvoicesPage: React.FC = () => {
                         <div className="flex bg-light-fill dark:bg-dark-fill p-1.5 rounded-2xl border border-black/5 dark:border-white/5 w-full md:w-auto shadow-inner">
                             <button 
                                 onClick={() => setActiveTab('invoices')} 
-                                className={`flex items-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
+                                className={`flex items-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black  tracking-widest transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">receipt_long</span>
                                 Invoices
                             </button>
                             <button 
                                 onClick={() => setActiveTab('quotes')} 
-                                className={`flex items-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'quotes' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
+                                className={`flex items-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black  tracking-widest transition-all ${activeTab === 'quotes' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
                             >
                                 <span className="material-symbols-outlined text-xl">request_quote</span>
                                 Proposals
@@ -197,7 +197,7 @@ const InvoicesPage: React.FC = () => {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/5 rounded-2xl pl-14 pr-6 h-14 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/10 transition-all placeholder:text-[10px] placeholder:uppercase placeholder:tracking-[0.2em] placeholder:opacity-40"
+                                className="w-full bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/5 rounded-2xl pl-14 pr-6 h-14 text-sm font-bold outline-none focus:ring-4 focus:ring-primary-500/10 transition-all placeholder:text-[10px]  placeholder:tracking-[0.2em] placeholder:opacity-40"
                                 placeholder="Search by identifier or entity..."
                             />
                         </div>
@@ -207,7 +207,7 @@ const InvoicesPage: React.FC = () => {
                         <div className="flex flex-wrap gap-1">
                             <button
                                 onClick={() => setStatusFilter('all')}
-                                className={`px-5 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                                className={`px-5 py-2.5 text-[9px] font-black  tracking-widest rounded-xl transition-all ${
                                     statusFilter === 'all' 
                                     ? 'bg-white dark:bg-dark-card shadow-lg text-primary-500' 
                                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'
@@ -219,7 +219,7 @@ const InvoicesPage: React.FC = () => {
                                 <button
                                     key={s}
                                     onClick={() => setStatusFilter(s as any)}
-                                    className={`px-5 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                                    className={`px-5 py-2.5 text-[9px] font-black  tracking-widest rounded-xl transition-all ${
                                         statusFilter === s 
                                         ? 'bg-white dark:bg-dark-card shadow-lg text-primary-500' 
                                         : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'
@@ -236,10 +236,10 @@ const InvoicesPage: React.FC = () => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-100/30 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary">Reference</th>
-                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary">Entity Designation</th>
-                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary hidden md:table-cell">Status Details</th>
-                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary text-right">Aggregate Total</th>
+                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black  tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary">Reference</th>
+                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black  tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary">Entity Designation</th>
+                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black  tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary hidden md:table-cell">Status Details</th>
+                                <th className="px-6 sm:px-10 py-6 text-[10px] font-black  tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary text-right">Aggregate Total</th>
                                 <th className="px-6 sm:px-10 py-6 w-20"></th>
                             </tr>
                         </thead>
@@ -259,10 +259,10 @@ const InvoicesPage: React.FC = () => {
                                         >
                                             <td className="px-6 sm:px-10 py-8">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="font-black text-sm tracking-widest uppercase text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{doc.number}</span>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{doc.date}</span>
+                                                    <span className="font-black text-sm tracking-widest  text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors">{doc.number}</span>
+                                                    <span className="text-[10px] font-black text-gray-400  tracking-widest">{doc.date}</span>
                                                     <div className="md:hidden mt-2">
-                                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
+                                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[9px] font-black  tracking-widest border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
                                                             {doc.status}
                                                         </div>
                                                     </div>
@@ -270,32 +270,32 @@ const InvoicesPage: React.FC = () => {
                                             </td>
                                             <td className="px-6 sm:px-10 py-8">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border border-black/5 dark:border-white/10 overflow-hidden shadow-sm transition-transform group-hover:scale-105 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10 text-gray-400'}`}>
+                                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden transition-transform group-hover:scale-105 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-100 dark:bg-white/10 text-gray-400'}`}>
                                                         {hasLogo ? (
                                                             <img 
                                                                 src={logoUrl!} 
                                                                 alt={doc.entityName} 
-                                                                className="w-full h-full object-contain p-2" 
+                                                                className="w-full h-full object-cover" 
                                                                 onError={() => handleLogoError(logoUrl!)}
                                                             />
                                                         ) : (
-                                                            <span className="font-black text-lg opacity-40 uppercase">{initial}</span>
+                                                            <span className="font-black text-lg opacity-40 ">{initial}</span>
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col gap-1 min-w-0">
-                                                        <span className="font-black text-sm uppercase text-light-text dark:text-dark-text truncate">{doc.entityName}</span>
-                                                        <span className="text-[10px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-widest truncate hidden sm:block">Client Identity</span>
+                                                        <span className="font-black text-sm  text-light-text dark:text-dark-text truncate">{doc.entityName}</span>
+                                                        <span className="text-[10px] font-bold text-gray-300 dark:text-gray-600  tracking-widest truncate hidden sm:block">Client Identity</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 sm:px-10 py-8 hidden md:table-cell">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
+                                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black  tracking-widest border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
                                                         <span className="material-symbols-outlined text-sm">{statusStyle.icon}</span>
                                                         {doc.status}
                                                     </div>
                                                     {doc.dueDate && (
-                                                         <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-tighter ${doc.status === 'overdue' ? 'text-rose-500' : 'text-gray-400 opacity-60'}`}>
+                                                         <div className={`flex items-center gap-1.5 text-[9px] font-black  tracking-tighter ${doc.status === 'overdue' ? 'text-rose-500' : 'text-gray-400 opacity-60'}`}>
                                                             <span className="material-symbols-outlined text-sm">{doc.status === 'overdue' ? 'warning' : 'event'}</span>
                                                             Due {parseLocalDate(doc.dueDate).toLocaleDateString()}
                                                         </div>
@@ -335,8 +335,8 @@ const InvoicesPage: React.FC = () => {
                                         <div className="flex flex-col items-center gap-6 opacity-20">
                                             <span className="material-symbols-outlined text-8xl">inbox_customize</span>
                                             <div className="space-y-1">
-                                                <p className="text-[12px] font-black uppercase tracking-[0.5em]">No Documents Identified</p>
-                                                <p className="text-[10px] font-bold uppercase tracking-widest">Adjust filters or issue a new record</p>
+                                                <p className="text-[12px] font-black  tracking-[0.5em]">No Documents Identified</p>
+                                                <p className="text-[10px] font-bold  tracking-widest">Adjust filters or issue a new record</p>
                                             </div>
                                         </div>
                                     </td>
@@ -347,7 +347,7 @@ const InvoicesPage: React.FC = () => {
                 </div>
 
                 <div className="p-8 bg-gray-50/50 dark:bg-white/[0.01] border-t border-black/5 dark:border-white/5 flex items-center justify-between">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-black text-gray-400  tracking-widest">
                         Displaying {displayedDocs.length} of {invoices.length} Records
                     </p>
                     <div className="flex gap-2">

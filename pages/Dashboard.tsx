@@ -18,6 +18,11 @@ import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import TransactionMatcherModal from '../components/TransactionMatcherModal';
 import TransactionMatcherCard from '../components/TransactionMatcherCard';
+import { useSyncedBillMatcher } from '../hooks/useSyncedBillMatcher';
+import SyncedBillMatcherModal from '../components/SyncedBillMatcherModal';
+import SyncedBillMatcherCard from '../components/SyncedBillMatcherCard';
+import { useMatcherConfig } from '../hooks/useMatcherConfig';
+import PendingMatchesView from '../components/PendingMatchesView';
 import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
@@ -38,6 +43,7 @@ import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
+import { MobileDashboardView } from '../components/MobileDashboardView';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import PageHeader from '../components/PageHeader';
@@ -99,7 +105,7 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 }
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
-type DashboardTab = 'overview' | 'analysis' | 'activity';
+type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 
 const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
     if (statements.length === 0) return null;
@@ -136,19 +142,20 @@ const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statement
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['financialOverview', 'todayWidget', 'netWorthOverTime', 'forecastHorizon', 'creditCardStatements'],
     analysis: ['budgetOverview', 'financialRunway', 'wealthVelocity'],
-    activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
+    activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey'],
+    pending_matches: []
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="ios-regular p-4 sm:p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 sm:gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group">
+    <div className="ios-regular p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] border border-black/5 dark:border-white/5 bg-white/80 dark:bg-dark-card/80 backdrop-blur-md shadow-sm flex items-center gap-3.5 sm:gap-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform`}>
+        <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-105 transition-transform`}>
             <span className="material-symbols-outlined text-2xl sm:text-3xl">{icon}</span>
         </div>
-        <div className="min-w-0 relative z-10">
-            <p className="text-[10px] sm:text-[12px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
-            <p className="text-xl sm:text-2xl font-black text-light-text dark:text-dark-text privacy-blur tracking-tighter mt-0.5 sm:mt-1 leading-none">{value}</p>
-            <p className="text-[10px] sm:text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1 sm:mt-1.5 font-bold truncate opacity-60 uppercase tracking-tight">{subtext}</p>
+        <div className="min-w-0 relative z-10 flex-1">
+            <p className="text-[10px] sm:text-[12px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
+            <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight">{value}</p>
+            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium truncate opacity-70 tracking-tight">{subtext}</p>
         </div>
     </div>
 );
@@ -223,6 +230,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
+  const [isBillMatcherModalOpen, setIsBillMatcherModalOpen] = useState(false);
   
   const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
 
@@ -234,7 +242,36 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
 
-  const { suggestions, confirmMatch, dismissSuggestion, confirmAllMatches, dismissAllSuggestions } = useTransactionMatcher(transactions, accounts, saveTransaction);
+  const { config: matcherConfig, updateConfig: updateMatcherConfig, resetConfig: resetMatcherConfig } = useMatcherConfig();
+
+  const {
+    suggestions,
+    confirmMatch,
+    dismissSuggestion,
+    confirmSelectedMatches,
+    dismissSelectedMatches,
+    confirmAllMatches,
+    dismissAllSuggestions,
+  } = useTransactionMatcher(transactions, accounts, saveTransaction, matcherConfig);
+
+  const {
+    billSuggestions,
+    confirmBillMatch,
+    dismissBillMatch,
+    confirmSelectedBillMatches,
+    dismissSelectedBillMatches,
+    confirmAllBillMatches,
+    dismissAllBillMatches,
+  } = useSyncedBillMatcher(
+    transactions,
+    recurringTransactions,
+    billsAndPayments,
+    accounts,
+    saveTransaction,
+    saveRecurringTransaction,
+    saveBillPayment,
+    matcherConfig
+  );
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
 
@@ -1296,7 +1333,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       }).sort((a, b) => b.value - a.value);
   }, [budgets, expenseCategories]);
 
-  const tabs: DashboardTab[] = ['overview', 'analysis', 'activity'];
+  const totalPendingMatchesCount = suggestions.length + billSuggestions.length;
+  const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up relative z-0">
@@ -1341,6 +1379,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               onDismissSuggestion={dismissSuggestion}
               onConfirmAll={confirmAllMatches}
               onDismissAll={dismissAllSuggestions}
+              onConfirmSelected={confirmSelectedMatches}
+              onDismissSelected={dismissSelectedMatches}
+          />
+      )}
+      {isBillMatcherModalOpen && (
+          <SyncedBillMatcherModal
+              isOpen={isBillMatcherModalOpen}
+              onClose={() => setIsBillMatcherModalOpen(false)}
+              suggestions={billSuggestions}
+              accounts={accounts}
+              onConfirmMatch={confirmBillMatch}
+              onDismissSuggestion={dismissBillMatch}
+              onConfirmAll={confirmAllBillMatches}
+              onDismissAll={dismissAllBillMatches}
+              onConfirmSelected={confirmSelectedBillMatches}
+              onDismissSelected={dismissSelectedBillMatches}
           />
       )}
       
@@ -1385,6 +1439,69 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       
       {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
       
+      {/* Mobile View Layout (SwiftUI Reimagined) */}
+      <div className="block md:hidden">
+        <MobileDashboardView
+          accounts={accounts}
+          transactions={transactions}
+          analyticsAccounts={analyticsAccounts}
+          analyticsTransactions={analyticsTransactions}
+          selectedAccountIds={selectedAccountIds}
+          setSelectedAccountIds={setSelectedAccountIds}
+          duration={duration}
+          setDuration={setDuration}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          tabs={tabs}
+          forecastDuration={forecastDuration}
+          setForecastDuration={setForecastDuration}
+          showForecast={showForecast}
+          setShowForecast={setShowForecast}
+          showGoals={showGoals}
+          setShowGoals={setShowGoals}
+          globalTotalAssets={globalTotalAssets}
+          globalTotalDebt={globalTotalDebt}
+          liquidityRatio={liquidityRatio}
+          savingsRate={savingsRate}
+          widgets={widgets}
+          allWidgets={allWidgets}
+          WIDGET_TABS={WIDGET_TABS}
+          removeWidget={removeWidget}
+          updateWidgetWidth={updateWidgetWidth}
+          isEditMode={isEditMode}
+          setIsEditMode={setIsEditMode}
+          setIsAddWidgetModalOpen={setIsAddWidgetModalOpen}
+          isPrivacyMode={!!preferences.isPrivacyMode}
+          setIsPrivacyMode={(val) => {
+            if (onTogglePrivacyMode) onTogglePrivacyMode();
+            else setPreferences(prev => ({ ...prev, isPrivacyMode: val }));
+          }}
+          formatCurrency={formatCurrency}
+          convertCurrency={convertCurrency}
+          preferredCurrency={preferredCurrency}
+          conversionRates={conversionRates}
+          handleOpenTransactionModal={handleOpenTransactionModal}
+          isSyncingBanks={isSyncingBanks}
+          onSyncBanks={onSyncBanks}
+          suggestions={suggestions}
+          setIsMatcherModalOpen={setIsMatcherModalOpen}
+          dismissAllSuggestions={dismissAllSuggestions}
+          billSuggestions={billSuggestions}
+          setIsBillMatcherModalOpen={setIsBillMatcherModalOpen}
+          dismissAllBillMatches={dismissAllBillMatches}
+          calculateAccountTotals={calculateAccountTotals}
+          assetAllocationData={allocationData}
+          assetGroups={assetGroups}
+          liabilityGroups={liabilityGroups}
+          FORECAST_DURATION_OPTIONS={FORECAST_DURATION_OPTIONS}
+          SELECT_WRAPPER_STYLE={SELECT_WRAPPER_STYLE}
+          SELECT_STYLE={SELECT_STYLE}
+          SELECT_ARROW_STYLE={SELECT_ARROW_STYLE}
+        />
+      </div>
+
+      {/* Desktop View Layout (Preserved Unaltered) */}
+      <div className="hidden md:block">
       {/* Header Section */}
       <div className="mb-6 mt-2 md:mt-0">
         <PageHeader
@@ -1418,7 +1535,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-8 sm:h-9 px-2 sm:px-3 flex items-center gap-1 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-lg sm:rounded-xl transition-all font-black text-[8px] sm:text-[9px] uppercase tracking-widest shrink-0"
+                            className="h-8 sm:h-9 px-2 sm:px-3 flex items-center gap-1 bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-lg sm:rounded-xl transition-all font-black text-[8px] sm:text-[9px]  tracking-widest shrink-0"
                         >
                             <span className="material-symbols-outlined text-[14px] sm:text-base">add_circle</span>
                             <span className="hidden xs:inline">Widget</span>
@@ -1434,7 +1551,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className={`${BTN_SECONDARY_STYLE} !h-8 sm:!h-9 !px-2 sm:!px-3 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10 text-[8px] sm:text-[9px] shrink-0 font-black tracking-widest uppercase flex items-center gap-1`}
+                        className={`${BTN_SECONDARY_STYLE} !h-8 sm:!h-9 !px-2 sm:!px-3 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10 text-[8px] sm:text-[9px] shrink-0 font-black tracking-widest  flex items-center gap-1`}
                         title="Sync Banks"
                     >
                         <span className={`material-symbols-outlined text-[16px] sm:text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
@@ -1443,7 +1560,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className={`${BTN_PRIMARY_STYLE} !h-8 sm:!h-9 !px-2 sm:!px-3 text-[8px] sm:text-[9px] shrink-0 font-black tracking-widest uppercase flex items-center gap-1`}
+                        className={`${BTN_PRIMARY_STYLE} !h-8 sm:!h-9 !px-2 sm:!px-3 text-[8px] sm:text-[9px] shrink-0 font-black tracking-widest  flex items-center gap-1`}
                     >
                         <span className="material-symbols-outlined text-[16px] sm:text-lg">add</span>
                         <span className="hidden xs:inline text-[8px] sm:text-[9px]">Transact</span>
@@ -1463,44 +1580,62 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           />
       )}
 
-      <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/60 dark:bg-dark-card p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">
-             {/* Redesigned Tabs (Accounts Style) */}
-             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] overflow-x-auto no-scrollbar h-11 sm:h-12">
+      {billSuggestions.length > 0 && (
+          <SyncedBillMatcherCard
+              suggestionsCount={billSuggestions.length}
+              onReview={() => setIsBillMatcherModalOpen(true)}
+              onDismiss={dismissAllBillMatches}
+          />
+      )}
+
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 bg-white/70 dark:bg-dark-card/70 backdrop-blur-md p-1.5 sm:p-2 rounded-2xl sm:rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">
+             {/* Redesigned Tabs (SwiftUI Segmented Picker Style) */}
+             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-1 rounded-2xl sm:rounded-[1.5rem] w-full lg:w-auto overflow-x-auto no-scrollbar min-h-[48px] sm:h-12">
                 {tabs.map((tab) => {
                     const tabConfig = {
-                        overview: { icon: 'dashboard', label: 'Overview' },
-                        analysis: { icon: 'insights', label: 'Analysis' },
-                        activity: { icon: 'history', label: 'Activity' }
-                    }[tab] || { icon: 'circle', label: tab };
+                        overview: { icon: 'dashboard', label: 'Overview', badge: null },
+                        analysis: { icon: 'insights', label: 'Analysis', badge: null },
+                        activity: { icon: 'history', label: 'Activity', badge: null },
+                        pending_matches: {
+                            icon: 'checklist_rtl',
+                            label: 'Pending Matches',
+                            badge: totalPendingMatchesCount > 0 ? totalPendingMatchesCount : null
+                        }
+                    }[tab] || { icon: 'circle', label: tab, badge: null };
 
                     return (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-4 sm:px-8 h-9 sm:h-10 rounded-[1.25rem] text-[10px] sm:text-[12px] font-black tracking-widest transition-all duration-300 flex items-center justify-center gap-2 uppercase whitespace-nowrap flex-1 lg:flex-none ${
+                            className={`px-3 sm:px-6 h-10 sm:h-10 rounded-xl sm:rounded-[1.25rem] text-xs sm:text-[12px] font-semibold tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap flex-1 lg:flex-none ${
                                 activeTab === tab
-                                ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400'
-                                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
+                                ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400 font-bold scale-[1.01]'
+                                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white'
                             }`}
                         >
-                            <span className={`material-symbols-outlined text-lg sm:text-xl ${activeTab === tab ? 'filled-icon' : 'opacity-60'}`}>{tabConfig.icon}</span>
+                            <span className={`material-symbols-outlined text-lg sm:text-xl ${activeTab === tab ? 'filled-icon' : 'opacity-70'}`}>{tabConfig.icon}</span>
                             <span>{tabConfig.label}</span>
+                            {tabConfig.badge !== null && (
+                                <span className="ml-0.5 px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-500 text-white shadow-sm">
+                                    {tabConfig.badge}
+                                </span>
+                            )}
                         </button>
                     );
                 })}
              </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-1 lg:px-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-0.5 lg:px-0">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-[1.5rem] shadow-inner h-11 sm:h-12">
-                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-9 sm:!h-10`}>
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-2xl sm:rounded-[1.5rem] shadow-inner w-full sm:w-auto min-h-[48px] sm:h-12">
+                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto flex-1 sm:flex-initial !h-10`}>
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-4 sm:!px-5 text-[10px] sm:text-[12px] font-black tracking-widest uppercase`}
+                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs sm:text-[12px] font-semibold tracking-wide`}
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
                                  <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
@@ -1509,25 +1644,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-base">expand_more</span></div>
                       </div>
                       
-                      <div className="w-[1px] h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
+                      <div className="w-[1px] h-5 bg-black/10 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
                       
-                       <button 
-                        onClick={() => setShowForecast(!showForecast)}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-[1.25rem] transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
-                        title={showForecast ? "Hide Forecast" : "Show Forecast"}
-                      >
-                         <span className={`material-symbols-outlined text-lg sm:text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                          <button 
+                            onClick={() => setShowForecast(!showForecast)}
+                            className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                            title={showForecast ? "Hide Forecast" : "Show Forecast"}
+                            aria-label="Toggle Forecast"
+                          >
+                             <span className={`material-symbols-outlined text-lg sm:text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
+                          </button>
 
-                      <button 
-                        onClick={() => setShowGoals(!showGoals)}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-[1.25rem] transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-md text-primary-600 dark:text-primary-400 -translate-y-px' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
-                        title={showGoals ? "Hide Goals" : "Show Goals"}
-                      >
-                         <span className={`material-symbols-outlined text-lg sm:text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
-                      </button>
-                      <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 sm:mx-1 hidden sm:block"></div>
-                      <div className="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0 relative z-50">
+                          <button 
+                            onClick={() => setShowGoals(!showGoals)}
+                            className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                            title={showGoals ? "Hide Goals" : "Show Goals"}
+                            aria-label="Toggle Goals"
+                          >
+                             <span className={`material-symbols-outlined text-lg sm:text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
+                          </button>
+                      </div>
+
+                      <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
+                      
+                      <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0 relative z-50 shrink-0">
                           <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                           <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
                       </div>
@@ -1626,7 +1767,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               <Card className="overflow-hidden rounded-[2.5rem] p-8 mt-8">
                   <div className="flex flex-col lg:flex-row gap-8">
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                          <h3 className="text-[10px] font-semibold tracking-wider text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset allocation</h3>
+                          <h3 className="text-[10px] font-semibold tracking-tight text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset allocation</h3>
                           <div className="h-64 w-full relative">
                               <ResponsiveContainer width="100%" height="100%">
                                   <PieChart>
@@ -1646,7 +1787,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                   </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-gray-400 opacity-60">Net worth</span>
+                                  <span className="text-[10px] font-bold  tracking-widest text-light-text-secondary dark:text-gray-400 opacity-60">Net worth</span>
                                   <span className="text-2xl font-black text-light-text dark:text-white tracking-tight privacy-blur leading-tight">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                               </div>
                           </div>
@@ -1664,7 +1805,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                       <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-10">
                           <div>
-                              <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 uppercase tracking-widest">Assets breakdown</h4>
+                              <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 tracking-tight">Assets breakdown</h4>
                               <div className="space-y-5">
                                   {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
@@ -1695,7 +1836,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           </div>
 
                           <div>
-                              <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 uppercase tracking-widest">Liabilities breakdown</h4>
+                              <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 tracking-tight">Liabilities breakdown</h4>
                               <div className="space-y-5">
                                   {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
@@ -1732,6 +1873,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   </div>
               </Card>
           </div>
+      )}
+
+      {activeTab === 'pending_matches' && (
+        <PendingMatchesView
+          billSuggestions={billSuggestions}
+          transferSuggestions={suggestions}
+          accounts={accounts}
+          config={matcherConfig}
+          onUpdateConfig={updateMatcherConfig}
+          onResetConfig={resetMatcherConfig}
+          onConfirmBillMatch={confirmBillMatch}
+          onDismissBillMatch={dismissBillMatch}
+          onConfirmSelectedBillMatches={confirmSelectedBillMatches}
+          onDismissSelectedBillMatches={dismissSelectedBillMatches}
+          onConfirmTransferMatch={confirmMatch}
+          onDismissTransferMatch={dismissSuggestion}
+          onConfirmSelectedTransferMatches={confirmSelectedMatches}
+          onDismissSelectedTransferMatches={dismissSelectedMatches}
+        />
       )}
 
       {(activeTab === 'overview' || activeTab === 'activity') && (
@@ -1791,6 +1951,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             </ResponsiveGridLayout>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -163,7 +163,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
         <nav className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest hover:text-primary-500 transition-colors"
+              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
             >
                 <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
@@ -178,7 +178,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
           title="Tags"
           subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
           actions={
-            <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+            <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
                 <span className="material-symbols-outlined text-xl">add_circle</span>
                 Register New Tag
             </button>
@@ -202,7 +202,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                 placeholder="Query semantic labels..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold uppercase tracking-widest placeholder:text-light-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold  tracking-widest placeholder:text-light-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
               />
           </div>
           
@@ -211,7 +211,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                   <select 
                     value={sortBy} 
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="bg-transparent text-[10px] font-black uppercase tracking-widest px-4 py-2 focus:outline-none cursor-pointer"
+                    className="bg-transparent text-[10px] font-black  tracking-widest px-4 py-2 focus:outline-none cursor-pointer"
                   >
                       <option value="count">Utility Rank</option>
                       <option value="amount">Volume Rank</option>
@@ -253,10 +253,10 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                       <span className="material-symbols-outlined text-2xl" style={{ color: tag.color }}>{tag.icon}</span>
                                   </div>
                                   <div>
-                                      <h3 className="font-black text-xs uppercase tracking-widest text-light-text dark:text-dark-text">{tag.name}</h3>
+                                      <h3 className="font-bold text-xs tracking-tight text-light-text dark:text-dark-text">{tag.name}</h3>
                                       <div className="flex items-center gap-2 mt-1">
                                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tag.color }}></div>
-                                        <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase">{tag.count} Nodes</p>
+                                        <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 ">{tag.count} Nodes</p>
                                       </div>
                                   </div>
                               </div>
@@ -299,7 +299,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                           </div>
                           
                           <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 px-4 py-3 rounded-2xl">
-                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Cumulative Volume</span>
+                              <span className="text-[9px] font-black  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Cumulative Volume</span>
                               <span className="font-mono font-black text-sm text-light-text dark:text-dark-text">
                                   {formatCurrency(tag.netAmount, 'EUR')}
                               </span>
@@ -312,9 +312,9 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                                <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">Semantic Label</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] text-right">Node Density</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] text-right">Total Aggregate</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Semantic Label</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] text-right">Node Density</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] text-right">Total Aggregate</th>
                                 <th className="px-8 py-5 w-24"></th>
                             </tr>
                         </thead>
@@ -326,11 +326,11 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: `${tag.color}15` }}>
                                                 <span className="material-symbols-outlined text-lg" style={{ color: tag.color }}>{tag.icon}</span>
                                             </div>
-                                            <span className="text-[11px] font-black uppercase underline decoration-2 underline-offset-4 decoration-transparent group-hover:decoration-primary-500/30 transition-all">{tag.name}</span>
+                                            <span className="text-[11px] font-black  underline decoration-2 underline-offset-4 decoration-transparent group-hover:decoration-primary-500/30 transition-all">{tag.name}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-right">
-                                        <span className="text-[10px] font-bold opacity-60 uppercase">{tag.count} Entries</span>
+                                        <span className="text-[10px] font-bold opacity-60 ">{tag.count} Entries</span>
                                     </td>
                                     <td className="px-8 py-6 text-right">
                                         <span className="font-mono font-black text-xs">{formatCurrency(tag.netAmount, 'EUR')}</span>
@@ -356,9 +356,9 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
               <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-4xl opacity-20">label_off</span>
               </div>
-              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Semantic Inventory Clear</p>
+              <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Semantic Inventory Clear</p>
               {!searchTerm && (
-                  <button onClick={() => handleOpenModal()} className="mt-8 px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
+                  <button onClick={() => handleOpenModal()} className="mt-8 px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-widest shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
                       Initialize Semantic Chip
                   </button>
               )}

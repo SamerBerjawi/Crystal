@@ -128,7 +128,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
                     <div className="w-full h-1.5 bg-gray-100 dark:bg-black/20 rounded-full overflow-hidden">
                         <div className={`h-full ${styles.iconBg} w-full`}></div>
                     </div>
-                     <p className={`text-[9px] font-bold uppercase tracking-wider text-center mt-1.5 ${styles.text}`}>Completed</p>
+                     <p className={`text-[9px] font-bold  tracking-wider text-center mt-1.5 ${styles.text}`}>Completed</p>
                 </div>
             </div>
         );
@@ -152,7 +152,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
 
             {/* Progress Bar */}
              <div className="w-full mt-4 opacity-50 group-hover:opacity-80 transition-opacity">
-                <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">
+                <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 mb-1  tracking-wide">
                     <span>Locked</span>
                     <span>{Math.round(Math.min(100, badge.progress))}%</span>
                 </div>
@@ -221,14 +221,14 @@ const PersonalBestLeaderboard: React.FC<{
              <div className="relative z-10 p-6 sm:p-8">
                  <div className="flex justify-between items-start mb-8">
                      <div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-light-text dark:text-white">
+                        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-light-text dark:text-white">
                             <span className="material-symbols-outlined text-yellow-400 text-3xl">emoji_events</span>
                             Hall of Fame
                         </h2>
-                        <p className="text-light-text-secondary dark:text-gray-400 text-sm font-bold uppercase tracking-widest opacity-60 mt-1">Personal Wealth Records</p>
+                        <p className="text-light-text-secondary dark:text-gray-400 text-sm font-bold  tracking-widest opacity-60 mt-1">Personal Wealth Records</p>
                      </div>
                      {isNewRecord && (
-                         <div className="animate-bounce bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg transform rotate-3">
+                         <div className="animate-bounce bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-bold  tracking-wider shadow-lg transform rotate-3">
                              New Record!
                          </div>
                      )}
@@ -240,8 +240,8 @@ const PersonalBestLeaderboard: React.FC<{
                          <span className="material-symbols-outlined text-8xl">military_tech</span>
                      </div>
                      
-                     <p className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">All-Time High Net Worth</p>
-                     <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                     <p className="text-xs font-bold  tracking-widest text-gray-500 dark:text-gray-400 mb-1">All-Time High Net Worth</p>
+                     <h3 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
                          {formatCurrency(ath, 'EUR')}
                      </h3>
                      
@@ -319,7 +319,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
         <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md group`}>
             {isDefeated && (
                 <div className="absolute inset-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center animate-fade-in-up">
-                    <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-black text-xl uppercase tracking-widest">
+                    <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-black text-xl  tracking-widest">
                         Defeated!
                     </div>
                 </div>
@@ -334,14 +334,14 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                         </div>
                         <div>
                             <h3 className="font-bold text-base text-light-text dark:text-dark-text leading-tight line-clamp-1">{boss.name}</h3>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider text-${config.color}-600 dark:text-${config.color}-400 mt-1 block`}>
+                            <span className={`text-[10px] font-bold  tracking-wider text-${config.color}-600 dark:text-${config.color}-400 mt-1 block`}>
                                 Lvl {boss.level} {config.label}
                             </span>
                         </div>
                     </div>
                     <div className="text-right">
                          <span className="block text-2xl font-black text-light-text dark:text-dark-text leading-none">{healthPercent.toFixed(0)}%</span>
-                         <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary">HP Left</span>
+                         <span className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary">HP Left</span>
                     </div>
                 </div>
 
@@ -406,7 +406,7 @@ const MasteryCard: React.FC<{
             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 pointer-events-none"></div>
             
             {/* Level Badge */}
-            <div className={`absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md ${style.text}`}>
+            <div className={`absolute top-4 right-4 text-[10px] font-black  tracking-widest px-2 py-1 rounded-full bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md ${style.text}`}>
                 Lvl {level}
             </div>
 
@@ -448,16 +448,16 @@ const MasteryCard: React.FC<{
 
             {/* Title & Stats */}
             <h3 className="font-bold text-lg text-light-text dark:text-dark-text mb-1 text-center">{categoryName}</h3>
-            <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${style.text}`}>{title}</p>
+            <p className={`text-xs font-bold  tracking-wider mb-4 ${style.text}`}>{title}</p>
             
             <div className="w-full bg-white/50 dark:bg-black/20 rounded-xl p-3 flex justify-between items-center text-sm">
                 <div className="text-left">
-                    <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase">Spent</span>
+                    <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary ">Spent</span>
                     <span className={`font-mono font-bold ${isOverBudget ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(spent, 'EUR')}</span>
                 </div>
                 <div className="h-8 w-px bg-black/5 dark:bg-white/10 mx-2"></div>
                 <div className="text-right">
-                     <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase">Limit</span>
+                     <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary ">Limit</span>
                     <span className="font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(budget, 'EUR')}</span>
                 </div>
             </div>
@@ -831,8 +831,8 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                       </div>
                       
                       <div className="relative z-10 flex-grow text-center sm:text-left">
-                          <h3 className="text-lg font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1">Financial Health Score</h3>
-                          <h2 className={`text-4xl font-black ${rankColor} mb-2`}>{rank}</h2>
+                          <h3 className="text-lg font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-1">Financial Health Score</h3>
+                          <h2 className={`text-4xl font-bold ${rankColor} mb-2`}>{rank}</h2>
                           <p className="text-light-text dark:text-dark-text leading-relaxed max-w-md">
                               Your score is based on key financial pillars including savings rate, liquidity runway, debt management, and portfolio diversity.
                           </p>
@@ -845,9 +845,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                           <span className="material-symbols-outlined text-9xl">local_fire_department</span>
                       </div>
                       <div className="relative z-10">
-                          <p className="font-bold text-orange-100 uppercase tracking-wider text-xs mb-1">Login Streak</p>
+                          <p className="font-bold text-orange-100  tracking-wider text-xs mb-1">Login Streak</p>
                           <div className="flex items-baseline gap-2">
-                             <h3 className="text-5xl font-black">{currentStreak}</h3>
+                             <h3 className="text-5xl font-bold">{currentStreak}</h3>
                              <span className="text-xl font-bold opacity-80">Days</span>
                           </div>
                       </div>
@@ -920,7 +920,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                       <button
                           key={item.id}
                           onClick={() => setActiveSection(item.id as ChallengeSection)}
-                          className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap flex-1 justify-center
+                          className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black  tracking-widest transition-all duration-300 whitespace-nowrap flex-1 justify-center
                               ${isActive 
                                   ? 'bg-white dark:bg-gray-800 text-primary-500 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] dark:shadow-black/50 scale-[1.02]' 
                                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 opacity-60'
@@ -1007,7 +1007,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                <div className="space-y-8 animate-fade-in-up">
                    {processedSprints.length > 0 && (
                        <div>
-                           <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-4 border-b border-cyan-200 dark:border-cyan-900/30 pb-2">Active Sprints</h3>
+                           <h3 className="text-sm font-bold tracking-tight text-cyan-600 dark:text-cyan-400 mb-4 border-b border-cyan-200 dark:border-cyan-900/30 pb-2">Active Sprints</h3>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                {processedSprints.map(s => (
                                    <Card key={s.id} className="relative overflow-hidden border border-cyan-200 dark:border-cyan-800">
@@ -1018,7 +1018,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold text-light-text dark:text-dark-text">{s.title}</h4>
-                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${s.status === 'failed' ? 'bg-red-100 text-red-600' : s.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{s.status}</span>
+                                                    <span className={`text-[10px] font-bold  px-2 py-0.5 rounded-full ${s.status === 'failed' ? 'bg-red-100 text-red-600' : s.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{s.status}</span>
                                                 </div>
                                             </div>
                                        </div>
@@ -1042,7 +1042,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                    )}
                    
                    <div>
-                       <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Available Challenges</h3>
+                       <h3 className="text-sm font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Available Challenges</h3>
                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                            {SAVINGS_SPRINTS.filter(s => !activeSprints.some(a => a.id === s.id)).map(sprint => (
                                <Card key={sprint.id} className="hover:shadow-md transition-shadow group cursor-pointer" onClick={() => handleStartSprint(sprint.id)}>
@@ -1052,7 +1052,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                    <h4 className="font-bold text-light-text dark:text-dark-text mb-1">{sprint.title}</h4>
                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-2">{sprint.description}</p>
                                    <div className="flex justify-between items-center mt-auto pt-3 border-t border-black/5 dark:border-white/5">
-                                       <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary">{sprint.durationDays} Days</span>
+                                       <span className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary">{sprint.durationDays} Days</span>
                                        <span className="text-xs font-bold text-primary-500">Start</span>
                                    </div>
                                </Card>

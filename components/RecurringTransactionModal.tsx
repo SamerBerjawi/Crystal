@@ -194,7 +194,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
         onSave(dataToSave);
     };
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
     
     return (
         <Modal onClose={onClose} title={isEditing ? 'Renewal Policies' : 'New Service'} size="lg">
@@ -210,21 +210,21 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                     <button
                         type="button"
                         onClick={() => setType('expense')}
-                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black  tracking-widest rounded-xl transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Expense
                     </button>
                     <button
                         type="button"
                         onClick={() => setType('income')}
-                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black  tracking-widest rounded-xl transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Income
                     </button>
                     <button
                         type="button"
                         onClick={() => setType('transfer')}
-                        className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex-1 py-2.5 text-xs font-black  tracking-widest rounded-xl transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         Transfer
                     </button>
@@ -313,7 +313,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                 
                 {/* Schedule Rules Card */}
                 <div className="p-6 bg-white dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary-500 text-lg">event_repeat</span>
                         Schedule Configuration
                     </h4>

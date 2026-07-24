@@ -1,8 +1,8 @@
 
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { PriceHistoryEntry } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
 
 interface PriceHistoryChartProps {
   history: PriceHistoryEntry[];
@@ -10,7 +10,12 @@ interface PriceHistoryChartProps {
 
 const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
     const sortedHistory = useMemo(() => {
-        return [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const trendVals = calculateTrendLine(sorted, 'price');
+        return sorted.map((item, idx) => ({
+            ...item,
+            trend: trendVals[idx]
+        }));
     }, [history]);
 
     if (sortedHistory.length < 2) {
@@ -26,7 +31,7 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
             const date = parseLocalDate(label);
             return (
                 <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-                    <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-widest text-[10px]">
+                    <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2  tracking-widest text-[10px]">
                         {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                     <p className="text-primary-500 font-mono font-black text-lg tracking-tighter">
@@ -79,6 +84,17 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
                         fillOpacity={1} 
                         fill="url(#colorPrice)" 
                         activeDot={{ r: 5, strokeWidth: 2, fill: '#fff', stroke: '#8B5CF6' }}
+                        name="Price"
+                    />
+                    <Line 
+                        type="monotone" 
+                        dataKey="trend" 
+                        stroke="#6366f1" 
+                        strokeWidth={2} 
+                        strokeDasharray="4 4" 
+                        dot={false} 
+                        activeDot={false}
+                        name="Trend Line"
                     />
                 </AreaChart>
             </ResponsiveContainer>

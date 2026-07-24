@@ -213,12 +213,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 />
                 
                 <div className="flex items-center flex-1 min-w-0 relative z-10 mb-4 sm:mb-0">
-                    <div className={`text-3xl sm:text-4xl mr-3 sm:mr-4 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-black/5 dark:bg-white/10 ${style.color} shadow-inner overflow-hidden`}>
+                    <div className={`mr-3 sm:mr-4 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl ${logoUrl ? 'bg-white dark:bg-white/10' : 'bg-black/5 dark:bg-white/10 ' + style.color} overflow-hidden`}>
                         {logoUrl ? (
                             <img 
                                 src={logoUrl} 
                                 alt="" 
-                                className="w-full h-full object-contain p-2" 
+                                className="w-full h-full object-cover" 
                                 onError={() => setLogoError(true)}
                             />
                         ) : (
@@ -228,8 +228,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <p className="font-bold text-lg sm:text-xl text-light-text dark:text-dark-text truncate leading-tight uppercase tracking-tight">{account.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5 sm:mt-1 text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wide uppercase truncate">
+                        <p className="font-bold text-lg sm:text-xl text-light-text dark:text-dark-text truncate leading-tight  tracking-tight">{account.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5 sm:mt-1 text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wide  truncate">
                            <span className="truncate">{secondaryText} {account.last4 ? `•••• ${account.last4}` : ''}</span>
                         </div>
                     </div>
@@ -248,7 +248,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             {formatCurrency(convertCurrency(displayBalance, account.currency, preferredCurrency, conversionRates), preferredCurrency)}
                         </p>
                          {account.currency !== preferredCurrency && (
-                            <p className="text-[10px] sm:text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-widest uppercase opacity-40">
+                            <p className="text-[10px] sm:text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-widest  opacity-40">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>
                         )}

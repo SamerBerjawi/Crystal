@@ -22,7 +22,7 @@ const LowestBalanceForecastCard: React.FC<LowestBalanceForecastCardProps> = ({ p
         <Card className="flex flex-col justify-between border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200">
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${statusColor}`}>
+                    <span className={`text-[10px] font-bold  tracking-wider px-2 py-0.5 rounded-md ${statusColor}`}>
                         {period}
                     </span>
                     {isLow && <span className="material-symbols-outlined text-red-500 text-lg">priority_high</span>}

@@ -182,7 +182,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                     <div>
                         <h4 className="font-bold text-base text-light-text dark:text-dark-text tracking-tight truncate leading-tight" title={goal.name}>{goal.name}</h4>
                         {paymentAccountName && (
-                            <p className="text-[10px] font-bold uppercase text-primary-500 tracking-wider opacity-80 leading-none">{paymentAccountName}</p>
+                            <p className="text-[10px] font-bold  text-primary-500 tracking-wider opacity-80 leading-none">{paymentAccountName}</p>
                         )}
                     </div>
                 </div>
@@ -248,19 +248,19 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             <div className="flex flex-wrap gap-2 mb-4">
                  {/* Type Badge - Only if NOT bucket */}
                  {!isBucket && (
-                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${category === 'income' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' : category === 'expense' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800' : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
+                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold  tracking-wider border ${category === 'income' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' : category === 'expense' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800' : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
                         {category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Earning'}
                     </span>
                  )}
 
                 {statusStyle && isActive && !isCompleted && (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusStyle.bg} ${statusStyle.textCol} ${statusStyle.border}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold  tracking-wider border ${statusStyle.bg} ${statusStyle.textCol} ${statusStyle.border}`}>
                         <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
                         {statusStyle.text}
                     </span>
                 )}
                 {isCompleted && (
-                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
+                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold  tracking-wider border bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
                         <span className="material-symbols-outlined text-[12px]">emoji_events</span>
                         Completed
                     </span>
@@ -277,11 +277,11 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             <div className="mt-auto">
                 <div className="flex justify-between items-end mb-2">
                     <div>
-                        <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mb-0.5 block">{bucketTypeLabel}</span>
+                        <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  mb-0.5 block">{bucketTypeLabel}</span>
                         <span className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
                     </div>
                     <div className="text-right">
-                        <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target</span>
+                        <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary ">Target</span>
                         <span className="block font-medium text-sm text-light-text dark:text-dark-text">{formatCurrency(goalToDisplay.amount, 'EUR')}</span>
                     </div>
                 </div>
@@ -293,7 +293,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                         style={{ width: `${Math.min(progress, 100)}%` }}
                      ></div>
                 </div>
-                <div className="flex justify-between mt-1.5 text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                <div className="flex justify-between mt-1.5 text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wide">
                     <span>{progress.toFixed(0)}% Complete</span>
                     {remainingAmount > 0 && <span>{formatCurrency(remainingAmount, goalToDisplay.currency)} Left</span>}
                 </div>
@@ -307,12 +307,12 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                             <span className="material-symbols-outlined text-[10px]">timeline</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Expected</span>
+                            <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider">Expected</span>
                             <span className="text-[11px] font-bold text-light-text dark:text-dark-text">{formatDate(goalToDisplay.projection.projectedDate)}</span>
                         </div>
                      </div>
                      {timeRemaining && (
-                         <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${statusStyle?.bg} ${statusStyle?.textCol} border ${statusStyle?.border}`}>
+                         <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold  tracking-wider ${statusStyle?.bg} ${statusStyle?.textCol} border ${statusStyle?.border}`}>
                              {timeRemaining}
                          </div>
                      )}
@@ -325,7 +325,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
              <div className="bg-gray-50/50 dark:bg-black/20 border-t border-black/5 dark:border-white/5 px-5 py-3 rounded-b-2xl">
                 <button 
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="flex items-center justify-between w-full text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider hover:text-primary-500 transition-colors"
+                    className="flex items-center justify-between w-full text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider hover:text-primary-500 transition-colors"
                 >
                     <span>{subGoals.length} Items</span>
                     <span className={`material-symbols-outlined text-base transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
@@ -345,7 +345,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                      <div className="flex items-center gap-2">
                                          <span className="font-medium text-light-text dark:text-dark-text">{sg.name}</span>
                                          {/* Type Badge for Subgoal */}
-                                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${sgCategory === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sgCategory === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                         <span className={`text-[9px] font-bold  px-1.5 py-0.5 rounded ${sgCategory === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sgCategory === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
                                             {sgCategory === 'savings' ? 'Save' : sgCategory === 'expense' ? 'Spend' : 'Earn'}
                                          </span>
                                          {isSubComplete && <span className="material-symbols-outlined text-[14px] text-green-600 dark:text-green-400">check_circle</span>}

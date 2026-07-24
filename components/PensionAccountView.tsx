@@ -5,6 +5,7 @@ import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend, ComposedChart, Line, Cell } from 'recharts';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 
 interface PensionAccountViewProps {
   account: Account;
@@ -55,7 +56,7 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             </div>
             <div className="mt-6 relative z-10">
                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
-                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
                 {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
@@ -180,9 +181,21 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
   const projectedValueAtRetirement = chartData.length > 0 ? chartData[chartData.length - 1].balance : 0;
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText="Pension Asset"
+        subText={`Targeted Maturity: ${retirementYear}`}
+        primaryAction={{ label: 'Log Contribution', icon: 'add', onClick: onAddTransaction }}
+        secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex items-center gap-6">
               <button 
                   onClick={onBack}
@@ -238,7 +251,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                    <div className="relative z-10 flex flex-col md:flex-row justify-between gap-12">
                         <div className="flex-grow">
                              <p className="text-[10px] font-black tracking-wider text-indigo-200/80 mb-2">Total Pot Capitalization</p>
-                             <h2 className="text-6xl md:text-7xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-8">
+                             <h2 className="text-6xl md:text-7xl font-bold tracking-tighter tabular-nums drop-shadow-lg mb-8">
                                  {formatCurrency(account.balance, account.currency)}
                              </h2>
                              <div className="flex gap-10">
@@ -300,7 +313,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
            {/* Charting & Activity */}
            <div className="lg:col-span-8 space-y-8">
                 <div className="bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden">
-                    <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight mb-10 flex justify-between items-center relative z-10">
+                    <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-10 flex justify-between items-center relative z-10">
                         Fortune Trajectory
                         <span className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/60">History & Forecast</span>
                     </h3>
@@ -335,7 +348,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                                         padding: '16px' 
                                     }}
                                     itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
-                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}
+                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px',  letterSpacing: '0.1em', fontSize: '10px' }}
                                     formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Value']}
                                 />
                                 <Legend verticalAlign="bottom" iconType="circle" />
@@ -366,7 +379,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
            <div className="lg:col-span-4 space-y-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Clearing Institution', value: account.financialInstitution },
@@ -378,7 +391,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                             { label: 'Internal Serial', value: account.accountNumber, isMono: true }
                         ].filter(i => i.value).map((item, idx) => (
                             <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
                                 <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>

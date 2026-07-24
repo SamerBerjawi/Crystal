@@ -51,7 +51,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
             
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-black/5 dark:border-white/5 shadow-sm ${priorityStyle.bg} ${priorityStyle.text}`}>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black  tracking-widest border border-black/5 dark:border-white/5 shadow-sm ${priorityStyle.bg} ${priorityStyle.text}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${priorityStyle.dot} shadow-sm`}></div>
                         {task.priority}
                     </div>
@@ -74,12 +74,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                     {dateInfo ? (
-                        <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-widest ${dateInfo.color}`}>
+                        <div className={`flex items-center gap-2 text-[9px] font-black  tracking-widest ${dateInfo.color}`}>
                             <span className="material-symbols-outlined text-[14px] opacity-40">calendar_today</span>
                             <span>{dateInfo.text}</span>
                         </div>
                     ) : (
-                        <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-30">No Temporal Limit</span>
+                        <span className="text-[9px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-30">No Temporal Limit</span>
                     )}
                     
                     {task.reminderDate && (

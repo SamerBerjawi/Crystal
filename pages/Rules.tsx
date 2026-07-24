@@ -1025,8 +1025,8 @@ const Rules: React.FC<RulesProps> = ({
               <span className="material-symbols-outlined text-2xl">rules</span>
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Engine Capacity</span>
-              <h4 className="text-xl font-black mt-0.5" id="stat-active-rules">{existingRules.length} Defined Rules</h4>
+              <span className="text-[10px] font-black  text-gray-400 tracking-wider">Engine Capacity</span>
+              <h4 className="text-xl font-bold mt-0.5" id="stat-active-rules">{existingRules.length} Defined Rules</h4>
             </div>
           </Card>
 
@@ -1035,8 +1035,8 @@ const Rules: React.FC<RulesProps> = ({
               <span className="material-symbols-outlined text-2xl">check_circle</span>
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Historical Matches</span>
-              <h4 className="text-xl font-black mt-0.5" id="stat-matched-txs">{historicalRuleCalculations.length} Pending Actions</h4>
+              <span className="text-[10px] font-black  text-gray-400 tracking-wider">Historical Matches</span>
+              <h4 className="text-xl font-bold mt-0.5" id="stat-matched-txs">{historicalRuleCalculations.length} Pending Actions</h4>
             </div>
           </Card>
 
@@ -1045,8 +1045,8 @@ const Rules: React.FC<RulesProps> = ({
               <span className="material-symbols-outlined text-2xl">storefront</span>
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Merchant Priority</span>
-              <h4 className="text-xl font-black mt-0.5 text-teal-600 dark:text-teal-400 font-mono">Registry Active</h4>
+              <span className="text-[10px] font-black  text-gray-400 tracking-wider">Merchant Priority</span>
+              <h4 className="text-xl font-bold mt-0.5 text-teal-600 dark:text-teal-400 font-mono">Registry Active</h4>
             </div>
           </Card>
         </div>
@@ -1055,34 +1055,34 @@ const Rules: React.FC<RulesProps> = ({
         <div className="flex flex-wrap gap-2 border-b border-black/5 dark:border-white/5 pb-px">
           <button
             onClick={() => setActiveTab('rules-list')}
-            className={`px-4 py-2.5 font-bold text-xs uppercase tracking-wider border-b-2 transition-all leading-none ${activeTab === 'rules-list' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
+            className={`px-4 py-2.5 font-bold text-xs  tracking-wider border-b-2 transition-all leading-none ${activeTab === 'rules-list' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
           >
             Rules Workspace
           </button>
           <button
             onClick={() => setActiveTab('merchant-overrides')}
-            className={`px-4 py-2.5 font-bold text-xs uppercase tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'merchant-overrides' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
+            className={`px-4 py-2.5 font-bold text-xs  tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'merchant-overrides' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
           >
             <span className="material-symbols-outlined text-sm leading-none">storefront</span>
             <span>Merchant Overrides</span>
           </button>
           <button
             onClick={() => setActiveTab('rules-sandbox')}
-            className={`px-4 py-2.5 font-bold text-xs uppercase tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'rules-sandbox' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
+            className={`px-4 py-2.5 font-bold text-xs  tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'rules-sandbox' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
           >
             <span className="material-symbols-outlined text-sm leading-none">science</span>
             <span>Interactive Sandbox</span>
           </button>
           <button
             onClick={() => setActiveTab('execution-logs')}
-            className={`px-4 py-2.5 font-bold text-xs uppercase tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'execution-logs' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
+            className={`px-4 py-2.5 font-bold text-xs  tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'execution-logs' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
           >
             <span className="material-symbols-outlined text-sm leading-none">receipt_long</span>
             <span>Execution History & Logs</span>
           </button>
           <button
             onClick={() => setActiveTab('historical-scan')}
-            className={`px-4 py-2.5 font-bold text-xs uppercase tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'historical-scan' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
+            className={`px-4 py-2.5 font-bold text-xs  tracking-wider border-b-2 transition-all leading-none flex items-center gap-1.5 ${activeTab === 'historical-scan' ? 'border-primary-500 text-primary-500' : 'border-transparent text-gray-400 hover:text-light-text dark:hover:text-dark-text'}`}
           >
             <span>Scan Database</span>
             {historicalRuleCalculations.length > 0 && (
@@ -1105,12 +1105,12 @@ const Rules: React.FC<RulesProps> = ({
             >
               <Card className="bg-gray-50/50 dark:bg-white/[0.01] border-2 border-dashed border-black/5 dark:border-white/5 p-6 rounded-2xl space-y-6">
                 <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-light-text dark:text-dark-text">
+                  <h3 className="text-sm font-bold tracking-tight text-light-text dark:text-dark-text">
                     {editingRuleId ? 'Modify Configured Rule' : 'Design Custom IF-WHEN-THEN Rule'}
                   </h3>
                   {!editingRuleId && (
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">Load Template:</span>
+                      <span className="text-[10px] text-gray-400 font-bold ">Load Template:</span>
                       <button onClick={() => handleApplyTemplate('subscription')} className="text-[10px] font-bold bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/20 text-primary-600 px-2 py-1 rounded">Netflix</button>
                       <button onClick={() => handleApplyTemplate('commute')} className="text-[10px] font-bold bg-primary-100 hover:bg-primary-200 dark:bg-primary-900/20 text-primary-600 px-2 py-1 rounded">Daily Commute</button>
                     </div>
@@ -1121,7 +1121,7 @@ const Rules: React.FC<RulesProps> = ({
                    {/* Rule Name & Priority */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Rule Name</label>
+                      <label className="block text-xs font-bold text-gray-400  tracking-widest mb-1.5">Rule Name</label>
                       <input
                         type="text"
                         value={ruleName}
@@ -1132,7 +1132,7 @@ const Rules: React.FC<RulesProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                      <label className="block text-xs font-bold text-gray-400  tracking-widest mb-1.5 flex items-center justify-between">
                         <span>Rule Priority</span>
                         <span className="text-[10px] text-primary-500 font-bold tracking-normal normal-case">Integrated drag & drop</span>
                       </label>
@@ -1146,7 +1146,7 @@ const Rules: React.FC<RulesProps> = ({
                   {/* Conditions - WHEN Block */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                      <span className="text-xs font-black text-amber-500  tracking-widest flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">emergency_home</span>
                         <span>WHEN: Conditions (Match all)</span>
                       </span>
@@ -1165,7 +1165,7 @@ const Rules: React.FC<RulesProps> = ({
                         <div key={idx} className="flex flex-col md:flex-row gap-3 items-end md:items-center bg-white dark:bg-dark-card p-3 rounded-xl border border-black/5 dark:border-white/5 shadow-xs">
                           {/* Condition field descriptor */}
                           <div className="w-full md:w-1/4">
-                            <span className="block text-[8px] text-gray-400 font-black tracking-widest uppercase mb-1">Target Field</span>
+                            <span className="block text-[8px] text-gray-400 font-black tracking-widest  mb-1">Target Field</span>
                             <div className={SELECT_WRAPPER_STYLE}>
                               <select
                                 value={cond.field}
@@ -1183,7 +1183,7 @@ const Rules: React.FC<RulesProps> = ({
 
                           {/* Operator */}
                           <div className="w-full md:w-1/4">
-                            <span className="block text-[8px] text-gray-400 font-black tracking-widest uppercase mb-1">Criteria</span>
+                            <span className="block text-[8px] text-gray-400 font-black tracking-widest  mb-1">Criteria</span>
                             <div className={SELECT_WRAPPER_STYLE}>
                               <select
                                 value={cond.operator}
@@ -1211,7 +1211,7 @@ const Rules: React.FC<RulesProps> = ({
 
                           {/* Value */}
                           <div className="flex-1 w-full">
-                            <span className="block text-[8px] text-gray-400 font-black tracking-widest uppercase mb-1">Value</span>
+                            <span className="block text-[8px] text-gray-400 font-black tracking-widest  mb-1">Value</span>
                             <input
                               type={cond.field === 'amount' ? 'number' : 'text'}
                               step="any"
@@ -1241,7 +1241,7 @@ const Rules: React.FC<RulesProps> = ({
                   {/* Actions - THEN Block */}
                   <div className="space-y-3 pt-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
+                      <span className="text-xs font-black text-emerald-500  tracking-widest flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">input_circle</span>
                         <span>THEN: Update Transactions</span>
                       </span>
@@ -1260,7 +1260,7 @@ const Rules: React.FC<RulesProps> = ({
                         <div key={idx} className="flex flex-col md:flex-row gap-3 items-end md:items-center bg-white dark:bg-dark-card p-3 rounded-xl border border-black/5 dark:border-white/5 shadow-xs">
                           {/* target block */}
                           <div className="w-full md:w-1/3">
-                            <span className="block text-[8px] text-gray-400 font-black tracking-widest uppercase mb-1">Action Destination</span>
+                            <span className="block text-[8px] text-gray-400 font-black tracking-widest  mb-1">Action Destination</span>
                             <div className={SELECT_WRAPPER_STYLE}>
                               <select
                                 value={act.field}
@@ -1277,7 +1277,7 @@ const Rules: React.FC<RulesProps> = ({
 
                           {/* Action Value Input or Dropdown for category */}
                           <div className="flex-1 w-full">
-                            <span className="block text-[8px] text-gray-400 font-black tracking-widest uppercase mb-1">New Value</span>
+                            <span className="block text-[8px] text-gray-400 font-black tracking-widest  mb-1">New Value</span>
                             {act.field === 'category' ? (
                               <div className={SELECT_WRAPPER_STYLE}>
                                 <select
@@ -1357,7 +1357,7 @@ const Rules: React.FC<RulesProps> = ({
                 >
                   <Card className="bg-primary-500/[0.02] border-2 border-dashed border-primary-500/20 p-5 rounded-2xl space-y-4">
                     <div>
-                      <h4 className="text-xs font-black uppercase text-primary-600 dark:text-primary-400 tracking-wider flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-primary-600 dark:text-primary-400 tracking-tight flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-base">emoji_objects</span>
                         <span>Intelligent Automation Suggestions</span>
                       </h4>
@@ -1377,20 +1377,20 @@ const Rules: React.FC<RulesProps> = ({
                                 <h5 className="font-bold text-xs text-light-text dark:text-dark-text">{sug.name}</h5>
                                 <p className="text-[10px] text-gray-400 mt-0.5">{sug.reason}</p>
                               </div>
-                              <span className="px-1.5 py-0.5 text-[8px] font-black uppercase rounded bg-primary-100 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300">
+                              <span className="px-1.5 py-0.5 text-[8px] font-black  rounded bg-primary-100 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300">
                                 Priority {sug.priority}
                               </span>
                             </div>
 
                             <div className="bg-gray-50 dark:bg-white/[0.01] border border-black/5 dark:border-white/5 p-2 rounded-lg text-[10px] font-mono flex items-center flex-wrap gap-x-2 gap-y-1">
-                              <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded">IF</span>
+                              <span className="text-[9px] font-black  text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded">IF</span>
                               {sug.conditions.map((c, cIdx) => (
                                 <span key={cIdx}>
                                   {c.field} {c.operator.replace('_', ' ')} <strong className="text-light-text dark:text-dark-text">"{c.value}"</strong>
                                 </span>
                               ))}
                               <span className="text-gray-300">➔</span>
-                              <span className="text-[9px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded">THEN</span>
+                              <span className="text-[9px] font-black  text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded">THEN</span>
                               {sug.actions.map((a, aIdx) => (
                                 <span key={aIdx}>
                                   set {a.field} to <strong className="text-emerald-600 dark:text-emerald-400 font-bold">"{a.value}"</strong>
@@ -1417,7 +1417,7 @@ const Rules: React.FC<RulesProps> = ({
             {existingRules.length === 0 ? (
               <div className="py-12 text-center bg-gray-50 dark:bg-white/[0.01] rounded-2xl border-2 border-dashed border-black/5 dark:border-white/5">
                 <span className="material-symbols-outlined text-4xl text-gray-300">smart_toy</span>
-                <p className="font-bold text-xs text-gray-400 uppercase tracking-widest mt-3">No Rules Configured</p>
+                <p className="font-bold text-xs text-gray-400  tracking-widest mt-3">No Rules Configured</p>
                 <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Build an automated rule right now to keep your incoming bank/CSV transactions tidy.</p>
                 <button
                   onClick={() => setIsAddingRule(true)}
@@ -1440,7 +1440,7 @@ const Rules: React.FC<RulesProps> = ({
                       <div className="flex items-start gap-3">
                         <span className="material-symbols-outlined text-amber-500 text-2xl shrink-0 mt-0.5">restore</span>
                         <div>
-                          <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400 uppercase tracking-wide">Historical Data Optimization Pending</h5>
+                          <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400  tracking-wide">Historical Data Optimization Pending</h5>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             You have <strong>{historicalRuleCalculations.length} matching transactions</strong> in your database that would be processed by your rules.
                           </p>
@@ -1464,7 +1464,7 @@ const Rules: React.FC<RulesProps> = ({
                         <span className="material-symbols-outlined text-sm leading-none text-primary-500 font-bold">info</span>
                         <span>Drag items by the handle or card body to reorder priorities (top card executes first).</span>
                       </div>
-                      <span className="text-[10px] uppercase font-black tracking-wider text-primary-500 font-mono bg-primary-500/10 px-2 py-0.5 rounded-sm">Drag Active</span>
+                      <span className="text-[10px]  font-black tracking-wider text-primary-500 font-mono bg-primary-500/10 px-2 py-0.5 rounded-sm">Drag Active</span>
                     </div>
 
                     {sortedRules.map((rule, index) => {
@@ -1540,10 +1540,10 @@ const Rules: React.FC<RulesProps> = ({
                             <div className="space-y-3 flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs font-black text-light-text dark:text-dark-text" id={`rule-name-${rule.id}`}>{rule.name}</span>
-                                <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded ${rule.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400'}`}>
+                                <span className={`px-2 py-0.5 text-[8px] font-black  rounded ${rule.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400'}`}>
                                   {rule.isActive ? 'Active' : 'Disabled'}
                                 </span>
-                                <span className="px-2 py-0.5 text-[8px] font-black uppercase rounded bg-primary-100 dark:bg-primary-950/40 text-primary-600 dark:text-primary-300 flex items-center gap-0.5">
+                                <span className="px-2 py-0.5 text-[8px] font-black  rounded bg-primary-100 dark:bg-primary-950/40 text-primary-600 dark:text-primary-300 flex items-center gap-0.5">
                                   <span className="material-symbols-outlined text-[10px] leading-none shrink-0 font-black">speed</span>
                                   <span>Priority {rule.priority ?? 0}</span>
                                 </span>
@@ -1553,7 +1553,7 @@ const Rules: React.FC<RulesProps> = ({
                               <div className="flex flex-col sm:flex-row sm:items-center gap-x-6 gap-y-2 text-xs">
                                 {/* Conditions view */}
                                 <div className="flex flex-wrap items-center gap-1">
-                                  <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">IF</span>
+                                  <span className="text-[9px] font-black  text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">IF</span>
                                   {rule.conditions.map((c, i) => (
                                     <span key={i} className="text-gray-400 dark:text-gray-400 font-mono text-[10px] bg-gray-50 dark:bg-white/[0.02] px-2 py-0.5 rounded border border-black/[0.03] dark:border-white/[0.03]">
                                       {c.field} {c.operator.replace('_', ' ')} <strong className="text-light-text dark:text-dark-text font-black font-sans">"{c.value}"</strong>
@@ -1567,7 +1567,7 @@ const Rules: React.FC<RulesProps> = ({
 
                                 {/* Actions view */}
                                 <div className="flex flex-wrap items-center gap-1">
-                                  <span className="text-[9px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">THEN</span>
+                                  <span className="text-[9px] font-black  text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">THEN</span>
                                   {rule.actions.map((a, i) => (
                                     <span key={i} className="text-gray-400 dark:text-gray-400 font-mono text-[10px] bg-gray-50 dark:bg-white/[0.02] px-2 py-0.5 rounded border border-black/[0.03] dark:border-white/[0.03]">
                                       set {a.field} to <strong className="text-emerald-600 dark:text-emerald-400 font-black font-sans">"{a.value}"</strong>
@@ -1613,7 +1613,7 @@ const Rules: React.FC<RulesProps> = ({
                 <div className="space-y-4">
                   <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4 lg:sticky lg:top-6">
                     <div>
-                      <h4 className="text-xs font-black uppercase text-light-text dark:text-dark-text tracking-wider flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-base text-teal-500">bar_chart</span>
                         <span>Rule Impact Analysis</span>
                       </h4>
@@ -1671,7 +1671,7 @@ const Rules: React.FC<RulesProps> = ({
 
                         {/* List impact breakdown panel */}
                         <div className="border-t border-black/5 dark:border-white/5 pt-3.5 space-y-2.5">
-                          <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Matched Statistics</span>
+                          <span className="text-[10px] font-black  text-gray-400 tracking-wider">Matched Statistics</span>
                           <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                             {ruleImpactData.map((data, idx) => (
                               <div key={data.id} className="flex justify-between items-center text-[11px]">
@@ -1688,12 +1688,12 @@ const Rules: React.FC<RulesProps> = ({
                         {/* Efficiency Panel */}
                         <div className="bg-gray-50 dark:bg-white/[0.01] border border-black/5 dark:border-white/5 p-3 rounded-xl flex items-center justify-between text-xs">
                           <div>
-                            <span className="text-gray-400 block text-[9px] font-black uppercase">Covered Volume</span>
+                            <span className="text-gray-400 block text-[9px] font-black ">Covered Volume</span>
                             <span className="font-extrabold text-light-text dark:text-dark-text">
                               {ruleImpactData.reduce((sum, entry) => sum + entry['Matched Count'], 0)} Transactions
                             </span>
                           </div>
-                          <span className="px-2 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[10px] font-black uppercase rounded-lg">
+                          <span className="px-2 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[10px] font-black  rounded-lg">
                             Live Coverage
                           </span>
                         </div>
@@ -1721,7 +1721,7 @@ const Rules: React.FC<RulesProps> = ({
                     <span className="material-symbols-outlined text-2xl font-black">history</span>
                   </div>
                   <div>
-                    <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400 uppercase tracking-wide">Optimization Rollback Point Available</h5>
+                    <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400  tracking-wide">Optimization Rollback Point Available</h5>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       A rollback recovery point was captured on {new Date(preferences.lastRuleRunBackup.timestamp).toLocaleString()} with <strong>{preferences.lastRuleRunBackup.transactions.length} modified transactions</strong>.
                     </p>
@@ -1741,7 +1741,7 @@ const Rules: React.FC<RulesProps> = ({
             <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3">
                 <div>
-                  <h4 className="text-xs font-black uppercase text-light-text dark:text-dark-text tracking-wider">
+                  <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
                     Rule Execution History & Audit Logs
                   </h4>
                   <p className="text-[10px] text-gray-400 mt-0.5">
@@ -1762,7 +1762,7 @@ const Rules: React.FC<RulesProps> = ({
                         'Clear Logs'
                       );
                     }}
-                    className="text-[10px] font-black uppercase text-red-500 hover:underline flex items-center gap-1"
+                    className="text-[10px] font-black  text-red-500 hover:underline flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-sm font-black">delete_sweep</span>
                     <span>Clear logs</span>
@@ -1773,14 +1773,14 @@ const Rules: React.FC<RulesProps> = ({
               {!preferences.ruleExecutionLogs || preferences.ruleExecutionLogs.length === 0 ? (
                 <div className="py-12 text-center border-2 border-dashed border-black/5 rounded-2xl">
                   <span className="material-symbols-outlined text-4xl text-gray-300">receipt_long</span>
-                  <p className="font-bold text-xs text-gray-400 uppercase tracking-widest mt-3">Log is Empty</p>
+                  <p className="font-bold text-xs text-gray-400  tracking-widest mt-3">Log is Empty</p>
                   <p className="text-xs text-gray-400 mt-1">No transaction rules have been run on historical or incoming ledger records yet.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5 font-mono text-[9px] uppercase tracking-wider text-gray-400">
+                      <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5 font-mono text-[9px]  tracking-wider text-gray-400">
                         <th className="p-3">Time</th>
                         <th className="p-3">Triggered Rule</th>
                         <th className="p-3">Transaction</th>
@@ -1827,7 +1827,7 @@ const Rules: React.FC<RulesProps> = ({
                   <span className="material-symbols-outlined text-xl">storefront</span>
                 </div>
                 <div>
-                  <h5 className="font-bold text-xs uppercase tracking-wider text-teal-800 dark:text-teal-400">Merchant Priority Overrides</h5>
+                  <h5 className="font-bold text-xs  tracking-wider text-teal-800 dark:text-teal-400">Merchant Priority Overrides</h5>
                   <p className="text-xs mt-1 leading-relaxed text-gray-500 dark:text-gray-400 max-w-xl">
                     Merchant Overrides map specific merchant names directly to categories and metadata. They run instantly on all incoming transaction data and take absolute priority over IF-WHEN-THEN rules.
                   </p>
@@ -1854,12 +1854,12 @@ const Rules: React.FC<RulesProps> = ({
                 >
                   <Card className="bg-gray-50/50 dark:bg-white/[0.01] border-2 border-dashed border-teal-500/10 dark:border-white/5 p-6 rounded-2xl space-y-4">
                     <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-light-text dark:text-dark-text">
+                      <h3 className="text-sm font-bold tracking-tight text-light-text dark:text-dark-text">
                         {editingMerchantKey ? 'Update Merchant Override' : 'Define New Merchant Override'}
                       </h3>
                       <button
                         onClick={resetMerchantOverrideForm}
-                        className="text-xs font-black uppercase text-red-500 hover:underline"
+                        className="text-xs font-black  text-red-500 hover:underline"
                       >
                         Cancel
                       </button>
@@ -1868,7 +1868,7 @@ const Rules: React.FC<RulesProps> = ({
                     <form onSubmit={handleSaveMerchantOverride} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Merchant Name</label>
+                          <label className="text-[10px] font-black  text-gray-400 tracking-wider">Merchant Name</label>
                           <input
                             type="text"
                             placeholder="e.g. Amazon, Uber, Netflix"
@@ -1881,7 +1881,7 @@ const Rules: React.FC<RulesProps> = ({
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Target Category</label>
+                          <label className="text-[10px] font-black  text-gray-400 tracking-wider">Target Category</label>
                           <div className={SELECT_WRAPPER_STYLE}>
                             <select
                               value={overrideCategory}
@@ -1901,7 +1901,7 @@ const Rules: React.FC<RulesProps> = ({
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider font-mono">Custom Logo domain (optional)</label>
+                          <label className="text-[10px] font-black  text-gray-400 tracking-wider font-mono">Custom Logo domain (optional)</label>
                           <input
                             type="text"
                             placeholder="e.g. amazon.com"
@@ -1912,7 +1912,7 @@ const Rules: React.FC<RulesProps> = ({
                         </div>
 
                         <div className="space-y-1 col-span-2">
-                          <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Default Description Override (Optional)</label>
+                          <label className="text-[10px] font-black  text-gray-400 tracking-wider">Default Description Override (Optional)</label>
                           <input
                             type="text"
                             placeholder="e.g. Amazon Marketplace Order"
@@ -1924,7 +1924,7 @@ const Rules: React.FC<RulesProps> = ({
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Custom/Audit Notes</label>
+                        <label className="text-[10px] font-black  text-gray-400 tracking-wider">Custom/Audit Notes</label>
                         <input
                           type="text"
                           placeholder="Why is this rule set up etc."
@@ -1972,7 +1972,7 @@ const Rules: React.FC<RulesProps> = ({
             {autoGeneratedMerchantRules.length > 0 && (
               <Card className="bg-teal-500/[0.01] border border-dashed border-teal-500/20 p-5 rounded-2xl space-y-4">
                 <div>
-                  <h4 className="text-xs font-black uppercase text-teal-600 dark:text-teal-400 tracking-wider flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-tight flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-base">auto_awesome</span>
                     <span>Automatically Identified Merchant Rules ({autoGeneratedMerchantRules.length})</span>
                   </h4>
@@ -1998,7 +1998,7 @@ const Rules: React.FC<RulesProps> = ({
                           setIsAddingMerchantOverride(true);
                           toast.info(`Pre-populated override parameters for "${sug.name}".`);
                         }}
-                        className="px-2.5 py-1 text-[10px] font-black uppercase bg-teal-50/80 text-teal-600 border border-teal-200/50 hover:bg-teal-100 rounded-lg dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-900/30 transition-all shrink-0"
+                        className="px-2.5 py-1 text-[10px] font-black  bg-teal-50/80 text-teal-600 border border-teal-200/50 hover:bg-teal-100 rounded-lg dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-900/30 transition-all shrink-0"
                       >
                         Deploy
                       </button>
@@ -2035,7 +2035,7 @@ const Rules: React.FC<RulesProps> = ({
               {Object.keys(merchantRules).length === 0 ? (
                 <div className="py-12 text-center bg-gray-50 dark:bg-white/[0.01] rounded-2xl border border-black/5 dark:border-white/5">
                   <span className="material-symbols-outlined text-4xl text-gray-300">storefront</span>
-                  <p className="font-bold text-xs text-gray-400 uppercase tracking-widest mt-2">No Overrides Configured</p>
+                  <p className="font-bold text-xs text-gray-400  tracking-widest mt-2">No Overrides Configured</p>
                   <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Create rules specifically mapped to merchant names for instant automated categorization.</p>
                 </div>
               ) : (
@@ -2044,11 +2044,11 @@ const Rules: React.FC<RulesProps> = ({
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                          <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Merchant Identity</th>
-                          <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Target Category Map</th>
-                          <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Visibility Status</th>
-                          <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Proposed Description / Notes</th>
-                          <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400 text-right">Actions</th>
+                          <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Merchant Identity</th>
+                          <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Target Category Map</th>
+                          <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Visibility Status</th>
+                          <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Proposed Description / Notes</th>
+                          <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/[0.03] dark:divide-white/[0.02]">
@@ -2156,7 +2156,7 @@ const Rules: React.FC<RulesProps> = ({
             <div className="bg-primary-500/10 border border-primary-500/20 text-primary-950 dark:text-primary-300 p-4 rounded-2xl flex items-start gap-3">
               <span className="material-symbols-outlined text-2xl shrink-0 mt-0.5 text-primary-500">science</span>
               <div>
-                <h5 className="font-bold text-xs uppercase tracking-wider">Interactive Automation Sandbox</h5>
+                <h5 className="font-bold text-xs  tracking-wider">Interactive Automation Sandbox</h5>
                 <p className="text-xs mt-1 leading-relaxed opacity-90">
                   Type or customize a simulation transaction below to watch your rules process it in real-time. This allows you to verify triggers, prioritize actions, and diagnose mappings before saving!
                 </p>
@@ -2168,7 +2168,7 @@ const Rules: React.FC<RulesProps> = ({
               <div className="lg:col-span-1 space-y-4">
                 <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
                   <div className="border-b border-black/5 dark:border-white/5 pb-2">
-                    <h4 className="text-xs font-black uppercase text-light-text dark:text-dark-text tracking-wider">
+                    <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
                       Simulation Input
                     </h4>
                     <p className="text-[10px] text-gray-400 mt-0.5">
@@ -2178,7 +2178,7 @@ const Rules: React.FC<RulesProps> = ({
 
                   {/* Quick Load Test Presets */}
                   <div className="space-y-1.5">
-                    <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">⚡ Quick Presets</span>
+                    <span className="text-[9px] font-black  text-gray-400 tracking-wider block">⚡ Quick Presets</span>
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => {
@@ -2219,7 +2219,7 @@ const Rules: React.FC<RulesProps> = ({
                   {/* Form fields */}
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">
+                      <label className="block text-[9px] font-black  text-gray-400 tracking-wider mb-1">
                         Mock Description
                       </label>
                       <input
@@ -2232,7 +2232,7 @@ const Rules: React.FC<RulesProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">
+                      <label className="block text-[9px] font-black  text-gray-400 tracking-wider mb-1">
                         Mock Merchant
                       </label>
                       <input
@@ -2246,7 +2246,7 @@ const Rules: React.FC<RulesProps> = ({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">
+                        <label className="block text-[9px] font-black  text-gray-400 tracking-wider mb-1">
                           Mock Amount
                         </label>
                         <input
@@ -2258,7 +2258,7 @@ const Rules: React.FC<RulesProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] font-black uppercase text-gray-400 tracking-wider mb-1">
+                        <label className="block text-[9px] font-black  text-gray-400 tracking-wider mb-1">
                           Mock Type
                         </label>
                         <div className={SELECT_WRAPPER_STYLE}>
@@ -2284,7 +2284,7 @@ const Rules: React.FC<RulesProps> = ({
                 <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
                   <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-2">
                     <div>
-                      <h4 className="text-xs font-black uppercase text-light-text dark:text-dark-text tracking-wider">
+                      <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
                         Real-time Pipeline Results
                       </h4>
                       <p className="text-[10px] text-gray-400 mt-0.5">
@@ -2293,12 +2293,12 @@ const Rules: React.FC<RulesProps> = ({
                     </div>
 
                     {sandboxEvaluation.matchedRule ? (
-                      <span className="flex items-center gap-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-full font-sans animate-pulse">
+                      <span className="flex items-center gap-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-black  px-2.5 py-1 rounded-full font-sans animate-pulse">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                         <span>Rule Triggered</span>
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 bg-gray-100 text-gray-400 dark:bg-white/5 text-[10px] font-black uppercase px-2.5 py-1 rounded-full font-sans">
+                      <span className="flex items-center gap-1 bg-gray-100 text-gray-400 dark:bg-white/5 text-[10px] font-black  px-2.5 py-1 rounded-full font-sans">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />
                         <span>No Matches Found</span>
                       </span>
@@ -2309,18 +2309,18 @@ const Rules: React.FC<RulesProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Input Columns */}
                     <div className="bg-gray-50/50 dark:bg-white/[0.01] border border-black/5 dark:border-white/5 p-4 rounded-xl space-y-2.5">
-                      <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Raw Input Record</span>
+                      <span className="text-[9px] font-black  text-gray-400 tracking-wider">Raw Input Record</span>
                       <div className="space-y-1.5 text-xs text-light-text dark:text-dark-text">
                         <p className="text-gray-400">Description: <strong className="text-light-text dark:text-dark-text font-bold break-all font-mono">{sandboxDesc || 'None'}</strong></p>
                         <p className="text-gray-400">Merchant: <strong className="text-light-text dark:text-dark-text font-bold font-mono">{sandboxMerchant || 'None'}</strong></p>
                         <p className="text-gray-400">Amount: <strong className="font-mono">{sandboxAmount || '0.00'} EUR</strong></p>
-                        <p className="text-gray-400">Type: <span className="uppercase font-mono text-[10px] font-bold">{sandboxType}</span></p>
+                        <p className="text-gray-400">Type: <span className=" font-mono text-[10px] font-bold">{sandboxType}</span></p>
                       </div>
                     </div>
 
                     {/* Transformed Column */}
                     <div className={`p-4 rounded-xl space-y-2.5 border ${sandboxEvaluation.matchedRule ? 'bg-primary-500/[0.02] border-primary-500/20' : 'bg-gray-50/50 dark:bg-white/[0.01] border-black/5 dark:border-white/5'}`}>
-                      <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">Resulting Processed Output</span>
+                      <span className="text-[9px] font-black  text-gray-400 tracking-wider block">Resulting Processed Output</span>
                       <div className="space-y-1.5 text-xs">
                         {/* Modified Description */}
                         <p className="text-gray-400">
@@ -2366,7 +2366,7 @@ const Rules: React.FC<RulesProps> = ({
                 {/* Rules Pipeline Diagnostic Match list */}
                 <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-3.5">
                   <div className="border-b border-black/5 dark:border-white/5 pb-2">
-                    <h4 className="text-xs font-black uppercase text-light-text dark:text-dark-text tracking-wider">
+                    <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
                       Automation Pipeline Diagnostics & Trace
                     </h4>
                     <p className="text-[10px] text-gray-400 mt-0.5">
@@ -2392,7 +2392,7 @@ const Rules: React.FC<RulesProps> = ({
                                 <span className={`w-2 h-2 rounded-full ${isMatch ? 'bg-green-500 font-sans' : 'bg-gray-300 dark:bg-gray-600'}`} />
                                 <span className="font-extrabold text-light-text dark:text-dark-text truncate max-w-[250px]">{rule.name}</span>
                               </div>
-                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${isMatch ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-white/5'}`}>
+                              <span className={`text-[9px] font-black  px-2 py-0.5 rounded-full ${isMatch ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-gray-100 text-gray-400 dark:bg-white/5'}`}>
                                 {isMatch ? 'Triggered (Match!)' : 'No Trigger'}
                               </span>
                             </div>
@@ -2417,7 +2417,7 @@ const Rules: React.FC<RulesProps> = ({
 
                             {/* Result actions list */}
                             <div className="text-[10px] text-gray-400 font-sans flex items-center gap-1.5 bg-black/[0.02] dark:bg-white/[0.01] p-1.5 rounded-lg font-mono">
-                              <span className="font-sans font-black text-emerald-500 uppercase">THEN</span>
+                              <span className="font-sans font-black text-emerald-500 ">THEN</span>
                               <div className="flex flex-wrap gap-x-2">
                                 {rule.actions.map((act, aIdx) => (
                                   <span key={aIdx} className="truncate">
@@ -2444,7 +2444,7 @@ const Rules: React.FC<RulesProps> = ({
             <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-2xl flex items-start gap-3">
               <span className="material-symbols-outlined text-2xl shrink-0 mt-0.5">info</span>
               <div>
-                <h5 className="font-bold text-xs uppercase tracking-wider">Database Synchronization Pass</h5>
+                <h5 className="font-bold text-xs  tracking-wider">Database Synchronization Pass</h5>
                 <p className="text-xs mt-1 leading-relaxed opacity-90">
                   This tool scans every recorded transaction in your files/synced accounts. If a transaction matches your custom rule conditions or configured Merchant Categories, you can quickly realign the fields automatically.
                 </p>
@@ -2458,7 +2458,7 @@ const Rules: React.FC<RulesProps> = ({
             {historicalRuleCalculations.length === 0 ? (
               <div className="py-12 text-center bg-gray-50 dark:bg-white/[0.01] rounded-2xl border border-black/5 dark:border-white/5">
                 <span className="material-symbols-outlined text-4xl text-green-500">sparkles</span>
-                <p className="font-bold text-xs text-gray-400 uppercase tracking-widest mt-3">All Database Ledger Aligned</p>
+                <p className="font-bold text-xs text-gray-400  tracking-widest mt-3">All Database Ledger Aligned</p>
                 <p className="text-xs text-gray-400 mt-1">No transaction fields require updating based on current configured Rules or Merchant registry overrides.</p>
               </div>
             ) : (
@@ -2481,11 +2481,11 @@ const Rules: React.FC<RulesProps> = ({
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                        <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Date / Original Description</th>
-                        <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Current Field Mapping</th>
+                        <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Date / Original Description</th>
+                        <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Current Field Mapping</th>
                         <th className="p-3 w-8 text-center text-gray-300">→</th>
-                        <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Proposed Auto-Fill Map</th>
-                        <th className="p-3 font-bold uppercase tracking-wider text-[10px] text-gray-400">Trigger Source</th>
+                        <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Proposed Auto-Fill Map</th>
+                        <th className="p-3 font-bold  tracking-wider text-[10px] text-gray-400">Trigger Source</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/[0.03] dark:divide-white/[0.02]">
@@ -2513,7 +2513,7 @@ const Rules: React.FC<RulesProps> = ({
                             <td className="p-3 space-y-1 bg-primary-500/[0.01]">
                               <p className="text-[10px] text-gray-400">
                                 Merchant:{' '}
-                                <span className={`font-black uppercase ${change.updates.merchant ? 'text-emerald-600 dark:text-emerald-400' : 'text-light-text dark:text-dark-text'}`}>
+                                <span className={`font-black  ${change.updates.merchant ? 'text-emerald-600 dark:text-emerald-400' : 'text-light-text dark:text-dark-text'}`}>
                                   {change.updates.merchant || originalTx.merchant || 'None'}
                                 </span>
                               </p>
@@ -2536,11 +2536,11 @@ const Rules: React.FC<RulesProps> = ({
                             {/* Trigger Source */}
                             <td className="p-3">
                               {change.isFromMerchantRule ? (
-                                <span className="px-2 py-0.5 text-[9px] font-black uppercase text-teal-600 bg-teal-500/10 rounded-full">
+                                <span className="px-2 py-0.5 text-[9px] font-black  text-teal-600 bg-teal-500/10 rounded-full">
                                   Merchant Rule (Priority)
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 text-[9px] font-black uppercase text-indigo-600 bg-indigo-500/10 rounded-full truncate max-w-[120px] inline-block">
+                                <span className="px-2 py-0.5 text-[9px] font-black  text-indigo-600 bg-indigo-500/10 rounded-full truncate max-w-[120px] inline-block">
                                   {existingRules.find(r => r.id === change.appliedRuleId)?.name || 'Custom Rule'}
                                 </span>
                               )}
@@ -2582,11 +2582,11 @@ const Rules: React.FC<RulesProps> = ({
                 {/* Header */}
                 <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-4 shrink-0">
                   <div>
-                    <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-500/10 dark:text-indigo-400 rounded-full inline-flex items-center gap-1">
+                    <span className="px-2.5 py-1 text-[9px] font-black  tracking-wider text-indigo-700 bg-indigo-500/10 dark:text-indigo-400 rounded-full inline-flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs leading-none font-black">science</span>
                       <span>Ledger Dry-Run Simulation</span>
                     </span>
-                    <h3 className="text-lg font-black text-light-text dark:text-dark-text mt-1.5 uppercase tracking-wide">
+                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text mt-1.5 tracking-wide">
                       Simulate Rule IMPACT
                     </h3>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -2608,7 +2608,7 @@ const Rules: React.FC<RulesProps> = ({
                       <span className="material-symbols-outlined text-lg">receipt</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-black uppercase text-gray-400 block tracking-wider">Total Ledger</span>
+                      <span className="text-[9px] font-black  text-gray-400 block tracking-wider">Total Ledger</span>
                       <span className="text-sm font-black text-light-text dark:text-dark-text">{transactions.length} records</span>
                     </div>
                   </div>
@@ -2618,7 +2618,7 @@ const Rules: React.FC<RulesProps> = ({
                       <span className="material-symbols-outlined text-lg">published_with_changes</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 block tracking-wider font-sans">Proposed Changes</span>
+                      <span className="text-[9px] font-black  text-emerald-600 dark:text-emerald-400 block tracking-wider font-sans">Proposed Changes</span>
                       <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{historicalRuleCalculations.length} would change</span>
                     </div>
                   </div>
@@ -2628,7 +2628,7 @@ const Rules: React.FC<RulesProps> = ({
                       <span className="material-symbols-outlined text-lg">verified</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 block tracking-wider font-sans">Healthy / Aligned</span>
+                      <span className="text-[9px] font-black  text-indigo-600 dark:text-indigo-400 block tracking-wider font-sans">Healthy / Aligned</span>
                       <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{transactions.length - historicalRuleCalculations.length} clean</span>
                     </div>
                   </div>
@@ -2637,7 +2637,7 @@ const Rules: React.FC<RulesProps> = ({
                 {/* Main comparison trace */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[25vh] border-t border-b border-black/5 dark:border-white/5 py-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">Detailed Modification Preview</span>
+                    <span className="text-[10px] font-black  tracking-wider text-gray-400">Detailed Modification Preview</span>
                     <input
                       type="text"
                       value={simulationSearch}
@@ -2650,7 +2650,7 @@ const Rules: React.FC<RulesProps> = ({
                   {historicalRuleCalculations.length === 0 ? (
                     <div className="py-12 text-center text-gray-400 border border-dashed border-black/5 dark:border-white/5 rounded-2xl">
                       <span className="material-symbols-outlined text-3xl text-gray-300">task_alt</span>
-                      <p className="font-bold text-xs uppercase tracking-widest mt-2">Zero impact modifications</p>
+                      <p className="font-bold text-xs  tracking-widest mt-2">Zero impact modifications</p>
                       <p className="text-[11px] text-gray-400 mt-1">All transactions perfectly align with active rules.</p>
                     </div>
                   ) : (
@@ -2673,7 +2673,7 @@ const Rules: React.FC<RulesProps> = ({
                       return (
                         <div className="overflow-x-auto rounded-xl border border-black/5 dark:border-white/5">
                           <table className="w-full text-left text-xs">
-                            <thead className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5 font-mono text-[9px] uppercase tracking-wider text-gray-400">
+                            <thead className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5 font-mono text-[9px]  tracking-wider text-gray-400">
                               <tr>
                                 <th className="p-3">Record Details</th>
                                 <th className="p-3">Before</th>
@@ -2724,7 +2724,7 @@ const Rules: React.FC<RulesProps> = ({
                                         </p>
                                       )}
                                       <div className="pt-0.5">
-                                        <span className="text-[9px] font-black uppercase text-indigo-600 bg-indigo-500/10 px-1 rounded inline-block truncate max-w-[150px]">
+                                        <span className="text-[9px] font-black  text-indigo-600 bg-indigo-500/10 px-1 rounded inline-block truncate max-w-[150px]">
                                           Rule: {existingRules.find(r => r.id === change.appliedRuleId)?.name || 'Merchant Override'}
                                         </span>
                                       </div>
@@ -2808,7 +2808,7 @@ const Rules: React.FC<RulesProps> = ({
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-wider">
+                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">
                       {confirmConfig.title}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">

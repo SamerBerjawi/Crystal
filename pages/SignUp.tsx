@@ -45,7 +45,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
             <div className="mb-8">
                  <CrystalLogo showText={false} />
             </div>
-            <h2 className="text-4xl font-extrabold text-white mb-8 leading-tight">
+            <h2 className="text-4xl font-bold text-white mb-8 leading-tight">
                 Join thousands of users <br/> mastering their money.
             </h2>
             

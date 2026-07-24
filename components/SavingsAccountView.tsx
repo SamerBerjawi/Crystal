@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, getPreferredTimeZone, toLocalISOString } from '../utils';
+import { formatCurrency, parseLocalDate, getPreferredTimeZone, toLocalISOString, calculateTrendLine } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, AreaChart, Area, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, AreaChart, Area, Line, Cell } from 'recharts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { motion } from 'motion/react';
+import { MobileAccountHeader } from './MobileAccountHeader';
 
 interface SavingsAccountViewProps {
   account: Account;
@@ -18,6 +19,7 @@ interface SavingsAccountViewProps {
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
   showBalanceAdjustments?: boolean;
+  onAdjustBalance?: () => void;
 }
 
 const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary' }: { 
@@ -55,7 +57,7 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             </div>
             <div className="mt-6 relative z-10">
                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
-                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
                 {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
@@ -73,6 +75,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
   showBalanceAdjustments = true,
+  onAdjustBalance,
 }) => {
   const { financialGoals } = useGoalsContext();
   const timeZone = getPreferredTimeZone();
@@ -180,7 +183,12 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
         currentBalance -= change;
         iterDate.setDate(iterDate.getDate() - 1);
     }
-    return data.reverse();
+    const reversedData = data.reverse();
+    const trendVals = calculateTrendLine(reversedData, 'value');
+    return reversedData.map((item, idx) => ({
+      ...item,
+      trend: trendVals[idx]
+    }));
   }, [account.balance, transactions, referenceDate, showBalanceAdjustments]);
 
   // --- 3. Linked Goals ---
@@ -189,9 +197,21 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
   }, [financialGoals, account.id]);
 
   return (
-    <div className="space-y-10 animate-fade-in-up pb-10">
-      {/* Dynamic Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+    <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">
+      {/* Mobile Header */}
+      <MobileAccountHeader
+        account={account}
+        onBack={onBack}
+        formattedBalance={formatCurrency(account.balance, account.currency)}
+        badgeText="Savings Account"
+        subText={account.financialInstitution || 'Vault'}
+        primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
+        secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+        syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+      />
+
+      {/* Dynamic Desktop Header */}
+      <header className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex items-center gap-6">
               <button 
                   onClick={onBack}
@@ -251,7 +271,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         </div>
                         
                         <p className="text-[10px] font-bold text-emerald-100/90 mb-2">Current Total Balance</p>
-                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12">
+                        <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                         
@@ -352,10 +372,11 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                          boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
                                      }}
                                      itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#10B981' }}
-                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8',  marginBottom: '4px', letterSpacing: '0.1em' }}
                                      formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Balance']}
                                  />
-                                <Area type="monotone" dataKey="value" stroke="#10B981" strokeWidth={4} fill="url(#savValGradient)" />
+                                <Area type="monotone" dataKey="value" stroke="#10B981" strokeWidth={4} fill="url(#savValGradient)" name="Balance" />
+                                <Line type="monotone" dataKey="trend" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 4" dot={false} activeDot={false} name="Trend Line" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -370,7 +391,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group">
                     <div className="flex justify-between items-center mb-10">
                         <div>
-                            <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Yield Analysis</h3>
+                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Yield Analysis</h3>
                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Monthly interest payout history</p>
                         </div>
                     </div>
@@ -392,7 +413,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                          boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
                                      }}
                                      itemStyle={{ fontSize: '12px', fontWeight: '900' }}
-                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.1em' }}
+                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8',  marginBottom: '4px', letterSpacing: '0.1em' }}
                                      formatter={(val: number, name: any, props: any) => {
                                          const isProj = props.payload?.isProjected;
                                          return [
@@ -418,7 +439,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-[600px]">
                     <div className="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-xl font-black tracking-tight text-light-text dark:text-dark-text italic">Active Ledger</h3>
+                            <h3 className="text-xl font-bold tracking-tight text-light-text dark:text-dark-text italic">Active Ledger</h3>
                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Recent savings activity</p>
                         </div>
                     </div>
@@ -438,7 +459,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
-                    <h3 className="text-[11px] font-black tracking-widest text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8 uppercase">Infrastructure Configuration</h3>
+                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Clearing Institution', value: account.financialInstitution },
@@ -449,7 +470,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                             { label: 'Routing Directive', value: account.routingNumber, isMono: true }
                         ].filter(i => i.value).map((item, idx) => (
                             <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 uppercase">{item.label}</p>
+                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
                                 <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>
@@ -461,7 +482,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 {/* Linked Financial Goals */}
                 {linkedGoals.length > 0 && (
                     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 h-full flex flex-col group">
-                        <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight mb-8 flex items-center gap-3">
+                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-8 flex items-center gap-3">
                             Linked Goals
                             <span className="material-symbols-outlined text-amber-500">ads_click</span>
                         </h3>

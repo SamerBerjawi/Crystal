@@ -58,7 +58,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
         return !existingBudgets.some(b => b.categoryName === cat.name);
     });
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
     const modalTitle = isEditing ? 'Edit Budget' : 'Set New Budget';
     const saveButtonText = isEditing ? 'Update Budget' : 'Create Budget';
 
@@ -93,7 +93,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                 </div>
 
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary-500 text-lg">category</span>
                         Allocation Parameter
                     </h4>
@@ -119,7 +119,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                         {(isEditing || !!categoryNameToCreate) && (
                             <div className="flex items-start gap-2 mt-4 p-4 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl border border-primary-500/20">
                                 <span className="material-symbols-outlined text-primary-500 text-lg">info</span>
-                                <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 leading-tight uppercase tracking-wide">
+                                <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 leading-tight  tracking-wide">
                                     Domain Lock active. Delete node and recreate to change classification.
                                 </p>
                             </div>
@@ -128,8 +128,8 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                 </div>
 
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-widest text-[10px] font-black`}>Retract</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow uppercase tracking-widest text-[10px] font-black`}>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}>
                         {isEditing ? 'Commit Changes' : 'Deploy Budget'}
                         <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">rocket_launch</span>
                     </button>
