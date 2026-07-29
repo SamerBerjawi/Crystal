@@ -8,9 +8,10 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import Card from '../components/Card';
 import { parseLocalDate } from '../utils';
 import TaskModal from '../components/TaskModal';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
+import EmptyState from '../components/EmptyState';
 
 interface TasksProps {
   tasks: Task[];
@@ -180,24 +181,22 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
             />
 
             {/* Header */}
-            <div className="space-y-6 pt-4">
-                
-                <PageHeader
-                    markerIcon="fact_check"
-                    markerLabel="Operational Protocols"
-                    title="Action Board"
-                    subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
-                    actions={
-                        <HeaderButton
-                            variant="primary"
-                            icon="add_circle"
-                            onClick={() => handleOpenModal()}
-                        >
-                            New Task
-                        </HeaderButton>
-                    }
-                />
-            </div>
+            <SettingsSubpageHeader
+                markerIcon="fact_check"
+                markerLabel="Operational Protocols"
+                title="Action Board"
+                subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
+                setCurrentPage={setCurrentPage}
+                actions={
+                    <HeaderButton
+                        variant="primary"
+                        icon="add_circle"
+                        onClick={() => handleOpenModal()}
+                    >
+                        New Task
+                    </HeaderButton>
+                }
+            />
             
             {/* Productivity Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -268,7 +267,16 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
             </section>
 
             {/* Kanban Board */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {tasks.length === 0 ? (
+                <EmptyState
+                    icon="task"
+                    title="No Tasks Found"
+                    description="Organize your financial to-dos, tax deadlines, and bill payment reminders in one place."
+                    actionLabel="Create First Task"
+                    onAction={() => handleOpenModal()}
+                />
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {STATUS_ORDER.map(status => {
                     const tasksInColumn = groupedAndSortedTasks[status] || [];
                     const statusColorMap: Record<TaskStatus, string> = {
@@ -340,6 +348,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     );
                 })}
             </div>
+            )}
 
         </div>
     );

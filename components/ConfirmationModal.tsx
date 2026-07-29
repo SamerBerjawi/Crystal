@@ -1,6 +1,16 @@
-import React from 'react';
-import Modal from './Modal';
-import { BTN_SECONDARY_STYLE, BTN_PRIMARY_STYLE, BTN_DANGER_STYLE } from '../constants';
+import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import HeaderButton from './HeaderButton';
+
+export interface ConfirmOptions {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: 'danger' | 'warning' | 'info';
+  icon?: string;
+}
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -10,7 +20,32 @@ interface ConfirmationModalProps {
   message: string;
   confirmButtonText?: string;
   confirmButtonVariant?: 'primary' | 'danger';
+  /** New optional props for richer variants */
+  variant?: 'danger' | 'warning' | 'info';
+  icon?: string;
+  cancelButtonText?: string;
 }
+
+const variantConfig = {
+  danger: {
+    icon: 'warning',
+    iconBg: 'bg-rose-500/10',
+    iconColor: 'text-rose-500',
+    buttonVariant: 'danger' as const,
+  },
+  warning: {
+    icon: 'error_outline',
+    iconBg: 'bg-amber-500/10',
+    iconColor: 'text-amber-500',
+    buttonVariant: 'amber' as const,
+  },
+  info: {
+    icon: 'info',
+    iconBg: 'bg-primary-500/10',
+    iconColor: 'text-primary-500',
+    buttonVariant: 'primary' as const,
+  },
+};
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
@@ -19,28 +54,155 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   title,
   message,
   confirmButtonText = 'Confirm',
-  confirmButtonVariant = 'danger',
+  confirmButtonVariant,
+  variant = 'danger',
+  icon,
+  cancelButtonText = 'Cancel',
 }) => {
-  if (!isOpen) return null;
+  // Focus trap: focus the cancel button on mount
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  const confirmButtonStyle = confirmButtonVariant === 'danger'
-    ? BTN_DANGER_STYLE
-    : BTN_PRIMARY_STYLE;
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => cancelRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
-  return (
-    <Modal onClose={onClose} title={title}>
-      <p className="text-light-text-secondary dark:text-dark-text-secondary">{message}</p>
+  // Escape key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
-      <div className="flex justify-end gap-4 pt-6 mt-4 border-t border-black/10 dark:border-white/10">
-        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>
-          Cancel
-        </button>
-        <button type="button" onClick={onConfirm} className={confirmButtonStyle}>
-          {confirmButtonText}
-        </button>
-      </div>
-    </Modal>
+  if (typeof document === 'undefined') return null;
+
+  const config = variantConfig[variant] || variantConfig.danger;
+  const displayIcon = icon || config.icon;
+
+  // Determine the HeaderButton variant for the confirm button
+  const resolvedButtonVariant = confirmButtonVariant === 'primary'
+    ? 'primary'
+    : confirmButtonVariant === 'danger'
+      ? 'danger'
+      : config.buttonVariant;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 flex items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-md p-4 z-[99999]"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 8 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="bg-white/95 dark:bg-gray-900/95 rounded-2xl sm:rounded-3xl ios-regular shadow-modal w-full max-w-sm overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 flex flex-col items-center text-center gap-4">
+              {/* Icon */}
+              <div className={`w-14 h-14 rounded-2xl ${config.iconBg} flex items-center justify-center`}>
+                <span className={`material-symbols-outlined text-2xl ${config.iconColor}`}>
+                  {displayIcon}
+                </span>
+              </div>
+
+              {/* Title & Message */}
+              <div className="space-y-2">
+                <h3 className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">
+                  {title}
+                </h3>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                  {message}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 p-4 pt-0 px-6 pb-6">
+              <HeaderButton
+                ref={cancelRef}
+                variant="secondary"
+                size="lg"
+                className="flex-1"
+                onClick={onClose}
+              >
+                {cancelButtonText}
+              </HeaderButton>
+              <HeaderButton
+                variant={resolvedButtonVariant}
+                size="lg"
+                className="flex-1"
+                onClick={() => { onConfirm(); onClose(); }}
+              >
+                {confirmButtonText}
+              </HeaderButton>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
+};
+
+// ── Imperative confirm hook ──
+// Global state for the imperative confirm dialog
+let globalShowConfirm: ((options: ConfirmOptions) => Promise<boolean>) | null = null;
+
+export const useConfirm = () => {
+  const [state, setState] = useState<{
+    isOpen: boolean;
+    options: ConfirmOptions;
+    resolve: ((value: boolean) => void) | null;
+  }>({
+    isOpen: false,
+    options: { title: '', message: '' },
+    resolve: null,
+  });
+
+  const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      setState({ isOpen: true, options, resolve });
+    });
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    state.resolve?.(true);
+    setState(prev => ({ ...prev, isOpen: false, resolve: null }));
+  }, [state.resolve]);
+
+  const handleClose = useCallback(() => {
+    state.resolve?.(false);
+    setState(prev => ({ ...prev, isOpen: false, resolve: null }));
+  }, [state.resolve]);
+
+  const ConfirmDialog = useCallback(() => (
+    <ConfirmationModal
+      isOpen={state.isOpen}
+      onClose={handleClose}
+      onConfirm={handleConfirm}
+      title={state.options.title}
+      message={state.options.message}
+      confirmButtonText={state.options.confirmLabel || 'Confirm'}
+      cancelButtonText={state.options.cancelLabel || 'Cancel'}
+      variant={state.options.variant || 'danger'}
+      icon={state.options.icon}
+    />
+  ), [state.isOpen, state.options, handleClose, handleConfirm]);
+
+  return { confirm, ConfirmDialog };
 };
 
 export default ConfirmationModal;

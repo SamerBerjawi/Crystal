@@ -13,6 +13,7 @@ import SmartRestoreModal from '../components/SmartRestoreModal';
 import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 
 interface DataImportExportProps {
   accounts: Account[];
@@ -403,26 +404,13 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
 
 
        {/* Navigation & Header */}
-       <div className="space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => props.setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="storage"
-          markerLabel="Systems Core"
-          title="Data Management"
-          subtitle="Atomic data operations: maintain snapshots, import external ledgers, and manage system state."
-        />
-      </div>
+       <SettingsSubpageHeader
+         markerIcon="storage"
+         markerLabel="Systems Core"
+         title="Data Management"
+         subtitle="Atomic data operations: maintain snapshots, import external ledgers, and manage system state."
+         setCurrentPage={props.setCurrentPage}
+       />
       
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

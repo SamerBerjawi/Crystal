@@ -63,7 +63,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
     }, [isMenuOpen]);
 
     return (
-      <div className={`group relative flex items-center gap-6 ${compact ? 'p-2' : 'p-3'} bg-white dark:bg-dark-card rounded-[1.5rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 ${opacityClass}`}>
+      <div className={`group relative flex items-center gap-6 ${compact ? 'p-2' : 'p-3'} bg-white dark:bg-dark-card rounded-[1.5rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 ${opacityClass} ${isMenuOpen ? 'z-40' : 'z-0'}`}>
         <div className="absolute inset-0 pointer-events-none rounded-[1.5rem] overflow-hidden">
              <div className="absolute -top-12 -right-12 w-32 h-32 blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br from-primary-500 to-indigo-600" />
         </div>
@@ -124,13 +124,13 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
         </div>
 
         {/* Amount & Actions */}
-        <div className="relative z-10 flex flex-col items-end gap-1.5">
+        <div className={`relative flex flex-col items-end gap-1.5 ${isMenuOpen ? 'z-50' : 'z-10'}`}>
              <span className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums tracking-tighter ${amountColor} ${strikethroughClass}`}>
                 {formatCurrency(item.amount, 'EUR')}
              </span>
              
              {/* Action Buttons */}
-             <div className={`flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 ${isReadOnly ? 'invisible' : ''}`}>
+             <div className={`flex items-center gap-1.5 transition-all duration-300 ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'} ${isReadOnly ? 'invisible' : ''}`}>
                 {!isSkipped && (
                     <button 
                         onClick={(e) => { e.stopPropagation(); onPost(item); }}
@@ -169,7 +169,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                     {isMenuOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-1.5 z-50 animate-fade-in-up origin-top-right overflow-hidden">
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-1.5 z-[100] animate-fade-in-up origin-top-right overflow-hidden">
                              {item.isRecurring && onEndSeries && (
                                 <button
                                     type="button"
@@ -217,4 +217,4 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
     );
 };
 
-export default ScheduledItemRow;
+export default React.memo(ScheduledItemRow);

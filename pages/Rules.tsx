@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AppPreferences, TransactionRule, Page, Category, RuleRunBackup, RuleExecutionLog } from '../types';
 import Card from '../components/Card';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { toast } from 'sonner';
@@ -1060,11 +1060,12 @@ const Rules: React.FC<RulesProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto" id="rules-view">
-      <PageHeader
+      <SettingsSubpageHeader
         markerIcon="smart_toy"
         markerLabel="Rules & Automation"
         title="Rule Engine"
         subtitle="Automate your workflow with custom IF-WHEN-THEN rules for transaction processing."
+        setCurrentPage={setCurrentPage}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <HeaderButton

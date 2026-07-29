@@ -1,11 +1,12 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.260729.4",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "bump-version": "node scripts/bump-version.cjs",
+    "build": "node scripts/bump-version.cjs && vite build",
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build --mode production",
     "lint": "tsc --noEmit"

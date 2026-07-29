@@ -7,9 +7,10 @@ import TagModal from '../components/TagModal';
 import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
+import EmptyState from '../components/EmptyState';
 
 interface TagsProps {
   tags: Tag[];
@@ -159,36 +160,23 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
         />
       )}
       
-      {/* Navigation & Header */}
-      <div className="space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="sell"
-          markerLabel="Semantic Overlays"
-          title="Tags"
-          subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
-          actions={
-            <HeaderButton
-              variant="primary"
-              icon="add_circle"
-              onClick={() => handleOpenModal()}
-            >
-              Register New Tag
-            </HeaderButton>
-          }
-        />
-      </div>
+       {/* Navigation & Header */}
+       <SettingsSubpageHeader
+         markerIcon="sell"
+         markerLabel="Semantic Overlays"
+         title="Tags"
+         subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
+         setCurrentPage={setCurrentPage}
+         actions={
+           <HeaderButton
+             variant="primary"
+             icon="add_circle"
+             onClick={() => handleOpenModal()}
+           >
+             Register New Tag
+           </HeaderButton>
+         }
+       />
 
       {/* Metrics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -356,17 +344,13 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                 </div>
             )
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
-              <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-4xl opacity-20">label_off</span>
-              </div>
-              <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Semantic Inventory Clear</p>
-              {!searchTerm && (
-                  <button onClick={() => handleOpenModal()} className="mt-8 px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-widest shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
-                      Initialize Semantic Chip
-                  </button>
-              )}
-          </div>
+          <EmptyState
+            icon="label_off"
+            title="No Tags Created"
+            description="Create tags to organize, label, and filter your transactions across multiple accounts."
+            actionLabel={!searchTerm ? "Create New Tag" : undefined}
+            onAction={() => handleOpenModal()}
+          />
         )}
       </div>
     </div>

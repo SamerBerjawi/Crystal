@@ -18,6 +18,7 @@ import WarrantModal from '../components/WarrantModal';
 import { formatHoldingType } from '../utils/investments';
 import PriceHistoryChart from '../components/PriceHistoryChart';
 import HeaderButton from '../components/HeaderButton';
+import { useConfirm } from '../components/ConfirmationModal';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -47,6 +48,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     onBack,
     priceHistory = {}
 }) => {
+    const { confirm, ConfirmDialog } = useConfirm();
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<{ date: string, price: number } | undefined>(undefined);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
@@ -161,8 +163,16 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
         setIsWarrantModalOpen(true);
     };
 
-    const handleDeletePrice = (date: string) => {
-        if(window.confirm(`Are you sure you want to delete the price log for ${date}?`)) {
+    const handleDeletePrice = async (date: string) => {
+        if (!holding) return;
+        const confirmed = await confirm({
+            title: 'Delete Price Log?',
+            message: `Are you sure you want to delete the price log for ${date}?`,
+            confirmLabel: 'Delete',
+            variant: 'danger',
+            icon: 'delete',
+        });
+        if (confirmed) {
             onManualPriceChange(holding.symbol, null, date);
         }
     };
@@ -441,6 +451,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     </div>
                 </Card>
             </div>
+            <ConfirmDialog />
         </div>
     );
 };

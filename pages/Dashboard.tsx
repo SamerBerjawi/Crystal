@@ -37,7 +37,7 @@ import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import FinancialGoalCard from '../components/FinancialGoalCard';
-import ConfirmationModal from '../components/ConfirmationModal';
+import ConfirmationModal, { useConfirm } from '../components/ConfirmationModal';
 import GoalContributionPlan from '../components/GoalContributionPlan';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
@@ -56,6 +56,8 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 import MerchantParetoWidget from '../components/MerchantParetoWidget';
 import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
 import WealthVelocityWidget from '../components/WealthVelocityWidget';
+
+import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -162,6 +164,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
 );
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
@@ -189,6 +192,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Touch Pull-to-Refresh
+  const touchStartRef = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartRef.current === null) return;
+    const touchEnd = e.changedTouches[0].clientY;
+    const diff = touchEnd - touchStartRef.current;
+    if (diff > 90 && onSyncBanks && !isSyncingBanks) {
+      onSyncBanks();
+    }
+    touchStartRef.current = null;
+  };
 
   const layoutKey = useMemo(() => `${activeTab}-${isMobile ? 'mobile' : 'pc'}`, [activeTab, isMobile]);
 
@@ -511,13 +529,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     handleOpenTransactionModal(tx);
   }, [handleOpenTransactionModal]);
 
-  const handleDeleteTransaction = useCallback((tx: Transaction) => {
-    const confirmed = window.confirm('Delete this transaction? This action cannot be undone.');
+  const handleDeleteTransaction = useCallback(async (tx: Transaction) => {
+    const confirmed = await confirm({
+      title: 'Delete Transaction?',
+      message: `Are you sure you want to delete "${tx.description}"?`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      icon: 'delete',
+    });
     if (!confirmed) return;
 
     deleteTransactions([tx.id]);
     setDetailModalOpen(false);
-  }, [deleteTransactions]);
+  }, [confirm, deleteTransactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${analyticsSelectedAccountIds.join(',')}|${duration}`;
@@ -1338,7 +1362,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in-up relative z-0">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="space-y-6 pb-12 animate-fade-in-up relative z-0"
+    >
       {/* ... existing modals */}
       {isTransactionModalOpen && (
         <AddTransactionModal
@@ -1928,13 +1956,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         isCompact={isCompactValue}
                         className="h-full"
                       >
-                        <Suspense fallback={(
-                          <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
-                            Loading widget...
-                          </div>
-                        )}>
-                          <WidgetComponent {...widgetDetails.props as any} />
-                        </Suspense>
+                        <WidgetErrorBoundary widgetTitle={(widgetDetails as any).title || widget.id}>
+                          <Suspense fallback={(
+                            <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                              Loading widget...
+                            </div>
+                          )}>
+                            <WidgetComponent {...widgetDetails.props as any} />
+                          </Suspense>
+                        </WidgetErrorBoundary>
                       </WidgetWrapper>
                     </div>
                   );
@@ -1943,6 +1973,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </div>
   );
 };

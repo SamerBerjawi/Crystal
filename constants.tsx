@@ -329,7 +329,8 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
       { id: 'exp-3f', name: 'Vehicle Insurance', color: '#3B82F6', icon: 'car_crash', classification: 'expense', subCategories: [], parentId: 'exp-3' },
       { id: 'exp-3g', name: 'Service & Maintenance', color: '#3B82F6', icon: 'car_repair', classification: 'expense', subCategories: [], parentId: 'exp-3' },
       { id: 'exp-3b', name: 'Ride-Hailing', color: '#3B82F6', icon: 'local_taxi', classification: 'expense', subCategories: [], parentId: 'exp-3' },
-      { id: 'exp-3d', name: 'Parking & Tolls', color: '#3B82F6', icon: 'local_parking', classification: 'expense', subCategories: [], parentId: 'exp-3' }
+      { id: 'exp-3d', name: 'Parking & Tolls', color: '#3B82F6', icon: 'local_parking', classification: 'expense', subCategories: [], parentId: 'exp-3' },
+      { id: 'exp-3h', name: 'Fines (Parking, Speeding & Traffic)', color: '#3B82F6', icon: 'local_police', classification: 'expense', subCategories: [], parentId: 'exp-3' }
     ]
   },
   {
@@ -365,8 +366,14 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
   {
     id: 'exp-13', name: 'Family & Kids', color: '#F59E0B', icon: 'family_restroom', classification: 'expense', subCategories: [
       { id: 'exp-13a', name: 'Childcare', color: '#F59E0B', icon: 'child_care', classification: 'expense', subCategories: [], parentId: 'exp-13' },
-      { id: 'exp-13b', name: 'School Fees', color: '#F59E0B', icon: 'school', classification: 'expense', subCategories: [], parentId: 'exp-13' },
-      { id: 'exp-13c', name: 'Toys & Activities', color: '#F59E0B', icon: 'toys', classification: 'expense', subCategories: [], parentId: 'exp-13' }
+      { id: 'exp-13b', name: 'School Fees & Supplies', color: '#F59E0B', icon: 'school', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13c', name: 'Toys & Activities', color: '#F59E0B', icon: 'toys', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13d', name: 'Baby Essentials & Diapers', color: '#F59E0B', icon: 'baby_changing_station', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13e', name: 'Kids Clothing & Footwear', color: '#F59E0B', icon: 'stroller', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13f', name: 'Extracurriculars & Sports Clubs', color: '#F59E0B', icon: 'sports_soccer', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13g', name: 'Pocket Money & Allowance', color: '#F59E0B', icon: 'savings', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13h', name: 'Babysitting & Nannying', color: '#F59E0B', icon: 'face_3', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+      { id: 'exp-13i', name: 'Pediatric & Child Health', color: '#F59E0B', icon: 'vaccines', classification: 'expense', subCategories: [], parentId: 'exp-13' }
     ]
   },
   {
@@ -402,12 +409,20 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
       { id: 'exp-10a', name: 'Bank Fees', color: '#A855F7', icon: 'price_check', classification: 'expense', subCategories: [], parentId: 'exp-10' },
       { id: 'exp-10d', name: 'Taxes', color: '#A855F7', icon: 'gavel', classification: 'expense', subCategories: [], parentId: 'exp-10' },
       { id: 'exp-10e', name: 'Life Insurance', color: '#A855F7', icon: 'security', classification: 'expense', subCategories: [], parentId: 'exp-10' },
-      { id: 'exp-10c', name: 'Investments', color: '#A855F7', icon: 'trending_up', classification: 'expense', subCategories: [], parentId: 'exp-10' }
+      { id: 'exp-10c', name: 'Investments', color: '#A855F7', icon: 'trending_up', classification: 'expense', subCategories: [], parentId: 'exp-10' },
+      { id: 'exp-10f', name: 'Fines & Legal Penalties', color: '#A855F7', icon: 'gavel', classification: 'expense', subCategories: [], parentId: 'exp-10' }
     ]
   },
   {
     id: 'exp-11', name: 'Miscellaneous', color: '#78716C', icon: 'category', classification: 'expense', subCategories: [
-      { id: 'exp-11a', name: 'Uncategorized', color: '#78716C', icon: 'help_outline', classification: 'expense', subCategories: [], parentId: 'exp-11' }
+      { id: 'exp-11a', name: 'Uncategorized', color: '#78716C', icon: 'help_outline', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11b', name: 'Cash Withdrawals & ATM', color: '#78716C', icon: 'atm', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11c', name: 'Fines & Penalties', color: '#78716C', icon: 'gavel', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11d', name: 'Lost & Stolen Adjustments', color: '#78716C', icon: 'sentiment_very_dissatisfied', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11e', name: 'One-off Contingencies', color: '#78716C', icon: 'extension', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11f', name: 'Government & Admin Fees', color: '#78716C', icon: 'policy', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11g', name: 'Tips & Gratuities', color: '#78716C', icon: 'volunteer_activism', classification: 'expense', subCategories: [], parentId: 'exp-11' },
+      { id: 'exp-11h', name: 'Currency Conversion & FX Fees', color: '#78716C', icon: 'currency_exchange', classification: 'expense', subCategories: [], parentId: 'exp-11' }
     ]
   }
 ];

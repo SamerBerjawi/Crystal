@@ -535,6 +535,8 @@ export interface RuleRunBackup {
 
 export interface AppPreferences {
   currency: string;
+  displayCurrency?: Currency;
+  financialYearStartMonth?: number; // 1-12 (1 = Jan, 4 = April)
   language: string;
   timezone: string;
   dateFormat: string;

@@ -167,4 +167,4 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
   );
 };
 
-export default LoyaltyCard;
+export default React.memo(LoyaltyCard);

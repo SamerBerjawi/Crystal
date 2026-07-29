@@ -9,15 +9,19 @@ import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { useConfirm } from '../components/ConfirmationModal';
+
+import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 
 interface BudgetingProps {
-  budgets: Budget[];
-  transactions: Transaction[];
-  expenseCategories: Category[];
-  saveBudget: (budgetData: Omit<Budget, 'id'> & { id?: string }) => void;
-  deleteBudget: (id: string) => void;
-  accounts: Account[];
-  preferences: AppPreferences;
+  budgets?: Budget[];
+  transactions?: Transaction[];
+  expenseCategories?: Category[];
+  saveBudget?: (budgetData: Omit<Budget, 'id'> & { id?: string }) => void;
+  deleteBudget?: (id: string) => void;
+  accounts?: Account[];
+  preferences?: AppPreferences;
 }
 
 // Helper to find a parent category by a transaction's category name
@@ -29,7 +33,29 @@ const findParentCategory = (categoryName: string, categories: Category[]): Categ
   return undefined;
 };
 
-const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCategories, saveBudget, deleteBudget, accounts, preferences }) => {
+const Budgeting: React.FC<BudgetingProps> = ({
+  budgets: propsBudgets,
+  transactions: propsTransactions,
+  expenseCategories: propsExpenseCategories,
+  saveBudget: propsSaveBudget,
+  deleteBudget: propsDeleteBudget,
+  accounts: propsAccounts,
+  preferences: propsPreferences,
+}) => {
+  const contextBudgets = useBudgetsContext();
+  const contextCategories = useCategoryContext();
+  const contextTransactions = useTransactionsContext();
+  const contextAccounts = useAccountsContext();
+  const contextPreferences = usePreferencesContext();
+
+  const budgets = propsBudgets || contextBudgets.budgets;
+  const transactions = propsTransactions || contextTransactions.transactions;
+  const expenseCategories = propsExpenseCategories || contextCategories.expenseCategories;
+  const saveBudget = propsSaveBudget || contextBudgets.saveBudget;
+  const deleteBudget = propsDeleteBudget || contextBudgets.deleteBudget;
+  const accounts = propsAccounts || contextAccounts.accounts;
+  const preferences = propsPreferences || contextPreferences.preferences;
+  const { confirm, ConfirmDialog } = useConfirm();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
@@ -98,8 +124,15 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         return QUICK_CREATE_BUDGET_OPTIONS.find(opt => opt.value === period) || QUICK_CREATE_BUDGET_OPTIONS[1];
     }, [preferences.defaultQuickCreatePeriod]);
 
-    const handleQuickCreateDefault = () => {
-        if (window.confirm(`This will create/update budgets based on your spending from the last ${defaultQuickCreateOption.value} month(s), overwriting any existing budgets for those categories. Are you sure you want to continue?`)) {
+    const handleQuickCreateDefault = async () => {
+        const confirmed = await confirm({
+            title: 'Auto-Generate Budgets?',
+            message: `This will create or update budgets based on your spending from the last ${defaultQuickCreateOption.value} month(s), overwriting existing budgets for those categories.`,
+            confirmLabel: 'Generate Budgets',
+            variant: 'warning',
+            icon: 'auto_awesome',
+        });
+        if (confirmed) {
             handleApplyQuickBudget(defaultQuickCreateOption.value);
         }
     };
@@ -474,6 +507,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
               </Card>
           </div>
       </div>
+      <ConfirmDialog />
     </div>
   );
 };

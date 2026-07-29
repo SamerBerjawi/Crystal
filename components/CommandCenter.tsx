@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Page, Account, Transaction } from '../types';
 import { NAV_ITEMS } from '../constants';
+import { APP_VERSION } from '../version';
 
 interface CommandCenterProps {
   isOpen: boolean;
@@ -221,8 +221,10 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                     <span className="text-[10px] text-gray-400  font-black tracking-widest">Execute</span>
                   </div>
                </div>
-               <div className="text-[10px] text-gray-400 font-black  tracking-[0.2em] opacity-40">
-                  Shortcut: <kbd className="font-mono text-primary-500">⌘ K</kbd>
+               <div className="flex items-center gap-3 text-[10px] text-gray-400 font-black tracking-[0.2em]">
+                  <span className="font-mono text-xs text-primary-500/80">{APP_VERSION}</span>
+                  <span className="opacity-40">•</span>
+                  <span className="opacity-40">Shortcut: <kbd className="font-mono text-primary-500">⌘ K</kbd></span>
                </div>
             </div>
           </motion.div>

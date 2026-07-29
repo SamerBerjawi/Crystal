@@ -89,7 +89,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                 />
             )}
             {tx.notes && <DetailRow label="Notes" value={<div className="text-left text-xs bg-gray-50 dark:bg-white/5 p-3 rounded-lg border border-black/5 dark:border-white/5 mt-1 whitespace-pre-wrap">{tx.notes}</div>} />}
-             {tx.transferId && <DetailRow label="Transfer ID" value={<span className="font-mono text-xs">{tx.transferId}</span>} />}
+            {tx.transferId && <DetailRow label="Transfer ID" value={<span className="font-mono text-xs">{tx.transferId}</span>} />}
         </div>
       </Modal>
     );

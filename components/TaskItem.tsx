@@ -93,4 +93,4 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
     );
 };
 
-export default TaskItem;
+export default React.memo(TaskItem);

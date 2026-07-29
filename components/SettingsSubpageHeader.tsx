@@ -1,0 +1,57 @@
+import React from 'react';
+import { Page } from '../types';
+import PageHeader from './PageHeader';
+
+interface SettingsSubpageHeaderProps {
+  title: string;
+  subtitle?: string;
+  markerIcon?: string;
+  markerLabel?: string;
+  actions?: React.ReactNode;
+  setCurrentPage?: (page: Page) => void;
+  className?: string;
+}
+
+const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
+  title,
+  subtitle,
+  markerIcon,
+  markerLabel,
+  actions,
+  setCurrentPage,
+  className = '',
+}) => {
+  return (
+    <div className={`space-y-4 mb-6 ${className}`}>
+      {/* Top Breadcrumb & Back Navigation */}
+      {setCurrentPage && (
+        <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary pt-1">
+          <button
+            type="button"
+            onClick={() => setCurrentPage('Settings')}
+            className="group flex items-center gap-1.5 font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+          >
+            <div className="w-5 h-5 rounded-md bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+              <span className="material-symbols-outlined text-sm leading-none">arrow_back</span>
+            </div>
+            <span>Settings</span>
+          </button>
+          <span className="opacity-30 font-bold">/</span>
+          <span className="font-semibold text-light-text dark:text-dark-text opacity-90">{title}</span>
+        </div>
+      )}
+
+      {/* Main Page Header */}
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        markerIcon={markerIcon}
+        markerLabel={markerLabel}
+        actions={actions}
+        className="!mb-0 !pb-2"
+      />
+    </div>
+  );
+};
+
+export default SettingsSubpageHeader;

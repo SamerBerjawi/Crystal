@@ -929,13 +929,13 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     <span className="text-sm font-medium text-gray-400 dark:text-gray-500">{headerLabel}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right hidden lg:table-cell">
-                                                                    <span className="text-sm font-medium dark:text-gray-300">{holding.qtyLabel}</span>
+                                                                    <span className="text-sm font-medium text-light-text dark:text-dark-text">{holding.qtyLabel}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right hidden md:table-cell">
                                                                     <span className="text-sm font-mono text-gray-500 privacy-blur">-</span>
                                                                 </td>
                                                                 <td className="py-4 text-right">
-                                                                    <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(acc.balance, acc.currency)}</span>
+                                                                    <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(acc.balance, acc.currency)}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right">
                                                                     <div className={`text-[10px] font-bold ${badgeColorClass} px-2 py-0.5 rounded-full inline-block`}>
@@ -995,16 +995,16 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 </div>
                                                             </td>
                                                             <td className="py-4 text-right hidden sm:table-cell">
-                                                                <span className="text-sm font-mono dark:text-white privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
+                                                                <span className="text-sm font-mono text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
                                                             </td>
                                                             <td className="py-4 text-right hidden lg:table-cell">
-                                                                <span className="text-sm font-medium dark:text-gray-300">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                                                                <span className="text-sm font-medium text-light-text dark:text-dark-text">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                                                             </td>
                                                             <td className="py-4 text-right hidden md:table-cell">
                                                                 <span className="text-sm font-mono text-gray-500 privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
                                                             </td>
                                                             <td className="py-4 text-right">
-                                                                <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
+                                                                <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
                                                             </td>
                                                             <td className="py-4 text-right">
                                                                 <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -1068,16 +1068,16 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             {item.type.substring(0, 1)}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold dark:text-white  tracking-tight">{item.symbol}</p>
+                                            <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">{item.symbol}</p>
                                             <p className="text-[10px] text-gray-400 font-bold  tracking-widest">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
                                         </div>
                                     </div>
                                     <div className="text-right flex items-center gap-6">
                                         <div className="hidden sm:block">
-                                            <p className="text-sm font-medium dark:text-gray-300 privacy-blur">{item.quantity} units @ {formatCurrency(item.price, 'EUR')}</p>
+                                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur">{item.quantity} units @ {formatCurrency(item.price, 'EUR')}</p>
                                         </div>
                                         <div className="min-w-[100px]">
-                                            <p className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                            <p className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button 
@@ -1163,9 +1163,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 .map((h, i) => (
                                     <div key={h.symbol} className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black text-gray-300 w-4">{i + 1}</span>
+                                            <span className="text-[10px] font-black text-light-text-secondary/50 dark:text-dark-text-secondary/50 w-4">{i + 1}</span>
                                             <div>
-                                                <p className="text-xs font-bold dark:text-white">{h.symbol}</p>
+                                                <p className="text-xs font-bold text-light-text dark:text-dark-text">{h.symbol}</p>
                                                 <p className="text-[10px] text-gray-400 font-medium">{h.name}</p>
                                             </div>
                                         </div>

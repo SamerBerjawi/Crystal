@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Page, MerchantRule, Category, RegexCategorizationRule } from '../types';
 import Card from '../components/Card';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
@@ -504,45 +504,32 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       )}
       
        {/* Navigation & Header */}
-       <div className="space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="store"
-          markerLabel="Entity Intelligence"
-          title="Merchants & Institutions"
-          subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."
-          actions={
-            <div className="flex items-center gap-2">
-              <HeaderButton
-                variant="secondary"
-                icon="assignment_turned_in"
-                onClick={() => setIsRegexModalOpen(true)}
-              >
-                Regex Routing Rules
-              </HeaderButton>
-              <HeaderButton
-                variant="primary"
-                icon="sync_saved_locally"
-                isLoading={isRefreshing}
-                onClick={handleRefreshLogos}
-              >
-                {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
-              </HeaderButton>
-            </div>
-          }
-        />
-
+       <SettingsSubpageHeader
+         markerIcon="store"
+         markerLabel="Entity Intelligence"
+         title="Merchants & Institutions"
+         subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."
+         setCurrentPage={setCurrentPage}
+         actions={
+           <div className="flex items-center gap-2">
+             <HeaderButton
+               variant="secondary"
+               icon="assignment_turned_in"
+               onClick={() => setIsRegexModalOpen(true)}
+             >
+               Regex Routing Rules
+             </HeaderButton>
+             <HeaderButton
+               variant="primary"
+               icon="sync_saved_locally"
+               isLoading={isRefreshing}
+               onClick={handleRefreshLogos}
+             >
+               {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
+             </HeaderButton>
+           </div>
+         }
+       />
         {!brandfetchClientId && (
           <div className="bg-amber-100/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl px-5 py-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
@@ -555,14 +542,22 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         )}
 
         {/* Telemetry Optimization Center Action Panel */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between bg-black/[0.02]/5 dark:bg-zinc-800/40 p-4 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm">
-            <div className="flex flex-col justify-center">
-                <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
-                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                    Deploy complex regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
-                </p>
+        <div className="relative overflow-hidden bg-gradient-to-r from-primary-500/[0.08] via-indigo-500/[0.05] to-emerald-500/[0.05] p-5 rounded-3xl border border-primary-500/20 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+                    <span className="material-symbols-outlined text-xl">psychology</span>
+                </div>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
+                        <span className="px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[9px] font-extrabold border border-primary-500/20">AI Active</span>
+                    </div>
+                    <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-80 leading-relaxed">
+                        Deploy regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
+                    </p>
+                </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
                 <HeaderButton
                     variant="secondary"
                     icon="assignment_turned_in"
@@ -612,9 +607,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             onApplyHistoricalRules={handleApplyHistoricalRules}
           />
         )}
-      </div>
-      
-      {/* Metrics Overview */}
+
+        {/* Metrics Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Institutions" value={stats.totalInstitutions} icon="hub" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />

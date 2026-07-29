@@ -14,6 +14,7 @@ import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { motion, AnimatePresence } from 'motion/react';
+import { useConfirm } from '../components/ConfirmationModal';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -86,6 +87,7 @@ type SubscriptionSegment = 'all' | 'recurring' | 'loyalty';
 const Subscriptions: React.FC = () => {
     const { transactions } = useTransactionsContext();
     const { accounts } = useAccountsContext();
+    const { confirm, ConfirmDialog } = useConfirm();
     const { 
         recurringTransactions, 
         saveRecurringTransaction, 
@@ -313,10 +315,15 @@ const Subscriptions: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleDeleteActive = (id: string) => {
-        if (window.confirm("Are you sure you want to stop tracking this subscription?")) {
-            deleteRecurringTransaction(id);
-        }
+    const handleDeleteActive = async (id: string) => {
+        const confirmed = await confirm({
+            title: 'Stop Tracking Subscription?',
+            message: 'This will remove the subscription from your tracked services. You can always re-add it later.',
+            confirmLabel: 'Stop Tracking',
+            variant: 'danger',
+            icon: 'autorenew',
+        });
+        if (confirmed) deleteRecurringTransaction(id);
     };
     
     const handleSave = (data: Omit<RecurringTransaction, 'id'> & { id?: string }) => {
@@ -345,31 +352,37 @@ const Subscriptions: React.FC = () => {
         setIsMembershipModalOpen(true);
     };
     
-    const handleDeleteMembershipRequest = (id: string) => {
-        if(window.confirm('Delete this membership card?')) {
-            deleteMembership(id);
-        }
+    const handleDeleteMembershipRequest = async (id: string) => {
+        const confirmed = await confirm({
+            title: 'Delete Membership Card?',
+            message: 'This card will be permanently removed from your wallet.',
+            confirmLabel: 'Delete',
+            variant: 'danger',
+            icon: 'loyalty',
+        });
+        if (confirmed) deleteMembership(id);
     };
 
     const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
-    const segments: { id: SubscriptionSegment; label: string; icon: string; color: string }[] = [
-        { id: 'all', label: 'Overview', icon: 'dashboard', color: 'primary' },
-        { id: 'recurring', label: 'Payments', icon: 'calendar_today', color: 'rose' },
-        { id: 'loyalty', label: 'Wallet', icon: 'wallet', color: 'amber' },
+    const segments: { id: SubscriptionSegment; label: string; icon: string; count: number }[] = [
+        { id: 'all', label: 'Overview', icon: 'dashboard', count: totalCount + memberships.length },
+        { id: 'recurring', label: 'Payments', icon: 'calendar_today', count: totalCount },
+        { id: 'loyalty', label: 'Wallet', icon: 'wallet', count: memberships.length },
     ];
 
-    const segmentValues = useMemo(() => ({
-        all: monthlySpend,
-        recurring: monthlySpend,
-        loyalty: memberships.length
-    }), [monthlySpend, memberships.length]);
-
-    const heroGradient = activeSegment === 'recurring'
-        ? 'from-rose-500 via-rose-600 to-pink-700'
+    // Dynamic glow color for hero card based on active segment
+    const heroGlowColor = activeSegment === 'recurring'
+        ? 'rgba(244, 63, 94, 0.12)'
         : activeSegment === 'loyalty'
-            ? 'from-amber-600 via-orange-600 to-yellow-600'
-            : 'from-primary-600 via-primary-700 to-primary-800';
+            ? 'rgba(245, 158, 11, 0.12)'
+            : 'rgba(var(--primary-500-rgb), 0.12)';
+
+    const heroAccentClass = activeSegment === 'recurring'
+        ? 'text-rose-500'
+        : activeSegment === 'loyalty'
+            ? 'text-amber-500'
+            : 'text-primary-500';
 
     return (
         <div className="relative">
@@ -420,155 +433,265 @@ const Subscriptions: React.FC = () => {
                     }
                 />
 
-                {/* --- Consolidated Header & Portfolio --- */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
-                    <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
+                {/* ── Pill Segment Tab Bar ── */}
+                <div className="flex items-center gap-1 p-1 bg-black/[0.03] dark:bg-white/[0.03] rounded-2xl w-fit border border-black/5 dark:border-white/5">
+                    {segments.map(seg => {
+                        const isActive = activeSegment === seg.id;
+                        return (
+                            <button
+                                key={seg.id}
+                                onClick={() => setActiveSegment(seg.id)}
+                                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 select-none ${
+                                    isActive 
+                                        ? 'text-white' 
+                                        : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5'
+                                }`}
+                            >
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="segment-pill"
+                                        className="absolute inset-0 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-md shadow-primary-600/20"
+                                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                <span className="relative z-10 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-sm">{seg.icon}</span>
+                                    <span>{seg.label}</span>
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums leading-none ${
+                                        isActive 
+                                            ? 'bg-white/20 text-white' 
+                                            : 'bg-black/5 dark:bg-white/5 text-light-text-secondary/70 dark:text-dark-text-secondary/70'
+                                    }`}>
+                                        {seg.count}
+                                    </span>
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
 
-                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-8 flex-1">
-                            <div onClick={() => setActiveSegment('all')} className="cursor-pointer group/nw">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-primary-500 text-sm">autorenew</span>
-                                    <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Monthly Commitment</span>
+                {/* ── Glassmorphic Hero Metrics Card ── */}
+                <div className="bg-white dark:bg-dark-card rounded-3xl p-6 md:p-8 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative">
+                    {/* Dynamic radial glow */}
+                    <div 
+                        className="absolute -top-32 -right-32 w-80 h-80 blur-[100px] pointer-events-none transition-all duration-1000"
+                        style={{ background: heroGlowColor }}
+                    />
+                    <div 
+                        className="absolute -bottom-24 -left-24 w-56 h-56 blur-[80px] pointer-events-none transition-all duration-1000 opacity-50"
+                        style={{ background: heroGlowColor }}
+                    />
+
+                    <div className="relative z-10">
+                        {/* Primary Metric */}
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className={`material-symbols-outlined text-sm ${heroAccentClass}`}>autorenew</span>
+                                    <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-light-text-secondary dark:text-dark-text-secondary">Monthly Commitment</span>
                                 </div>
-                                <div className="flex items-baseline gap-2">
-                                    <h2 className="text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                                <div className="flex items-baseline gap-3">
+                                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text">
                                         {formatCurrency(monthlySpend, 'EUR')}
                                     </h2>
-                                    {activeSegment === 'all' && (
-                                        <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(var(--primary-500-rgb),0.8)]" />
-                                    )}
+                                    <span className="text-sm font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight">/mo</span>
                                 </div>
-                                <div className="flex items-center gap-2 mt-2 opacity-60">
-                                     <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.1em]">{formatCurrency(yearlySpend, 'EUR')} / Year</span>
-                                </div>
-                            </div>
-
-                            <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
-
-                            {/* Segment Grid - High Density Tiles */}
-                            <div className="flex-[2] grid grid-cols-2 sm:grid-cols-2 gap-4">
-                                {segments.filter(s => s.id !== 'all').map(seg => {
-                                    const isActive = activeSegment === seg.id;
-                                    const val = segmentValues[seg.id as keyof typeof segmentValues];
-                                    const isPrice = seg.id === 'recurring';
-                                    return (
-                                        <div key={seg.id} onClick={() => setActiveSegment(seg.id)} className={`group cursor-pointer p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}>
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <span className="material-symbols-outlined text-lg">{seg.icon}</span>
-                                                </div>
-                                                {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className={`text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
-                                                <span className={`text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
-                                                    {isPrice ? formatCurrency(val, 'EUR') : val}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-50 mt-1.5 tracking-tight privacy-blur">
+                                    {formatCurrency(yearlySpend, 'EUR')} projected annually
+                                </p>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Integrated Details Tray */}
-                    <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-6">
-                        <AnimatePresence mode="wait">
-                            <motion.div key={activeSegment} initial={{ opacity: 0, x: -1 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 1 }} className="flex flex-wrap items-center gap-x-12 gap-y-3">
-                                {activeSegment === 'loyalty' ? (
-                                     <>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-amber-500/5 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-base text-amber-500/70">timer</span>
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                            <AnimatePresence mode="wait">
+                                <motion.div 
+                                    key={activeSegment}
+                                    initial={{ opacity: 0, y: 4 }} 
+                                    animate={{ opacity: 1, y: 0 }} 
+                                    exit={{ opacity: 0, y: -4 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="contents"
+                                >
+                                    {activeSegment === 'loyalty' ? (
+                                        <>
+                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
+                                                <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-base text-amber-500">wallet</span>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Total Cards</span>
+                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{memberships.length}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Expiring 30d</span>
-                                                <span className="text-sm font-black text-light-text dark:text-dark-text">{expiringMemberships}</span>
+                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-orange-500/[0.04] dark:bg-orange-500/[0.03]">
+                                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-base text-orange-500">timer</span>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Expiring 30d</span>
+                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{expiringMemberships}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-base text-primary-500/70">category</span>
+                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
+                                                <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-base text-primary-500">category</span>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Categories</span>
+                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{sortedMembershipCategories.length}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Categories</span>
-                                                <span className="text-sm font-black text-light-text dark:text-dark-text">{sortedMembershipCategories.length}</span>
+                                            <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/[0.04] dark:bg-emerald-500/[0.03]">
+                                                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-base text-emerald-500">loyalty</span>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
+                                                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{memberships.length - expiringMemberships}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                     </>
-                                ) : (
-                                     <>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-rose-500/5 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-base text-rose-500/70">event_upcoming</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-rose-500/[0.04] dark:bg-rose-500/[0.03]">
+                                                <div className="w-9 h-9 rounded-xl bg-rose-500/10 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-base text-rose-500">event_upcoming</span>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Due 7 Days</span>
+                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{dueSoonCount}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Next 7 Days</span>
-                                                <span className="text-sm font-black text-light-text dark:text-dark-text">{dueSoonCount}</span>
+                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
+                                                <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
+                                                    <span className="material-symbols-outlined text-base text-primary-500">subscriptions</span>
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
+                                                    <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{totalCount}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-base text-primary-500/70">subscriptions</span>
+                                            {detectedSubscriptions.length > 0 && (
+                                                <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
+                                                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 relative">
+                                                        <span className="material-symbols-outlined text-base text-amber-500">radar</span>
+                                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse border-2 border-white dark:border-dark-card" />
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Detected</span>
+                                                        <span className="text-lg font-bold text-amber-600 dark:text-amber-400 tabular-nums">{detectedSubscriptions.length}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Calendar</span>
+                                                    <div className="flex flex-wrap gap-[3px] max-w-[140px]">
+                                                        {Array.from({ length: 31 }).map((_, i) => (
+                                                            <div 
+                                                                key={i} 
+                                                                className={`w-2 h-2 rounded-sm transition-all ${subscriptionDays.has(i + 1) ? 'bg-primary-500 shadow-[0_0_4px_rgba(var(--primary-500-rgb),0.6)]' : 'bg-black/[0.04] dark:bg-white/[0.04]'}`}
+                                                                title={`Day ${i + 1}`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Active Subscriptions</span>
-                                                <span className="text-sm font-black text-light-text dark:text-dark-text">{totalCount}</span>
-                                            </div>
-                                        </div>
-                                        <div className="hidden sm:flex items-center gap-3">
-                                             <div className="flex flex-wrap gap-1 max-w-[120px]">
-                                                {Array.from({ length: 31 }).map((_, i) => (
-                                                    <div 
-                                                        key={i} 
-                                                        className={`w-1.5 h-1.5 rounded-full transition-all ${subscriptionDays.has(i + 1) ? 'bg-primary-500 shadow-[0_0_4px_rgba(99,102,241,0.8)]' : 'bg-black/5 dark:bg-white/5'}`}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                     </>
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
+                                        </>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
 
+                {/* ── Content Sections ── */}
                 <AnimatePresence mode="wait">
                     {(activeSegment === 'all' || activeSegment === 'recurring') && (
-                        <motion.div key="recurring" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                        <motion.div key="recurring" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="space-y-6">
+                            
+                            {/* ── Smart Detection Section ── */}
                             {detectedSubscriptions.length > 0 && activeSegment !== 'recurring' && (
-                                <motion.div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/10">
-                                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-[100px] pointer-events-none" />
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-6 bg-white/10 w-fit px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/20">
-                                            <span className="material-symbols-outlined text-sm text-yellow-300">verified</span>
-                                            <h3 className="text-xs font-bold tracking-tight text-white/90">Smart Detection</h3>
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 12 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-white dark:bg-dark-card rounded-3xl border border-primary-500/20 dark:border-primary-400/10 overflow-hidden relative"
+                                >
+                                    {/* Gradient accent bar */}
+                                    <div className="h-1 bg-gradient-to-r from-primary-500 via-violet-500 to-primary-600" />
+                                    
+                                    {/* Ambient glow */}
+                                    <div className="absolute -top-20 right-0 w-60 h-60 blur-[80px] bg-primary-500/10 pointer-events-none" />
+                                    
+                                    <div className="relative z-10 p-6 md:p-8">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center relative">
+                                                    <span className="material-symbols-outlined text-base text-primary-500">radar</span>
+                                                    <span className="absolute inset-0 rounded-xl border border-primary-500/30 animate-ping opacity-30" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Smart Detection</h3>
+                                                    <p className="text-[10px] font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/60">
+                                                        {detectedSubscriptions.length} potential subscription{detectedSubscriptions.length !== 1 ? 's' : ''} found
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {detectedSubscriptions.map((sub) => {
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {detectedSubscriptions.map((sub, index) => {
                                                 const logoUrl = getMerchantLogoUrl(sub.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
                                                 const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
                                                 return (
-                                                    <div key={sub.key} className="bg-white/10 backdrop-blur-2xl px-5 py-4 rounded-3xl border border-white/10 flex flex-col justify-between group hover:bg-white/20 transition-all">
-                                                        <div className="flex items-start justify-between gap-4 mb-4">
+                                                    <motion.div 
+                                                        key={sub.key}
+                                                        initial={{ opacity: 0, y: 8 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.05 }}
+                                                        className="group flex flex-col justify-between bg-light-fill/60 dark:bg-dark-fill/40 rounded-2xl p-4 border border-black/5 dark:border-white/5 hover:border-primary-500/20 hover:shadow-lg transition-all duration-300"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3 mb-4">
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center overflow-hidden ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-white/10'}`}>
-                                                                    {hasLogo ? (<img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />) : (<span className="text-lg font-black text-white/40">{sub.merchant.charAt(0).toUpperCase()}</span>)}
+                                                                <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-black/5 dark:ring-white/5 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-primary-500/10'}`}>
+                                                                    {hasLogo ? (
+                                                                        <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />
+                                                                    ) : (
+                                                                        <span className="text-base font-bold text-primary-500">{sub.merchant.charAt(0).toUpperCase()}</span>
+                                                                    )}
                                                                 </div>
                                                                 <div className="min-w-0">
-                                                                    <h4 className="text-white font-bold text-sm tracking-tight truncate leading-none mb-1">{sub.merchant}</h4>
-                                                                    <span className="text-[9px] font-black  text-white/50 tracking-widest">{sub.frequency}</span>
+                                                                    <h4 className="font-bold text-sm text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{sub.merchant}</h4>
+                                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wide ${
+                                                                            sub.confidence === 'high' 
+                                                                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                                                                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                                                        }`}>
+                                                                            {sub.confidence}
+                                                                        </span>
+                                                                        <span className="text-[9px] font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50">{sub.frequency}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            <p className="text-base font-black text-white tracking-tighter">{formatCurrency(sub.amount, sub.currency)}</p>
+                                                            <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums shrink-0 privacy-blur">{formatCurrency(sub.amount, sub.currency)}</p>
                                                         </div>
                                                         <div className="flex gap-2">
-                                                            <button onClick={() => handleIgnore(sub.key)} className="flex-1 py-1.5 text-[9px] font-black  tracking-widest text-white/40 hover:text-white/100 hover:bg-white/10 rounded-lg">Ignore</button>
-                                                            <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 text-[9px] font-black  tracking-widest bg-white text-primary-700 rounded-lg shadow-lg">Track</button>
+                                                            <button 
+                                                                onClick={() => handleIgnore(sub.key)} 
+                                                                className="flex-1 h-8 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all active:scale-[0.98]"
+                                                            >
+                                                                Ignore
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleTrack(sub)} 
+                                                                className="flex-1 h-8 text-[10px] font-semibold bg-primary-600 dark:bg-primary-500 text-white rounded-lg shadow-sm shadow-primary-600/20 hover:bg-primary-500 dark:hover:bg-primary-400 transition-all active:scale-[0.98]"
+                                                            >
+                                                                Track
+                                                            </button>
                                                         </div>
-                                                    </div>
+                                                    </motion.div>
                                                 )
                                             })}
                                         </div>
@@ -576,117 +699,189 @@ const Subscriptions: React.FC = () => {
                                 </motion.div>
                             )}
 
-                            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm">
-                                <div className="flex items-center justify-between pb-6 border-b border-black/5 dark:border-white/5 mb-6">
-                                    <div className="flex items-center gap-3 text-xs font-bold  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
-                                         <span className="material-symbols-outlined text-primary-500">subscriptions</span>
-                                         <span>Active Subscriptions</span>
+                            {/* ── Active Subscriptions Grid ── */}
+                            <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+                                <div className="flex items-center justify-between p-6 md:px-8 md:pt-8 pb-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-base text-primary-500">subscriptions</span>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Active Subscriptions</h3>
+                                            <p className="text-[10px] font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/60">{totalCount} service{totalCount !== 1 ? 's' : ''} tracked</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {activeSubscriptions.length === 0 ? (
-                                        <div className="col-span-full py-12 text-center text-light-text-secondary dark:text-dark-text-secondary/40 font-medium">No active services found.</div>
-                                    ) : (
-                                        activeSubscriptions.map((sub) => {
-                                            const nextDueDate = parseLocalDate(sub.nextDueDate);
-                                            const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                            const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
-                                            const isOverdue = daysUntil < 0;
-                                            const merchantName = sub.merchant || sub.description;
-                                            const logoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
-                                            const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
-                                            
-                                            return (
-                                                <div 
-                                                    key={sub.id} 
-                                                    onClick={() => handleEditActive(sub)}
-                                                    className="group cursor-pointer bg-light-fill dark:bg-dark-fill/40 rounded-3xl p-5 border border-transparent hover:border-primary-500/20 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
-                                                >
-                                                     {/* Inner Glow Effect */}
-                                                    <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden" style={{ background: `radial-gradient(circle at 0% 0%, rgba(var(--primary-500-rgb), 0.15) 0%, transparent 60%)`, opacity: 0.5 }} />
-
-                                                    <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-200 dark:bg-white/10'}`}>
-                                                                    {hasLogo ? (<img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />) : (<span className="text-xl font-black text-gray-400 truncate">{merchantName.charAt(0)}</span>)}
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{merchantName}</h4>
-                                                                    <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary tracking-widest  opacity-60">{sub.frequency}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="font-black text-xl text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(sub.amount, sub.currency)}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-rose-500 animate-pulse' : isDueSoon ? 'bg-orange-500' : 'bg-emerald-500'}`} />
-                                                                <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.1em]">
-                                                                    {isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due ${nextDueDate.toLocaleDateString()}`}
-                                                                </span>
-                                                            </div>
-                                                            <button 
-                                                                onClick={(e) => { e.stopPropagation(); handleDeleteActive(sub.id); }}
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg text-light-text-secondary/40"
-                                                            >
-                                                                <span className="material-symbols-outlined text-base">delete</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                
+                                <div className="p-6 md:p-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {activeSubscriptions.length === 0 ? (
+                                            <div className="col-span-full py-16 text-center">
+                                                <div className="w-16 h-16 rounded-2xl bg-light-fill dark:bg-dark-fill flex items-center justify-center mx-auto mb-4">
+                                                    <span className="material-symbols-outlined text-3xl text-light-text-secondary/30 dark:text-dark-text-secondary/30">subscriptions</span>
                                                 </div>
-                                            )
-                                        })
-                                    )}
+                                                <h4 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight mb-1">No active services</h4>
+                                                <p className="text-xs text-light-text-secondary/50 dark:text-dark-text-secondary/50 mb-6">Add your first subscription to start tracking.</p>
+                                                <HeaderButton variant="primary" icon="add" onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}>
+                                                    New Service
+                                                </HeaderButton>
+                                            </div>
+                                        ) : (
+                                            activeSubscriptions.map((sub, index) => {
+                                                const nextDueDate = parseLocalDate(sub.nextDueDate);
+                                                const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                                const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
+                                                const isOverdue = daysUntil < 0;
+                                                const merchantName = sub.merchant || sub.description;
+                                                const logoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
+                                                const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
+                                                
+                                                const statusColor = isOverdue ? 'rose' : isDueSoon ? 'amber' : 'emerald';
+                                                const statusLabel = isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due ${nextDueDate.toLocaleDateString()}`;
+                                                
+                                                // Use inline styles for dynamic status colors since Tailwind can't handle string interpolation
+                                                const statusDotStyle: React.CSSProperties = {
+                                                    backgroundColor: isOverdue ? 'rgb(244, 63, 94)' : isDueSoon ? 'rgb(245, 158, 11)' : 'rgb(16, 185, 129)',
+                                                    boxShadow: `0 0 6px ${isOverdue ? 'rgba(244, 63, 94, 0.4)' : isDueSoon ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)'}`,
+                                                };
+                                                const accentBarStyle: React.CSSProperties = {
+                                                    backgroundColor: isOverdue ? 'rgb(244, 63, 94)' : isDueSoon ? 'rgb(245, 158, 11)' : 'rgb(16, 185, 129)',
+                                                };
+                                                
+                                                return (
+                                                    <motion.div 
+                                                        key={sub.id}
+                                                        initial={{ opacity: 0, y: 8 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.03, duration: 0.3 }}
+                                                        onClick={() => handleEditActive(sub)}
+                                                        className="group cursor-pointer relative bg-light-fill/50 dark:bg-dark-fill/30 rounded-2xl border border-black/[0.03] dark:border-white/[0.03] hover:border-primary-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                                                    >
+                                                        {/* Left accent bar */}
+                                                        <div 
+                                                            className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full transition-all group-hover:top-2 group-hover:bottom-2"
+                                                            style={accentBarStyle}
+                                                        />
+                                                        
+                                                        <div className="p-4 pl-5 flex flex-col h-full justify-between gap-4">
+                                                            {/* Top: Logo + Name + Amount */}
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="flex items-center gap-3 min-w-0">
+                                                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-black/5 dark:ring-white/5 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-100 dark:bg-white/5'}`}>
+                                                                        {hasLogo ? (
+                                                                            <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />
+                                                                        ) : (
+                                                                            <span className="text-lg font-bold text-gray-400 dark:text-gray-500">{merchantName.charAt(0)}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{merchantName}</h4>
+                                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-semibold tracking-wide mt-1 bg-black/[0.03] dark:bg-white/[0.04] text-light-text-secondary/60 dark:text-dark-text-secondary/60">
+                                                                            {sub.frequency}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="font-bold text-lg text-light-text dark:text-dark-text tracking-tighter tabular-nums shrink-0 privacy-blur">{formatCurrency(sub.amount, sub.currency)}</p>
+                                                            </div>
+
+                                                            {/* Bottom: Status + Delete */}
+                                                            <div className="flex items-center justify-between pt-3 border-t border-black/[0.04] dark:border-white/[0.04]">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span 
+                                                                        className={`w-2 h-2 rounded-full ${isOverdue ? 'animate-pulse' : ''}`}
+                                                                        style={statusDotStyle}
+                                                                    />
+                                                                    <span className="text-[10px] font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/60 tracking-wide">
+                                                                        {statusLabel}
+                                                                    </span>
+                                                                </div>
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); handleDeleteActive(sub.id); }}
+                                                                    className="opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg text-light-text-secondary/30 active:scale-[0.95]"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )
+                                            })
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
                     )}
 
                     {(activeSegment === 'all' || activeSegment === 'loyalty') && (
-                        <motion.div key="loyalty" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12">
+                        <motion.div key="loyalty" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="space-y-8">
                              {memberships.length > 0 ? (
-                                <div className="space-y-10">
-                                    {sortedMembershipCategories.map(category => {
+                                <div className="space-y-8">
+                                    {sortedMembershipCategories.map((category, catIndex) => {
                                         const cards = groupedMemberships[category];
                                         return (
-                                            <div key={category} className="space-y-6">
-                                                <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/5">
-                                                    <h4 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                            <motion.div 
+                                                key={category} 
+                                                initial={{ opacity: 0, y: 8 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: catIndex * 0.08 }}
+                                                className="space-y-5"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <h4 className="text-xs font-bold tracking-[0.15em] uppercase text-light-text-secondary dark:text-dark-text-secondary">
                                                         {category}
-                                                        <span className="px-2 py-0.5 rounded-full bg-light-fill dark:bg-dark-fill text-[9px] font-black">{cards.length}</span>
                                                     </h4>
+                                                    <span className="px-2 py-0.5 rounded-lg bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[9px] font-bold tabular-nums">
+                                                        {cards.length}
+                                                    </span>
+                                                    <div className="flex-1 h-px bg-black/5 dark:bg-white/5" />
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                                                    {cards.map(m => (
-                                                        <LoyaltyCard 
+                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                                    {cards.map((m, i) => (
+                                                        <motion.div
                                                             key={m.id}
-                                                            membership={m}
-                                                            onEdit={handleEditMembership}
-                                                            onDelete={handleDeleteMembershipRequest}
-                                                        />
+                                                            initial={{ opacity: 0, y: 6 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: i * 0.04 }}
+                                                        >
+                                                            <LoyaltyCard 
+                                                                membership={m}
+                                                                onEdit={handleEditMembership}
+                                                                onDelete={handleDeleteMembershipRequest}
+                                                            />
+                                                        </motion.div>
                                                     ))}
                                                 </div>
-                                            </div>
+                                            </motion.div>
                                         );
                                     })}
                                 </div>
                             ) : (
-                                <div className="py-24 text-center bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 border-dashed">
-                                    <div className="w-20 h-20 bg-light-fill dark:bg-dark-fill rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300 dark:text-gray-700 shadow-inner">
-                                        <span className="material-symbols-outlined text-4xl">loyalty</span>
+                                <div className="py-20 text-center bg-white dark:bg-dark-card rounded-3xl border border-dashed border-black/10 dark:border-white/10">
+                                    <motion.div 
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ type: 'spring', stiffness: 200 }}
+                                        className="w-20 h-20 bg-light-fill dark:bg-dark-fill rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"
+                                    >
+                                        <span className="material-symbols-outlined text-4xl text-light-text-secondary/20 dark:text-dark-text-secondary/20">loyalty</span>
+                                    </motion.div>
+                                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Your wallet is empty</h3>
+                                    <p className="text-sm text-light-text-secondary/60 dark:text-dark-text-secondary/60 max-w-xs mx-auto mt-2 font-medium leading-relaxed">
+                                        Keep your membership cards and loyalty programs in one place.
+                                    </p>
+                                    <div className="mt-8">
+                                        <HeaderButton variant="primary" icon="add" onClick={handleAddMembership}>
+                                            Add Card
+                                        </HeaderButton>
                                     </div>
-                                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tighter">Your wallet is empty</h3>
-                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mt-2 font-medium">Keep your cards and programs in one place.</p>
-                                    <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} mt-8`}>Add Card</button>
                                 </div>
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
+            <ConfirmDialog />
         </div>
     );
 };

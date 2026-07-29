@@ -1,7 +1,7 @@
 import React from 'react';
 import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions, Page } from '../types';
 import Card from '../components/Card';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import { INPUT_BASE_STYLE } from '../constants';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
 
@@ -45,28 +45,33 @@ const ApiKeyCard = ({
     placeholder: string;
     colorClass: string;
 }) => {
-    const isConfigured = value && value.length > 0;
+    const isConfigured = Boolean(value && value.trim().length > 0);
     const [isVisible, setIsVisible] = React.useState(false);
 
     return (
-        <Card className="flex flex-col h-full border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <Card className="flex flex-col h-full border border-black/5 dark:border-white/5 hover:border-primary-500/20 shadow-xs hover:shadow-lg transition-all duration-300 rounded-3xl p-6 relative overflow-hidden group">
             <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass} shadow-md group-hover:scale-105 transition-transform duration-300`}>
                     <span className="material-symbols-outlined text-2xl">{icon}</span>
                 </div>
-                <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold  tracking-wide border ${isConfigured ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10'}`}>
-                    {isConfigured ? 'Active' : 'Setup Required'}
+                <div className={`px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 border ${
+                  isConfigured 
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+                    : 'bg-black/5 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-black/5 dark:border-white/10'
+                }`}>
+                    <span className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                    {isConfigured ? 'Operational' : 'Config Required'}
                 </div>
             </div>
             
             <div className="mb-6 flex-grow">
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">{title}</h3>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>
+                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-1 tracking-tight">{title}</h3>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-70">{description}</p>
             </div>
 
             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="material-symbols-outlined text-gray-400 text-lg">key</span>
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-light-text-secondary opacity-50">
+                    <span className="material-symbols-outlined text-lg">key</span>
                 </div>
                 <input
                     type={isVisible ? 'text' : 'password'}
@@ -75,16 +80,14 @@ const ApiKeyCard = ({
                     onChange={(event) => onChange(event.target.value)}
                     onBlur={onBlur}
                     placeholder={placeholder}
-                    className={`${INPUT_BASE_STYLE} pl-10 pr-16 text-sm font-mono`}
-                    autoComplete="new-password"
+                    className="w-full pl-10 pr-10 py-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl text-xs font-mono text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                 />
                 <button
                     type="button"
-                    onClick={() => setIsVisible((prev) => !prev)}
-                    className="absolute inset-y-0 right-2 flex items-center text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
-                    aria-label={isVisible ? 'Hide API key' : 'Show API key'}
+                    onClick={() => setIsVisible(!isVisible)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-light-text-secondary hover:text-primary-500 transition-colors cursor-pointer"
                 >
-                    {isVisible ? 'Hide' : 'Show'}
+                    <span className="material-symbols-outlined text-lg">{isVisible ? 'visibility_off' : 'visibility'}</span>
                 </button>
             </div>
         </Card>
@@ -129,26 +132,13 @@ const Integrations: React.FC<IntegrationsProps> = ({
   return (
     <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4">
        {/* Navigation & Header */}
-       <div className="space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="extension"
-          markerLabel="External Protocols"
-          title="Integrations"
-          subtitle="Augment your financial stack with real-time market data, telemetry, and secure vault synchronization."
-        />
-      </div>
+       <SettingsSubpageHeader
+         markerIcon="extension"
+         markerLabel="External Protocols"
+         title="Integrations & APIs"
+         subtitle="Augment your financial stack with real-time market data, telemetry, and secure vault synchronization."
+         setCurrentPage={setCurrentPage}
+       />
 
       {/* API Keys Grid */}
       <section className="space-y-6">

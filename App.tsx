@@ -2,9 +2,14 @@
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import { Toaster, toast } from 'sonner';
 import Sidebar from './components/Sidebar';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import MobileNavbar from './components/MobileNavbar';
 import CommandCenter from './components/CommandCenter';
+import { useScrollMemory } from './hooks/useScrollMemory';
+import PageSkeleton from './components/PageSkeleton';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import AddTransactionModal from './components/AddTransactionModal';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const pageRegistry = {
@@ -334,6 +339,7 @@ const App: React.FC = () => {
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
+  useScrollMemory(currentPage);
   const [isSidebarOpen, setSidebarOpen] = useLocalStorage('crystal_sidebar_open_v2', false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useLocalStorage('crystal_sidebar_collapsed_v2', false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
@@ -365,6 +371,14 @@ const App: React.FC = () => {
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(emptyFinancialData.enableBankingConnections || []);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
+
+  useKeyboardShortcuts({
+    onNavigate: (page) => setCurrentPage(page),
+    onOpenNewTransaction: () => setIsQuickAddTxModalOpen(true),
+    onToggleShortcutsModal: () => setIsShortcutsModalOpen(prev => !prev),
+  });
 
   const currentPageColor = useMemo(() => {
     if (currentPage === 'AccountDetail') return ITEM_COLORS['Accounts'];
@@ -1256,59 +1270,83 @@ const App: React.FC = () => {
       });
     }
 
-    const balanceChanges: Record<string, number> = {};
-    const transactionsToUpdate: Transaction[] = [];
-    const transactionsToAdd: Transaction[] = [];
-    if (transactionIdsToDelete.length > 0) {
-      const transactionsToDelete = transactions.filter(t => transactionIdsToDelete.includes(t.id));
-      transactionsToDelete.forEach(tx => {
-        const account = accounts.find(a => a.id === tx.accountId);
-        let changeAmount = tx.amount;
-        if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
-        balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
-      });
-    }
-    finalTxArray.forEach(transactionData => {
-      if (transactionData.id && transactions.some(t => t.id === transactionData.id)) {
-        const updatedTx = { ...transactions.find(t => t.id === transactionData.id), ...transactionData } as Transaction;
-        const originalTx = transactions.find(t => t.id === updatedTx.id);
-        if (originalTx) {
-          const originalAccount = accounts.find(a => a.id === originalTx.accountId);
-          let originalChangeAmount = originalTx.amount;
-          if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
-          balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
-          const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
-          let updatedChangeAmount = updatedTx.amount;
-          if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
-          balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
-          transactionsToUpdate.push(updatedTx);
-        }
-      } else {
-        const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: `txn-${uuidv4()}` } as Transaction;
-        const account = accounts.find(a => a.id === newTx.accountId);
-        let changeAmount = newTx.amount;
-        if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
-        balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
-        transactionsToAdd.push(newTx);
-      }
-    });
     setTransactions(prev => {
-      let intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
+      const balanceChanges: Record<string, number> = {};
+      const transactionsToUpdate: Transaction[] = [];
+      const transactionsToAdd: Transaction[] = [];
+
+      if (transactionIdsToDelete.length > 0) {
+        const transactionsToDelete = prev.filter(t => transactionIdsToDelete.includes(t.id));
+        transactionsToDelete.forEach(tx => {
+          const account = accounts.find(a => a.id === tx.accountId);
+          let changeAmount = tx.amount;
+          if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
+          balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
+        });
+      }
+
+      const intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
+
+      finalTxArray.forEach(transactionData => {
+        if (transactionData.id && intermediateState.some(t => t.id === transactionData.id)) {
+          const originalTx = intermediateState.find(t => t.id === transactionData.id);
+          const updatedTx = { ...originalTx, ...transactionData } as Transaction;
+          if (originalTx) {
+            const originalAccount = accounts.find(a => a.id === originalTx.accountId);
+            let originalChangeAmount = originalTx.amount;
+            if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
+            balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
+            const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
+            let updatedChangeAmount = updatedTx.amount;
+            if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
+            balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
+            transactionsToUpdate.push(updatedTx);
+          }
+        } else {
+          const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: transactionData.id || `txn-${uuidv4()}` } as Transaction;
+          const account = accounts.find(a => a.id === newTx.accountId);
+          let changeAmount = newTx.amount;
+          if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
+          balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
+          transactionsToAdd.push(newTx);
+        }
+      });
+
+      if (Object.keys(balanceChanges).length > 0) {
+        setAccounts(prevAccounts => prevAccounts.map(account => {
+          if (balanceChanges[account.id]) {
+            const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
+            const newBalance = account.balance + changeInAccountCurrency;
+            return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
+          }
+          return account;
+        }));
+      }
+
       const updatedTransactions = intermediateState.map(t => transactionsToUpdate.find(ut => ut.id === t.id) || t);
       return [...updatedTransactions, ...transactionsToAdd];
     });
-    setAccounts(prevAccounts => prevAccounts.map(account => {
-      if (balanceChanges[account.id]) {
-        const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
-        const newBalance = account.balance + changeInAccountCurrency;
-        return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
-      }
-      return account;
-    })
-    );
-  }, [accounts, transactions, preferences]);
+  }, [accounts, preferences]);
 
-  const handleDeleteTransactions = (transactionIds: string[]) => { if (transactionIds.length > 0) handleSaveTransaction([], transactionIds); };
+  const handleDeleteTransactions = (transactionIds: string[]) => {
+    if (transactionIds.length === 0) return;
+    const deletedTxs = transactions.filter(t => transactionIds.includes(t.id));
+    handleSaveTransaction([], transactionIds);
+    toast.success(
+      deletedTxs.length === 1 
+        ? `Deleted "${deletedTxs[0].description}"`
+        : `Deleted ${deletedTxs.length} transactions`,
+      {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            handleSaveTransaction(deletedTxs);
+            toast.info('Restored transaction(s)');
+          }
+        }
+      }
+    );
+  };
   const handleSaveInvestmentTransaction = (invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {
     const symbol = invTxData.symbol.toUpperCase();
     const type = invTxData.type?.toLowerCase();
@@ -1392,7 +1430,21 @@ const App: React.FC = () => {
   const handleSaveRecurringTransaction = (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => {
     setRecurringTransactions(prev => upsertEntity(prev, recurringData, () => `rec-${uuidv4()}`));
   };
-  const handleDeleteRecurringTransaction = (id: string) => { setRecurringTransactions(prev => removeEntityById(prev, id)); };
+  const handleDeleteRecurringTransaction = (id: string) => {
+    const item = recurringTransactions.find(r => r.id === id);
+    setRecurringTransactions(prev => removeEntityById(prev, id));
+    if (item) {
+      toast.success(`Removed subscription "${item.description || item.merchant}"`, {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            setRecurringTransactions(prev => [...prev, item]);
+            toast.info('Restored subscription');
+          }
+        }
+      });
+    }
+  };
   const handleSaveLoanPaymentOverrides = (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => { setLoanPaymentOverrides(prev => ({ ...prev, [accountId]: overrides })); };
   const handleSaveRecurringOverride = (override: RecurringTransactionOverride) => {
     setRecurringTransactionOverrides(prev => {
@@ -1415,11 +1467,39 @@ const App: React.FC = () => {
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
     setBudgets(prev => upsertEntity(prev, budgetData, () => `bud-${uuidv4()}`));
   };
-  const handleDeleteBudget = (id: string) => { setBudgets(prev => removeEntityById(prev, id)); };
+  const handleDeleteBudget = (id: string) => {
+    const item = budgets.find(b => b.id === id);
+    setBudgets(prev => removeEntityById(prev, id));
+    if (item) {
+      toast.success(`Deleted budget for "${item.categoryName}"`, {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            setBudgets(prev => [...prev, item]);
+            toast.info('Restored budget');
+          }
+        }
+      });
+    }
+  };
   const handleSaveTask = (taskData: Omit<Task, 'id'> & { id?: string }) => {
     setTasks(prev => upsertEntity(prev, taskData, () => `task-${uuidv4()}`));
   };
-  const handleDeleteTask = (taskId: string) => { setTasks(prev => removeEntityById(prev, taskId)); };
+  const handleDeleteTask = (taskId: string) => {
+    const item = tasks.find(t => t.id === taskId);
+    setTasks(prev => removeEntityById(prev, taskId));
+    if (item) {
+      toast.success(`Deleted task "${item.title}"`, {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            setTasks(prev => [...prev, item]);
+            toast.info('Restored task');
+          }
+        }
+      });
+    }
+  };
   const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
     let warrantId = warrantData.id;
     if (warrantData.id) {
@@ -2236,7 +2316,7 @@ const App: React.FC = () => {
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Reports': return <ReportsPage />;
-      case 'Budget': return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
+      case 'Budget': return <Budgeting />;
       case 'Forecasting': return <Forecasting />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
       case 'Settings': return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
@@ -2337,7 +2417,21 @@ const App: React.FC = () => {
               }}
             >
               <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
-                <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
+                <ErrorBoundary>
+                  <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15, ease: 'easeInOut' }}
+                      >
+                        {renderPage()}
+                      </motion.div>
+                    </AnimatePresence>
+                  </Suspense>
+                </ErrorBoundary>
               </main>
             </HeaderProvider>
           </div>
@@ -2355,6 +2449,20 @@ const App: React.FC = () => {
             theme={theme}
             setTheme={setTheme}
           />
+          <KeyboardShortcutsModal
+            isOpen={isShortcutsModalOpen}
+            onClose={() => setIsShortcutsModalOpen(false)}
+          />
+          {isQuickAddTxModalOpen && (
+            <AddTransactionModal
+              onClose={() => setIsQuickAddTxModalOpen(false)}
+              onSave={(txs) => { handleSaveTransaction(txs); setIsQuickAddTxModalOpen(false); }}
+              accounts={accounts}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+              tags={tags}
+            />
+          )}
         </div>
       </InsightsViewProvider>
     </FinancialDataProvider>
