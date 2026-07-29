@@ -9,6 +9,7 @@ import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { useConfirm } from '../components/ConfirmationModal';
 
 interface BudgetingProps {
   budgets: Budget[];
@@ -30,6 +31,7 @@ const findParentCategory = (categoryName: string, categories: Category[]): Categ
 };
 
 const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCategories, saveBudget, deleteBudget, accounts, preferences }) => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
@@ -98,8 +100,15 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         return QUICK_CREATE_BUDGET_OPTIONS.find(opt => opt.value === period) || QUICK_CREATE_BUDGET_OPTIONS[1];
     }, [preferences.defaultQuickCreatePeriod]);
 
-    const handleQuickCreateDefault = () => {
-        if (window.confirm(`This will create/update budgets based on your spending from the last ${defaultQuickCreateOption.value} month(s), overwriting any existing budgets for those categories. Are you sure you want to continue?`)) {
+    const handleQuickCreateDefault = async () => {
+        const confirmed = await confirm({
+            title: 'Auto-Generate Budgets?',
+            message: `This will create or update budgets based on your spending from the last ${defaultQuickCreateOption.value} month(s), overwriting existing budgets for those categories.`,
+            confirmLabel: 'Generate Budgets',
+            variant: 'warning',
+            icon: 'auto_awesome',
+        });
+        if (confirmed) {
             handleApplyQuickBudget(defaultQuickCreateOption.value);
         }
     };
@@ -474,6 +483,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
               </Card>
           </div>
       </div>
+      <ConfirmDialog />
     </div>
   );
 };
