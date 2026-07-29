@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency } from '../types';
-import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, escapeHtml } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -58,6 +58,7 @@ import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
 import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
+import WidgetSkeletonLoader from '../components/WidgetSkeletonLoader';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -532,7 +533,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const handleDeleteTransaction = useCallback(async (tx: Transaction) => {
     const confirmed = await confirm({
       title: 'Delete Transaction?',
-      message: `Are you sure you want to delete "${tx.description}"?`,
+      message: `Are you sure you want to delete "${escapeHtml(tx.description || '')}"?`,
       confirmLabel: 'Delete',
       variant: 'danger',
       icon: 'delete',
@@ -1771,7 +1772,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           isCompact={isCompactValue}
                           className="h-full"
                         >
-                          <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+                          <Suspense fallback={<WidgetSkeletonLoader variant={['netWorthOverTime', 'outflowsByCategory', 'cashflowSankey', 'wealthVelocity'].includes(widget.id) ? 'chart' : 'default'} />}>
                             <WidgetComponent {...widgetDetails.props as any} />
                           </Suspense>
                         </WidgetWrapper>
@@ -1957,11 +1958,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         className="h-full"
                       >
                         <WidgetErrorBoundary widgetTitle={(widgetDetails as any).title || widget.id}>
-                          <Suspense fallback={(
-                            <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
-                              Loading widget...
-                            </div>
-                          )}>
+                          <Suspense fallback={<WidgetSkeletonLoader variant={['netWorthOverTime', 'outflowsByCategory', 'cashflowSankey', 'wealthVelocity'].includes(widget.id) ? 'chart' : ['recentActivity', 'todayWidget'].includes(widget.id) ? 'list' : 'default'} />}>
                             <WidgetComponent {...widgetDetails.props as any} />
                           </Suspense>
                         </WidgetErrorBoundary>

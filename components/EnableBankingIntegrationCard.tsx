@@ -128,11 +128,6 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   };
 
   const loadBanks = async () => {
-    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
-      alert('Enter application ID and client certificate before loading banks.');
-      return;
-    }
-
     setBanksLoading(true);
     setBanksError(null);
 
@@ -189,11 +184,6 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   };
 
   const handleCreate = () => {
-    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
-      alert('Application ID and client certificate are required to start the Enable Banking flow.');
-      return;
-    }
-
     if (!formState.selectedBank) {
       alert('Select a bank for the chosen country.');
       return;
@@ -217,11 +207,6 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     const resolvedCountry = (connection.countryCode || formState.countryCode || '').trim().toUpperCase();
     const resolvedBankId = (connection.selectedBankId || formState.selectedBank || '').trim();
     const resolvedBankName = connection.selectedBank || bankOptions.find(option => option.id === resolvedBankId)?.name || '';
-
-    if (!resolvedApplicationId || !resolvedCertificate) {
-      alert('Application ID and client certificate are required to reauthorize this connection.');
-      return;
-    }
 
     updateFormState(prev => ({
       ...prev,

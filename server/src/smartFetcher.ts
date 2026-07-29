@@ -1,8 +1,12 @@
 import express from 'express';
+import { authenticateToken, AuthRequest } from './middleware';
+import { isAllowedTargetUrl } from './urlValidator';
 
 const smartFetcherRouter = express.Router();
 
-smartFetcherRouter.get('/', async (req, res) => {
+smartFetcherRouter.use(authenticateToken);
+
+smartFetcherRouter.get('/', async (req: AuthRequest, res) => {
     const targetUrl = req.query.url;
     const cookies = typeof req.query.cookies === 'string' ? req.query.cookies : '';
 
@@ -10,11 +14,13 @@ smartFetcherRouter.get('/', async (req, res) => {
         return res.status(400).json({ error: 'A URL query param is required.' });
     }
 
+    const validation = isAllowedTargetUrl(targetUrl);
+    if (!validation.allowed) {
+        return res.status(403).json({ error: validation.reason || 'Forbidden target domain.' });
+    }
+
     try {
         const url = new URL(targetUrl);
-        if (!['http:', 'https:'].includes(url.protocol)) {
-            return res.status(400).json({ error: 'Only http and https URLs are allowed.' });
-        }
 
         const response = await fetch(url, {
             headers: {

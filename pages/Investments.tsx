@@ -374,7 +374,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const fetchFromSmartBinding = useCallback(async (symbol: string, binding: { url: string; selector: string; cookies?: string }) => {
         const encodedUrl = encodeURIComponent(binding.url);
         const cookieParam = binding.cookies ? `&cookies=${encodeURIComponent(binding.cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`, { credentials: 'include' });
         if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
         }

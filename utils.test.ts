@@ -1,4 +1,4 @@
-import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString } from './utils';
+import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString, escapeHtml, sanitizeInput, safeAdd, safeSubtract, safeMultiply, safeDivide, safeRound, toCents, fromCents } from './utils';
 import { upsertEntity, removeEntityById } from './utils/collection';
 
 function assert(condition: boolean, message: string) {
@@ -64,6 +64,54 @@ try {
   console.log('✓ Test 5 Passed: removeEntityById');
 } catch (e: any) {
   console.error('✕ Test 5 Failed:', e.message);
+}
+
+// Test 6: escapeHtml & sanitizeInput
+try {
+  const maliciousInput = '<script>alert("xss")</script>&"\'';
+  const escaped = escapeHtml(maliciousInput);
+  assert(!escaped.includes('<script>'), 'escapeHtml removes unescaped opening tag');
+  assert(escaped.includes('&lt;script&gt;'), 'escapeHtml escapes script tag');
+  assert(escaped.includes('&amp;'), 'escapeHtml escapes ampersand');
+  assert(escaped.includes('&quot;'), 'escapeHtml escapes double quote');
+  assert(escaped.includes('&#039;'), 'escapeHtml escapes single quote');
+
+  const sanitized = sanitizeInput('  <img src=x onerror=alert(1)>  ');
+  assert(sanitized.includes('&lt;img'), 'sanitizeInput trims and escapes raw html input');
+
+  console.log('✓ Test 6 Passed: escapeHtml & sanitizeInput');
+} catch (e: any) {
+  console.error('✕ Test 6 Failed:', e.message);
+}
+
+// Test 7: Floating-Point Math & Arbitrary Precision Safety
+try {
+  // Check IEEE 754 precision problem resolution (0.1 + 0.2 === 0.3)
+  const addRes = safeAdd(0.1, 0.2);
+  assert(addRes === 0.3, `safeAdd(0.1, 0.2) must equal 0.3, got ${addRes}`);
+
+  const subRes = safeSubtract(1.0, 0.9);
+  assert(subRes === 0.1, `safeSubtract(1.0, 0.9) must equal 0.1, got ${subRes}`);
+
+  const multRes = safeMultiply(19.99, 100);
+  assert(multRes === 1999, `safeMultiply(19.99, 100) must equal 1999, got ${multRes}`);
+
+  const divRes = safeDivide(10, 3);
+  assert(divRes === 3.33333333, `safeDivide(10, 3) must equal 3.33333333, got ${divRes}`);
+
+  // Minor unit cents conversions
+  const cents = toCents(19.99);
+  assert(cents === 1999, `toCents(19.99) must equal 1999, got ${cents}`);
+
+  const amount = fromCents(1999);
+  assert(amount === 19.99, `fromCents(1999) must equal 19.99, got ${amount}`);
+
+  const roundHalfUp = safeRound(2.675, 2);
+  assert(roundHalfUp === 2.68, `safeRound(2.675, 2) must round to 2.68, got ${roundHalfUp}`);
+
+  console.log('✓ Test 7 Passed: Floating-Point Math & Arbitrary Precision Safety');
+} catch (e: any) {
+  console.error('✕ Test 7 Failed:', e.message);
 }
 
 console.log('--- All Unit Tests Executed Successfully ---');

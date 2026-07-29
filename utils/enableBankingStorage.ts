@@ -10,13 +10,22 @@ export interface EnableBankingConfig {
   selectedBank?: string;
 }
 
+const sanitizeLocalConnection = (conn: EnableBankingConnection): EnableBankingConnection => {
+  const copy = { ...conn };
+  if (copy.clientCertificate && copy.clientCertificate.includes('BEGIN PRIVATE KEY')) {
+    copy.clientCertificate = '[CONFIGURED_ON_SERVER]';
+  }
+  return copy;
+};
+
 export const persistPendingConnection = (connection: EnableBankingConnection) => {
   if (typeof window === 'undefined') return;
 
   try {
+    const sanitized = sanitizeLocalConnection(connection);
     const existingRaw = sessionStorage.getItem(PENDING_EB_CONNECTIONS_KEY);
     const existing: EnableBankingConnection[] = existingRaw ? JSON.parse(existingRaw) : [];
-    const updated = [...existing.filter(conn => conn.id !== connection.id), connection];
+    const updated = [...existing.filter(conn => conn.id !== connection.id), sanitized];
     sessionStorage.setItem(PENDING_EB_CONNECTIONS_KEY, JSON.stringify(updated));
   } catch (error) {
     console.warn('Unable to persist pending Enable Banking connection', error);
@@ -66,7 +75,11 @@ export const persistEnableBankingConfig = (config: EnableBankingConfig) => {
   if (typeof window === 'undefined') return;
 
   try {
-    window.localStorage.setItem(ENABLE_BANKING_CONFIG_KEY, JSON.stringify(config));
+    const sanitized = { ...config };
+    if (sanitized.clientCertificate && sanitized.clientCertificate.includes('BEGIN PRIVATE KEY')) {
+      sanitized.clientCertificate = '[CONFIGURED_ON_SERVER]';
+    }
+    window.localStorage.setItem(ENABLE_BANKING_CONFIG_KEY, JSON.stringify(sanitized));
   } catch (error) {
     console.warn('Unable to persist Enable Banking configuration', error);
   }

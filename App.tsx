@@ -7,6 +7,7 @@ import MobileNavbar from './components/MobileNavbar';
 import CommandCenter from './components/CommandCenter';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
+import { useSaveFinancialDataMutation, useSavePartialFinancialDataMutation } from './hooks/useFinancialDataQuery';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AddTransactionModal from './components/AddTransactionModal';
@@ -801,6 +802,9 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
+  const saveDataMutation = useSaveFinancialDataMutation();
+  const savePartialMutation = useSavePartialFinancialDataMutation();
+
   const postData = useCallback(
     async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
       if (!isAuthenticated || isDemoMode) return false;
@@ -825,20 +829,39 @@ const App: React.FC = () => {
       }
       const now = toLocalDateTimeString(new Date());
       const payload = { ...data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, ...(options?.allowEmpty ? { allowEmpty: true } : {}), };
-      const succeeded = await postData(payload, options);
-      if (succeeded) { lastUpdatedAtRef.current = now; }
-      return succeeded;
-    }, [postData]
+      
+      try {
+        if (!isAuthenticated || isDemoMode) {
+          const succeeded = await postData(payload, options);
+          if (succeeded) { lastUpdatedAtRef.current = now; }
+          return succeeded;
+        }
+        await saveDataMutation.mutateAsync(payload);
+        lastUpdatedAtRef.current = now;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }, [postData, saveDataMutation, isAuthenticated, isDemoMode]
   );
 
   const savePartialData = useCallback(
     async (data: Partial<FinancialData>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
       const now = toLocalDateTimeString(new Date());
-      const payload = { partial: true, data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, };
-      const succeeded = await postData(payload, options);
-      if (succeeded) { lastUpdatedAtRef.current = now; }
-      return succeeded;
-    }, [postData]
+      try {
+        if (!isAuthenticated || isDemoMode) {
+          const payload = { partial: true, data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current };
+          const succeeded = await postData(payload, options);
+          if (succeeded) { lastUpdatedAtRef.current = now; }
+          return succeeded;
+        }
+        await savePartialMutation.mutateAsync(data);
+        lastUpdatedAtRef.current = now;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }, [postData, savePartialMutation, isAuthenticated, isDemoMode]
   );
 
   const saveDataWithRetry = useCallback(

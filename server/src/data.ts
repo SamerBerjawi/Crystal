@@ -2,6 +2,7 @@
 import express from 'express';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
+import { validateFinancialDataPayload } from './schemas';
 
 const router = express.Router();
 
@@ -33,7 +34,13 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
 // Save all financial data for a user
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const body = req.body || {}; // Data is already a JSON object from body-parser
+    const body = req.body || {};
+
+    const validation = validateFinancialDataPayload(body);
+    if (!validation.success) {
+        return res.status(400).json({ message: validation.error || 'Invalid financial data payload structure.' });
+    }
+
     const allowEmpty = Boolean(body.allowEmpty);
     
     // Use INSERT ... ON CONFLICT for an upsert operation in PostgreSQL

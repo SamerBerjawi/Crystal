@@ -126,17 +126,16 @@ router.post('/login', loginRateLimiter, async (req, res) => {
 
 router.post('/logout', async (req, res) => {
     try {
-        const rawCookie = req.headers.cookie || '';
-        const sessionCookie = rawCookie
-            .split(';')
-            .map(part => part.trim())
-            .find(part => part.startsWith(`${AUTH_COOKIE_NAME}=`))
-            ?.split('=')
-            .slice(1)
-            .join('=');
+        const cookieHeader = req.headers.cookie || '';
+        const cookieParts = cookieHeader.split(';').reduce((acc, part) => {
+            const [name, ...val] = part.trim().split('=');
+            if (name) acc[name] = decodeURIComponent(val.join('=') || '');
+            return acc;
+        }, {} as Record<string, string>);
+        const sessionCookie = cookieParts[AUTH_COOKIE_NAME];
 
         if (sessionCookie) {
-            const payload = jwt.verify(decodeURIComponent(sessionCookie), JWT_SECRET) as { sid?: string };
+            const payload = jwt.verify(sessionCookie, JWT_SECRET) as { sid?: string };
             if (payload?.sid) {
                 await db.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE id = $1`, [payload.sid]);
             }

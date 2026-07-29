@@ -133,7 +133,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const fetchSmartPage = async (targetUrl: string, cookies?: string): Promise<string> => {
         const encodedUrl = encodeURIComponent(targetUrl);
         const cookieParam = cookies ? `&cookies=${encodeURIComponent(cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`, { credentials: 'include' });
         if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
         }

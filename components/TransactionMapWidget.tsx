@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Transaction } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, escapeHtml } from '../utils';
 import L from 'leaflet';
 
 interface TransactionMapWidgetProps {
@@ -152,10 +152,10 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                     >
                         <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
                             <div className="text-center space-y-1 min-w-[120px]">
-                                <p className="font-bold text-sm">{locationLabel}</p>
+                                <p className="font-bold text-sm">{escapeHtml(locationLabel)}</p>
                                 <p className="text-xs opacity-70">{loc.count} transactions</p>
                                 <p className="font-mono font-semibold text-green-600 dark:text-green-400">{formatCurrency(Math.abs(loc.amountTotal), loc.currency)}</p>
-                                <p className="text-[10px] opacity-60 mt-1 border-t border-gray-200 dark:border-gray-700 pt-1">Latest: {loc.description}</p>
+                                <p className="text-[10px] opacity-60 mt-1 border-t border-gray-200 dark:border-gray-700 pt-1">Latest: {escapeHtml(loc.description || '')}</p>
                             </div>
                         </TooltipAny>
                     </CircleMarkerAny>

@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { Category, DisplayTransaction, MerchantRule, Tag } from '../types';
-import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
+import { formatCurrency, convertToEur, parseLocalDate, escapeHtml } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
@@ -81,7 +81,8 @@ const TransactionList: React.FC<TransactionListProps> = ({
       const listToPrepare = maxItems ? transactions.slice(0, maxItems) : transactions;
       return listToPrepare.map((tx) => {
         const isTransfer = tx.isTransfer;
-        const description = isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.description;
+        const rawDescription = isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : (tx.description || '');
+        const description = escapeHtml(rawDescription);
         const amountDisplay = isTransfer
           ? formatCurrency(tx.amount, tx.currency)
           : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');

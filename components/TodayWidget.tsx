@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride } from '../types';
-import { parseLocalDate, formatCurrency, toLocalISOString } from '../utils';
+import { parseLocalDate, formatCurrency, toLocalISOString, escapeHtml } from '../utils';
 
 interface TodayWidgetProps {
     tasks: Task[];
@@ -194,7 +194,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                 />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{item.data.title}</p>
+                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{escapeHtml(item.data.title)}</p>
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
@@ -210,7 +210,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         const data = item.data as (BillPayment | RecurringTransaction);
                         const amount = Math.abs(data.amount);
                         const currency = (data as any).currency || 'EUR';
-                        const description = data.description;
+                        const description = escapeHtml(data.description || '');
                         
                         return (
                             <div key={`${item.type}-${data.id}`} className="flex items-center p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group border border-transparent hover:border-black/5 dark:hover:border-white/10">
@@ -248,7 +248,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{item.data.name}</p>
+                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{escapeHtml(item.data.name)}</p>
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Goal Target Date</p>

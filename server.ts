@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import { isAllowedTargetUrl } from './server/src/urlValidator';
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -16,12 +18,30 @@ async function startServer() {
 
   // AI Proxy Endpoint
   app.post('/api/ai/proxy', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const cookieHeader = req.headers.cookie || '';
+    const hasSessionCookie = cookieHeader.includes('crystal_session=');
+    const hasBearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
+
+    if (!hasSessionCookie && !hasBearerToken) {
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+
     const { endpoint, method, headers, body } = req.body;
 
+    if (!endpoint || typeof endpoint !== 'string') {
+      return res.status(400).json({ error: 'Endpoint URL is required.' });
+    }
+
+    const validation = isAllowedTargetUrl(endpoint);
+    if (!validation.allowed) {
+      return res.status(403).json({ error: validation.reason || 'Forbidden target domain.' });
+    }
+
     try {
-      console.log(`Proxying ${method} request to ${endpoint}`);
+      console.log(`Proxying ${method || 'POST'} request to ${endpoint}`);
       const response = await fetch(endpoint, {
-        method,
+        method: method || 'POST',
         headers,
         body: JSON.stringify(body)
       });
