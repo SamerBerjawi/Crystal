@@ -1270,57 +1270,63 @@ const App: React.FC = () => {
       });
     }
 
-    const balanceChanges: Record<string, number> = {};
-    const transactionsToUpdate: Transaction[] = [];
-    const transactionsToAdd: Transaction[] = [];
-    if (transactionIdsToDelete.length > 0) {
-      const transactionsToDelete = transactions.filter(t => transactionIdsToDelete.includes(t.id));
-      transactionsToDelete.forEach(tx => {
-        const account = accounts.find(a => a.id === tx.accountId);
-        let changeAmount = tx.amount;
-        if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
-        balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
-      });
-    }
-    finalTxArray.forEach(transactionData => {
-      if (transactionData.id && transactions.some(t => t.id === transactionData.id)) {
-        const updatedTx = { ...transactions.find(t => t.id === transactionData.id), ...transactionData } as Transaction;
-        const originalTx = transactions.find(t => t.id === updatedTx.id);
-        if (originalTx) {
-          const originalAccount = accounts.find(a => a.id === originalTx.accountId);
-          let originalChangeAmount = originalTx.amount;
-          if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
-          balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
-          const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
-          let updatedChangeAmount = updatedTx.amount;
-          if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
-          balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
-          transactionsToUpdate.push(updatedTx);
-        }
-      } else {
-        const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: transactionData.id || `txn-${uuidv4()}` } as Transaction;
-        const account = accounts.find(a => a.id === newTx.accountId);
-        let changeAmount = newTx.amount;
-        if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
-        balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
-        transactionsToAdd.push(newTx);
-      }
-    });
     setTransactions(prev => {
-      let intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
+      const balanceChanges: Record<string, number> = {};
+      const transactionsToUpdate: Transaction[] = [];
+      const transactionsToAdd: Transaction[] = [];
+
+      if (transactionIdsToDelete.length > 0) {
+        const transactionsToDelete = prev.filter(t => transactionIdsToDelete.includes(t.id));
+        transactionsToDelete.forEach(tx => {
+          const account = accounts.find(a => a.id === tx.accountId);
+          let changeAmount = tx.amount;
+          if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) { changeAmount = tx.principalAmount; }
+          balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
+        });
+      }
+
+      const intermediateState = transactionIdsToDelete.length > 0 ? prev.filter(t => !transactionIdsToDelete.includes(t.id)) : prev;
+
+      finalTxArray.forEach(transactionData => {
+        if (transactionData.id && intermediateState.some(t => t.id === transactionData.id)) {
+          const originalTx = intermediateState.find(t => t.id === transactionData.id);
+          const updatedTx = { ...originalTx, ...transactionData } as Transaction;
+          if (originalTx) {
+            const originalAccount = accounts.find(a => a.id === originalTx.accountId);
+            let originalChangeAmount = originalTx.amount;
+            if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) { originalChangeAmount = originalTx.principalAmount; }
+            balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - convertToEur(originalChangeAmount, originalTx.currency);
+            const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
+            let updatedChangeAmount = updatedTx.amount;
+            if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) { updatedChangeAmount = updatedTx.principalAmount; }
+            balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + convertToEur(updatedChangeAmount, updatedTx.currency);
+            transactionsToUpdate.push(updatedTx);
+          }
+        } else {
+          const newTx: Transaction = { ...transactionData, category: transactionData.category || 'Transfer', id: transactionData.id || `txn-${uuidv4()}` } as Transaction;
+          const account = accounts.find(a => a.id === newTx.accountId);
+          let changeAmount = newTx.amount;
+          if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) { changeAmount = newTx.principalAmount; }
+          balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + convertToEur(changeAmount, newTx.currency);
+          transactionsToAdd.push(newTx);
+        }
+      });
+
+      if (Object.keys(balanceChanges).length > 0) {
+        setAccounts(prevAccounts => prevAccounts.map(account => {
+          if (balanceChanges[account.id]) {
+            const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
+            const newBalance = account.balance + changeInAccountCurrency;
+            return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
+          }
+          return account;
+        }));
+      }
+
       const updatedTransactions = intermediateState.map(t => transactionsToUpdate.find(ut => ut.id === t.id) || t);
       return [...updatedTransactions, ...transactionsToAdd];
     });
-    setAccounts(prevAccounts => prevAccounts.map(account => {
-      if (balanceChanges[account.id]) {
-        const changeInAccountCurrency = balanceChanges[account.id] / (CONVERSION_RATES[account.currency] || 1);
-        const newBalance = account.balance + changeInAccountCurrency;
-        return { ...account, balance: parseFloat(newBalance.toFixed(account.currency === 'BTC' ? 8 : 2)) };
-      }
-      return account;
-    })
-    );
-  }, [accounts, transactions, preferences]);
+  }, [accounts, preferences]);
 
   const handleDeleteTransactions = (transactionIds: string[]) => {
     if (transactionIds.length === 0) return;

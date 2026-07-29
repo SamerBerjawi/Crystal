@@ -4,6 +4,7 @@ import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS } from '../constants';
 import ThemeToggle from './ThemeToggle';
 import { getColorClasses, getGlowClasses, getBgClasses } from '../utils/colors';
+import { APP_VERSION } from '../version';
 
 interface SidebarProps {
   currentPage: Page;
@@ -313,6 +314,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
               </button>
             </div>
+            {!isSidebarCollapsed && (
+              <div className="pt-2 text-[10px] font-mono font-bold text-gray-400 dark:text-gray-500 tracking-widest text-center select-none opacity-70">
+                {APP_VERSION}
+              </div>
+            )}
           </div>
         </div>
       </aside>
