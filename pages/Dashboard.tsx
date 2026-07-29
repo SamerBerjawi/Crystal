@@ -59,6 +59,8 @@ import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import WidgetSkeletonLoader from '../components/WidgetSkeletonLoader';
+import { useDashboardStats } from '../features/dashboard/useDashboardStats';
+import DashboardHeader from '../features/dashboard/DashboardHeader';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
