@@ -3,7 +3,7 @@ import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
 import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -55,17 +55,40 @@ const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, se
 
   return (
     <button
+      type="button"
       onClick={() => setTheme(theme)}
-      className={`flex-1 flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-dark-card ${
+      className={`flex-1 flex flex-col items-center p-4 sm:p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer group ${
         isSelected 
-          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
-          : 'border-transparent bg-light-bg dark:bg-dark-bg hover:bg-black/5 dark:hover:bg-white/5'
+          ? 'border-primary-500 bg-primary-500/[0.06] dark:bg-primary-500/[0.12] shadow-md' 
+          : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/20 dark:hover:border-white/20'
       }`}
     >
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${isSelected ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400' : 'bg-white dark:bg-white/10 text-gray-500'}`}>
-        <span className="material-symbols-outlined text-2xl">{icon}</span>
+      {/* Visual Preview Box */}
+      <div className={`w-full h-16 rounded-xl border mb-3 flex flex-col justify-between p-2.5 overflow-hidden transition-transform group-hover:scale-[1.02] ${
+        theme === 'light' 
+          ? 'bg-gray-100 border-gray-300 text-gray-800' 
+          : theme === 'dark' 
+          ? 'bg-zinc-900 border-zinc-700 text-zinc-100' 
+          : 'bg-gradient-to-r from-gray-100 to-zinc-900 border-gray-400 text-gray-700'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="w-8 h-2 rounded bg-primary-500/40"></div>
+          <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+        </div>
+        <div className="space-y-1">
+          <div className="w-full h-1.5 rounded bg-black/10 dark:bg-white/20"></div>
+          <div className="w-2/3 h-1.5 rounded bg-black/10 dark:bg-white/20"></div>
+        </div>
       </div>
-      <span className={`text-sm font-semibold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-light-text dark:text-dark-text'}`}>{label}</span>
+
+      <div className="flex items-center gap-2">
+        <span className={`material-symbols-outlined text-base ${isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+          {icon}
+        </span>
+        <span className={`text-xs font-bold ${isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
+          {label}
+        </span>
+      </div>
     </button>
   );
 });
@@ -84,26 +107,13 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
   return (
     <div className="w-full pb-12 animate-fade-in-up px-4">
       {/* Navigation & Header */}
-      <div className="mb-10 space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="tune"
-          markerLabel="Personalization"
-          title="Preferences"
-          subtitle="Configure your workspace environment, regional standards, and algorithmic behaviors."
-        />
-      </div>
+      <SettingsSubpageHeader
+        markerIcon="tune"
+        markerLabel="Personalization"
+        title="Preferences"
+        subtitle="Configure your workspace environment, regional standards, and algorithmic behaviors."
+        setCurrentPage={setCurrentPage}
+      />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         

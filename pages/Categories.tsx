@@ -7,7 +7,7 @@ import CategoryModal from '../components/CategoryModal';
 import Modal from '../components/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import CategoryItem from '../components/CategoryItem';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 
@@ -233,35 +233,22 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       )}
       
        {/* Navigation & Header */}
-       <div className="space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="schema"
-          markerLabel="Taxonomy Blueprint"
-          title="Categories"
-          subtitle="Define the logical structure of your ledger. Map telemetry objects into specific spending and earning protocols."
-          actions={
-            <HeaderButton
-              variant="primary"
-              icon="add_circle"
-              onClick={() => openModal('add', activeTab)}
-            >
-              New Category
-            </HeaderButton>
-          }
-        />
-      </div>
+       <SettingsSubpageHeader
+         markerIcon="schema"
+         markerLabel="Taxonomy Blueprint"
+         title="Categories"
+         subtitle="Define the logical structure of your ledger. Map telemetry objects into specific spending and earning protocols."
+         setCurrentPage={setCurrentPage}
+         actions={
+           <HeaderButton
+             variant="primary"
+             icon="add_circle"
+             onClick={() => openModal('add', activeTab)}
+           >
+             New Category
+           </HeaderButton>
+         }
+       />
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">

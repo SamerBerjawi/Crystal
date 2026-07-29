@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 
 interface DocumentationProps {
   setCurrentPage: (page: Page) => void;
@@ -223,26 +223,14 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     return (
         <div className="w-full animate-fade-in-up pb-24 px-4">
              {/* Navigation & Header */}
-            <div className="space-y-6 pt-4 mb-16">
-                <nav className="flex items-center gap-3">
-                    <button 
-                      onClick={() => setCurrentPage('Settings')} 
-                      className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-                    >
-                        <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                          <span className="material-symbols-outlined text-sm">arrow_back</span>
-                        </div>
-                        <span>Back to Control Center</span>
-                    </button>
-                </nav>
-                
-                <PageHeader
-                  markerIcon="auto_stories"
-                  markerLabel="Operational Manual"
-                  title="Documentation"
-                  subtitle="Detailed technical guidance on operating the Crystal system. From taxonomy definition to advanced data synchronization."
-                />
-            </div>
+             <SettingsSubpageHeader
+               markerIcon="auto_stories"
+               markerLabel="Operational Manual"
+               title="Documentation"
+               subtitle="Detailed technical guidance on operating the Crystal system. From taxonomy definition to advanced data synchronization."
+               setCurrentPage={setCurrentPage}
+               className="pt-4 mb-8"
+             />
 
             <div className="flex flex-col lg:flex-row gap-16">
                 {/* Sticky Navigation Sidebar */}

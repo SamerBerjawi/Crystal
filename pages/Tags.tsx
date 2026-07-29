@@ -7,7 +7,7 @@ import TagModal from '../components/TagModal';
 import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 
@@ -159,36 +159,23 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
         />
       )}
       
-      {/* Navigation & Header */}
-      <div className="space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="sell"
-          markerLabel="Semantic Overlays"
-          title="Tags"
-          subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
-          actions={
-            <HeaderButton
-              variant="primary"
-              icon="add_circle"
-              onClick={() => handleOpenModal()}
-            >
-              Register New Tag
-            </HeaderButton>
-          }
-        />
-      </div>
+       {/* Navigation & Header */}
+       <SettingsSubpageHeader
+         markerIcon="sell"
+         markerLabel="Semantic Overlays"
+         title="Tags"
+         subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
+         setCurrentPage={setCurrentPage}
+         actions={
+           <HeaderButton
+             variant="primary"
+             icon="add_circle"
+             onClick={() => handleOpenModal()}
+           >
+             Register New Tag
+           </HeaderButton>
+         }
+       />
 
       {/* Metrics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

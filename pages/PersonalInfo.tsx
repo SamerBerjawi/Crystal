@@ -4,7 +4,8 @@ import { User, Page } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import ChangePasswordModal from '../components/ChangePasswordModal';
-import PageHeader from '../components/PageHeader';
+import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import HeaderButton from '../components/HeaderButton';
 
 interface PersonalInfoProps {
   user: User;
@@ -58,26 +59,13 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
       )}
       
       {/* Navigation & Header */}
-      <div className="mb-10 space-y-6">
-        <nav className="flex items-center gap-3">
-            <button 
-              onClick={() => setCurrentPage('Settings')} 
-              className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-            >
-                <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
-                </div>
-                <span>Back to Control Center</span>
-            </button>
-        </nav>
-        
-        <PageHeader
-          markerIcon="fingerprint"
-          markerLabel="Identity Vault"
-          title="Personal Profile"
-          subtitle="Manage your secure identity, contact details, and account security settings."
-        />
-      </div>
+      <SettingsSubpageHeader
+        markerIcon="fingerprint"
+        markerLabel="Identity Vault"
+        title="Personal Profile"
+        subtitle="Manage your secure identity, contact details, and account security settings."
+        setCurrentPage={setCurrentPage}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         {/* Left Column: Profile Card */}
