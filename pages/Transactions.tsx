@@ -20,11 +20,14 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 
 interface TransactionsProps {
   initialAccountFilter?: string | null;
   initialTagFilter?: string | null;
   onClearInitialFilters?: () => void;
+  onSyncBanks?: () => void;
+  isSyncingBanks?: boolean;
 }
 
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
@@ -150,7 +153,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
     );
 });
 
-const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initialTagFilter, onClearInitialFilters }) => {
+const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -1237,16 +1240,39 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         title="Transactions"
         subtitle="Every inflow and outflow with filters, splits, and tagging to keep your history audit-ready."
         actions={
-          <>
-            <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-              <span className="material-symbols-outlined text-lg">download</span>
+          <div className="flex items-center gap-2">
+            <HeaderButton
+              variant="emerald"
+              icon="sync"
+              isLoading={isSyncingBanks}
+              onClick={() => {
+                if (onSyncBanks) onSyncBanks();
+                else {
+                  const syncBtn = document.querySelector('[data-eb-sync-all]');
+                  if (syncBtn) (syncBtn as HTMLElement).click();
+                }
+              }}
+              title="Sync Connected Banking Accounts"
+            >
+              {isSyncingBanks ? 'Syncing...' : 'Sync Banks'}
+            </HeaderButton>
+
+            <HeaderButton
+              variant="secondary"
+              icon="download"
+              onClick={handleExport}
+            >
               Export
-            </button>
-            <button onClick={handleOpenAddModal} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-              <span className="material-symbols-outlined text-lg">add</span>
+            </HeaderButton>
+
+            <HeaderButton
+              variant="primary"
+              icon="add"
+              onClick={handleOpenAddModal}
+            >
               Add Transaction
-            </button>
-          </>
+            </HeaderButton>
+          </div>
         }
       />
 

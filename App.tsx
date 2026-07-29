@@ -80,6 +80,8 @@ const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
+import { HeaderProvider } from './contexts/HeaderContext';
+import { applyPageAccentTheme } from './utils/theme';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 
@@ -390,6 +392,10 @@ const App: React.FC = () => {
       pink: 'rgba(236, 72, 153, 0.2)',
     };
     return colors[currentPageColor] || colors.indigo;
+  }, [currentPageColor]);
+
+  useEffect(() => {
+    applyPageAccentTheme(currentPageColor);
   }, [currentPageColor]);
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
@@ -2227,8 +2233,8 @@ const App: React.FC = () => {
     }
     switch (currentPage) {
       case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
-      case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
-      case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
+      case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
+      case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Reports': return <ReportsPage />;
       case 'Budget': return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting': return <Forecasting />;
@@ -2297,7 +2303,7 @@ const App: React.FC = () => {
       <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
         <Toaster position="top-center" expand={true} richColors closeButton />
         <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
-          {/* Persistent Background Tint & Glow - Moved to be under everything */}
+          {/* Persistent Background Tint, Glow & Dot Pattern */}
           <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
             <motion.div
               className="absolute inset-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
@@ -2314,46 +2320,26 @@ const App: React.FC = () => {
           </div>
           <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            {/* Top Header Bar with Navigation & Notification Center */}
-            <div className="flex items-center justify-between h-16 px-4 md:px-8 border-b border-black/5 dark:border-white/10 bg-white/50 dark:bg-[#0A0A0A]/50 backdrop-blur-md z-20 shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="md:hidden p-2 rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  aria-label="Open navigation menu"
-                >
-                  <span className="material-symbols-outlined">menu</span>
-                </button>
-                <h1 className="font-bold text-lg md:text-xl tracking-tight truncate text-light-text dark:text-dark-text">
-                  {viewingHoldingSymbol ? 'Holding Detail' : (viewingAccountId ? 'Account Detail' : currentPage)}
-                </h1>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => setIsCommandCenterOpen(true)}
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold transition-all text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5"
-                  title="Search & Quick Actions"
-                >
-                  <span className="material-symbols-outlined text-base">search</span>
-                  <span>Search</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-mono">⌘K</kbd>
-                </button>
-
-                <NotificationCenter
-                  notifications={upcomingBillNotifications}
-                  notificationCount={notificationCount}
-                  onDismiss={dismissNotification}
-                  onClearAll={clearAllNotifications}
-                  onProcessItem={handleNotificationProcessItem}
-                  setCurrentPage={setCurrentPage}
-                />
-              </div>
-            </div>
-
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
-              <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
-            </main>
+            <HeaderProvider
+              value={{
+                onOpenSidebar: () => setSidebarOpen(true),
+                onOpenSearch: () => setIsCommandCenterOpen(true),
+                notificationCenter: (
+                  <NotificationCenter
+                    notifications={upcomingBillNotifications}
+                    notificationCount={notificationCount}
+                    onDismiss={dismissNotification}
+                    onClearAll={clearAllNotifications}
+                    onProcessItem={handleNotificationProcessItem}
+                    setCurrentPage={setCurrentPage}
+                  />
+                ),
+              }}
+            >
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
+                <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
+              </main>
+            </HeaderProvider>
           </div>
           <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
           {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}

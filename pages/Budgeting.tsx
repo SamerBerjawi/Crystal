@@ -7,6 +7,7 @@ import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 interface BudgetingProps {
@@ -202,10 +203,23 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         title="Budgeting"
         subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
         actions={
-          <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
-            <span className="material-symbols-outlined text-lg">add</span>
-            Create budget
-          </button>
+          <div className="flex items-center gap-2">
+            <HeaderButton
+              variant="accent"
+              icon="bolt"
+              onClick={handleQuickCreateDefault}
+              title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
+            >
+              Quick Budget
+            </HeaderButton>
+            <HeaderButton
+              variant="primary"
+              icon="add"
+              onClick={() => handleOpenModal()}
+            >
+              Create Budget
+            </HeaderButton>
+          </div>
         }
       />
 

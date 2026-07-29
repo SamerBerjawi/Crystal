@@ -13,6 +13,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import { MobileAccountsView } from '../components/MobileAccountsView';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,11 +34,13 @@ interface AccountsProps {
     onToggleAccountStatus: (accountId: string) => void;
     onNavigateToTransactions: (filters?: { accountName?: string | null }) => void;
     linkedEnableBankingAccountIds: Set<string>;
+    onSyncBanks?: () => void;
+    isSyncingBanks?: boolean;
 }
 
 type AccountSegment = 'all' | 'cash' | 'invested' | 'property' | 'debt';
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds, onSyncBanks, isSyncingBanks }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -365,6 +368,32 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
               markerLabel="Portfolio Overview"
               title="Accounts & Portfolio"
               subtitle="Track your liquid capital, property valuations, debt obligations and investments in a single place to calculate real-time net worth."
+              actions={
+                <div className="flex items-center gap-2">
+                  <HeaderButton
+                    variant="emerald"
+                    icon="sync"
+                    isLoading={isSyncingBanks}
+                    onClick={() => {
+                      if (onSyncBanks) onSyncBanks();
+                      else {
+                        const syncBtn = document.querySelector('[data-eb-sync-all]');
+                        if (syncBtn) (syncBtn as HTMLElement).click();
+                      }
+                    }}
+                    title="Sync Connected Banking Accounts"
+                  >
+                    {isSyncingBanks ? 'Syncing...' : 'Sync Banks'}
+                  </HeaderButton>
+                  <HeaderButton
+                    variant="primary"
+                    icon="add"
+                    onClick={() => setAddModalOpen(true)}
+                  >
+                    Add Account
+                  </HeaderButton>
+                </div>
+              }
           />
 
         {/* --- Consolidated Header & Portfolio --- */}

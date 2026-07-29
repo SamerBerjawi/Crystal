@@ -8,6 +8,7 @@ import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 
 interface WarrantsProps {
   warrants: Warrant[];
@@ -108,9 +109,13 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 title="Warrants"
                 subtitle="Track coverage, strike prices, and vesting details alongside your broader equity picture."
                 actions={
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleOpenWarrantModal()} className={BTN_PRIMARY_STYLE}>Add Warrant Grant</button>
-                    </div>
+                    <HeaderButton
+                        variant="primary"
+                        icon="add"
+                        onClick={() => handleOpenWarrantModal()}
+                    >
+                        Add Warrant Grant
+                    </HeaderButton>
                 }
             />
             {lastUpdated && (

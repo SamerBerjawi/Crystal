@@ -34,7 +34,7 @@ spacing:
 
 ## Overview
 
-The Crystal Personal Finance Dashboard offers a sleek, modern, and data-dense UI for managing financial metrics. It utilizes a striking contrast between bright orange accents and dark mode backgrounds, heavily employing an iOS-style frosted glass interface ("Liquid Glass"). 
+The Crystal Personal Finance Dashboard offers a sleek, modern, and data-dense UI for managing financial metrics. It utilizes a striking contrast between vibrant primary accents and dark mode backgrounds, heavily employing an elegant frosted Glassmorphism interface. 
 
 ## Colors
 
@@ -54,4 +54,4 @@ Utilizes **Inter** exclusively across the interface. It brings journalistic and 
 Structure leans away from severe technical layouts, favoring organic material imitations.
 
 - Heavy usage of rounded corners (16px standard limit) and fluid drop-shadows soften the dashboard structure.
-- Depth is achieved via `backdrop-filter: blur(5px)` and translucent card bases. Inset shadows replicate a liquid glass rim reflection, providing clean visual separation without demanding harsh borders.
+- Depth is achieved via clean `backdrop-filter: blur(16px)` glassmorphism panels, translucent card bases, subtle borders, and soft ambient drop shadows.

@@ -9,6 +9,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import { RefreshCw } from 'lucide-react';
 
 const CACHE_KEYS = {
@@ -909,6 +910,17 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         markerLabel="Gamification"
         title="Financial Health"
         subtitle="Level up your finances by completing challenges, unlocking badges, and beating your personal bests."
+        actions={
+          activeSection === 'prediction' ? (
+            <HeaderButton
+              variant="primary"
+              icon="add"
+              onClick={() => setPredictionModalOpen(true)}
+            >
+              Create Prediction
+            </HeaderButton>
+          ) : undefined
+        }
       />
 
       {/* Navigation Tabs */}
@@ -1066,7 +1078,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                <div className="space-y-8 animate-fade-in-up">
                    <div className="flex justify-between items-center">
                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Prediction Markets</h3>
-                       <button onClick={() => setPredictionModalOpen(true)} className={BTN_PRIMARY_STYLE}>Create Prediction</button>
+                       <HeaderButton variant="primary" icon="add" onClick={() => setPredictionModalOpen(true)}>Create Prediction</HeaderButton>
                    </div>
                    
                    {predictions.length > 0 ? (

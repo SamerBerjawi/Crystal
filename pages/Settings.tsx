@@ -114,12 +114,19 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               description="Banks and Market APIs"
               colorClass="bg-indigo-500 text-white shadow-indigo-500/20"
             />
-             <SettingItem
+            <SettingItem
               page="Merchants"
-              icon="store"
+              icon="storefront"
               title="Merchants"
-              description="Identity and visibility"
+              description="Identity, logos, and merchant profiles"
               colorClass="bg-emerald-500 text-white shadow-emerald-500/20"
+            />
+            <SettingItem
+              page="Rules"
+              icon="settings_suggest"
+              title="Transaction Rules"
+              description="Auto-categorization & rule engine"
+              colorClass="bg-teal-500 text-white shadow-teal-500/20"
             />
           </div>
         </div>

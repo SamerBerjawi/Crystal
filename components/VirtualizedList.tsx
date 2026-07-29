@@ -1,11 +1,11 @@
-import React, { CSSProperties, ReactNode, useCallback, useMemo, useState } from 'react';
-import { useThrottledCallback } from '../hooks/useThrottledCallback';
+import React, { CSSProperties, ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
 interface VirtualizedListProps {
   height: number;
   width?: number | string;
   itemCount: number;
   estimatedItemSize: number;
+  overscan?: number;
   getItemSize?: (index: number) => number;
   itemKey?: (index: number) => string | number;
   children: (props: { index: number; style: CSSProperties }) => ReactNode;
@@ -23,11 +23,13 @@ const VirtualizedList: React.FC<VirtualizedListProps> = ({
   width = '100%',
   itemCount,
   estimatedItemSize,
+  overscan = 5,
   getItemSize,
   itemKey = defaultKey,
   children,
 }) => {
   const [scrollOffset, setScrollOffset] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
   if (itemCount === 0) {
     return (
@@ -73,17 +75,20 @@ const VirtualizedList: React.FC<VirtualizedListProps> = ({
     return Math.max(0, Math.min(match, itemCount - 1));
   }, [itemCount, measurements.sizes]);
 
-  const startIndex = useMemo(() => findStartIndex(scrollOffset), [findStartIndex, scrollOffset]);
-  const endIndex = useMemo(() => {
+  const visibleStartIndex = useMemo(() => findStartIndex(scrollOffset), [findStartIndex, scrollOffset]);
+  const visibleEndIndex = useMemo(() => {
     const maxOffset = scrollOffset + height;
-    let index = startIndex;
+    let index = visibleStartIndex;
 
     while (index < itemCount && measurements.sizes[index].offset < maxOffset) {
       index += 1;
     }
 
     return Math.min(index, itemCount - 1);
-  }, [height, itemCount, measurements.sizes, scrollOffset, startIndex]);
+  }, [height, itemCount, measurements.sizes, scrollOffset, visibleStartIndex]);
+
+  const startIndex = Math.max(0, visibleStartIndex - overscan);
+  const endIndex = Math.min(itemCount - 1, visibleEndIndex + overscan);
 
   const items: ReactNode[] = [];
   for (let i = startIndex; i <= endIndex; i++) {
@@ -102,7 +107,14 @@ const VirtualizedList: React.FC<VirtualizedListProps> = ({
     );
   }
 
-  const handleScroll = useThrottledCallback((offset: number) => setScrollOffset(offset), 100);
+  const handleScroll = (scrollTop: number) => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    rafRef.current = requestAnimationFrame(() => {
+      setScrollOffset(scrollTop);
+    });
+  };
 
   return (
     <div

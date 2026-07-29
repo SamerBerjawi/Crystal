@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Page, MerchantRule, Category, RegexCategorizationRule } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
@@ -521,6 +522,25 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           markerLabel="Entity Intelligence"
           title="Merchants & Institutions"
           subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."
+          actions={
+            <div className="flex items-center gap-2">
+              <HeaderButton
+                variant="secondary"
+                icon="assignment_turned_in"
+                onClick={() => setIsRegexModalOpen(true)}
+              >
+                Regex Routing Rules
+              </HeaderButton>
+              <HeaderButton
+                variant="primary"
+                icon="sync_saved_locally"
+                isLoading={isRefreshing}
+                onClick={handleRefreshLogos}
+              >
+                {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
+              </HeaderButton>
+            </div>
+          }
         />
 
         {!brandfetchClientId && (
@@ -542,22 +562,22 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     Deploy complex regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
                 </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <button
-                    onClick={handleRefreshLogos}
-                    disabled={isRefreshing}
-                    className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-500/40 text-white text-[10px] font-black  tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
-                >
-                    <span className={`material-symbols-outlined text-sm ${isRefreshing ? 'animate-spin' : ''}`}>sync_saved_locally</span>
-                    {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
-                </button>
-                <button
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <HeaderButton
+                    variant="secondary"
+                    icon="assignment_turned_in"
                     onClick={() => setIsRegexModalOpen(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-dark-card hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text border border-black/5 dark:border-white/5 text-[10px] font-black  tracking-widest px-4 py-3 rounded-xl transition-all hover:scale-[1.02] shadow-sm cursor-pointer select-none"
                 >
-                    <span className="material-symbols-outlined text-sm">assignment_turned_in</span>
-                    Regex Routing Rules
-                </button>
+                    Regex Rules
+                </HeaderButton>
+                <HeaderButton
+                    variant="primary"
+                    icon="sync_saved_locally"
+                    isLoading={isRefreshing}
+                    onClick={handleRefreshLogos}
+                >
+                    {isRefreshing ? 'Enriching...' : 'Enrich Logos'}
+                </HeaderButton>
             </div>
         </div>
 

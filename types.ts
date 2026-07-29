@@ -190,7 +190,7 @@ export interface Account {
   closureDetails?: AssetClosureDetails;
 }
 
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 export type WeekendAdjustment = 'before' | 'after' | 'on';
 
 export type EnableBankingConnectionStatus = 'disconnected' | 'pending' | 'ready' | 'requires_update';
@@ -516,10 +516,15 @@ export interface RuleExecutionLog {
   txDescription: string;
   txAmount: number;
   changeDetails: string;
+  isReverted?: boolean;
+  batchId?: string;
 }
 
 export interface RuleRunBackup {
+  id?: string;
+  batchId?: string;
   timestamp: string;
+  ruleName?: string;
   transactions: {
     id: string;
     originalCategory: string;
@@ -551,6 +556,7 @@ export interface AppPreferences {
   regexCategorizationRules?: RegexCategorizationRule[];
   transactionRules?: TransactionRule[];
   lastRuleRunBackup?: RuleRunBackup;
+  ruleExecutionHistory?: RuleRunBackup[];
   ruleExecutionLogs?: RuleExecutionLog[];
 }
 

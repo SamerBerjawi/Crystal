@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useRef, ReactNode } from 'react';
 import { Account, AppPreferences, Transaction, Warrant, Invoice } from '../types';
 
 export interface TransactionsContextValue {
@@ -101,7 +101,9 @@ export const useInvoicesContext = () => {
 };
 
 const useSelector = <TInput, TOutput>(input: TInput, selector: (value: TInput) => TOutput) => {
-  return useMemo(() => selector(input), [input, selector]);
+  const selectorRef = useRef(selector);
+  selectorRef.current = selector;
+  return useMemo(() => selectorRef.current(input), [input]);
 };
 
 export const useTransactionSelector = <T,>(selector: (transactions: Transaction[]) => T) => {

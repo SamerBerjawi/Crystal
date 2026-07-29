@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import CategoryItem from '../components/CategoryItem';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 
 const generateId = () => `cat-${uuidv4()}`;
@@ -251,10 +252,13 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
           title="Categories"
           subtitle="Define the logical structure of your ledger. Map telemetry objects into specific spending and earning protocols."
           actions={
-            <button onClick={() => openModal('add', activeTab)} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                <span className="material-symbols-outlined text-xl">add_circle</span>
-                New Category
-            </button>
+            <HeaderButton
+              variant="primary"
+              icon="add_circle"
+              onClick={() => openModal('add', activeTab)}
+            >
+              New Category
+            </HeaderButton>
           }
         />
       </div>
@@ -287,7 +291,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
         {/* Search */}
         <div className="relative flex-grow max-w-md group">
-             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none">search_check</span>
+             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none">search</span>
              <input 
                 type="text" 
                 placeholder="Query taxonomy structure..." 

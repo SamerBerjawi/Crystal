@@ -16,6 +16,7 @@ import { useAccountsContext, useTransactionsContext } from '../contexts/DomainPr
 import { useCategoryContext, useScheduleContext, useTagsContext, useGoalsContext } from '../contexts/FinancialDataContext';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CalendarView from '../components/CalendarView';
@@ -907,6 +908,24 @@ const SchedulePage: React.FC = () => {
                     markerLabel="Future Outflows"
                     title="Recurring & Bilateral Obligations"
                     subtitle="Track and forecast subscriptions, insurance schedules, salary contracts, loan payments, and billing cycles."
+                    actions={
+                        <div className="flex items-center gap-2">
+                            <HeaderButton
+                                variant="secondary"
+                                icon="receipt_long"
+                                onClick={() => handleOpenBillModal()}
+                            >
+                                Add One-time
+                            </HeaderButton>
+                            <HeaderButton
+                                variant="primary"
+                                icon="update"
+                                onClick={() => handleOpenRecurringModal()}
+                            >
+                                New Recurring
+                            </HeaderButton>
+                        </div>
+                    }
                 />
 
                 <RecurringComparisonWidget
@@ -963,18 +982,6 @@ const SchedulePage: React.FC = () => {
                                     )
                                 })}
                             </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="shrink-0 flex flex-col gap-3">
-                             <button onClick={() => handleOpenRecurringModal()} className={`${BTN_PRIMARY_STYLE} px-8 py-4 !rounded-2xl flex items-center justify-center gap-3 group/btn animate-glow`}>
-                                <span className="material-symbols-outlined text-2xl transition-transform group-hover/btn:rotate-90">update</span>
-                                <span className="font-black  tracking-widest text-[11px]">New Recurring</span>
-                            </button>
-                            <button onClick={() => handleOpenBillModal()} className={`${BTN_SECONDARY_STYLE} px-8 py-4 !rounded-2xl flex items-center justify-center gap-3 group/btn`}>
-                                <span className="material-symbols-outlined text-2xl transition-transform group-hover/btn:scale-110">receipt_long</span>
-                                <span className="font-black  tracking-widest text-[11px]">Add One-time</span>
-                            </button>
                         </div>
                     </div>
 
