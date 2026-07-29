@@ -130,7 +130,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
              </span>
              
              {/* Action Buttons */}
-             <div className={`flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 ${isReadOnly ? 'invisible' : ''}`}>
+             <div className={`flex items-center gap-1.5 transition-all duration-300 ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'} ${isReadOnly ? 'invisible' : ''}`}>
                 {!isSkipped && (
                     <button 
                         onClick={(e) => { e.stopPropagation(); onPost(item); }}
@@ -217,4 +217,4 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
     );
 };
 
-export default ScheduledItemRow;
+export default React.memo(ScheduledItemRow);

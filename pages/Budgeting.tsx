@@ -11,14 +11,17 @@ import HeaderButton from '../components/HeaderButton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useConfirm } from '../components/ConfirmationModal';
 
+import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
+
 interface BudgetingProps {
-  budgets: Budget[];
-  transactions: Transaction[];
-  expenseCategories: Category[];
-  saveBudget: (budgetData: Omit<Budget, 'id'> & { id?: string }) => void;
-  deleteBudget: (id: string) => void;
-  accounts: Account[];
-  preferences: AppPreferences;
+  budgets?: Budget[];
+  transactions?: Transaction[];
+  expenseCategories?: Category[];
+  saveBudget?: (budgetData: Omit<Budget, 'id'> & { id?: string }) => void;
+  deleteBudget?: (id: string) => void;
+  accounts?: Account[];
+  preferences?: AppPreferences;
 }
 
 // Helper to find a parent category by a transaction's category name
@@ -30,7 +33,28 @@ const findParentCategory = (categoryName: string, categories: Category[]): Categ
   return undefined;
 };
 
-const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCategories, saveBudget, deleteBudget, accounts, preferences }) => {
+const Budgeting: React.FC<BudgetingProps> = ({
+  budgets: propsBudgets,
+  transactions: propsTransactions,
+  expenseCategories: propsExpenseCategories,
+  saveBudget: propsSaveBudget,
+  deleteBudget: propsDeleteBudget,
+  accounts: propsAccounts,
+  preferences: propsPreferences,
+}) => {
+  const contextBudgets = useBudgetsContext();
+  const contextCategories = useCategoryContext();
+  const contextTransactions = useTransactionsContext();
+  const contextAccounts = useAccountsContext();
+  const contextPreferences = usePreferencesContext();
+
+  const budgets = propsBudgets || contextBudgets.budgets;
+  const transactions = propsTransactions || contextTransactions.transactions;
+  const expenseCategories = propsExpenseCategories || contextCategories.expenseCategories;
+  const saveBudget = propsSaveBudget || contextBudgets.saveBudget;
+  const deleteBudget = propsDeleteBudget || contextBudgets.deleteBudget;
+  const accounts = propsAccounts || contextAccounts.accounts;
+  const preferences = propsPreferences || contextPreferences.preferences;
   const { confirm, ConfirmDialog } = useConfirm();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);

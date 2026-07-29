@@ -10,6 +10,7 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
+import EmptyState from '../components/EmptyState';
 
 interface TagsProps {
   tags: Tag[];
@@ -343,17 +344,13 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                 </div>
             )
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
-              <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-4xl opacity-20">label_off</span>
-              </div>
-              <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Semantic Inventory Clear</p>
-              {!searchTerm && (
-                  <button onClick={() => handleOpenModal()} className="mt-8 px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-widest shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
-                      Initialize Semantic Chip
-                  </button>
-              )}
-          </div>
+          <EmptyState
+            icon="label_off"
+            title="No Tags Created"
+            description="Create tags to organize, label, and filter your transactions across multiple accounts."
+            actionLabel={!searchTerm ? "Create New Tag" : undefined}
+            onAction={() => handleOpenModal()}
+          />
         )}
       </div>
     </div>

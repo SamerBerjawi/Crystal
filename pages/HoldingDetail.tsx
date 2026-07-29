@@ -451,6 +451,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     </div>
                 </Card>
             </div>
+            <ConfirmDialog />
         </div>
     );
 };

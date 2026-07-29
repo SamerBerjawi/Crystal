@@ -12,12 +12,19 @@ interface ChartData {
   forecast?: number;
 }
 
+export interface MilestoneAnnotation {
+  date: string;
+  label: string;
+  type?: 'milestone' | 'event';
+}
+
 interface NetWorthChartProps {
   data: ChartData[];
   lineColor?: string;
   showForecast?: boolean;
   showGoals?: boolean;
   goals?: FinancialGoal[];
+  annotations?: MilestoneAnnotation[];
 }
 
 const yAxisTickFormatter = (value: number) => {
@@ -31,7 +38,8 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     lineColor = '#6366F1',
     showForecast = true,
     showGoals = true,
-    goals = []
+    goals = [],
+    annotations = []
 }) => {
   const chartData = useMemo(() => {
     const points = data.map(point => ({
@@ -221,6 +229,25 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
                 </ReferenceLine>
               );
           })}
+
+          {annotations && annotations.map((ann, idx) => (
+            <ReferenceLine
+              key={`ann-${idx}`}
+              x={ann.date}
+              stroke="#3B82F6"
+              strokeDasharray="2 2"
+              strokeOpacity={0.8}
+            >
+              <Label
+                value={ann.label}
+                position="insideTopLeft"
+                fill="#3B82F6"
+                fontSize={9}
+                fontWeight={800}
+                dy={10}
+              />
+            </ReferenceLine>
+          ))}
 
           {showForecast && (
               <Area 

@@ -3,6 +3,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS } from '../constants';
 import ThemeToggle from './ThemeToggle';
+import { getColorClasses, getGlowClasses, getBgClasses } from '../utils/colors';
 
 interface SidebarProps {
   currentPage: Page;
@@ -74,92 +75,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const getColorClasses = (color: string, isActive: boolean) => {
-    if (!isActive) return 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100';
-
-    switch (color) {
-      case 'indigo': return 'text-indigo-600 dark:text-indigo-400';
-      case 'emerald': return 'text-emerald-600 dark:text-emerald-400';
-      case 'amber': return 'text-amber-600 dark:text-amber-400';
-      case 'purple': return 'text-purple-600 dark:text-purple-400';
-      case 'cyan': return 'text-cyan-600 dark:text-cyan-400';
-      case 'blue': return 'text-blue-600 dark:text-blue-400';
-      case 'teal': return 'text-teal-600 dark:text-teal-400 font-bold';
-      case 'orange': return 'text-orange-600 dark:text-orange-400';
-      case 'rose': return 'text-rose-600 dark:text-rose-400 font-bold';
-      case 'violet': return 'text-violet-600 dark:text-violet-400';
-      case 'slate': return 'text-slate-600 dark:text-slate-400';
-      case 'lime': return 'text-lime-600 dark:text-lime-400';
-      case 'gray': return 'text-gray-600 dark:text-gray-400';
-      case 'sky': return 'text-sky-600 dark:text-sky-400';
-      case 'pink': return 'text-pink-600 dark:text-pink-400';
-      default: return 'text-indigo-600 dark:text-indigo-400';
-    }
-  };
-
-  const getGlowClasses = (color: string) => {
-    switch (color) {
-      case 'indigo': return 'bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)]';
-      case 'emerald': return 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]';
-      case 'amber': return 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]';
-      case 'purple': return 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]';
-      case 'cyan': return 'bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]';
-      case 'blue': return 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]';
-      case 'teal': return 'bg-teal-500 shadow-[0_0_15px_rgba(20,184,166,0.5)]';
-      case 'orange': return 'bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]';
-      case 'rose': return 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]';
-      case 'violet': return 'bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]';
-      case 'slate': return 'bg-slate-500 shadow-[0_0_15px_rgba(100,116,139,0.5)]';
-      case 'lime': return 'bg-lime-500 shadow-[0_0_15px_rgba(132,204,22,0.5)]';
-      case 'gray': return 'bg-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.5)]';
-      case 'sky': return 'bg-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.5)]';
-      case 'pink': return 'bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.5)]';
-      default: return 'bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)]';
-    }
-  };
-
-  const getBgClasses = (color: string) => {
-    switch (color) {
-      case 'indigo': return 'bg-indigo-500/10 dark:bg-indigo-500/20';
-      case 'emerald': return 'bg-emerald-500/10 dark:bg-emerald-500/20';
-      case 'amber': return 'bg-amber-500/10 dark:bg-amber-500/20';
-      case 'purple': return 'bg-purple-500/10 dark:bg-purple-500/20';
-      case 'cyan': return 'bg-cyan-500/10 dark:bg-cyan-500/20';
-      case 'blue': return 'bg-blue-500/10 dark:bg-blue-500/20';
-      case 'teal': return 'bg-teal-500/10 dark:bg-teal-500/20';
-      case 'orange': return 'bg-orange-500/10 dark:bg-orange-500/20';
-      case 'rose': return 'bg-rose-500/10 dark:bg-rose-500/20';
-      case 'violet': return 'bg-violet-500/10 dark:bg-violet-500/20';
-      case 'slate': return 'bg-slate-500/10 dark:bg-slate-500/20';
-      case 'lime': return 'bg-lime-500/10 dark:bg-lime-500/20';
-      case 'gray': return 'bg-gray-500/10 dark:bg-gray-500/20';
-      case 'sky': return 'bg-sky-500/10 dark:bg-sky-500/20';
-      case 'pink': return 'bg-pink-500/10 dark:bg-pink-500/20';
-      default: return 'bg-indigo-500/10 dark:bg-indigo-500/20';
-    }
-  };
-
-  const getAmbientGlowBg = (color: string) => {
-    switch (color) {
-      case 'indigo': return 'bg-indigo-500';
-      case 'emerald': return 'bg-emerald-500';
-      case 'amber': return 'bg-amber-500';
-      case 'purple': return 'bg-purple-500';
-      case 'cyan': return 'bg-cyan-500';
-      case 'blue': return 'bg-blue-500';
-      case 'teal': return 'bg-teal-500';
-      case 'orange': return 'bg-orange-500';
-      case 'rose': return 'bg-rose-500';
-      case 'violet': return 'bg-violet-500';
-      case 'slate': return 'bg-slate-500';
-      case 'lime': return 'bg-lime-500';
-      case 'gray': return 'bg-gray-500';
-      case 'sky': return 'bg-sky-500';
-      case 'pink': return 'bg-pink-500';
-      default: return 'bg-indigo-500';
-    }
-  };
-
   const renderNavItem = (item: NavItem) => {
     const isActive = currentPage === item.name;
     const itemColor = ITEM_COLORS[item.name] || 'indigo';
@@ -203,7 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
                 <motion.div
                   layoutId="active-glow"
-                  className={`absolute inset-0 ${getAmbientGlowBg(itemColor)} blur-xl opacity-20 dark:opacity-30 rounded-2xl pointer-events-none`}
+                  className={`absolute inset-0 ${getBgClasses(itemColor)} blur-xl opacity-20 dark:opacity-30 rounded-2xl pointer-events-none`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.25 }}
                   exit={{ opacity: 0 }}

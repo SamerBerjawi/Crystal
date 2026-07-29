@@ -7,6 +7,7 @@ import { formatCurrency, toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { fetchSymbolMetadata } from '../src/services/twelveDataService';
 import { useDebounce } from '../hooks/useDebounce';
+import { useConfirm } from './ConfirmationModal';
 
 interface AddInvestmentTransactionModalProps {
   onClose: () => void;
@@ -18,6 +19,7 @@ interface AddInvestmentTransactionModalProps {
 }
 
 const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({ onClose, onSave, accounts, cashAccounts, transactionToEdit, holdings }) => {
+    const { confirm, ConfirmDialog } = useConfirm();
     const isEditing = !!(transactionToEdit && transactionToEdit.id);
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
     
@@ -112,12 +114,19 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         }
     }, [symbol, accounts, isEditing]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const q = parseFloat(quantity);
         if (type === 'sell' && activeHolding && q > currentQuantity) {
-            if (!window.confirm(`You are trying to sell ${q} units but you only have ${currentQuantity} units. Proceed anyway?`)) {
+            const confirmed = await confirm({
+                title: 'Exceeds Current Quantity',
+                message: `You are trying to sell ${q} units but you only have ${currentQuantity} units. Proceed anyway?`,
+                confirmLabel: 'Proceed',
+                variant: 'warning',
+                icon: 'warning',
+            });
+            if (!confirmed) {
                 return;
             }
         }
@@ -374,6 +383,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                     </button>
                 </div>
             </form>
+            <ConfirmDialog />
         </Modal>
     );
 };

@@ -57,6 +57,8 @@ import MerchantParetoWidget from '../components/MerchantParetoWidget';
 import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
 import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
+import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
+
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
 
@@ -190,6 +192,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Touch Pull-to-Refresh
+  const touchStartRef = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartRef.current === null) return;
+    const touchEnd = e.changedTouches[0].clientY;
+    const diff = touchEnd - touchStartRef.current;
+    if (diff > 90 && onSyncBanks && !isSyncingBanks) {
+      onSyncBanks();
+    }
+    touchStartRef.current = null;
+  };
 
   const layoutKey = useMemo(() => `${activeTab}-${isMobile ? 'mobile' : 'pc'}`, [activeTab, isMobile]);
 
@@ -1345,7 +1362,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in-up relative z-0">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="space-y-6 pb-12 animate-fade-in-up relative z-0"
+    >
       {/* ... existing modals */}
       {isTransactionModalOpen && (
         <AddTransactionModal
@@ -1935,13 +1956,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         isCompact={isCompactValue}
                         className="h-full"
                       >
-                        <Suspense fallback={(
-                          <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
-                            Loading widget...
-                          </div>
-                        )}>
-                          <WidgetComponent {...widgetDetails.props as any} />
-                        </Suspense>
+                        <WidgetErrorBoundary widgetTitle={(widgetDetails as any).title || widget.id}>
+                          <Suspense fallback={(
+                            <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                              Loading widget...
+                            </div>
+                          )}>
+                            <WidgetComponent {...widgetDetails.props as any} />
+                          </Suspense>
+                        </WidgetErrorBoundary>
                       </WidgetWrapper>
                     </div>
                   );
