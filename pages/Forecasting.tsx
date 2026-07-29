@@ -30,6 +30,7 @@ import { useAccountsContext, usePreferencesContext, useTransactionsContext } fro
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import {
@@ -862,28 +863,34 @@ const Forecasting: React.FC = () => {
                 title="Financial Forecast"
                 subtitle="Projected cash, income, and obligations so you can plan moves weeks and months ahead."
                 actions={
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto flex-wrap">
-                        <button 
-                            onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)} 
-                            className={`${BTN_SECONDARY_STYLE} flex items-center justify-center gap-2 !bg-white dark:!bg-dark-fill !border !border-black/15 dark:!border-white/5 shadow-sm ${isPlaygroundOpen ? '!bg-primary-500/10 !text-primary-600 !border-primary-500/30' : ''}`}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <HeaderButton
+                            variant={isPlaygroundOpen ? 'accent' : 'secondary'}
+                            icon="science"
+                            onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)}
                         >
-                            <span className="material-symbols-outlined text-xl">science</span>
-                            <span className="truncate">{isPlaygroundOpen ? 'Close Playground' : 'Playground'}</span>
-                        </button>
-                        <div className="w-full sm:w-auto min-w-[200px]">
-                             <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                            {isPlaygroundOpen ? 'Close Playground' : 'Playground'}
+                        </HeaderButton>
+
+                        <div className="min-w-[160px]">
+                            <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                         </div>
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar justify-between sm:justify-start">
+
+                        <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl h-9 items-center overflow-x-auto no-scrollbar">
                             {durationOptions.map(opt => (
-                                <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive} !px-3 sm:!px-4`}>
+                                <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive} !px-2.5 text-xs`}>
                                     {opt.label}
                                 </button>
                             ))}
                         </div>
-                        <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10 flex items-center justify-center`}>
-                            <span className="material-symbols-outlined text-xl mr-2">add</span>
+
+                        <HeaderButton
+                            variant="primary"
+                            icon="add"
+                            onClick={() => handleOpenModal()}
+                        >
                             Add Goal
-                        </button>
+                        </HeaderButton>
                     </div>
                 }
             />

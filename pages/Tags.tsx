@@ -8,6 +8,7 @@ import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 
 interface TagsProps {
@@ -178,10 +179,13 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
           title="Tags"
           subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
           actions={
-            <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                <span className="material-symbols-outlined text-xl">add_circle</span>
-                Register New Tag
-            </button>
+            <HeaderButton
+              variant="primary"
+              icon="add_circle"
+              onClick={() => handleOpenModal()}
+            >
+              Register New Tag
+            </HeaderButton>
           }
         />
       </div>

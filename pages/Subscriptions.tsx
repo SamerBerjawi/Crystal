@@ -11,6 +11,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -396,6 +397,27 @@ const Subscriptions: React.FC = () => {
                     markerLabel="Subscriptions & Memberships"
                     title="Active Commitments"
                     subtitle="Track active digital products, recurring user contracts, gym memberships, and loyalty cards in a unified panel."
+                    actions={
+                        <div className="flex items-center gap-2">
+                            {activeSegment === 'loyalty' ? (
+                                <HeaderButton
+                                    variant="primary"
+                                    icon="add"
+                                    onClick={handleAddMembership}
+                                >
+                                    Add Card
+                                </HeaderButton>
+                            ) : (
+                                <HeaderButton
+                                    variant="primary"
+                                    icon="add"
+                                    onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
+                                >
+                                    New Service
+                                </HeaderButton>
+                            )}
+                        </div>
+                    }
                 />
 
                 {/* --- Consolidated Header & Portfolio --- */}
@@ -448,21 +470,6 @@ const Subscriptions: React.FC = () => {
                                     )
                                 })}
                             </div>
-                        </div>
-
-                        {/* Main Action */}
-                        <div className="shrink-0 flex gap-3">
-                             {activeSegment === 'loyalty' ? (
-                                <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add animate-glow`}>
-                                    <span className="material-symbols-outlined text-xl transition-transform group-hover/add:rotate-90">add</span>
-                                    <span>Add Card</span>
-                                </button>
-                             ) : (
-                                <button onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add animate-glow`}>
-                                    <span className="material-symbols-outlined text-xl transition-transform group-hover/add:rotate-90">add</span>
-                                    <span>New Service</span>
-                                </button>
-                             )}
                         </div>
                     </div>
 

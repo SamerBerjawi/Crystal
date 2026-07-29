@@ -12,6 +12,7 @@ import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
 import { buildHoldingsOverview } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -723,6 +724,34 @@ const Investments: React.FC<InvestmentsProps> = ({
                     markerLabel="Investment Center"
                     title="Investments & Holdings"
                     subtitle="Track public equities, Exchange Traded Funds, cryptocurrencies, warrants, active basis, and yield metrics in real-time."
+                    actions={
+                        <div className="flex items-center gap-2">
+                            <HeaderButton
+                                variant="emerald"
+                                icon="sync"
+                                isLoading={isUpdatingAllPrices}
+                                onClick={() => handleUpdateAllPrices()}
+                                title="Sync Market Prices"
+                            >
+                                {isUpdatingAllPrices ? 'Syncing...' : 'Sync Prices'}
+                            </HeaderButton>
+                            <HeaderButton
+                                variant="secondary"
+                                icon="card_membership"
+                                onClick={() => handleOpenWarrantModal()}
+                                title="Add Equity Grant"
+                            >
+                                Equity Grant
+                            </HeaderButton>
+                            <HeaderButton
+                                variant="primary"
+                                icon="add"
+                                onClick={() => handleOpenModal()}
+                            >
+                                Trade
+                            </HeaderButton>
+                        </div>
+                    }
                 />
 
                 {/* --- Consolidated Header & Portfolio --- */}
@@ -778,20 +807,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     )
                                 })}
                             </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="shrink-0 flex gap-3">
-                            <button onClick={() => handleUpdateAllPrices()} disabled={isUpdatingAllPrices} className={`${BTN_SECONDARY_STYLE} !px-4 flex items-center gap-2`} title="Sync Market Prices">
-                                 <span className={`material-symbols-outlined text-lg ${isUpdatingAllPrices ? 'animate-spin' : ''}`}>sync</span>
-                            </button>
-                            <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} !px-4 hidden sm:flex items-center gap-2`} title="Add Equity Grant">
-                                 <span className="material-symbols-outlined text-lg">card_membership</span>
-                            </button>
-                            <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 animate-glow`}>
-                                <span className="material-symbols-outlined text-xl">add</span>
-                                <span>Trade</span>
-                            </button>
                         </div>
                     </div>
 

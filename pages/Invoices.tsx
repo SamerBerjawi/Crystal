@@ -7,6 +7,7 @@ import Card from '../components/Card';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { useInvoicesContext, usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import InvoiceModal from '../components/InvoiceModal';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 
@@ -121,21 +122,21 @@ const InvoicesPage: React.FC = () => {
                 title="Invoices & Quotes"
                 subtitle="Financial Document Lifecycle Management"
                 actions={
-                    <div className="flex bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-inner gap-3">
-                        <button 
+                    <div className="flex items-center gap-2">
+                        <HeaderButton
+                            variant="secondary"
+                            icon="add"
                             onClick={() => handleOpenEditor('quote')}
-                            className={`${BTN_SECONDARY_STYLE} h-12 px-6 gap-3 rounded-xl shadow-sm`}
                         >
-                            <span className="material-symbols-outlined text-lg">add</span>
                             Draft Quote
-                        </button>
-                        <button 
+                        </HeaderButton>
+                        <HeaderButton
+                            variant="primary"
+                            icon="add_circle"
                             onClick={() => handleOpenEditor('invoice')}
-                            className={`${BTN_PRIMARY_STYLE} h-12 px-8 gap-3 shadow-xl rounded-xl`}
                         >
-                            <span className="material-symbols-outlined text-lg">add_circle</span>
                             New Invoice
-                        </button>
+                        </HeaderButton>
                     </div>
                 }
             />

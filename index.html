@@ -16,7 +16,6 @@
     rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
       --light-card: rgba(255, 255, 255, 0.6);
@@ -191,111 +190,22 @@
       border-bottom-color: rgba(255, 255, 255, 0.4);
     }
 
-    /* iOS Style Blur */
-    .ios-regular {
+    /* Clean Glassmorphism Styling */
+    .ios-regular, .glass-card {
       background-color: var(--light-card);
-      border: none;
-      /* Subtle crisp edge */
+      border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 2rem;
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      backdrop-filter: blur(16px) saturate(180%);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06);
+    }
 
-      /* The core iOS blur configuration */
-      -webkit-backdrop-filter: blur(5px) saturate(180%) brightness(105%);
-      backdrop-filter: blur(5px) saturate(180%) brightness(105%);
-
-      /* Inset shadows to replicate the "Liquid Glass" rim reflection */
-      box-shadow:
-        inset 2px 2px 1px rgba(255, 255, 255, 0.05),
-        /* Top-left light edge */
-        inset -2px -2px 2px rgba(0, 0, 0, 0.05),
-        /* Bottom-right depth */
-        0 8px 32px rgba(0, 0, 0, 0.1);
-      /* Soft drop shadow */
-
-
-
+    .dark .ios-regular, .dark .glass-card {
+      background-color: var(--dark-card);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
     }
   </style>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-          colors: {
-            gray: tailwind.colors.neutral,
-            primary: {
-              50: 'var(--primary-50, #fef8f0)',
-              100: 'var(--primary-100, #fdeed9)',
-              200: 'var(--primary-200, #fbddb1)',
-              300: 'var(--primary-300, #faca89)',
-              400: 'var(--primary-400, #fcb045)',
-              500: 'var(--primary-500, #fa9a1d)',
-              600: 'var(--primary-600, #e78310)',
-              700: 'var(--primary-700, #c1670e)',
-              800: 'var(--primary-800, #995111)',
-              900: 'var(--primary-900, #7d4312)',
-            },
-            'light-bg': '#FAFAFA',
-            'light-card': 'rgba(255, 255, 255, 0.6)',
-            'light-text': '#2D2D2D',
-            'light-text-secondary': '#404040',
-            'light-separator': 'rgba(229, 229, 229, 0.5)',
-            'light-fill': 'rgba(250, 250, 250, 0.5)',
-
-            'dark-bg': '#050505',
-            'dark-card': 'rgba(23, 23, 23, 0.6)',
-            'dark-text': '#FFFFFF',
-            'dark-text-secondary': '#D1D5DB',
-            'dark-separator': 'rgba(255, 255, 255, 0.05)',
-            'dark-fill': 'rgba(38, 38, 38, 0.4)',
-
-            'semantic-red': '#FF3B30',
-            'semantic-green': '#34C759',
-            'semantic-yellow': '#FFCC00',
-            'semantic-blue': '#007AFF',
-          },
-          boxShadow: {
-            'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
-            'modal': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            'neu-raised-light': '2px 2px 4px rgba(0,0,0,0.1), -2px -2px 4px rgba(255,255,255,0.8)',
-            'neu-inset-light': 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -2px -2px 4px rgba(255,255,255,0.5)',
-            'neu-raised-dark': '2px 2px 4px rgba(0,0,0,0.5), -2px -2px 4px rgba(255,255,255,0.05)',
-            'neu-inset-dark': 'inset 2px 2px 4px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(255,255,255,0.05)',
-          },
-          borderRadius: {
-            'xl': '16px',
-          },
-          backgroundSize: {
-            '200%': '200% 100%',
-          },
-          animation: {
-            celebrate: 'celebrate 1s ease-in-out',
-            'fade-in-up': 'fadeInUp 0.2s ease-out',
-            'bg-pan': 'bg-pan 3s linear infinite',
-          },
-          keyframes: {
-            celebrate: {
-              '0%, 100%': { transform: 'scale(1)' },
-              '25%': {
-                transform: 'scale(1.03)',
-                backgroundColor: 'rgba(52, 199, 89, 0.2)'
-              },
-            },
-            fadeInUp: {
-              'from': { opacity: 0, transform: 'translateY(10px)' },
-              'to': { opacity: 1, transform: 'translateY(0)' },
-            },
-            'bg-pan': {
-              '0%': { backgroundPosition: '200% center' },
-              '100%': { backgroundPosition: '0% center' },
-            }
-          }
-        }
-      }
-    }
-  </script>
   <script>
     // Apply theme from localStorage on initial load to prevent flashing
     try {
@@ -333,30 +243,6 @@
       console.warn('Unable to read theme preference from localStorage.', error);
     }
   </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
-    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
-    "vite": "https://aistudiocdn.com/vite@^7.1.12",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
-    "jsonwebtoken": "https://aistudiocdn.com/jsonwebtoken@^9.0.2",
-    "bcryptjs": "https://aistudiocdn.com/bcryptjs@^3.0.3",
-    "cors": "https://aistudiocdn.com/cors@^2.8.5",
-    "pg": "https://aistudiocdn.com/pg@^8.16.3",
-    "express": "https://aistudiocdn.com/express@^5.1.0",
-    "path": "https://aistudiocdn.com/path@^0.12.7",
-    "process": "https://aistudiocdn.com/process@^0.11.10",
-    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
-    "react-leaflet": "https://aistudiocdn.com/react-leaflet@^5.0.0",
-    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.90.12",
-    "react-dom": "https://esm.sh/react-dom@^19.2.4"
-  }
-}
-</script>
 </head>
 
 <body>

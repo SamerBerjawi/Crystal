@@ -9,6 +9,7 @@ import Card from '../components/Card';
 import { parseLocalDate } from '../utils';
 import TaskModal from '../components/TaskModal';
 import PageHeader from '../components/PageHeader';
+import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 
 interface TasksProps {
@@ -178,21 +179,8 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                 confirmButtonVariant="danger"
             />
 
-            {/* Navigation & Header */}
+            {/* Header */}
             <div className="space-y-6 pt-4">
-                {setCurrentPage && (
-                    <nav className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setCurrentPage('Settings')} 
-                            className="group flex items-center gap-2 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest hover:text-primary-500 transition-colors"
-                        >
-                            <div className="w-6 h-6 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                            </div>
-                            <span>Back to Control Center</span>
-                        </button>
-                    </nav>
-                )}
                 
                 <PageHeader
                     markerIcon="fact_check"
@@ -200,10 +188,13 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     title="Action Board"
                     subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
                     actions={
-                        <button onClick={() => handleOpenModal()} className="px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-[0.2em] shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                            <span className="material-symbols-outlined text-xl">add_circle</span>
-                            New Operational Task
-                        </button>
+                        <HeaderButton
+                            variant="primary"
+                            icon="add_circle"
+                            onClick={() => handleOpenModal()}
+                        >
+                            New Task
+                        </HeaderButton>
                     }
                 />
             </div>

@@ -17,6 +17,7 @@ import AddInvestmentTransactionModal from '../components/AddInvestmentTransactio
 import WarrantModal from '../components/WarrantModal';
 import { formatHoldingType } from '../utils/investments';
 import PriceHistoryChart from '../components/PriceHistoryChart';
+import HeaderButton from '../components/HeaderButton';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -228,10 +229,9 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         </div>
                     </div>
                     <div className="flex gap-3 w-full lg:w-auto">
-                        <button onClick={handleAddPrice} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center`}>
-                            <span className="material-symbols-outlined text-xl mr-2">edit_note</span>
+                        <HeaderButton variant="primary" icon="edit_note" onClick={handleAddPrice}>
                             Log Price
-                        </button>
+                        </HeaderButton>
                     </div>
                 </div>
             </div>

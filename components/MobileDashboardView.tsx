@@ -7,7 +7,7 @@ import SyncedBillMatcherCard from './SyncedBillMatcherCard';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Card from './Card';
 
-export type DashboardTab = 'overview' | 'analysis' | 'activity';
+export type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 
 interface MobileDashboardViewProps {
   accounts: Account[];
@@ -377,7 +377,8 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           const tabConfig = {
             overview: { icon: 'dashboard', label: 'Overview' },
             analysis: { icon: 'insights', label: 'Analysis' },
-            activity: { icon: 'history', label: 'Activity' }
+            activity: { icon: 'history', label: 'Activity' },
+            pending_matches: { icon: 'auto_awesome', label: 'Matches' }
           }[tab] || { icon: 'circle', label: tab };
 
           const isActive = activeTab === tab;
