@@ -35,13 +35,11 @@ function isAllowedTargetUrl(targetUrlStr) {
             .split(',')
             .map(d => d.trim().toLowerCase())
             .filter(Boolean);
-        const allowedDomains = configuredDomains.length > 0 ? configuredDomains : DEFAULT_ALLOWED_DOMAINS;
-        if (allowedDomains.includes('*')) {
-            return { allowed: true };
-        }
-        const isAllowedDomain = allowedDomains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
-        if (!isAllowedDomain) {
-            return { allowed: false, reason: `Target domain '${hostname}' is not in the proxy allowlist.` };
+        if (configuredDomains.length > 0 && !configuredDomains.includes('*')) {
+            const isAllowedDomain = configuredDomains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
+            if (!isAllowedDomain) {
+                return { allowed: false, reason: `Target domain '${hostname}' is not in the proxy allowlist.` };
+            }
         }
         return { allowed: true };
     }

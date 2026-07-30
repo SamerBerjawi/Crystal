@@ -137,10 +137,13 @@ export const useAuth = () => {
     setError(null);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const [userRes, dataRes] = await Promise.all([
-        fetch('/api/auth/me', { credentials: 'include' }),
-        fetch('/api/data', { credentials: 'include' }),
-      ]);
+        fetch('/api/auth/me', { credentials: 'include', signal: controller.signal }),
+        fetch('/api/data', { credentials: 'include', signal: controller.signal }),
+      ]).finally(() => clearTimeout(timeoutId));
 
       if (userRes.status === 401 || userRes.status === 403) {
         setUserState(null);
@@ -169,10 +172,14 @@ export const useAuth = () => {
 
       const data = await dataRes.json();
       return data as FinancialData;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Auth status check failed:', err);
       signOut();
-      setError(err instanceof Error ? err.message : 'Failed to authenticate.');
+      if (err.name === 'AbortError') {
+        setError('Connection timed out while loading data. Please check your connection.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to authenticate.');
+      }
       return null;
     } finally {
       setIsLoading(false);

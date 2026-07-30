@@ -385,7 +385,8 @@ const Investments: React.FC<InvestmentsProps> = ({
         if (!element) {
             throw new Error(`Saved selector for ${symbol} no longer matches`);
         }
-        const price = parsePriceFromText(element.textContent || '');
+        const rawText = (element.getAttribute('content') || element.getAttribute('data-price') || element.getAttribute('data-last') || element.getAttribute('data-value') || element.textContent || '').trim();
+        const price = parsePriceFromText(rawText);
         if (price === null) {
             throw new Error(`Could not parse price for ${symbol}`);
         }
@@ -403,7 +404,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 : {};
 
             const settled = await Promise.allSettled(displayHoldings.map(async (holding) => {
-                const binding = smartBindings[holding.symbol];
+                const binding = smartBindings[holding.symbol] || (holding.isin ? smartBindings[holding.isin] : undefined);
                 const nextPrice = binding
                     ? await fetchFromSmartBinding(holding.symbol, binding)
                     : await fetchFromTwelveData(holding.symbol);

@@ -8,6 +8,7 @@ interface EnableBankingCallbackProps {
   setConnections: React.Dispatch<React.SetStateAction<EnableBankingConnection[]>>;
   onSync: (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => Promise<void>;
   setCurrentPage: (page: Page) => void;
+  fetchWithAuth?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
 const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
@@ -15,12 +16,15 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   setConnections,
   onSync,
   setCurrentPage,
+  fetchWithAuth,
 }) => {
   const [message, setMessage] = useState('Finalising your Enable Banking connection...');
   const [error, setError] = useState<string | null>(null);
 
   const hasProcessed = useRef(false);
   const callbackParamsRef = useRef<{ code: string | null; state: string | null } | null>(null);
+
+  const doFetch = fetchWithAuth || (async (url: string, init?: RequestInit) => fetch(url, { credentials: 'include', ...init }));
 
   useEffect(() => {
     if (hasProcessed.current) return;
@@ -68,8 +72,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
 
       if (!connection && state) {
         try {
-          const response = await fetch(`/api/enable-banking/pending/${encodeURIComponent(state)}`, {
-            credentials: 'include',
+          const response = await doFetch(`/api/enable-banking/pending/${encodeURIComponent(state)}`, {
             headers: {
               'Content-Type': 'application/json',
             },
@@ -104,9 +107,8 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       const exchangeSession = async () => {
         try {
           setMessage('Exchanging authorization code for a session...');
-          const response = await fetch('/api/enable-banking/session', {
+          const response = await doFetch('/api/enable-banking/session', {
             method: 'POST',
-            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
             },
@@ -152,9 +154,8 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
 
           setConnections(prev => prev.map(conn => conn.id === connection.id ? updatedConnection : conn));
           removePendingConnection(connection.id);
-          fetch(`/api/enable-banking/pending/${encodeURIComponent(connection.id)}`, {
+          doFetch(`/api/enable-banking/pending/${encodeURIComponent(connection.id)}`, {
             method: 'DELETE',
-            credentials: 'include',
           }).catch(error => console.warn('Failed to remove pending Enable Banking connection from server', error));
 
           setMessage('Session created. Syncing accounts...');

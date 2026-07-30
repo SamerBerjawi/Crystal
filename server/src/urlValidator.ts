@@ -42,18 +42,14 @@ export function isAllowedTargetUrl(targetUrlStr: string): { allowed: boolean; re
             .map(d => d.trim().toLowerCase())
             .filter(Boolean);
 
-        const allowedDomains = configuredDomains.length > 0 ? configuredDomains : DEFAULT_ALLOWED_DOMAINS;
+        if (configuredDomains.length > 0 && !configuredDomains.includes('*')) {
+            const isAllowedDomain = configuredDomains.some(domain =>
+                hostname === domain || hostname.endsWith(`.${domain}`)
+            );
 
-        if (allowedDomains.includes('*')) {
-            return { allowed: true };
-        }
-
-        const isAllowedDomain = allowedDomains.some(domain =>
-            hostname === domain || hostname.endsWith(`.${domain}`)
-        );
-
-        if (!isAllowedDomain) {
-            return { allowed: false, reason: `Target domain '${hostname}' is not in the proxy allowlist.` };
+            if (!isAllowedDomain) {
+                return { allowed: false, reason: `Target domain '${hostname}' is not in the proxy allowlist.` };
+            }
         }
 
         return { allowed: true };

@@ -656,50 +656,62 @@ const App: React.FC = () => {
       ...initialFinancialData.preferences,
       ...(dataToLoad.preferences || {}),
     };
-    const dataSignature = JSON.stringify(dataToLoad);
     lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
 
     if (options?.skipNextSave) { skipNextSaveRef.current = true; }
 
-    startTransition(() => {
-      setAccounts(dataToLoad.accounts || []);
-      setTransactions(dataToLoad.transactions || []);
-      setInvestmentTransactions(dataToLoad.investmentTransactions || []);
-      setRecurringTransactions(dataToLoad.recurringTransactions || []);
-      setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
-      setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
-      setFinancialGoals(dataToLoad.financialGoals || []);
-      setBudgets(dataToLoad.budgets || []);
-      setTasks(dataToLoad.tasks || []);
-      setWarrants(dataToLoad.warrants || []);
-      setMemberships(dataToLoad.memberships || []);
-      setImportExportHistory(dataToLoad.importExportHistory || []);
-      setBillsAndPayments(dataToLoad.billsAndPayments || []);
-      setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
-      setPriceHistory(dataToLoad.priceHistory || {});
-      setInvoices(dataToLoad.invoices || []);
-      setTags(dataToLoad.tags || []);
-      setPredictions(dataToLoad.predictions || []);
-      setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
-      setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-      if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
-      else { setUserStats(emptyFinancialData.userStats!); }
-      streakUpdatedRef.current = false;
-      setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
-      setPreferences(loadedPrefs);
-      if (loadedPrefs.conversionRates) {
-        updateConversionRates(loadedPrefs.conversionRates);
-      }
-      setAccountOrder(dataToLoad.accountOrder || []);
-      setTaskOrder(dataToLoad.taskOrder || []);
-      setGoalOrderState(dataToLoad.goalOrder || []);
-      dirtySlicesRef.current.clear();
-      setDirtySignal(0);
-      lastSavedSignatureRef.current = dataSignature;
-      setIsDataLoaded(true);
-    });
+    setAccounts(dataToLoad.accounts || []);
+    setTransactions(dataToLoad.transactions || []);
+    setInvestmentTransactions(dataToLoad.investmentTransactions || []);
+    setRecurringTransactions(dataToLoad.recurringTransactions || []);
+    setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
+    setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
+    setFinancialGoals(dataToLoad.financialGoals || []);
+    setBudgets(dataToLoad.budgets || []);
+    setTasks(dataToLoad.tasks || []);
+    setWarrants(dataToLoad.warrants || []);
+    setMemberships(dataToLoad.memberships || []);
+    setImportExportHistory(dataToLoad.importExportHistory || []);
+    setBillsAndPayments(dataToLoad.billsAndPayments || []);
+    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+    setPriceHistory(dataToLoad.priceHistory || {});
+    setInvoices(dataToLoad.invoices || []);
+    setTags(dataToLoad.tags || []);
+    setPredictions(dataToLoad.predictions || []);
+    setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
+    setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
+    if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
+    else { setUserStats(emptyFinancialData.userStats!); }
+    streakUpdatedRef.current = false;
+    setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
+    setPreferences(loadedPrefs);
+    if (loadedPrefs.conversionRates) {
+      updateConversionRates(loadedPrefs.conversionRates);
+    }
+    setAccountOrder(dataToLoad.accountOrder || []);
+    setTaskOrder(dataToLoad.taskOrder || []);
+    setGoalOrderState(dataToLoad.goalOrder || []);
+    dirtySlicesRef.current.clear();
+    setDirtySignal(0);
+    lastSavedSignatureRef.current = '';
+    setIsDataLoaded(true);
     latestDataRef.current = dataToLoad;
   }, [setAccountOrder, setTaskOrder]);
+
+  // Preload lazy page components after initial data hydration to prevent page loading stalls
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    const preloadRoutes = () => {
+      Object.values(pageRegistry).forEach(page => {
+        try { page.loader(); } catch (e) { }
+      });
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(preloadRoutes);
+    } else {
+      setTimeout(preloadRoutes, 800);
+    }
+  }, [isDataLoaded]);
 
   // FX Rates Auto-update
   useEffect(() => {
@@ -894,11 +906,18 @@ const App: React.FC = () => {
     if (skipNextSaveRef.current) { skipNextSaveRef.current = false; dirtySlicesRef.current.clear(); return; }
     if (dirtySlicesRef.current.size === 0) return;
     const persistDirtySlices = async () => {
-      const payloadSignature = JSON.stringify(dataToSave);
+      const dirtySlices = Array.from(dirtySlicesRef.current);
+      if (dirtySlices.length === 0) return;
+
+      const dirtyPayload = dirtySlices.reduce((acc, sliceKey) => {
+        acc[sliceKey] = (dataToSave as any)[sliceKey];
+        return acc;
+      }, {} as Record<string, any>);
+      const payloadSignature = JSON.stringify(dirtyPayload);
+
       if (payloadSignature === lastSavedSignatureRef.current) { dirtySlicesRef.current.clear(); return; }
       if (!allowEmptySaveRef.current && !hasMaterialData(dataToSave)) { dirtySlicesRef.current.clear(); lastSavedSignatureRef.current = payloadSignature; return; }
 
-      const dirtySlices = Array.from(dirtySlicesRef.current);
       const patchOps = dirtySlices.map(sliceKey => ({
         op: 'replace' as const,
         path: `/${sliceKey}`,
@@ -923,10 +942,9 @@ const App: React.FC = () => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') return;
     const handleBeforeUnload = () => {
       if (!isDataLoaded || dirtySlicesRef.current.size === 0) return;
-      const payloadSignature = JSON.stringify(dataToSave);
-      if (payloadSignature === lastSavedSignatureRef.current) return;
-
       const dirtySlices = Array.from(dirtySlicesRef.current);
+      if (dirtySlices.length === 0) return;
+
       const patchOps = dirtySlices.map(sliceKey => ({
         op: 'replace' as const,
         path: `/${sliceKey}`,
@@ -947,23 +965,33 @@ const App: React.FC = () => {
     if (accounts.length > accountOrder.length) {
       const orderedAccountIds = new Set(accountOrder);
       const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
-      setAccountOrder(prev => [...prev, ...newAccountIds]);
+      if (newAccountIds.length > 0) {
+        setAccountOrder(prev => [...prev, ...newAccountIds]);
+      }
     } else if (accounts.length < accountOrder.length) {
       const accountIds = new Set(accounts.map(a => a.id));
-      setAccountOrder(prev => prev.filter(id => accountIds.has(id)));
+      const nextOrder = accountOrder.filter(id => accountIds.has(id));
+      if (nextOrder.length !== accountOrder.length) {
+        setAccountOrder(nextOrder);
+      }
     }
-  }, [accounts, accountOrder, setAccountOrder]);
+  }, [accounts, accountOrder]);
 
   useEffect(() => {
     if (tasks.length > taskOrder.length) {
       const orderedTaskIds = new Set(taskOrder);
       const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
-      setTaskOrder(prev => [...prev, ...newTaskIds]);
+      if (newTaskIds.length > 0) {
+        setTaskOrder(prev => [...prev, ...newTaskIds]);
+      }
     } else if (tasks.length < taskOrder.length) {
       const taskIds = new Set(tasks.map(t => t.id));
-      setTaskOrder(prev => prev.filter(id => taskIds.has(id)));
+      const nextOrder = taskOrder.filter(id => taskIds.has(id));
+      if (nextOrder.length !== taskOrder.length) {
+        setTaskOrder(nextOrder);
+      }
     }
-  }, [tasks, taskOrder, setTaskOrder]);
+  }, [tasks, taskOrder]);
 
   const handleSignIn = async (email: string, password: string) => {
     setIsDataLoaded(false);
@@ -2330,7 +2358,7 @@ const App: React.FC = () => {
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
-      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
+      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} fetchWithAuth={fetchWithAuth} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} setCurrentPage={setCurrentPage} />;
@@ -2423,17 +2451,14 @@ const App: React.FC = () => {
               <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
                 <ErrorBoundary>
                   <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.15, ease: 'easeInOut' }}
-                      >
-                        {renderPage()}
-                      </motion.div>
-                    </AnimatePresence>
+                    <motion.div
+                      key={currentPage + (viewingAccountId || '') + (viewingHoldingSymbol || '')}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.12, ease: 'easeOut' }}
+                    >
+                      {renderPage()}
+                    </motion.div>
                   </Suspense>
                 </ErrorBoundary>
               </main>
