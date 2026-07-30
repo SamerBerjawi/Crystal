@@ -8,6 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import isAllowedTargetUrl from './server/src/urlValidator.ts';
+import smartFetcherRouter from './server/src/smartFetcher.ts';
+import enableBankingRouter from './server/src/enableBanking.ts';
 
 async function startServer() {
   const app = express();
@@ -15,6 +17,8 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json({ limit: '50mb' }));
+  app.use('/api/smart-fetch', smartFetcherRouter);
+  app.use('/api/enable-banking', enableBankingRouter);
 
   // AI Proxy Endpoint
   app.post('/api/ai/proxy', async (req, res) => {

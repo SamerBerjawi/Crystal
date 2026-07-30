@@ -2,13 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isAllowedTargetUrl = isAllowedTargetUrl;
 const url_1 = require("url");
-const DEFAULT_ALLOWED_DOMAINS = [
-    'api.twelvedata.com',
-    'twelvedata.com',
-    'generativelanguage.googleapis.com',
-    'api.openai.com',
-    'api.anthropic.com',
-];
 function isAllowedTargetUrl(targetUrlStr) {
     if (!targetUrlStr || typeof targetUrlStr !== 'string') {
         return { allowed: false, reason: 'Target URL must be a non-empty string.' };

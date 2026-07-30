@@ -137,13 +137,7 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const [userRes, dataRes] = await Promise.all([
-        fetch('/api/auth/me', { credentials: 'include', signal: controller.signal }),
-        fetch('/api/data', { credentials: 'include', signal: controller.signal }),
-      ]).finally(() => clearTimeout(timeoutId));
+      const userRes = await fetch('/api/auth/me', { credentials: 'include' });
 
       if (userRes.status === 401 || userRes.status === 403) {
         setUserState(null);
@@ -160,31 +154,24 @@ export const useAuth = () => {
       setUserState(mapApiUserToUser(userPayload));
       setIsAuthenticated(true);
 
-      if (!dataRes.ok) {
-        if (dataRes.status === 401 || dataRes.status === 403) {
-          setUserState(null);
-          setIsAuthenticated(false);
-          return null;
-        }
-        const errorBody = await dataRes.json().catch(() => ({}));
-        throw new Error(errorBody.message || 'Failed to fetch financial data.');
+      const dataRes = await fetch('/api/data', { credentials: 'include' }).catch(err => {
+        console.warn('Failed to load financial data:', err);
+        return null;
+      });
+
+      if (dataRes && dataRes.ok) {
+        const data = await dataRes.json();
+        return data as FinancialData;
       }
 
-      const data = await dataRes.json();
-      return data as FinancialData;
+      return null;
     } catch (err: any) {
       console.error('Auth status check failed:', err);
-      signOut();
-      if (err.name === 'AbortError') {
-        setError('Connection timed out while loading data. Please check your connection.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to authenticate.');
-      }
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [signOut]);
+  }, []);
 
   const setUser = useCallback(
     (updates: Partial<User>) => {

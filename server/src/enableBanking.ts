@@ -13,7 +13,13 @@ function getEnableBankingCredentials(body: any = {}): { applicationId: string; c
   let envCert = (process.env.ENABLE_BANKING_CLIENT_CERTIFICATE || process.env.ENABLE_BANKING_PRIVATE_KEY)?.trim();
 
   let applicationId = envAppId || body?.applicationId?.trim();
-  let clientCertificate = envCert || body?.clientCertificate?.trim() || body?.encryptedClientCertificate?.trim();
+
+  let certCandidate = body?.clientCertificate?.trim();
+  if (!certCandidate || certCandidate === '[SERVER_CONFIGURED_ENCRYPTED]') {
+    certCandidate = body?.encryptedClientCertificate?.trim();
+  }
+
+  let clientCertificate = envCert || certCandidate;
 
   if (applicationId && ((applicationId.startsWith('"') && applicationId.endsWith('"')) || (applicationId.startsWith("'") && applicationId.endsWith("'")))) {
     applicationId = applicationId.slice(1, -1).trim();
@@ -42,14 +48,14 @@ class EnableBankingClient {
     if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
       key = key.slice(1, -1).trim();
     }
-    key = key.replace(/\\n/g, '\n');
+    key = key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     if (!key.includes('\n')) {
-      const match = key.match(/(-----BEGIN [A-Z\s]+-----)(.*?)(-----END [A-Z\s]+-----)/);
+      const match = key.match(/(-----BEGIN [A-Z0-9\s_-]+-----)(.*?)(-----END [A-Z0-9\s_-]+-----)/i);
       if (match) {
-        const header = match[1];
+        const header = match[1].trim();
         const body = match[2].replace(/\s+/g, '');
-        const footer = match[3];
+        const footer = match[3].trim();
         const lines = body.match(/.{1,64}/g) || [];
         key = [header, ...lines, footer].join('\n');
       }

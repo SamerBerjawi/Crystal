@@ -1,13 +1,5 @@
 import { URL } from 'url';
 
-const DEFAULT_ALLOWED_DOMAINS = [
-    'api.twelvedata.com',
-    'twelvedata.com',
-    'generativelanguage.googleapis.com',
-    'api.openai.com',
-    'api.anthropic.com',
-];
-
 export function isAllowedTargetUrl(targetUrlStr: string): { allowed: boolean; reason?: string } {
     if (!targetUrlStr || typeof targetUrlStr !== 'string') {
         return { allowed: false, reason: 'Target URL must be a non-empty string.' };
