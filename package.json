@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.260730.12",
+  "version": "2.260730.14",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
