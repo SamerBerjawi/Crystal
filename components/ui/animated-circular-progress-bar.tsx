@@ -27,7 +27,7 @@ export function AnimatedCircularProgressBar({
     <div
       className={cn(
         "relative size-16 text-xs font-bold flex items-center justify-center shrink-0",
-        isIndeterminate && "animate-spin duration-1000",
+        isIndeterminate && "animate-spin",
         className
       )}
       style={

@@ -56,6 +56,9 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
     }
 
     const resolveConnection = async () => {
+      if (hasProcessed.current) return;
+      hasProcessed.current = true;
+
       let connection: EnableBankingConnection | undefined;
 
       if (state) {
@@ -101,8 +104,6 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
         setError('Missing code or connection reference in callback.');
         return;
       }
-
-      hasProcessed.current = true;
 
       const exchangeSession = async () => {
         try {
@@ -186,7 +187,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
     };
 
     resolveConnection();
-  }, [connections, onSync, setConnections, setCurrentPage]);
+  }, []);
 
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-card shadow-lg text-center animate-fade-in-up">

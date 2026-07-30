@@ -22,12 +22,6 @@ export const useDashboardStats = ({
         const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
         const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts, analyticsTransactions, loanPaymentOverrides);
 
-        const accountTotalsMap = new Map<string, { assets: number; debt: number }>();
-        openAccounts.forEach(acc => {
-            const totals = calculateAccountTotals([acc], analyticsTransactions, loanPaymentOverrides);
-            accountTotalsMap.set(acc.id, { assets: totals.totalAssets, debt: totals.totalDebt });
-        });
-
         const assetGroupsMap: Record<string, { types: AccountType[]; value: number; color: string; icon: string }> = {
             'Liquid Cash': { types: ['Checking', 'Savings'], value: 0, color: '#3B82F6', icon: 'savings' },
             'Investments': { types: ['Investment'], value: 0, color: '#8B5CF6', icon: 'show_chart' },
@@ -44,15 +38,19 @@ export const useDashboardStats = ({
 
         for (const groupName in assetGroupsMap) {
             const types = assetGroupsMap[groupName].types;
-            assetGroupsMap[groupName].value = openAccounts
-                .filter(acc => types.includes(acc.type))
-                .reduce((sum, acc) => sum + (accountTotalsMap.get(acc.id)?.assets || 0) + (accountTotalsMap.get(acc.id)?.debt || 0), 0);
+            const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
+            if (groupAccounts.length > 0) {
+                const groupTotals = calculateAccountTotals(groupAccounts, analyticsTransactions, loanPaymentOverrides);
+                assetGroupsMap[groupName].value = groupTotals.totalAssets + groupTotals.totalDebt;
+            }
         }
         for (const groupName in liabilityGroupsMap) {
             const types = liabilityGroupsMap[groupName].types;
-            liabilityGroupsMap[groupName].value = openAccounts
-                .filter(acc => types.includes(acc.type))
-                .reduce((sum, acc) => sum + (accountTotalsMap.get(acc.id)?.debt || 0), 0);
+            const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
+            if (groupAccounts.length > 0) {
+                const groupTotals = calculateAccountTotals(groupAccounts, analyticsTransactions, loanPaymentOverrides);
+                liabilityGroupsMap[groupName].value = groupTotals.totalDebt;
+            }
         }
 
         return {

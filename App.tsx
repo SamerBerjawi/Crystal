@@ -482,9 +482,13 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  const investmentSymbolsKey = useMemo(() => {
+    return (accounts || []).filter(acc => acc.type === 'Investment' && acc.symbol).map(acc => acc.symbol).sort().join(',');
+  }, [accounts]);
+
   const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
-    accounts.filter(acc => acc.type === 'Investment' && acc.symbol).forEach(acc => {
+    (accounts || []).filter(acc => acc.type === 'Investment' && acc.symbol).forEach(acc => {
       const symbol = acc.symbol as string;
       resolved[symbol] = manualWarrantPrices[symbol] ?? null;
     });
@@ -500,7 +504,7 @@ const App: React.FC = () => {
       }
     });
     return resolved;
-  }, [accounts, manualWarrantPrices, warrants]);
+  }, [investmentSymbolsKey, manualWarrantPrices, warrants]);
 
   const investmentAccounts = useMemo(() => (
     accounts || []
@@ -634,6 +638,7 @@ const App: React.FC = () => {
   }, [investmentTransactions, warrants]);
 
   useEffect(() => {
+    if (!isDataLoaded) return;
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
       if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
@@ -648,7 +653,7 @@ const App: React.FC = () => {
       return account;
     });
     if (hasChanges) { setAccounts(updatedAccounts); }
-  }, [assetPrices, warrantHoldingsBySymbol]);
+  }, [assetPrices, warrantHoldingsBySymbol, accounts, isDataLoaded]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
     const dataToLoad = data ?? (options?.useDemoDefaults ? initialFinancialData : emptyFinancialData);
@@ -2056,7 +2061,17 @@ const App: React.FC = () => {
     if (!connection?.sessionId) return;
     try {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
-      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, }), }).then(res => res.json());
+      const authBody = {
+        sessionId: connection.sessionId,
+        applicationId: connection.applicationId,
+        clientCertificate: connection.clientCertificate,
+        encryptedClientCertificate: (connection as any).encryptedClientCertificate,
+      };
+      const session = await fetchWithAuth('/api/enable-banking/session/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(authBody),
+      }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
       const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
       const updatedAccounts: EnableBankingAccount[] = [];
@@ -2072,8 +2087,16 @@ const App: React.FC = () => {
         }
         const existingAccount = existingAccountsById.get(providerAccountId);
         const [details, balances] = await Promise.all([
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(authBody),
+          }).then(res => res.json()).catch(() => null),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(authBody),
+          }).then(res => res.json()),
         ]);
         const resolvedBalance = resolveBalanceAmount(balances);
         const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
@@ -2102,10 +2125,9 @@ const App: React.FC = () => {
         for (let page = 0; page < 100; page += 1) {
           const txResponse = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
-              sessionId: connection.sessionId,
+              ...authBody,
               dateFrom,
               continuationKey,
             }),
@@ -2386,7 +2408,7 @@ const App: React.FC = () => {
   const accountsContextValue = useMemo(() => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }), [accounts, accountOrder, handleSaveAccount]);
   const transactionsContextValue = useMemo(() => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }), [transactions, handleDeleteTransactions, handleSaveTransaction]);
   const warrantsContextValue = useMemo(() => ({ warrants, prices: warrantPrices }), [warrantPrices, warrants]);
-  const invoicesContextValue = useMemo(() => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }), [invoices]);
+  const invoicesContextValue = useMemo(() => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }), [invoices, handleDeleteInvoice, handleSaveInvoice]);
   const categoryContextValue = useMemo(() => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }), [expenseCategories, incomeCategories]);
   const tagsContextValue = useMemo(() => ({ tags, saveTag: handleSaveTag, deleteTag: handleDeleteTag }), [tags, handleSaveTag, handleDeleteTag]);
   const budgetsContextValue = useMemo(() => ({ budgets, saveBudget: handleSaveBudget, deleteBudget: handleDeleteBudget }), [budgets, handleDeleteBudget, handleSaveBudget]);

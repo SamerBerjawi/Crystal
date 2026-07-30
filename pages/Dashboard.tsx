@@ -1669,14 +1669,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               />
               <AnalysisStatCard
                 title="Debt Ratio"
-                value={`${(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth > 0 ? (Math.abs(calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalDebt) / calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalAssets) * 100 : 0).toFixed(1)}%`}
+                value={`${(netWorth > 0 && totalAssets > 0 ? (Math.abs(totalDebt) / totalAssets) * 100 : 0).toFixed(1)}%`}
                 subtext="Liabilities / Assets"
                 icon="pie_chart"
                 colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
               />
               <AnalysisStatCard
                 title="Net Flow"
-                value={formatCurrency(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth - calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth, 'EUR')}
+                value={formatCurrency(netWorth > 0 ? totalIncome - totalExpenses : 0, 'EUR')}
                 subtext="Period change"
                 icon="payments"
                 colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
