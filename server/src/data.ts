@@ -1,39 +1,142 @@
-
 import express from 'express';
-import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
-import { validateFinancialDataPayload } from './schemas';
+import { validateFinancialDataPayload, validateJsonPatchPayload } from './schemas';
+import {
+    fetchFinancialDataFromRelational,
+    syncFinancialDataToRelational,
+    getCategoryTotalsSql,
+    addOrUpdateRelationalItem,
+    removeRelationalItem,
+    applyJsonPatchToRelational,
+} from './dbNorm';
 
 const router = express.Router();
+
+// Native Database Aggregation: Category Totals Over Time (GET /api/data/aggregations/category-totals)
+router.get('/aggregations/category-totals', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+
+    const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
+    try {
+        const categoryTotals = await getCategoryTotalsSql(userId, { startDate, endDate });
+        res.json({ categoryTotals });
+    } catch (err) {
+        console.error('Failed to compute category totals aggregation:', err);
+        res.status(500).json({ message: 'Failed to compute category totals aggregation' });
+    }
+});
 
 // Get all financial data for a user
 router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const sql = `SELECT data FROM financial_data WHERE user_id = $1`;
-
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
     try {
-        const result = await db.query(sql, [userId]);
-        let row = result.rows[0];
-
-        if (!row) {
-            // This might happen if there was an error during registration. Let's create it.
-            const insertSql = `INSERT INTO financial_data (user_id, data) VALUES ($1, '{}')`;
-            await db.query(insertSql, [userId]);
-            // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-            return res.json({});
-        }
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-        res.json(row.data || {});
+        const data = await fetchFinancialDataFromRelational(userId);
+        res.json(data);
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Failed to fetch data' });
     }
 });
 
-// Save all financial data for a user
+// RFC 6902 JSON Patch endpoint (PATCH /api/data)
+const handleJsonPatch = async (req: AuthRequest, res: express.Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+    const validation = validateJsonPatchPayload(req.body);
+    if (!validation.success || !validation.patch) {
+        return res.status(400).json({ message: validation.error || 'Invalid JSON Patch payload.' });
+    }
+
+    try {
+        const patchResult = await applyJsonPatchToRelational(userId, validation.patch);
+
+        if (!patchResult.success || !patchResult.doc) {
+            return res.status(400).json({ message: patchResult.error || 'Failed to apply JSON Patch.' });
+        }
+
+        res.json({ message: 'Patch applied successfully', lastUpdatedAt: patchResult.doc.lastUpdatedAt, data: patchResult.doc });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to apply JSON Patch' });
+    }
+};
+
+router.patch('/', authenticateToken, handleJsonPatch);
+router.post('/patch', authenticateToken, handleJsonPatch);
+
+// Fine-grained collection item creation / upsert (POST /api/data/:collection)
+router.post('/:collection', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+    const collection = String(req.params.collection);
+    const item = req.body;
+
+    if (!item || typeof item !== 'object') {
+        return res.status(400).json({ message: 'Item payload must be an object.' });
+    }
+
+    try {
+        const nextData = await addOrUpdateRelationalItem(userId, collection, item);
+        res.json({ message: `Item added to ${collection} successfully`, lastUpdatedAt: nextData.lastUpdatedAt, data: nextData });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: `Failed to add item to ${collection}` });
+    }
+});
+
+// Fine-grained collection item update by ID (PUT /api/data/:collection/:id)
+router.put('/:collection/:id', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+    const collection = String(req.params.collection);
+    const id = String(req.params.id);
+    const item = req.body || {};
+
+    try {
+        const nextData = await addOrUpdateRelationalItem(userId, collection, { ...item, id });
+        res.json({ message: `Item ${id} in ${collection} updated successfully`, lastUpdatedAt: nextData.lastUpdatedAt, data: nextData });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: `Failed to update item ${id} in ${collection}` });
+    }
+});
+
+// Fine-grained collection item deletion by ID (DELETE /api/data/:collection/:id)
+router.delete('/:collection/:id', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+    const collection = String(req.params.collection);
+    const id = String(req.params.id);
+
+    try {
+        const nextData = await removeRelationalItem(userId, collection, id);
+        res.json({ message: `Item ${id} removed from ${collection} successfully`, lastUpdatedAt: nextData.lastUpdatedAt, data: nextData });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: `Failed to remove item ${id} from ${collection}` });
+    }
+});
+
+// Save all financial data (POST /api/data)
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
     const body = req.body || {};
 
     const validation = validateFinancialDataPayload(body);
@@ -42,34 +145,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const allowEmpty = Boolean(body.allowEmpty);
-    
-    // Use INSERT ... ON CONFLICT for an upsert operation in PostgreSQL
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const upsertSql = `
-        INSERT INTO financial_data (user_id, data) 
-        VALUES ($1, $2)
-        ON CONFLICT (user_id) 
-        DO UPDATE SET data = EXCLUDED.data;
-    `;
 
     try {
-        const existing = await db.query(selectSql, [userId]);
-        const currentData = existing.rows?.[0]?.data || {};
+        const currentData = await fetchFinancialDataFromRelational(userId);
         const isPartial = Boolean(body.partial);
         const incomingData = isPartial ? (body.data || {}) : { ...body };
         delete incomingData.partial;
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;
-
         delete incomingData.allowEmpty;
-        const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
-        const currentUpdatedAt = currentData.lastUpdatedAt as string | undefined;
-        if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {
-            return res.status(409).json({
-                message: 'Data conflict: your local copy is stale. Please refresh and try again.',
-                currentUpdatedAt,
-            });
-        }
 
         const hasMaterialData = (data: Record<string, any>) => {
             const arrayKeys = [
@@ -110,18 +194,14 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         if (!isPartial && !allowEmpty && hasMaterialData(currentData) && !hasMaterialData(incomingData)) {
             return res.status(409).json({
                 message: 'Refusing to overwrite existing data with an empty payload.',
-                currentUpdatedAt,
+                currentUpdatedAt: currentData.lastUpdatedAt,
             });
         }
 
-        const nextUpdatedAt = (body.lastUpdatedAt as string | undefined) || new Date().toISOString();
-        const mergedData = { ...currentData, ...incomingData, lastUpdatedAt: nextUpdatedAt };
-        await db.query(upsertSql, [userId, mergedData]);
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-        res.json({ message: 'Data saved successfully', lastUpdatedAt: nextUpdatedAt });
+        const mergedData = await syncFinancialDataToRelational(userId, incomingData, isPartial);
+        res.json({ message: 'Data saved successfully', lastUpdatedAt: mergedData.lastUpdatedAt, data: mergedData });
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Failed to save data' });
     }
 });

@@ -4,6 +4,8 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-le
 import { Transaction } from '../types';
 import { formatCurrency, parseLocalDate, escapeHtml } from '../utils';
 import L from 'leaflet';
+import { Globe } from './ui/globe';
+import type { COBEOptions } from 'cobe';
 
 interface TransactionMapWidgetProps {
   transactions: Transaction[];
@@ -11,15 +13,15 @@ interface TransactionMapWidgetProps {
 
 // Component to auto-fit map bounds
 const BoundsFitter: React.FC<{ coords: [number, number][] }> = ({ coords }) => {
-    const map = useMap();
-    useEffect(() => {
-        if (coords.length > 0) {
-            const bounds = L.latLngBounds(coords);
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
-            map.invalidateSize(); // Ensure tiles render correctly after resize/fit
-        }
-    }, [coords, map]);
-    return null;
+  const map = useMap();
+  useEffect(() => {
+    if (coords.length > 0) {
+      const bounds = L.latLngBounds(coords);
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+      map.invalidateSize(); // Ensure tiles render correctly after resize/fit
+    }
+  }, [coords, map]);
+  return null;
 };
 
 const MapContainerAny = MapContainer as any;
@@ -29,11 +31,12 @@ const TooltipAny = Tooltip as any;
 
 const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transactions }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'globe' | 'map'>('globe');
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
     setIsDarkMode(checkDarkMode());
-    
+
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
@@ -94,9 +97,9 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   const maxDensity = useMemo(() => {
     return locations.reduce((max, loc) => Math.max(max, loc.count), 0) || 1;
   }, [locations]);
-  
+
   const totalSpentInLocations = useMemo(() => {
-      return locations.reduce((sum, loc) => sum + Math.abs(loc.amountTotal), 0);
+    return locations.reduce((sum, loc) => sum + Math.abs(loc.amountTotal), 0);
   }, [locations]);
 
   const getDensityColor = (count: number) => {
@@ -106,76 +109,131 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
     return `hsl(${hue}, 90%, 60%)`;
   };
 
+  const globeConfig = useMemo<COBEOptions>(() => {
+    const markers = locations.map(loc => ({
+      location: [loc.lat, loc.lon] as [number, number],
+      size: Math.min(Math.max(0.04 + Math.log1p(loc.count) * 0.02, 0.04), 0.12),
+    }));
+
+    return {
+      width: 800,
+      height: 800,
+      onRender: () => { },
+      devicePixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 2,
+      phi: 0,
+      theta: 0.2,
+      dark: isDarkMode ? 1 : 0,
+      diffuse: 1.2,
+      mapSamples: 16000,
+      mapBrightness: isDarkMode ? 4 : 1.2,
+      baseColor: isDarkMode ? [0.15, 0.15, 0.22] : [0.92, 0.94, 0.98],
+      markerColor: [99 / 255, 102 / 255, 241 / 255],
+      glowColor: isDarkMode ? [0.2, 0.25, 0.4] : [0.9, 0.92, 0.98],
+      markers,
+    };
+  }, [locations, isDarkMode]);
+
   // Tile Layer URL based on theme
-  const tileLayerUrl = isDarkMode 
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' 
+  const tileLayerUrl = isDarkMode
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-    
+
   const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
   if (locations.length === 0) {
     return (
-        <div className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary min-h-[300px]">
-            <div className="text-center">
-                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">public_off</span>
-                <p>No location data found in recent transactions.</p>
-            </div>
+      <div className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary min-h-[300px]">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-4xl mb-2 opacity-50">public_off</span>
+          <p>No location data found in recent transactions.</p>
         </div>
+      </div>
     );
   }
 
   return (
-    <div className="h-full w-full overflow-hidden relative z-0 rounded-lg group min-h-[300px]">
-        <MapContainerAny center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
-            <TileLayerAny
-                attribution={attribution}
-                url={tileLayerUrl}
-            />
-            <BoundsFitter coords={coords} />
-            {locations.map(loc => {
-                const color = getDensityColor(loc.count);
-                // Visualize density with radius that scales slightly with count
-                const radius = Math.min(Math.max(6 + Math.log1p(loc.count) * 2, 6), 16);
-                const locationLabel = [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown location';
- 
-                return (
-                    <CircleMarkerAny
-                        key={loc.id}
-                        center={[loc.lat, loc.lon]}
-                        radius={radius}
-                        pathOptions={{
-                            color: '#fff',
-                            weight: 1,
-                            fillColor: color,
-                            fillOpacity: 0.8,
-                        }}
-                    >
-                        <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
-                            <div className="text-center space-y-1 min-w-[120px]">
-                                <p className="font-bold text-sm">{escapeHtml(locationLabel)}</p>
-                                <p className="text-xs opacity-70">{loc.count} transactions</p>
-                                <p className="font-mono font-semibold text-green-600 dark:text-green-400">{formatCurrency(Math.abs(loc.amountTotal), loc.currency)}</p>
-                                <p className="text-[10px] opacity-60 mt-1 border-t border-gray-200 dark:border-gray-700 pt-1">Latest: {escapeHtml(loc.description || '')}</p>
-                            </div>
-                        </TooltipAny>
-                    </CircleMarkerAny>
-                );
-            })}
-        </MapContainerAny>
-        
-        {/* Stats Overlay */}
-        <div className="absolute bottom-4 left-4 z-[1000] bg-white/80 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl shadow-lg border border-white/20 flex flex-col gap-1 min-w-[140px] animate-fade-in-up">
-             <div className="flex items-center gap-2 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider">
-                 <span className="material-symbols-outlined text-sm">public</span>
-                 <span>Explored</span>
-             </div>
-             <div className="font-bold text-xl text-light-text dark:text-dark-text">
-                 {locations.length} <span className="text-sm font-normal opacity-70">places</span>
-             </div>
-             <div className="text-xs font-medium text-light-text dark:text-dark-text opacity-80 mt-1">
-                 Total: {formatCurrency(totalSpentInLocations, 'EUR')}
-             </div>
+    <div className="h-full w-full overflow-hidden relative z-0 rounded-lg group min-h-[300px] bg-light-bg dark:bg-dark-bg">
+      {/* Toggle Switch */}
+      <div className="absolute top-3 right-3 z-[1000] flex bg-white/80 dark:bg-black/60 backdrop-blur-md p-1 rounded-xl border border-black/5 dark:border-white/10 shadow-md">
+        <button
+          type="button"
+          onClick={() => setViewMode('map')}
+          className={`px-3 py-1 rounded-lg text-[10px] font-bold tracking-wider transition-all flex items-center gap-1 cursor-pointer ${viewMode === 'map'
+            ? 'bg-primary-500 text-white shadow-sm'
+            : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+            }`}
+        >
+          <span className="material-symbols-outlined text-xs">map</span>
+          Map
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('globe')}
+          className={`px-3 py-1 rounded-lg text-[10px] font-bold tracking-wider transition-all flex items-center gap-1 cursor-pointer ${viewMode === 'globe'
+            ? 'bg-primary-500 text-white shadow-sm'
+            : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+            }`}
+        >
+          <span className="material-symbols-outlined text-xs">public</span>
+          Globe
+        </button>
+      </div>
+
+      {viewMode === 'globe' ? (
+        <div className="h-full w-full relative flex items-center justify-center bg-gradient-to-b from-slate-900/10 to-slate-950/20 dark:from-black/60 dark:to-zinc-950/80 overflow-hidden rounded-lg p-4">
+          <Globe className="max-w-[440px] aspect-square" config={globeConfig} />
         </div>
+      ) : (
+        <MapContainerAny center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
+          <TileLayerAny
+            attribution={attribution}
+            url={tileLayerUrl}
+          />
+          <BoundsFitter coords={coords} />
+          {locations.map(loc => {
+            const color = getDensityColor(loc.count);
+            const radius = Math.min(Math.max(6 + Math.log1p(loc.count) * 2, 6), 16);
+            const locationLabel = [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown location';
+
+            return (
+              <CircleMarkerAny
+                key={loc.id}
+                center={[loc.lat, loc.lon]}
+                radius={radius}
+                pathOptions={{
+                  color: '#fff',
+                  weight: 1,
+                  fillColor: color,
+                  fillOpacity: 0.8,
+                }}
+              >
+                <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
+                  <div className="text-center space-y-1 min-w-[120px]">
+                    <p className="font-bold text-sm">{escapeHtml(locationLabel)}</p>
+                    <p className="text-xs opacity-70">{loc.count} transactions</p>
+                    <p className="font-mono font-semibold text-green-600 dark:text-green-400">{formatCurrency(Math.abs(loc.amountTotal), loc.currency)}</p>
+                    <p className="text-[10px] opacity-60 mt-1 border-t border-gray-200 dark:border-gray-700 pt-1">Latest: {escapeHtml(loc.description || '')}</p>
+                  </div>
+                </TooltipAny>
+              </CircleMarkerAny>
+            );
+          })}
+        </MapContainerAny>
+      )}
+
+      {/* Stats Overlay */}
+      <div className="absolute bottom-4 left-4 z-[1000] bg-white/80 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl shadow-lg border border-white/20 flex flex-col gap-1 min-w-[140px] animate-fade-in-up">
+        <div className="flex items-center gap-2 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
+          <span className="material-symbols-outlined text-sm">public</span>
+          <span>Explored</span>
+        </div>
+        <div className="font-bold text-xl text-light-text dark:text-dark-text">
+          {locations.length} <span className="text-sm font-normal opacity-70">places</span>
+        </div>
+        <div className="text-xs font-medium text-light-text dark:text-dark-text opacity-80 mt-1">
+          Total: {formatCurrency(totalSpentInLocations, 'EUR')}
+        </div>
+      </div>
     </div>
   );
 };

@@ -46,7 +46,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
 
   return (
     <div 
-        className={`${className} relative z-[-1]`}
+        className={`${className} relative z-0`}
         style={style}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
@@ -93,7 +93,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
             )}
           </div>
         </header>
-        <div className="flex-grow min-h-0 overflow-hidden">
+        <div className="flex-grow min-h-0 overflow-y-auto custom-scrollbar">
           {children}
         </div>
       </Card>

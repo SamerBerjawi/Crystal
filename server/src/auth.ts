@@ -20,9 +20,10 @@ const loginRateLimiter = createRateLimiter({
     },
 });
 
+import { fetchFinancialDataFromRelational, syncFinancialDataToRelational } from './dbNorm';
+
 async function performLogin(userId: number, email: string) {
-    const dataSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const dataResult = await db.query(dataSql, [userId]);
+    const financialData = await fetchFinancialDataFromRelational(userId);
 
     const lastLogin = new Date().toISOString();
     const userUpdateRes = await db.query(`UPDATE users SET last_login = $1 WHERE id = $2 RETURNING *`, [lastLogin, userId]);
@@ -52,7 +53,6 @@ async function performLogin(userId: number, email: string) {
         lastLogin: lastLogin
     };
 
-    const financialData = dataResult.rows[0] ? dataResult.rows[0].data : {};
     return { token, sessionExpiresAt, user: mappedUser, financialData };
 }
 
@@ -79,10 +79,9 @@ router.post('/register', async (req, res) => {
         const userResult = await client.query(userSql, [firstName, lastName, email.toLowerCase(), hashedPassword, profilePic]);
         const newUser = userResult.rows[0];
 
-        const dataSql = `INSERT INTO financial_data (user_id, data) VALUES ($1, $2)`;
-        await client.query(dataSql, [newUser.id, '{}']);
-
         await client.query('COMMIT');
+
+        await syncFinancialDataToRelational(newUser.id, {});
 
         const loginData = await performLogin(newUser.id, newUser.email);
         setAuthCookie(res, loginData.token, loginData.sessionExpiresAt);

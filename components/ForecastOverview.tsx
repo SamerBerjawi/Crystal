@@ -26,7 +26,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
     });
     
     const content = (
-        <div className={`grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3`}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {sortedForecasts.map((item) => {
                     const isLow = item.lowestBalance < 0;
                     
@@ -38,7 +38,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                         statusColor = 'bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800';
                         amountColor = 'text-red-600 dark:text-red-400';
                         icon = 'warning';
-                    } else if (item.lowestBalance < 1000) { // Warning threshold example
+                    } else if (item.lowestBalance < 1000) {
                         statusColor = 'bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50';
                         amountColor = 'text-amber-600 dark:text-amber-400';
                         icon = 'priority_high';
@@ -53,20 +53,20 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                     return (
                         <div 
                             key={item.period} 
-                            className={`p-3 rounded-xl border ${statusColor}`}
+                            className={`p-2 rounded-xl border flex flex-col justify-between ${statusColor}`}
                         >
-                            <div className="flex justify-between items-start mb-1.5">
-                                <span className="text-xs font-bold  tracking-wider opacity-70">{item.period}</span>
-                                <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
+                            <div className="flex justify-between items-center mb-0.5">
+                                <span className="text-[10px] font-bold tracking-wider opacity-70 truncate">{item.period}</span>
+                                <span className={`material-symbols-outlined text-sm ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
                             </div>
 
-                            <p className={`text-xl font-black tracking-tight privacy-blur ${amountColor}`}>
+                            <p className={`text-xs sm:text-sm font-black tracking-tight privacy-blur ${amountColor}`}>
                                 {formatCurrency(item.lowestBalance, currency as Currency)}
                             </p>
                             
-                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-[10px] opacity-70">
-                                <span className="material-symbols-outlined text-[14px]">event</span>
-                                <span>On {formattedDate}</span>
+                            <div className="mt-1 pt-1 border-t border-black/5 dark:border-white/5 flex items-center gap-1 text-[9px] opacity-70">
+                                <span className="material-symbols-outlined text-[11px]">event</span>
+                                <span>{formattedDate}</span>
                             </div>
                         </div>
                     );

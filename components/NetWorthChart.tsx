@@ -128,7 +128,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
           data={chartData}
-          margin={{ top: 0, right: 10, left: -20, bottom: 0 }}
+          margin={{ top: 12, right: 10, left: -20, bottom: 0 }}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -172,15 +172,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
           <Legend 
             verticalAlign="top" 
             align="right"
-            height={20} 
+            height={24} 
             iconType="circle" 
             wrapperStyle={{ 
                 fontSize: '10px', 
                 fontWeight: '900', 
-                 
                 letterSpacing: '0.05em',
-                paddingBottom: '0px',
-                marginTop: '-15px'
+                paddingBottom: '4px',
+                top: 0
             }} 
           />
           

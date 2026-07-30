@@ -2,8 +2,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { authenticateToken, AuthRequest } from './middleware';
-import { db } from './database';
 import { decryptSecret, sanitizeConnection } from './crypto';
+import { fetchFinancialDataFromRelational, syncFinancialDataToRelational } from './dbNorm';
 
 const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enablebanking.com';
 const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:5173/enable-banking/callback';
@@ -294,21 +294,12 @@ router.post('/pending', authenticateToken, async (req: AuthRequest, res) => {
 
     const sanitizedConn = sanitizeConnection(connection);
 
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const upsertSql = `
-        INSERT INTO financial_data (user_id, data)
-        VALUES ($1, $2)
-        ON CONFLICT (user_id)
-        DO UPDATE SET data = EXCLUDED.data;
-    `;
-    const existing = await db.query(selectSql, [userId]);
-    const currentData = existing.rows?.[0]?.data || {};
+    const currentData = await fetchFinancialDataFromRelational(userId);
     const pendingConnections = {
       ...(currentData.enableBankingPendingConnections || {}),
       [connection.id]: sanitizedConn,
     };
-    const mergedData = { ...currentData, enableBankingPendingConnections: pendingConnections };
-    await db.query(upsertSql, [userId, mergedData]);
+    await syncFinancialDataToRelational(userId, { enableBankingPendingConnections: pendingConnections }, true);
 
     res.json({ message: 'Pending connection stored' });
   } catch (error: any) {
@@ -325,9 +316,7 @@ router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest,
       return res.status(400).json({ message: 'connectionId is required' });
     }
 
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const existing = await db.query(selectSql, [userId]);
-    const currentData = existing.rows?.[0]?.data || {};
+    const currentData = await fetchFinancialDataFromRelational(userId);
     const pendingConnections = currentData.enableBankingPendingConnections || {};
     const connection = pendingConnections[connectionId];
 
@@ -350,20 +339,11 @@ router.delete('/pending/:connectionId', authenticateToken, async (req: AuthReque
       return res.status(400).json({ message: 'connectionId is required' });
     }
 
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const upsertSql = `
-        INSERT INTO financial_data (user_id, data)
-        VALUES ($1, $2)
-        ON CONFLICT (user_id)
-        DO UPDATE SET data = EXCLUDED.data;
-    `;
-    const existing = await db.query(selectSql, [userId]);
-    const currentData = existing.rows?.[0]?.data || {};
+    const currentData = await fetchFinancialDataFromRelational(userId);
     const pendingConnections = { ...(currentData.enableBankingPendingConnections || {}) };
     if (pendingConnections[connectionId]) {
       delete pendingConnections[connectionId];
-      const mergedData = { ...currentData, enableBankingPendingConnections: pendingConnections };
-      await db.query(upsertSql, [userId, mergedData]);
+      await syncFinancialDataToRelational(userId, { enableBankingPendingConnections: pendingConnections }, true);
     }
 
     res.json({ message: 'Pending connection removed' });

@@ -86,3 +86,43 @@ export const validateFinancialDataPayload = (
 
     return { success: true, data: result.data };
 };
+
+export const jsonPatchOperationSchema = z.object({
+    op: z.enum(['add', 'remove', 'replace', 'move', 'copy', 'test']),
+    path: z.string().startsWith('/'),
+    value: z.any().optional(),
+    from: z.string().startsWith('/').optional(),
+});
+
+export type JsonPatchOperation = z.infer<typeof jsonPatchOperationSchema>;
+
+export const jsonPatchPayloadSchema = z.union([
+    z.object({
+        patch: z.array(jsonPatchOperationSchema).min(1),
+        previousUpdatedAt: z.string().optional(),
+    }),
+    z.array(jsonPatchOperationSchema).min(1),
+]);
+
+export const validateJsonPatchPayload = (
+    body: unknown
+): { success: boolean; patch?: JsonPatchOperation[]; previousUpdatedAt?: string; error?: string } => {
+    if (!body || (typeof body !== 'object' && !Array.isArray(body))) {
+        return { success: false, error: 'Request body must be a non-empty object or array of patch operations.' };
+    }
+
+    const result = jsonPatchPayloadSchema.safeParse(body);
+    if (!result.success) {
+        const issueMsg = result.error.issues
+            .map(issue => `${issue.path.join('.') || 'root'}: ${issue.message}`)
+            .join('; ');
+        return { success: false, error: `Invalid JSON Patch payload structure: ${issueMsg}` };
+    }
+
+    if (Array.isArray(result.data)) {
+        return { success: true, patch: result.data };
+    }
+
+    return { success: true, patch: result.data.patch, previousUpdatedAt: result.data.previousUpdatedAt };
+};
+

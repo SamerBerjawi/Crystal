@@ -7,11 +7,14 @@ import MobileNavbar from './components/MobileNavbar';
 import CommandCenter from './components/CommandCenter';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
-import { useSaveFinancialDataMutation, useSavePartialFinancialDataMutation } from './hooks/useFinancialDataQuery';
+import { useSaveFinancialDataMutation, useSavePartialFinancialDataMutation, usePatchFinancialDataMutation, useMutateCollectionMutation } from './hooks/useFinancialDataQuery';
 import { useAppDataSync } from './features/data-sync/useAppDataSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AddTransactionModal from './components/AddTransactionModal';
+import { useAppNavigation } from './features/app/useAppNavigation';
+import AppGlobalModals from './features/app/AppGlobalModals';
+import AppPageRouter from './features/app/AppPageRouter';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const pageRegistry = {
@@ -268,13 +271,12 @@ const safeLocalStorage = {
   },
 };
 
+import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-progress-bar";
+
 const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...' }) => (
-  <div className="flex items-center justify-center py-10 text-primary-500" role="status" aria-live="polite">
-    <svg className="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-    <span className="text-sm font-medium">{label}</span>
+  <div className="flex flex-col items-center justify-center py-12 gap-3" role="status" aria-live="polite">
+    <AnimatedCircularProgressBar className="size-12" />
+    <span className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">{label}</span>
   </div>
 );
 
@@ -805,13 +807,17 @@ const App: React.FC = () => {
 
   const saveDataMutation = useSaveFinancialDataMutation();
   const savePartialMutation = useSavePartialFinancialDataMutation();
+  const patchDataMutation = usePatchFinancialDataMutation();
+  const mutateCollectionMutation = useMutateCollectionMutation();
 
-  const { postData, saveData, savePartialData } = useAppDataSync({
+  const { postData, patchData, mutateCollectionItem, saveData, savePartialData } = useAppDataSync({
     isAuthenticated,
     isDemoMode,
     authorizedFetch,
     saveDataMutation,
     savePartialMutation,
+    patchDataMutation,
+    mutateCollectionMutation,
     hasMaterialData,
     toLocalDateTimeString,
   });
@@ -891,8 +897,19 @@ const App: React.FC = () => {
       const payloadSignature = JSON.stringify(dataToSave);
       if (payloadSignature === lastSavedSignatureRef.current) { dirtySlicesRef.current.clear(); return; }
       if (!allowEmptySaveRef.current && !hasMaterialData(dataToSave)) { dirtySlicesRef.current.clear(); lastSavedSignatureRef.current = payloadSignature; return; }
+
+      const dirtySlices = Array.from(dirtySlicesRef.current);
+      const patchOps = dirtySlices.map(sliceKey => ({
+        op: 'replace' as const,
+        path: `/${sliceKey}`,
+        value: (dataToSave as any)[sliceKey],
+      }));
+
       const allowEmpty = allowEmptySaveRef.current;
-      const succeeded = await saveData(dataToSave, { allowEmpty });
+      const succeeded = patchOps.length > 0
+        ? await patchData(patchOps)
+        : await saveData(dataToSave, { allowEmpty });
+
       if (succeeded) {
         dirtySlicesRef.current.clear();
         lastSavedSignatureRef.current = payloadSignature;
@@ -900,7 +917,7 @@ const App: React.FC = () => {
       }
     };
     persistDirtySlices();
-  }, [dataToSave, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [dataToSave, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, patchData, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') return;
@@ -908,11 +925,23 @@ const App: React.FC = () => {
       if (!isDataLoaded || dirtySlicesRef.current.size === 0) return;
       const payloadSignature = JSON.stringify(dataToSave);
       if (payloadSignature === lastSavedSignatureRef.current) return;
-      saveData(dataToSave, { keepalive: true, suppressErrors: true }).catch(() => { });
+
+      const dirtySlices = Array.from(dirtySlicesRef.current);
+      const patchOps = dirtySlices.map(sliceKey => ({
+        op: 'replace' as const,
+        path: `/${sliceKey}`,
+        value: (dataToSave as any)[sliceKey],
+      }));
+
+      if (patchOps.length > 0) {
+        patchData(patchOps, { keepalive: true, suppressErrors: true }).catch(() => { });
+      } else {
+        saveData(dataToSave, { keepalive: true, suppressErrors: true }).catch(() => { });
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [dataToSave, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [dataToSave, isAuthenticated, isDataLoaded, isDemoMode, patchData, saveData]);
 
   useEffect(() => {
     if (accounts.length > accountOrder.length) {
@@ -2345,7 +2374,7 @@ const App: React.FC = () => {
   }), [financialGoals, goalOrder, handleDeleteFinancialGoal, handleSaveFinancialGoal, markSliceDirty]);
   const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions,]);
 
-  if (isAuthLoading || !isDataLoaded) return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]"><svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>;
+  if (isAuthLoading || !isDataLoaded) return <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] gap-3"><AnimatedCircularProgressBar className="size-16" /><span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest uppercase">Initializing...</span></div>;
 
   if (!isAuthenticated && !isDemoMode) {
     return <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>{authPage === 'signIn' ? <SignIn onSignIn={handleSignIn} onNavigateToSignUp={() => setAuthPage('signUp')} onEnterDemoMode={handleEnterDemoMode} isLoading={isAuthLoading} error={authError} /> : <SignUp onSignUp={handleSignUp} onNavigateToSignIn={() => setAuthPage('signIn')} isLoading={isAuthLoading} error={authError} />}</Suspense>;
@@ -2412,32 +2441,21 @@ const App: React.FC = () => {
           </div>
           <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
           {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
-          <CommandCenter
-            isOpen={isCommandCenterOpen}
-            onClose={() => setIsCommandCenterOpen(false)}
-            setCurrentPage={setCurrentPage}
+          <AppGlobalModals
+            isAddTransactionModalOpen={isQuickAddTxModalOpen}
+            setIsAddTransactionModalOpen={setIsQuickAddTxModalOpen}
+            isCommandCenterOpen={isCommandCenterOpen}
+            setIsCommandCenterOpen={setIsCommandCenterOpen}
+            isKeyboardShortcutsModalOpen={isShortcutsModalOpen}
+            setIsKeyboardShortcutsModalOpen={setIsShortcutsModalOpen}
             accounts={accounts}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            tags={tags}
             transactions={transactions}
-            onOpenAccount={handleOpenAccountDetail}
-            togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
-            isPrivacyMode={isPrivacyMode}
-            theme={theme}
-            setTheme={setTheme}
+            saveTransactions={handleSaveTransaction}
+            onNavigate={setCurrentPage}
           />
-          <KeyboardShortcutsModal
-            isOpen={isShortcutsModalOpen}
-            onClose={() => setIsShortcutsModalOpen(false)}
-          />
-          {isQuickAddTxModalOpen && (
-            <AddTransactionModal
-              onClose={() => setIsQuickAddTxModalOpen(false)}
-              onSave={(txs) => { handleSaveTransaction(txs); setIsQuickAddTxModalOpen(false); }}
-              accounts={accounts}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-              tags={tags}
-            />
-          )}
         </div>
       </InsightsViewProvider>
     </FinancialDataProvider>

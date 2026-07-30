@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import { isAllowedTargetUrl } from './server/src/urlValidator';
+import isAllowedTargetUrl from './server/src/urlValidator.ts';
 
 async function startServer() {
   const app = express();
@@ -60,12 +60,21 @@ async function startServer() {
 
   // Mock data endpoint to prevent errors in App.tsx
   app.post('/api/data', (req, res) => {
-    res.json({ status: 'ok', message: 'Data saved (mock)' });
+    res.json({ status: 'ok', message: 'Data saved (mock)', lastUpdatedAt: new Date().toISOString() });
+  });
+
+  app.patch('/api/data', (req, res) => {
+    res.json({ status: 'ok', message: 'Patch applied (mock)', lastUpdatedAt: new Date().toISOString() });
+  });
+
+  app.post('/api/data/patch', (req, res) => {
+    res.json({ status: 'ok', message: 'Patch applied (mock)', lastUpdatedAt: new Date().toISOString() });
   });
 
   app.get('/api/data', (req, res) => {
     res.json({});
   });
+
 
   // Authentication mocks if needed
   app.post('/api/auth/status', (req, res) => {

@@ -8,7 +8,7 @@ const DEFAULT_ALLOWED_DOMAINS = [
     'api.anthropic.com',
 ];
 
-export const isAllowedTargetUrl = (targetUrlStr: string): { allowed: boolean; reason?: string } => {
+export function isAllowedTargetUrl(targetUrlStr: string): { allowed: boolean; reason?: string } {
     if (!targetUrlStr || typeof targetUrlStr !== 'string') {
         return { allowed: false, reason: 'Target URL must be a non-empty string.' };
     }
@@ -61,3 +61,6 @@ export const isAllowedTargetUrl = (targetUrlStr: string): { allowed: boolean; re
         return { allowed: false, reason: 'Invalid URL format.' };
     }
 };
+
+export default isAllowedTargetUrl;
+

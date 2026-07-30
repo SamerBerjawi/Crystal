@@ -61,6 +61,8 @@ import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import WidgetSkeletonLoader from '../components/WidgetSkeletonLoader';
 import { useDashboardStats } from '../features/dashboard/useDashboardStats';
 import DashboardHeader from '../features/dashboard/DashboardHeader';
+import { useDashboardState } from '../features/dashboard/useDashboardState';
+import DashboardModals from '../features/dashboard/DashboardModals';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -116,7 +118,7 @@ type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
   if (statements.length === 0) return null;
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-3">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-3">
       {statements.map(statement => (
         <CreditCardStatementCard
           key={statement.accountId}
