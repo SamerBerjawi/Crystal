@@ -24,14 +24,25 @@ smartFetcherRouter.get('/', async (req: AuthRequest, res) => {
 
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9,de;q=0.8,fr;q=0.7',
+                'Cache-Control': 'max-age=0',
+                'Sec-Ch-Ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"macOS"',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
                 ...(cookies ? { Cookie: cookies } : {}),
             },
+            redirect: 'follow',
         });
 
         if (!response.ok) {
-            return res.status(response.status).json({ error: `Failed to fetch target (${response.status})` });
+            return res.status(502).json({ error: `Target server returned status ${response.status}` });
         }
 
         const html = await response.text();

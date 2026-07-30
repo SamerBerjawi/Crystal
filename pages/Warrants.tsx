@@ -19,6 +19,7 @@ interface WarrantsProps {
   manualPrices: Record<string, number | undefined>;
   lastUpdated: Date | null;
   onManualPriceChange: (isin: string, price: number | null) => void;
+  fetchWithAuth?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
 const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
@@ -27,7 +28,7 @@ const SkeletonLoader: React.FC<{ className?: string }> = ({ className = 'w-24' }
     <div className={`h-6 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse ${className}`} />
 );
 
-const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, prices, manualPrices, lastUpdated, onManualPriceChange }) => {
+const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, prices, manualPrices, lastUpdated, onManualPriceChange, fetchWithAuth }) => {
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
@@ -100,6 +101,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                     isin={editingHoldingForPrice.isin}
                     name={editingHoldingForPrice.name}
                     manualPrice={manualPrices[editingHoldingForPrice.isin]}
+                    fetchWithAuth={fetchWithAuth}
                 />
             )}
             

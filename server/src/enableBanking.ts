@@ -9,18 +9,26 @@ const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enable
 const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:5173/enable-banking/callback';
 
 function getEnableBankingCredentials(body: any = {}): { applicationId: string; clientCertificate: string } {
-  const envAppId = process.env.ENABLE_BANKING_APPLICATION_ID?.trim();
-  const envCert = (process.env.ENABLE_BANKING_CLIENT_CERTIFICATE || process.env.ENABLE_BANKING_PRIVATE_KEY)?.trim();
+  let envAppId = process.env.ENABLE_BANKING_APPLICATION_ID?.trim();
+  let envCert = (process.env.ENABLE_BANKING_CLIENT_CERTIFICATE || process.env.ENABLE_BANKING_PRIVATE_KEY)?.trim();
 
-  const applicationId = envAppId || body?.applicationId?.trim();
+  let applicationId = envAppId || body?.applicationId?.trim();
   let clientCertificate = envCert || body?.clientCertificate?.trim() || body?.encryptedClientCertificate?.trim();
 
-  if (clientCertificate && clientCertificate.includes(':')) {
+  if (applicationId && ((applicationId.startsWith('"') && applicationId.endsWith('"')) || (applicationId.startsWith("'") && applicationId.endsWith("'")))) {
+    applicationId = applicationId.slice(1, -1).trim();
+  }
+
+  if (clientCertificate && ((clientCertificate.startsWith('"') && clientCertificate.endsWith('"')) || (clientCertificate.startsWith("'") && clientCertificate.endsWith("'")))) {
+    clientCertificate = clientCertificate.slice(1, -1).trim();
+  }
+
+  if (clientCertificate && clientCertificate.includes(':') && !clientCertificate.includes('BEGIN')) {
     clientCertificate = decryptSecret(clientCertificate);
   }
 
   if (!applicationId || !clientCertificate || clientCertificate === '[SERVER_CONFIGURED_ENCRYPTED]') {
-    throw new Error('Missing Enable Banking application credentials. Please configure ENABLE_BANKING_APPLICATION_ID and ENABLE_BANKING_CLIENT_CERTIFICATE on the server.');
+    throw new Error('Missing Enable Banking application credentials. Please configure Application ID and Client Certificate in Credentials Setup or on the server.');
   }
 
   return { applicationId, clientCertificate };
@@ -31,10 +39,20 @@ class EnableBankingClient {
 
   private getFormattedKey() {
     let key = this.clientCertificate.trim();
-    if (!key.includes('\n') && key.includes('BEGIN PRIVATE KEY')) {
-       key = key.replace(/\\n/g, '\n')
-                .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
-                .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+    if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+      key = key.slice(1, -1).trim();
+    }
+    key = key.replace(/\\n/g, '\n');
+
+    if (!key.includes('\n')) {
+      const match = key.match(/(-----BEGIN [A-Z\s]+-----)(.*?)(-----END [A-Z\s]+-----)/);
+      if (match) {
+        const header = match[1];
+        const body = match[2].replace(/\s+/g, '');
+        const footer = match[3];
+        const lines = body.match(/.{1,64}/g) || [];
+        key = [header, ...lines, footer].join('\n');
+      }
     }
     return key;
   }

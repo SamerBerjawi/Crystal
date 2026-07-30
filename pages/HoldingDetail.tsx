@@ -33,6 +33,7 @@ interface HoldingDetailProps {
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     onBack: () => void;
     priceHistory?: Record<string, PriceHistoryEntry[]>;
+    fetchWithAuth?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
 const HoldingDetail: React.FC<HoldingDetailProps> = ({
@@ -46,7 +47,8 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     saveWarrant,
     onManualPriceChange,
     onBack,
-    priceHistory = {}
+    priceHistory = {},
+    fetchWithAuth
 }) => {
     const { confirm, ConfirmDialog } = useConfirm();
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
@@ -186,6 +188,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     isin={holding.symbol}
                     name={holding.name}
                     initialEntry={editingEntry}
+                    fetchWithAuth={fetchWithAuth}
                 />
             )}
             {isTransactionModalOpen && (

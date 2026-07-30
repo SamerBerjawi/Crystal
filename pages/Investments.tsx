@@ -44,6 +44,7 @@ interface InvestmentsProps {
     deleteAccount: (accountId: string) => void;
     transactions: Transaction[];
     onViewAccount?: (accountId: string) => void;
+    fetchWithAuth?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
 type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change' | 'Pension Fund' | 'Other';
@@ -67,8 +68,10 @@ const Investments: React.FC<InvestmentsProps> = ({
     onToggleAccountStatus,
     deleteAccount,
     transactions,
-    onViewAccount
+    onViewAccount,
+    fetchWithAuth
 }) => {
+    const doFetch = fetchWithAuth || (async (url: string, init?: RequestInit) => fetch(url, { credentials: 'include', ...init }));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
@@ -374,9 +377,14 @@ const Investments: React.FC<InvestmentsProps> = ({
     const fetchFromSmartBinding = useCallback(async (symbol: string, binding: { url: string; selector: string; cookies?: string }) => {
         const encodedUrl = encodeURIComponent(binding.url);
         const cookieParam = binding.cookies ? `&cookies=${encodeURIComponent(binding.cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`, { credentials: 'include' });
+        const response = await doFetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
         if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
+            let errorMsg = `Request failed with status ${response.status}`;
+            try {
+                const parsed = await response.json();
+                if (parsed.error) errorMsg = parsed.error;
+            } catch {}
+            throw new Error(errorMsg);
         }
         const html = await response.text();
         const parser = new DOMParser();
@@ -685,6 +693,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         isin={editingPriceItem.symbol}
                         name={editingPriceItem.name}
                         manualPrice={manualPrices[editingPriceItem.symbol]}
+                        fetchWithAuth={fetchWithAuth}
                     />
                 )}
 

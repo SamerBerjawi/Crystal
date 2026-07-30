@@ -14,11 +14,14 @@ interface WarrantPriceModalProps {
   name: string;
   initialEntry?: { date: string; price: number };
   manualPrice?: number | null | undefined;
+  fetchWithAuth?: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
-const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
+const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice, fetchWithAuth }) => {
     const [mode, setMode] = useState<'single' | 'bulk'>(initialEntry ? 'single' : 'single');
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
+
+    const doFetch = fetchWithAuth || (async (url: string, init?: RequestInit) => fetch(url, { credentials: 'include', ...init }));
 
     // Single Entry State
     const [newPrice, setNewPrice] = useState('');
@@ -133,9 +136,14 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const fetchSmartPage = async (targetUrl: string, cookies?: string): Promise<string> => {
         const encodedUrl = encodeURIComponent(targetUrl);
         const cookieParam = cookies ? `&cookies=${encodeURIComponent(cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`, { credentials: 'include' });
+        const response = await doFetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
         if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
+            let errorMsg = `Request failed with status ${response.status}`;
+            try {
+                const parsed = await response.json();
+                if (parsed.error) errorMsg = parsed.error;
+            } catch {}
+            throw new Error(errorMsg);
         }
         return response.text();
     };
