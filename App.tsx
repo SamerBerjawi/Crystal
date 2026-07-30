@@ -8,6 +8,7 @@ import CommandCenter from './components/CommandCenter';
 import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
 import { useSaveFinancialDataMutation, useSavePartialFinancialDataMutation } from './hooks/useFinancialDataQuery';
+import { useAppDataSync } from './features/data-sync/useAppDataSync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AddTransactionModal from './components/AddTransactionModal';
@@ -805,64 +806,15 @@ const App: React.FC = () => {
   const saveDataMutation = useSaveFinancialDataMutation();
   const savePartialMutation = useSavePartialFinancialDataMutation();
 
-  const postData = useCallback(
-    async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      if (!isAuthenticated || isDemoMode) return false;
-      try {
-        const response = await authorizedFetch('/api/data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          keepalive: options?.keepalive,
-        });
-        if (!response.ok) { return false; }
-        return true;
-      } catch (error) { return false; }
-    }, [authorizedFetch, isAuthenticated, isDemoMode]
-  );
-
-  const saveData = useCallback(
-    async (data: FinancialData, options?: { keepalive?: boolean; suppressErrors?: boolean; allowEmpty?: boolean }): Promise<boolean> => {
-      if (!options?.allowEmpty && !hasMaterialData(data)) {
-        console.warn('Skipping auto-save of empty data payload to prevent potential data loss.');
-        return false;
-      }
-      const now = toLocalDateTimeString(new Date());
-      const payload = { ...data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, ...(options?.allowEmpty ? { allowEmpty: true } : {}), };
-      
-      try {
-        if (!isAuthenticated || isDemoMode) {
-          const succeeded = await postData(payload, options);
-          if (succeeded) { lastUpdatedAtRef.current = now; }
-          return succeeded;
-        }
-        await saveDataMutation.mutateAsync(payload);
-        lastUpdatedAtRef.current = now;
-        return true;
-      } catch (error) {
-        return false;
-      }
-    }, [postData, saveDataMutation, isAuthenticated, isDemoMode]
-  );
-
-  const savePartialData = useCallback(
-    async (data: Partial<FinancialData>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      const now = toLocalDateTimeString(new Date());
-      try {
-        if (!isAuthenticated || isDemoMode) {
-          const payload = { partial: true, data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current };
-          const succeeded = await postData(payload, options);
-          if (succeeded) { lastUpdatedAtRef.current = now; }
-          return succeeded;
-        }
-        await savePartialMutation.mutateAsync(data);
-        lastUpdatedAtRef.current = now;
-        return true;
-      } catch (error) {
-        return false;
-      }
-    }, [postData, savePartialMutation, isAuthenticated, isDemoMode]
-  );
+  const { postData, saveData, savePartialData } = useAppDataSync({
+    isAuthenticated,
+    isDemoMode,
+    authorizedFetch,
+    saveDataMutation,
+    savePartialMutation,
+    hasMaterialData,
+    toLocalDateTimeString,
+  });
 
   const saveDataWithRetry = useCallback(
     async (data: FinancialData, options?: { attempts?: number }): Promise<boolean> => {

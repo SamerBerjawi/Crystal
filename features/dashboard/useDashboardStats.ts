@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Account, Transaction, LoanPaymentOverrides, AccountType } from '../../types';
-import { calculateAccountTotals, ASSET_TYPES, DEBT_TYPES } from '../../utils';
+import { calculateAccountTotals } from '../../utils';
+import { ASSET_TYPES, DEBT_TYPES } from '../../constants';
 
 export interface UseDashboardStatsParams {
     analyticsAccounts: Account[];
