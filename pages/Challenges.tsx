@@ -10,7 +10,8 @@ import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw01 as RefreshCw } from '@untitledui/icons';
+import Icon from '../components/ui/Icon';
 
 const CACHE_KEYS = {
   AI_CHALLENGES: 'crystal_ai_challenges'
@@ -110,10 +111,10 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
 
                 {/* Icon Medal */}
                 <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${styles.iconBg} text-white shadow-md transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
-                    <span className="material-symbols-outlined text-3xl drop-shadow-md">{badge.icon}</span>
+                    <Icon name={badge.icon} className="text-3xl drop-shadow-md" />
                     <div className="absolute -bottom-2 -right-2 bg-white dark:bg-dark-card rounded-full p-1 shadow-sm">
                          <div className="bg-green-500 rounded-full w-5 h-5 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[12px] font-bold text-white">check</span>
+                            <Icon name="check" className="text-[12px] font-bold text-white" />
                          </div>
                     </div>
                 </div>
@@ -140,9 +141,9 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
         <div className="group relative flex flex-col items-center p-5 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]">
              {/* Locked Icon */}
             <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 shadow-inner">
-                <span className="material-symbols-outlined text-3xl">{badge.icon}</span>
+                <Icon name={badge.icon} className="text-3xl" />
                  <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-black/20 rounded-2xl backdrop-blur-[1px]">
-                     <span className="material-symbols-outlined text-2xl text-gray-500 dark:text-gray-400 drop-shadow-sm">lock</span>
+                     <Icon name="lock" className="text-2xl text-gray-500 dark:text-gray-400 drop-shadow-sm" />
                  </div>
             </div>
 
@@ -223,7 +224,7 @@ const PersonalBestLeaderboard: React.FC<{
                  <div className="flex justify-between items-start mb-8">
                      <div>
                         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-light-text dark:text-white">
-                            <span className="material-symbols-outlined text-yellow-400 text-3xl">emoji_events</span>
+                            <Icon name="emoji_events" className="text-yellow-400 text-3xl" />
                             Hall of Fame
                         </h2>
                         <p className="text-light-text-secondary dark:text-gray-400 text-sm font-bold  tracking-widest opacity-60 mt-1">Personal Wealth Records</p>
@@ -238,7 +239,7 @@ const PersonalBestLeaderboard: React.FC<{
                  {/* Main ATH Display */}
                  <div className="bg-white dark:bg-[#1E1E20] rounded-2xl p-6 shadow-lg border border-black/5 dark:border-white/10 mb-2 relative overflow-hidden">
                      <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                         <span className="material-symbols-outlined text-8xl">military_tech</span>
+                         <Icon name="military_tech" className="text-8xl" />
                      </div>
                      
                      <p className="text-xs font-bold  tracking-widest text-gray-500 dark:text-gray-400 mb-1">All-Time High Net Worth</p>
@@ -331,7 +332,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg bg-gradient-to-br from-${config.color}-500 to-${config.color}-600`}>
-                            <span className="material-symbols-outlined text-2xl">{boss.icon}</span>
+                            <Icon name={boss.icon} className="text-2xl" />
                         </div>
                         <div>
                             <h3 className="font-bold text-base text-light-text dark:text-dark-text leading-tight line-clamp-1">{boss.name}</h3>
@@ -437,12 +438,12 @@ const MasteryCard: React.FC<{
                 
                 {/* Icon */}
                 <div className="w-16 h-16 rounded-full bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center relative z-10">
-                    <span className="material-symbols-outlined text-3xl" style={{ color: categoryColor }}>{icon}</span>
+                    <Icon name={icon} className="text-3xl" style={{ color: categoryColor }} />
                 </div>
 
                 {isMaster && (
                     <div className="absolute -bottom-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-20 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[10px]">stars</span> MAX
+                        <Icon name="stars" className="text-[10px]" /> MAX
                     </div>
                 )}
             </div>
@@ -824,7 +825,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   {/* Main Score Card */}
                   <Card className="md:col-span-2 relative overflow-hidden bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-md flex flex-col sm:flex-row items-center sm:items-start gap-8 p-8">
                       <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                           <span className="material-symbols-outlined text-9xl">health_and_safety</span>
+                           <Icon name="health_and_safety" className="text-9xl" />
                       </div>
                       
                       <div className="relative z-10 flex-shrink-0">
@@ -843,7 +844,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   {/* Streak Card */}
                   <Card className="bg-gradient-to-br from-orange-500 to-amber-600 text-white border-none shadow-lg relative overflow-hidden flex flex-col justify-between p-6">
                       <div className="absolute -right-4 -top-4 opacity-20">
-                          <span className="material-symbols-outlined text-9xl">local_fire_department</span>
+                          <Icon name="local_fire_department" className="text-9xl" />
                       </div>
                       <div className="relative z-10">
                           <p className="font-bold text-orange-100  tracking-wider text-xs mb-1">Login Streak</p>
@@ -869,7 +870,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                           <div key={factor.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
                               <div className="flex justify-between items-start mb-3">
                                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${factor.color}-100 dark:bg-${factor.color}-900/30 text-${factor.color}-600 dark:text-${factor.color}-400`}>
-                                      <span className="material-symbols-outlined text-xl">{factor.icon}</span>
+                                      <Icon name={factor.icon} className="text-xl" />
                                   </div>
                                   <span className="text-lg font-bold text-light-text dark:text-dark-text">{factor.score.toFixed(0)}<span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-normal">/{factor.max}</span></span>
                               </div>
@@ -938,7 +939,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 opacity-60'
                               }`}
                       >
-                          <span className={`material-symbols-outlined text-xl ${isActive ? 'filled-icon' : ''}`}>{item.icon}</span>
+                          <Icon name={item.icon} className={`text-xl ${isActive ? '' : ''}`} />
                           {item.label}
                       </button>
                   );
@@ -955,7 +956,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   {debtBosses.length > 0 && (
                       <div>
                           <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
-                              <span className="material-symbols-outlined">swords</span>
+                              <Icon name="swords" />
                               Debt Nemeses
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -969,7 +970,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   {savingsBosses.length > 0 && (
                       <div>
                            <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
-                              <span className="material-symbols-outlined">shield</span>
+                              <Icon name="shield" />
                               Savings Guardians
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -982,7 +983,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
                   {debtBosses.length === 0 && savingsBosses.length === 0 && (
                        <div className="col-span-full text-center py-20 text-light-text-secondary dark:text-dark-text-secondary">
-                           <span className="material-symbols-outlined text-6xl mb-4 opacity-50">check_circle</span>
+                           <Icon name="check_circle" className="text-6xl mb-4 opacity-50" />
                            <p className="text-lg font-medium">All quiet on the front.</p>
                            <p>No active debts or goals to battle right now.</p>
                        </div>
@@ -1026,7 +1027,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                        <div className="flex justify-between items-start mb-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white bg-${s.color}-500 shadow-sm`}>
-                                                    <span className="material-symbols-outlined text-xl">{s.icon}</span>
+                                                    <Icon name={s.icon} className="text-xl" />
                                                 </div>
                                                 <div>
                                                     <h4 className="font-bold text-light-text dark:text-dark-text">{s.title}</h4>
@@ -1059,7 +1060,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                            {SAVINGS_SPRINTS.filter(s => !activeSprints.some(a => a.id === s.id)).map(sprint => (
                                <Card key={sprint.id} className="hover:shadow-md transition-shadow group cursor-pointer" onClick={() => handleStartSprint(sprint.id)}>
                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white mb-4 shadow-md bg-${sprint.color}-500 group-hover:scale-110 transition-transform`}>
-                                       <span className="material-symbols-outlined text-2xl">{sprint.icon}</span>
+                                       <Icon name={sprint.icon} className="text-2xl" />
                                    </div>
                                    <h4 className="font-bold text-light-text dark:text-dark-text mb-1">{sprint.title}</h4>
                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-2">{sprint.description}</p>
@@ -1096,7 +1097,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                        </div>
                    ) : (
                        <div className="text-center py-20 bg-light-card/50 dark:bg-dark-card/50 rounded-2xl border-2 border-dashed border-black/5 dark:border-white/5">
-                            <span className="material-symbols-outlined text-5xl opacity-30 mb-4">psychology_alt</span>
+                            <Icon name="psychology_alt" className="text-5xl opacity-30 mb-4" />
                            <p className="text-light-text-secondary dark:text-dark-text-secondary">Make a bet on your future finances to stay motivated.</p>
                        </div>
                    )}

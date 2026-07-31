@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Page, User } from '../types';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import Icon from '../components/ui/Icon';
 
 interface SettingsProps {
   setCurrentPage: (page: Page) => void;
@@ -36,7 +37,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
   >
     <div className="flex items-center gap-4 min-w-0">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-200 shrink-0`}>
-        <span className="material-symbols-outlined text-xl">{icon}</span>
+        <Icon name={icon} className="text-xl" />
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
@@ -55,9 +56,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
       </div>
     </div>
     <div className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all shrink-0 ml-3">
-      <span className="material-symbols-outlined text-base group-hover:translate-x-0.5 transition-transform">
-        chevron_right
-      </span>
+      <Icon name="chevron_right" className="text-base group-hover:translate-x-0.5 transition-transform" />
     </div>
   </button>
 );
@@ -104,7 +103,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 />
               )}
               <div className="absolute -bottom-1 -right-1 bg-primary-500 text-white w-6 h-6 flex items-center justify-center rounded-lg border-2 border-white dark:border-dark-card shadow-xs">
-                <span className="material-symbols-outlined text-xs">edit</span>
+                <Icon name="edit" className="text-xs" />
               </div>
             </div>
             <div className="min-w-0">
@@ -119,7 +118,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                   {user.role}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px]">verified</span>
+                  <Icon name="verified" className="text-[12px]" />
                   Verified Account
                 </span>
               </div>
@@ -143,7 +142,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Experience & Preferences */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <span className="material-symbols-outlined text-primary-500 text-base">tune</span>
+              <Icon name="tune" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Experience & Preferences
               </h3>
@@ -172,7 +171,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Automation & Telemetry */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <span className="material-symbols-outlined text-primary-500 text-base">smart_toy</span>
+              <Icon name="smart_toy" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Automation & Intelligence
               </h3>
@@ -205,7 +204,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Workspace Taxonomy */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <span className="material-symbols-outlined text-primary-500 text-base">category</span>
+              <Icon name="category" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Workspace & Taxonomy
               </h3>
@@ -241,7 +240,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Infrastructure & Ledger */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <span className="material-symbols-outlined text-primary-500 text-base">storage</span>
+              <Icon name="storage" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Infrastructure & Ledger
               </h3>

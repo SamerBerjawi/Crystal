@@ -11,6 +11,7 @@ import { MobileAccountHeader } from './MobileAccountHeader';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import HistoricalBalanceTrend from './HistoricalBalanceTrend';
+import Icon from './ui/Icon';
 
 interface GeneralAccountViewProps {
   account: Account;
@@ -76,11 +77,11 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
                          {trend.val}
                     </div>
                 )}
@@ -283,7 +284,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   onClick={onBack}
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined text-xl sm:text-2xl transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="text-xl sm:text-2xl transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -293,7 +294,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   </div>
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light text-xl sm:text-2xl">{account.icon || style.icon}</span>
+                      <Icon name={account.icon || style.icon} className="text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light text-xl sm:text-2xl" />
                   </h1>
               </div>
           </div>
@@ -301,12 +302,12 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           <div className="flex gap-2 sm:gap-3 w-full md:w-auto">
               {isLinkedToEnableBanking && onSyncLinkedAccount && (
                   <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-4 sm:!px-6 h-10 sm:h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card flex-1 sm:flex-none text-xs sm:text-sm`}>
-                      <span className="material-symbols-outlined text-base sm:text-lg mr-1 sm:mr-2">sync</span>
+                      <Icon name="sync" className="text-base sm:text-lg mr-1 sm:mr-2" />
                       Sync
                   </button>
               )}
               <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-4 sm:!px-6 h-10 sm:h-12 shadow-lg shadow-primary-500/20 flex-1 sm:flex-none text-xs sm:text-sm`}>
-                  <span className="material-symbols-outlined text-base sm:text-lg mr-1 sm:mr-2">add</span>
+                  <Icon name="add" className="text-base sm:text-lg mr-1 sm:mr-2" />
                   Transaction
               </button>
           </div>
@@ -328,7 +329,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                   {logoUrl ? (
                                       <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                                   ) : (
-                                      <span className="material-symbols-outlined text-2xl sm:text-3xl font-light">credit_card</span>
+                                      <Icon name="credit_card" className="text-2xl sm:text-3xl font-light" />
                                   )}
                              </div>
                              <div className="text-right">
@@ -458,7 +459,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                             ))
                         ) : (
                                 <div className="py-20 flex flex-col items-center justify-center text-center opacity-30">
-                                    <span className="material-symbols-outlined text-5xl mb-2">event_available</span>
+                                    <Icon name="event_available" className="text-5xl mb-2" />
                                     <p className="text-[10px] font-semibold tracking-widest">Clear Horizon</p>
                                 </div>
                         )}
@@ -473,20 +474,20 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                             {linkedCreditCards.map(c => (
                                 <button key={c.id} onClick={() => setViewingAccountId(c.id)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">
                                     <div className="flex items-center gap-4">
-                                        <span className="material-symbols-outlined text-rose-500">credit_card</span>
+                                        <Icon name="credit_card" className="text-rose-500" />
                                         <div className="text-left">
                                             <p className="text-sm font-bold text-light-text dark:text-dark-text">{c.name}</p>
                                             <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60">Liable Shield</p>
                                         </div>
                                     </div>
-                                    <span className="material-symbols-outlined text-light-text-secondary/20 group-hover/link:translate-x-1 transition-transform">chevron_right</span>
+                                    <Icon name="chevron_right" className="text-light-text-secondary/20 group-hover/link:translate-x-1 transition-transform" />
                                 </button>
                             ))}
                             {linkedGoals.map(g => (
                                 <div key={g.id} className="p-4 rounded-3xl bg-black/5 dark:bg-white/5 border border-transparent">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-4">
-                                            <span className="material-symbols-outlined text-emerald-500">target</span>
+                                            <Icon name="target" className="text-emerald-500" />
                                             <div className="text-left">
                                                 <p className="text-sm font-bold text-light-text dark:text-dark-text">{g.name}</p>
                                                 <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60">Capital Target</p>

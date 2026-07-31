@@ -10,6 +10,7 @@ import CategoryItem from '../components/CategoryItem';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
+import Icon from '../components/ui/Icon';
 
 const generateId = () => `cat-${uuidv4()}`;
 
@@ -278,7 +279,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
         {/* Search */}
         <div className="relative flex-grow max-w-md group">
-             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none">search</span>
+             <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
              <input 
                 type="text" 
                 placeholder="Query taxonomy structure..." 
@@ -315,7 +316,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         ) : (
           <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
               <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-4xl opacity-20">category</span>
+                <Icon name="category" className="text-4xl opacity-20" />
               </div>
               <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Schema Nullified</p>
               {!searchTerm && (

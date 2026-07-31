@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
 import { FinancialGoal, Account } from '../types';
+import Icon from './ui/Icon';
 import {
   LineChart,
   Line,
@@ -105,7 +106,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] text-gray-400 dark:text-gray-600 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-black/20">
-        <span className="material-symbols-outlined text-4xl mb-2">query_stats</span>
+        <Icon name="query_stats" className="text-4xl mb-2" />
         <p className="text-sm font-medium">No forecast data available.</p>
         <p className="text-xs mt-1">Try selecting different accounts or adding recurring transactions.</p>
       </div>

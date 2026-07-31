@@ -13,6 +13,7 @@ import {
 import { toLocalISOString } from '../utils';
 import { loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
 import EnableBankingSyncModal from './EnableBankingSyncModal';
+import Icon from './ui/Icon';
 
 interface EnableBankingIntegrationCardProps {
   connections: EnableBankingConnection[];
@@ -327,7 +328,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
           <div>
             <div className="flex items-center gap-2 mb-1">
               <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
-                <span className="material-symbols-outlined">key</span>
+                <Icon name="key" />
               </div>
               <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Credentials Setup</h3>
             </div>
@@ -394,7 +395,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       <Card className="bg-gradient-to-br from-primary-50 to-white dark:from-dark-card dark:to-primary-900/10 border border-primary-100 dark:border-primary-800/30">
           <div className="flex items-start gap-4">
                <div className="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/30">
-                  <span className="material-symbols-outlined">add_link</span>
+                  <Icon name="add_link" />
                </div>
                <div className="flex-1">
                    <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">New Connection</h4>
@@ -414,7 +415,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                     <option key={option.id} value={option.id}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
                                 ))}
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                         </div>
                         <button
                             onClick={handleCreate}
@@ -438,7 +439,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
           {connections.length === 0 ? (
              <div className="p-8 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 text-center">
-                 <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-2">link_off</span>
+                 <Icon name="link_off" className="text-4xl text-gray-300 dark:text-gray-600 mb-2" />
                  <p className="text-light-text-secondary dark:text-dark-text-secondary font-medium">No active connections</p>
                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Add a bank above to get started.</p>
              </div>
@@ -482,14 +483,14 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                             <div className="flex items-center gap-2">
                                 {(connection.status === 'requires_update' || !connection.sessionId) && (
                                     <button onClick={() => handleReauthorize(connection)} className={`${BTN_SECONDARY_STYLE} text-amber-600 dark:text-amber-400`}>
-                                        <span className="material-symbols-outlined text-lg mr-1">refresh</span> Reauth
+                                        <Icon name="refresh" className="text-lg mr-1" /> Reauth
                                     </button>
                                 )}
                                 <button onClick={() => openSyncPrompt(connection)} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-sm">sync</span> Trigger sync
+                                    <Icon name="sync" className="text-sm" /> Trigger sync
                                 </button>
                                 <button onClick={() => onDeleteConnection(connection.id)} className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-sm">delete</span> Remove
+                                    <Icon name="delete" className="text-sm" /> Remove
                                 </button>
                             </div>
                         </div>
@@ -525,7 +526,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                             <div className="flex justify-between items-start mb-6">
                                                 <div className="flex gap-4">
                                                      <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
-                                                        <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
+                                                        <Icon name="account_balance_wallet" className="text-2xl" />
                                                     </div>
                                                     <div>
                                                         <h5 className="font-bold text-light-text dark:text-dark-text text-lg">{account.name}</h5>
@@ -552,7 +553,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                         onClick={() => openSyncPrompt(connection, account)}
                                                         className={`${BTN_SECONDARY_STYLE} text-xs flex items-center gap-1`}
                                                       >
-                                                        <span className="material-symbols-outlined text-sm">sync</span> Sync account
+                                                        <Icon name="sync" className="text-sm" /> Sync account
                                                       </button>
                                                     </div>
                                                 </div>
@@ -589,7 +590,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                                     </option>
                                                                 ))}
                                                             </select>
-                                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                                         </div>
                                                     ) : (
                                                         <div className="space-y-2 animate-fade-in-up">
@@ -598,13 +599,13 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                                 <select className={`${SELECT_STYLE} !text-sm`} value={rowState.newAccountType || 'Checking'} onChange={(e) => handleLinkChange(rowKey, { newAccountType: e.target.value as AccountType})}>
                                                                     {accountTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
                                                                 </select>
-                                                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                                             </div>
                                                         </div>
                                                     )}
                                                     {linkedAccount && (rowState.mode || 'existing') === 'existing' && (
                                                         <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-sm">link</span>
+                                                            <Icon name="link" className="text-sm" />
                                                             Linked to {linkedAccount.name}
                                                         </p>
                                                     )}
@@ -623,6 +624,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                     />
                                                     <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary leading-snug">
                                                         Choose how far back to import (up to 90 days). Future syncs will continue from where they left off.
+import Icon from './ui/Icon';
                                                     </p>
                                                 </div>
 
@@ -650,17 +652,17 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                         }}
                                                         className={`${BTN_PRIMARY_STYLE} w-full gap-2`}
                                                     >
-                                                        <span className="material-symbols-outlined text-lg">link</span>
+                                                        <Icon name="link" className="text-lg" />
                                                         Save link
                                                     </button>
                                                     
                                                     <div className="space-y-1 pt-1">
                                                         <div className="flex items-center gap-2 text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
-                                                            <span className="material-symbols-outlined text-sm opacity-70">event</span>
+                                                            <Icon name="event" className="text-sm opacity-70" />
                                                             <span>Sync start: {defaultSyncStart}</span>
                                                         </div>
                                                          <div className="flex items-center gap-2 text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
-                                                            <span className="material-symbols-outlined text-sm opacity-70">history</span>
+                                                            <Icon name="history" className="text-sm opacity-70" />
                                                             <span>Last sync: {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Pending'}</span>
                                                         </div>
                                                     </div>

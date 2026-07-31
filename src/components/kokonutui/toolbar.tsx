@@ -11,24 +11,25 @@
  */
 
 import {
-  Bell,
-  CircleUserRound,
-  Edit2,
-  FileDown,
-  Frame,
-  Layers,
-  Lock,
-  type LucideIcon,
-  MousePointer2,
+  Bell01 as Bell,
+  UserCircle as CircleUserRound,
+  Edit02 as Edit2,
+  FileDownload01 as FileDown,
+  Grid01 as Frame,
+  LayersThree01 as Layers,
+  Lock01 as Lock,
+  NavigationPointer01 as MousePointer2,
   Move,
   Palette,
-  Shapes,
-  Share2,
-  SlidersHorizontal,
-} from "lucide-react";
+  Grid01 as Shapes,
+  Share01 as Share2,
+  Sliders01 as SlidersHorizontal,
+} from "@untitledui/icons";
 import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
+
+type LucideIcon = React.ComponentType<any>;
 
 interface ToolbarItem {
   id: string;

@@ -2,6 +2,7 @@
 import React from 'react';
 import { ContributionPlanStep } from '../types';
 import { formatCurrency } from '../utils';
+import Icon from './ui/Icon';
 
 interface GoalContributionPlanProps {
   plan: Record<string, ContributionPlanStep[]> | null;
@@ -55,9 +56,7 @@ const GoalContributionPlan: React.FC<GoalContributionPlanProps> = ({ plan, isLoa
                 }).map((step, index) => (
                 <div key={index} className={`p-3 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm ${step.notes ? 'bg-yellow-100/50 dark:bg-yellow-900/20' : ''}`}>
                     <div className="font-medium flex items-center gap-2">
-                        <span className="material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary">
-                            {step.date.startsWith('Upfront') ? 'star' : 'calendar_month'}
-                        </span>
+                        <Icon name={step.date.startsWith('Upfront') ? 'star' : 'calendar_month'} className="text-base text-light-text-secondary dark:text-dark-text-secondary" />
                         {/* FIX: Ensure that only valid date strings are passed to the Date constructor. */}
                         <span>{step.date.includes('-') ? new Date(step.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : step.date}</span>
                     </div>

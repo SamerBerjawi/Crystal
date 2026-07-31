@@ -14,6 +14,7 @@ import {
 } from '../src/components/charts';
 import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
 import { FinancialGoal } from '../types';
+import Icon from './ui/Icon';
 
 interface ChartData {
   name: string;
@@ -154,7 +155,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   if (!chartData || chartData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-40 p-8 text-center min-h-[250px]">
-        <span className="material-symbols-outlined text-3xl mb-2">show_chart</span>
+        <Icon name="show_chart" className="text-3xl mb-2" />
         <p className="text-xs font-bold tracking-widest">No Net Worth Data Available</p>
       </div>
     );

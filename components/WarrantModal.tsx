@@ -5,6 +5,7 @@ import { Warrant, PaymentTerm } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { toLocalISOString, formatCurrency } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
+import Icon from './ui/Icon';
 
 interface WarrantModalProps {
   onClose: () => void;
@@ -103,7 +104,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 {/* 1. Asset Identity Section */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500 text-lg">fingerprint</span>
+                        <Icon name="fingerprint" className="text-primary-500 text-lg" />
                         Security Identification
                     </h4>
                     
@@ -139,7 +140,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 {/* 2. Grant Specifications */}
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500 text-lg">contract</span>
+                        <Icon name="contract" className="text-primary-500 text-lg" />
                         Exercise Parameters
                     </h4>
 
@@ -167,7 +168,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                     <div className="flex items-center justify-between">
                         <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                            <span className="material-symbols-outlined text-amber-500 text-lg">receipt_long</span>
+                            <Icon name="receipt_long" className="text-amber-500 text-lg" />
                             Tax Liability Strategy
                         </h4>
                         <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-xl border border-black/5 dark:border-white/5 space-x-1">
@@ -203,7 +204,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                 onClick={handleAddPayment}
                                 className="flex items-center gap-2 text-[10px] font-black  tracking-[0.2em] text-primary-500 hover:text-primary-600 group transition-all"
                             >
-                                <span className="material-symbols-outlined text-lg group-active:scale-90">add_circle</span>
+                                <Icon name="add_circle" className="text-lg group-active:scale-90" />
                                 Add Milestone
                             </button>
                         </div>
@@ -239,7 +240,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                             onClick={() => handleRemovePayment(payment.id)}
                                             className="w-12 h-12 flex items-center justify-center text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
                                         >
-                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                            <Icon name="delete" className="text-xl" />
                                         </button>
                                     </div>
                                 </div>
@@ -252,9 +253,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                             }`}>
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isBalanceZero ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white animate-pulse'}`}>
-                                        <span className="material-symbols-outlined text-xl">
-                                            {isBalanceZero ? 'check_circle' : 'pending_actions'}
-                                        </span>
+                                        <Icon name={isBalanceZero ? 'check_circle' : 'pending_actions'} className="text-xl" />
                                     </div>
                                     <div className="space-y-0.5">
                                         <span className={`text-[10px] font-black  tracking-[0.25em] ${isBalanceZero ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
@@ -279,7 +278,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                         className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black ${!isBalanceZero ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     >
                         {isEditing ? 'Commit Changes' : 'Confirm Execution'}
-                        <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">verified</span>
+                        <Icon name="verified" className="text-lg transition-transform group-hover:translate-x-1" />
                     </button>
                 </div>
             </form>

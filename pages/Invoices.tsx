@@ -10,6 +10,7 @@ import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import InvoiceModal from '../components/InvoiceModal';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import Icon from '../components/ui/Icon';
 
 const STATUS_COLORS: Record<InvoiceStatus, { bg: string, text: string, icon: string }> = {
     draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'edit_note' },
@@ -154,7 +155,7 @@ const InvoicesPage: React.FC = () => {
                         <div className="flex flex-col gap-6 relative z-10">
                             <div className="flex items-center justify-between">
                                 <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
-                                    <span className={`material-symbols-outlined ${stat.color} text-2xl`}>{stat.icon}</span>
+                                    <Icon name={stat.icon} className={`${stat.color} text-2xl`} />
                                 </div>
                                 <span className="text-[10px] font-black text-gray-300 dark:text-gray-700  tracking-widest">METRIC Node {idx + 1}</span>
                             </div>
@@ -180,20 +181,20 @@ const InvoicesPage: React.FC = () => {
                                 onClick={() => setActiveTab('invoices')} 
                                 className={`flex items-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black  tracking-widest transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
                             >
-                                <span className="material-symbols-outlined text-xl">receipt_long</span>
+                                <Icon name="receipt_long" className="text-xl" />
                                 Invoices
                             </button>
                             <button 
                                 onClick={() => setActiveTab('quotes')} 
                                 className={`flex items-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black  tracking-widest transition-all ${activeTab === 'quotes' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
                             >
-                                <span className="material-symbols-outlined text-xl">request_quote</span>
+                                <Icon name="request_quote" className="text-xl" />
                                 Proposals
                             </button>
                         </div>
 
                         <div className="relative group w-full md:w-96">
-                            <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors">search</span>
+                            <Icon name="search" className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                             <input 
                                 type="text"
                                 value={searchTerm}
@@ -292,12 +293,12 @@ const InvoicesPage: React.FC = () => {
                                             <td className="px-6 sm:px-10 py-8 hidden md:table-cell">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black  tracking-widest border border-current border-opacity-10 shadow-sm ${statusStyle.bg} ${statusStyle.text}`}>
-                                                        <span className="material-symbols-outlined text-sm">{statusStyle.icon}</span>
+                                                        <Icon name={statusStyle.icon} className="text-sm" />
                                                         {doc.status}
                                                     </div>
                                                     {doc.dueDate && (
                                                          <div className={`flex items-center gap-1.5 text-[9px] font-black  tracking-tighter ${doc.status === 'overdue' ? 'text-rose-500' : 'text-gray-400 opacity-60'}`}>
-                                                            <span className="material-symbols-outlined text-sm">{doc.status === 'overdue' ? 'warning' : 'event'}</span>
+                                                            <Icon name={doc.status === 'overdue' ? 'warning' : 'event'} className="text-sm" />
                                                             Due {parseLocalDate(doc.dueDate).toLocaleDateString()}
                                                         </div>
                                                     )}
@@ -316,14 +317,14 @@ const InvoicesPage: React.FC = () => {
                                                             className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 rounded-2xl transition-all active:scale-90"
                                                             title="Convert to Invoice"
                                                         >
-                                                            <span className="material-symbols-outlined text-xl sm:text-2xl">transform</span>
+                                                            <Icon name="transform" className="text-xl sm:text-2xl" />
                                                         </button>
                                                     )}
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); setDeletingId(doc.id); }}
                                                         className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
                                                     >
-                                                        <span className="material-symbols-outlined text-xl sm:text-2xl">delete_sweep</span>
+                                                        <Icon name="delete_sweep" className="text-xl sm:text-2xl" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -334,7 +335,7 @@ const InvoicesPage: React.FC = () => {
                                 <tr>
                                     <td colSpan={5} className="px-10 py-32 text-center">
                                         <div className="flex flex-col items-center gap-6 opacity-20">
-                                            <span className="material-symbols-outlined text-8xl">inbox_customize</span>
+                                            <Icon name="inbox_customize" className="text-8xl" />
                                             <div className="space-y-1">
                                                 <p className="text-[12px] font-black  tracking-[0.5em]">No Documents Identified</p>
                                                 <p className="text-[10px] font-bold  tracking-widest">Adjust filters or issue a new record</p>
@@ -353,10 +354,10 @@ const InvoicesPage: React.FC = () => {
                     </p>
                     <div className="flex gap-2">
                          <button className="w-12 h-12 flex items-center justify-center rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
-                            <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                            <Icon name="chevron_left" className="text-2xl" />
                          </button>
                          <button className="w-12 h-12 flex items-center justify-center rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
-                            <span className="material-symbols-outlined text-2xl">chevron_right</span>
+                            <Icon name="chevron_right" className="text-2xl" />
                          </button>
                     </div>
                 </div>

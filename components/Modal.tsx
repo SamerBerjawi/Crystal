@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Icon from './ui/Icon';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -58,7 +59,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
             className="text-light-text-secondary dark:text-dark-text-secondary w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-colors shrink-0"
             aria-label="Close modal"
           >
-            <span className="material-symbols-outlined text-xl">close</span>
+            <Icon name="close" className="text-xl" />
           </button>
         </header>
         <div className="p-4 sm:p-6 max-h-[calc(90vh-70px)] overflow-y-auto">

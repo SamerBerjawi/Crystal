@@ -12,6 +12,7 @@ import {
   generateSyntheticPropertyTransactions,
 } from '../utils';
 import { useScheduleContext, useGoalsContext } from '../contexts/FinancialDataContext';
+import Icon from './ui/Icon';
 import {
   LineChart,
   Line,
@@ -228,7 +229,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
   return (
     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-8 flex flex-col group relative overflow-hidden shadow-sm">
       <div className="absolute top-0 right-0 p-8 opacity-5">
-        <span className="material-symbols-outlined text-8xl">trending_up</span>
+        <Icon name="trending_up" className="text-8xl" />
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
@@ -248,9 +249,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
           <div>
             <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 tracking-widest">6-Mo Net Change</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`material-symbols-outlined text-sm font-bold ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
-                {isPositiveTrend ? 'arrow_upward' : 'arrow_downward'}
-              </span>
+              <Icon name={isPositiveTrend ? 'arrow_upward' : 'arrow_downward'} className={`text-sm font-bold ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`} />
               <span className={`text-base font-black font-mono tracking-tight ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {formatCurrency(Math.abs(netChange), account.currency)}
               </span>

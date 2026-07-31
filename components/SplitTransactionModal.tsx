@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Transaction, Category, Currency } from '../types';
 import { formatCurrency } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface SplitTransactionModalProps {
   onClose: () => void;
@@ -124,7 +125,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
                   </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                 </div>
               </div>
               <div className="col-span-3 text-right">
@@ -145,7 +146,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                   disabled={splits.length <= 1}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30"
                 >
-                  <span className="material-symbols-outlined text-lg">delete</span>
+                  <Icon name="delete" className="text-lg" />
                 </button>
               </div>
             </div>
@@ -157,7 +158,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
             onClick={handleAddSplit}
             className="flex items-center gap-2 text-sm font-bold text-primary-500 hover:text-primary-600 transition-colors"
           >
-            <span className="material-symbols-outlined">add_circle</span>
+            <Icon name="add_circle" />
             Add Split
           </button>
           <div className="flex gap-3">

@@ -14,6 +14,7 @@ import { useConfirm } from '../components/ConfirmationModal';
 
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
+import Icon from '../components/ui/Icon';
 
 interface BudgetingProps {
   budgets?: Budget[];
@@ -260,14 +261,14 @@ const Budgeting: React.FC<BudgetingProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl relative z-10">
            <div className="flex items-center gap-2 bg-white/50 dark:bg-black/50 p-1 rounded-[1.5rem] w-full md:w-auto justify-between md:justify-start border border-black/5 dark:border-white/5 shadow-lg">
                 <button onClick={() => handleMonthChange(-1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
-                    <span className="material-symbols-outlined text-lg leading-none group-hover:-translate-x-1 transition-transform">chevron_left</span>
+                    <Icon name="chevron_left" className="text-lg leading-none group-hover:-translate-x-1 transition-transform" />
                 </button>
                 <div className="flex flex-col items-center px-6 min-w-[140px]">
                     <span className="text-[10px] font-bold tracking-[0.2em] opacity-40 leading-none mb-1">Active cycle</span>
                     <span className="text-xs font-bold tracking-widest leading-none">{monthName}</span>
                 </div>
                 <button onClick={() => handleMonthChange(1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
-                    <span className="material-symbols-outlined text-lg leading-none group-hover:translate-x-1 transition-transform">chevron_right</span>
+                    <Icon name="chevron_right" className="text-lg leading-none group-hover:translate-x-1 transition-transform" />
                 </button>
            </div>
            
@@ -278,7 +279,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         className="flex items-center gap-3 px-6 py-3 hover:bg-primary-500/10 transition-colors group/btn"
                         title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
                     >
-                        <span className="material-symbols-outlined text-lg text-primary-500 group-hover/btn:scale-125 transition-transform">bolt</span>
+                        <Icon name="bolt" className="text-lg text-primary-500 group-hover/btn:scale-125 transition-transform" />
                         <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap">Quick budget</span>
                     </button>
                     <div className="w-[1px] bg-black/5 dark:bg-white/10"></div>
@@ -287,7 +288,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         className="px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                         title="More Quick Create Options"
                     >
-                        <span className="material-symbols-outlined text-lg leading-none">expand_more</span>
+                        <Icon name="expand_more" className="text-lg leading-none" />
                     </button>
                 </div>
            </div>
@@ -312,7 +313,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         </div>
                         <div className="flex flex-col items-end">
                             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform">
-                                <span className="material-symbols-outlined text-2xl opacity-40">account_balance_wallet</span>
+                                <Icon name="account_balance_wallet" className="text-2xl opacity-40" />
                             </div>
                         </div>
                     </div>
@@ -357,7 +358,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
               <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover:opacity-40 transition-opacity"></div>
               <div className="relative z-10 text-center flex flex-col items-center">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
-                        <span className="material-symbols-outlined text-2xl">local_atm</span>
+                        <Icon name="local_atm" className="text-2xl" />
                   </div>
                   <p className="text-[10px] font-bold tracking-[0.2em] opacity-40 mb-1">Daily safe spend</p>
                   <h3 className="text-3xl font-bold tracking-tighter text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
@@ -374,7 +375,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           <div className="xl:col-span-2 space-y-6">
               <div className="flex items-center gap-4 pb-4 border-b border-black/5 dark:border-white/5">
                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-xl">category</span>
+                    <Icon name="category" className="text-xl" />
                  </div>
                  <div>
                     <h3 className="text-base font-bold tracking-tight text-light-text dark:text-dark-text">Control Center</h3>
@@ -408,7 +409,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                {expenseCategories.filter(c => !c.parentId).length === 0 && (
                  <div className="text-center py-24 text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 rounded-[2.5rem] border border-dashed border-black/10 dark:border-white/10 shadow-inner">
                     <div className="w-20 h-20 rounded-[2rem] bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 mx-auto mb-6 flex items-center justify-center shadow-lg">
-                        <span className="material-symbols-outlined text-4xl opacity-20">savings</span>
+                        <Icon name="savings" className="text-4xl opacity-20" />
                     </div>
                     <p className="text-xs font-black  tracking-[0.2em] mb-2 opacity-60">No financial guardrails detected</p>
                     <p className="text-[11px] font-bold opacity-30 max-w-[240px] mx-auto text-center">Your spending categories are currently unmapped. Initialize them in settings to start tracking.</p>
@@ -425,7 +426,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         <p className="text-[10px] font-black  tracking-[0.2em] opacity-40 mb-0.5">Portfolio</p>
                         <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text leading-none">Allocation</h3>
                     </div>
-                    <span className="material-symbols-outlined opacity-20 group-hover:rotate-45 transition-transform text-lg">pie_chart</span>
+                    <Icon name="pie_chart" className="opacity-20 group-hover:rotate-45 transition-transform text-lg" />
                   </div>
 
                   <div className="flex-grow min-h-[160px] relative z-10 flex items-center justify-center">
@@ -501,7 +502,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                             })
                       ) : (
                           <div className="text-center py-6 opacity-30 flex flex-col items-center gap-2">
-                              <span className="material-symbols-outlined text-2xl">verified_user</span>
+                              <Icon name="verified_user" className="text-2xl" />
                               <p className="text-[9px] font-black  tracking-[0.2em]">Safely within limits</p>
                           </div>
                       )}

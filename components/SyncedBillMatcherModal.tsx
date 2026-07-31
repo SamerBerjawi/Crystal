@@ -5,6 +5,7 @@ import { SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
 import { Account } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
 import ConfidenceScoreBar from './ConfidenceScoreBar';
+import Icon from './ui/Icon';
 
 interface SyncedBillMatcherModalProps {
   isOpen: boolean;
@@ -47,9 +48,7 @@ const SuggestionItemRow: React.FC<{
           className="pt-1 text-light-text-secondary hover:text-emerald-600 transition-colors"
           title="Select for batch approval"
         >
-          <span className="material-symbols-outlined text-xl">
-            {isSelected ? 'check_box' : 'check_box_outline_blank'}
-          </span>
+          <Icon name={isSelected ? 'check_box' : 'check_box_outline_blank'} className="text-xl" />
         </button>
 
         <div className="flex-1 space-y-3">
@@ -89,9 +88,7 @@ const SuggestionItemRow: React.FC<{
 
             {/* Vs Arrow */}
             <div className="flex justify-center items-center py-1">
-              <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-lg">
-                swap_horiz
-              </span>
+              <Icon name="swap_horiz" className="text-light-text-secondary dark:text-dark-text-secondary text-lg" />
             </div>
 
             {/* Planned Scheduled Item */}
@@ -133,7 +130,7 @@ const SuggestionItemRow: React.FC<{
                 onClick={onConfirm}
                 className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3 !text-xs bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20`}
               >
-                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <Icon name="check_circle" className="text-sm" />
                 <span>Confirm & Post</span>
               </button>
             </div>
@@ -230,9 +227,7 @@ const SyncedBillMatcherModal: React.FC<SyncedBillMatcherModalProps> = ({
               onClick={handleToggleSelectAll}
               className="flex items-center gap-1.5 text-xs font-bold text-light-text dark:text-dark-text"
             >
-              <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">
-                {isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'}
-              </span>
+              <Icon name={isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-600 dark:text-emerald-400" />
               <span>
                 {selectedIds.size === 0
                   ? 'Select All'
@@ -254,7 +249,7 @@ const SyncedBillMatcherModal: React.FC<SyncedBillMatcherModalProps> = ({
               disabled={selectedIds.size === 0}
               className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-initial !py-2 !px-3 text-xs bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40`}
             >
-              <span className="material-symbols-outlined text-sm">done_all</span>
+              <Icon name="done_all" className="text-sm" />
               Approve Selected ({selectedIds.size})
             </button>
           </div>
@@ -276,7 +271,7 @@ const SyncedBillMatcherModal: React.FC<SyncedBillMatcherModalProps> = ({
           </div>
         ) : (
           <div className="text-center py-12 space-y-2">
-            <span className="material-symbols-outlined text-4xl text-light-text-secondary">check_circle</span>
+            <Icon name="check_circle" className="text-4xl text-light-text-secondary" />
             <p className="text-sm font-semibold text-light-text dark:text-dark-text">No pending bill match suggestions to review.</p>
           </div>
         )}

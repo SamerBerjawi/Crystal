@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Currency, AccountType } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 import { flattenCategories, toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 
 // --- Helper Functions ---
@@ -603,7 +604,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     return (
         <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
             <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
-                <button onClick={() => currentStep > 1 ? goToStep(currentStep - 1) : onClose()} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined">arrow_back</span></button>
+                <button onClick={() => currentStep > 1 ? goToStep(currentStep - 1) : onClose()} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><Icon name="arrow_back" /></button>
                 <nav aria-label="Import Steps" className="flex-grow">
                     <ol className="flex items-center justify-center w-full max-w-3xl mx-auto">
                         {STEPS.map((step, index) => {
@@ -613,7 +614,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                                 <li key={step.number} className="flex items-center w-full">
                                     <div className="flex flex-col items-center text-center">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 ${isCompleted ? 'bg-primary-500 text-white' : isCurrent ? 'bg-primary-100 dark:bg-primary-800/50 border-2 border-primary-500 text-primary-600 dark:text-primary-200' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
-                                            {isCompleted ? <span className="material-symbols-outlined">check</span> : step.number}
+                                            {isCompleted ? <Icon name="check" /> : step.number}
                                         </div>
                                         <p className={`mt-2 text-xs font-semibold hidden md:block ${isCurrent ? 'text-light-text dark:text-dark-text' : 'text-gray-500'}`}>{step.name}</p>
                                     </div>
@@ -625,7 +626,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                         })}
                     </ol>
                 </nav>
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined">close</span></button>
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><Icon name="close" /></button>
             </header>
             <main className="flex-1 overflow-y-auto bg-transparent p-4 md:p-8">{renderContent()}</main>
             {!isPublishing && <footer className="p-4 border-t border-black/10 dark:border-white/10 flex justify-end">
@@ -640,7 +641,7 @@ const Step1Upload: React.FC<{ setRawCSV: (csv: string) => void, setFileName: (na
     const [isDragging, setIsDragging] = useState(false);
     const handleFile = (file: File) => { setFileName(file.name); const reader = new FileReader(); reader.onload = (e) => setRawCSV(e.target?.result as string); reader.readAsText(file); };
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
-    return (<div className="max-w-2xl mx-auto text-center"><h2 className="text-3xl font-bold mb-2">Import your data</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">Upload your CSV file below. The next steps will guide you through mapping and cleaning.</p><div onDragOver={(e)=>{e.preventDefault();setIsDragging(true)}} onDragLeave={(e)=>{e.preventDefault();setIsDragging(false)}} onDrop={handleDrop} className={`p-10 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary-500 bg-primary-500/10' : 'border-gray-300 dark:border-gray-600'}`}><span className="material-symbols-outlined text-5xl text-gray-400">upload_file</span><p className="mt-2 font-semibold">Drag & drop your CSV file here</p><p className="text-sm text-gray-500">{fileName || "or"}</p><label className={`${BTN_PRIMARY_STYLE} mt-4 inline-block cursor-pointer`}>Browse Files<input type="file" className="hidden" accept=".csv" onChange={(e) => e.target.files && e.target.files[0] && handleFile(e.target.files[0])} /></label></div></div>);
+    return (<div className="max-w-2xl mx-auto text-center"><h2 className="text-3xl font-bold mb-2">Import your data</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">Upload your CSV file below. The next steps will guide you through mapping and cleaning.</p><div onDragOver={(e)=>{e.preventDefault();setIsDragging(true)}} onDragLeave={(e)=>{e.preventDefault();setIsDragging(false)}} onDrop={handleDrop} className={`p-10 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary-500 bg-primary-500/10' : 'border-gray-300 dark:border-gray-600'}`}><Icon name="upload_file" className="text-5xl text-gray-400" /><p className="mt-2 font-semibold">Drag & drop your CSV file here</p><p className="text-sm text-gray-500">{fileName || "or"}</p><label className={`${BTN_PRIMARY_STYLE} mt-4 inline-block cursor-pointer`}>Browse Files<input type="file" className="hidden" accept=".csv" onChange={(e) => e.target.files && e.target.files[0] && handleFile(e.target.files[0])} /></label></div></div>);
 };
 
 const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap: any, importType: string, dateFormat: string, setDateFormat: any, amountConfig: string, setAmountConfig: any, delimiter: string, setDelimiter: any, accountSource: 'column' | 'single', setAccountSource: (source: 'column' | 'single') => void, selectedSingleAccountId: string, setSelectedSingleAccountId: (id: string) => void, existingAccounts: Account[] }> = ({ headers, columnMap, setColumnMap, importType, dateFormat, setDateFormat, amountConfig, setAmountConfig, delimiter, setDelimiter, accountSource, setAccountSource, selectedSingleAccountId, setSelectedSingleAccountId, existingAccounts }) => {
@@ -668,12 +669,12 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                     {accountSource === 'column' ? (
                        <div className={SELECT_WRAPPER_STYLE}>
                            <select value={columnMap['account'] || ''} onChange={(e) => handleMappingChange('account', e.target.value)} className={SELECT_STYLE}><option value="">Select column for Account</option>{headers.map(header => <option key={header} value={header}>{header}</option>)}</select>
-                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                           <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                        </div>
                     ) : (
                        <div className={SELECT_WRAPPER_STYLE}>
                            <select value={selectedSingleAccountId} onChange={e => setSelectedSingleAccountId(e.target.value)} className={SELECT_STYLE}><option value="">Select an account</option>{existingAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
-                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                           <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                        </div>
                     )}
                 </div>
@@ -700,7 +701,7 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                     <option value="">Select column</option>
                     {headers.map(header => <option key={header} value={header}>{header}</option>)}
                 </select>
-                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
             </div>
         </div>
     );
@@ -724,7 +725,7 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                                     <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                                     <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                         <div>
@@ -734,7 +735,7 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                                     <option value="single_signed">Single column with +/-</option>
                                     <option value="double_entry">Two columns (In/Out)</option>
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                     </>}
@@ -745,7 +746,7 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                                 <option value=",">Comma (,)</option>
                                 <option value=";">Semicolon (;)</option>
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                         </div>
                     </div>
                 </div>
@@ -914,7 +915,7 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                                         {h === 'date' ? (
                                             <button onClick={() => setActivePopover(h)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1.5 text-left w-full flex justify-between items-center`}>
                                                 <span className="truncate">{filters[h] ? `${filters[h].type}: ${filters[h].value}` : 'Filter...'}</span>
-                                                <span className="material-symbols-outlined text-sm">filter_list</span>
+                                                <Icon name="filter_list" className="text-sm" />
                                             </button>
                                         ) : (h === 'amount' || h === 'balance') ? (
                                             <div className="flex h-8 sm:h-9">
@@ -998,9 +999,9 @@ const Step5Map: React.FC<{
     currencies, setCurrencyMap, currencyMap
 }) => (
     <div className="max-w-3xl mx-auto space-y-8">
-        {importType === 'transactions' && categories.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Categories</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported categories to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{categories.map(cat => (<div key={cat} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{cat}</p><div className={SELECT_WRAPPER_STYLE}><select value={categoryMap[cat]} onChange={e => setCategoryMap((p:any) => ({...p, [cat]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Uncategorized (Skip)</option><option value={`_CREATE_NEW_:${cat}`}>Create new category '{cat}'</option><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'expense')} label="--- EXPENSES ---" /><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'income')} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
-        {importType === 'transactions' && accounts.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Accounts</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported accounts to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accounts.map(acc => (<div key={acc} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{acc}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountMap[acc]} onChange={e => setAccountMap((p:any) => ({...p, [acc]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip rows)</option><option value={`_CREATE_NEW_:${acc}`}>Create new account '{acc}'</option>{existingAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
-        {importType === 'accounts' && accountTypes.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Account Types</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Match the account types from your file to Finaura's types.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accountTypes.map(type => (<div key={type} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{type}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountTypeMap[type]} onChange={e => setAccountTypeMap((p:any) => ({...p, [type]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip)</option>{ALL_ACCOUNT_TYPES.map(a => <option key={a} value={a}>{a}</option>)}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
+        {importType === 'transactions' && categories.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Categories</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported categories to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{categories.map(cat => (<div key={cat} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{cat}</p><div className={SELECT_WRAPPER_STYLE}><select value={categoryMap[cat]} onChange={e => setCategoryMap((p:any) => ({...p, [cat]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Uncategorized (Skip)</option><option value={`_CREATE_NEW_:${cat}`}>Create new category '{cat}'</option><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'expense')} label="--- EXPENSES ---" /><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'income')} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div></div></div>))}</div></div>}
+        {importType === 'transactions' && accounts.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Accounts</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported accounts to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accounts.map(acc => (<div key={acc} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{acc}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountMap[acc]} onChange={e => setAccountMap((p:any) => ({...p, [acc]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip rows)</option><option value={`_CREATE_NEW_:${acc}`}>Create new account '{acc}'</option>{existingAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select><div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div></div></div>))}</div></div>}
+        {importType === 'accounts' && accountTypes.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Account Types</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Match the account types from your file to Finaura's types.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accountTypes.map(type => (<div key={type} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-2 rounded"><p className="truncate">{type}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountTypeMap[type]} onChange={e => setAccountTypeMap((p:any) => ({...p, [type]: e.target.value}))} className={SELECT_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip)</option>{ALL_ACCOUNT_TYPES.map(a => <option key={a} value={a}>{a}</option>)}</select><div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div></div></div>))}</div></div>}
         {currencies.length > 0 && (
             <div>
                 <h2 className="text-2xl font-bold mb-2 text-center">Map Currencies</h2>
@@ -1023,7 +1024,7 @@ const Step5Map: React.FC<{
                                         {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </optgroup>
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                     ))}
@@ -1039,7 +1040,7 @@ const Step6Confirm: React.FC<{ data: any[], importType: 'accounts' | 'transactio
             <div className="flex justify-between items-center p-2 border-b border-black/10 dark:border-white/10 font-semibold"><p>Item</p><p>Count</p></div>
             <div className="flex justify-between items-center p-2">
                 <p className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500">{importType === 'transactions' ? 'receipt_long' : 'wallet'}</span>
+                    <Icon name={importType === 'transactions' ? 'receipt_long' : 'wallet'} className="text-primary-500" />
                     {importType === 'transactions' ? 'Transactions to Import' : 'Accounts to Import'}
                 </p>
                 <p className="font-bold text-lg">{data.length}</p>

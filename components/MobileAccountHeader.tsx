@@ -1,6 +1,7 @@
 import React from 'react';
 import { Account } from '../types';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
+import Icon from './ui/Icon';
 
 interface MobileAccountHeaderProps {
   account: Account;
@@ -39,7 +40,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
           className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 text-light-text dark:text-white text-xs font-extrabold active:scale-95 transition-all min-h-[44px]"
           aria-label="Back to Accounts"
         >
-          <span className="material-symbols-outlined text-base">chevron_left</span>
+          <Icon name="chevron_left" className="text-base" />
           <span>Accounts</span>
         </button>
 
@@ -51,7 +52,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
               aria-label={syncAction.label}
               title={syncAction.label}
             >
-              <span className="material-symbols-outlined text-lg">{syncAction.icon}</span>
+              <Icon name={syncAction.icon} className="text-lg" />
             </button>
           )}
 
@@ -62,7 +63,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
               aria-label={secondaryAction.label}
               title={secondaryAction.label}
             >
-              <span className="material-symbols-outlined text-lg">{secondaryAction.icon}</span>
+              <Icon name={secondaryAction.icon} className="text-lg" />
             </button>
           )}
 
@@ -73,7 +74,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
               aria-label={valuationAction.label}
               title={valuationAction.label}
             >
-              <span className="material-symbols-outlined text-lg">{valuationAction.icon}</span>
+              <Icon name={valuationAction.icon} className="text-lg" />
             </button>
           )}
 
@@ -84,7 +85,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
               aria-label={primaryAction.label}
               title={primaryAction.label}
             >
-              <span className="material-symbols-outlined text-xl">{primaryAction.icon}</span>
+              <Icon name={primaryAction.icon} className="text-xl" />
             </button>
           )}
         </div>
@@ -98,7 +99,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${typeConfig.color}`}>
-                <span className="material-symbols-outlined text-lg">{typeConfig.icon}</span>
+                <Icon name={typeConfig.icon} className="text-lg" />
               </div>
               <span className="text-[11px] font-bold text-white/80 uppercase tracking-wider">
                 {badgeText || account.type}
@@ -134,7 +135,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
                 onClick={primaryAction.onClick}
                 className="px-3 py-2 rounded-xl bg-primary-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all min-h-[44px]"
               >
-                <span className="material-symbols-outlined text-base">{primaryAction.icon}</span>
+                <Icon name={primaryAction.icon} className="text-base" />
                 <span>{primaryAction.label}</span>
               </button>
             )}

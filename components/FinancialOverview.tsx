@@ -4,6 +4,7 @@ import Card from './Card';
 import { formatCurrency } from '../utils';
 import { Currency } from '../types';
 import { AreaChart, Area, ResponsiveContainer, LineChart, Line } from 'recharts';
+import Icon from './ui/Icon';
 
 interface FinancialOverviewProps {
     netWorth: number;
@@ -40,7 +41,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-1">
                              <div className="flex items-center gap-2 mb-1">
-                                <span className="material-symbols-outlined text-primary-500 text-sm">account_balance</span>
+                                <Icon name="account_balance" className="text-primary-500 text-sm" />
                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Net worth</span>
                             </div>
                             <h2 className="text-3xl sm:text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">
@@ -70,9 +71,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                              {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })}
                          </h3>
                          <div className="mt-2 flex items-center gap-1.5">
-                             <span className={`material-symbols-outlined text-[10px] sm:text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                 {isPositiveNet ? 'trending_up' : 'trending_down'}
-                             </span>
+                             <Icon name={isPositiveNet ? 'trending_up' : 'trending_down'} className={`text-[10px] sm:text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`} />
                              <span className="text-[7px] sm:text-[8px] font-semibold tracking-wider opacity-40">{isPositiveNet ? 'Surplus' : 'Deficit'}</span>
                          </div>
                      </div>

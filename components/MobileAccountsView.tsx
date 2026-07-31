@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Account, Transaction, Warrant, Currency } from '../types';
 import { formatCurrency, convertCurrency, convertToEur } from '../utils';
 import { DEBT_TYPES, ASSET_TYPES, ACCOUNT_TYPE_STYLES } from '../constants';
+import Icon from './ui/Icon';
 
 interface MobileAccountsViewProps {
   accounts: Account[];
@@ -115,7 +116,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
           <div
             className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-black/5 dark:border-white/10 ${typeConfig.color}`}
           >
-            <span className="material-symbols-outlined text-xl">{typeConfig.icon}</span>
+            <Icon name={typeConfig.icon} className="text-xl" />
           </div>
 
           <div className="min-w-0 flex-1">
@@ -147,9 +148,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
           >
             {formattedBal}
           </p>
-          <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-sm opacity-40 mt-0.5">
-            chevron_right
-          </span>
+          <Icon name="chevron_right" className="text-light-text-secondary dark:text-dark-text-secondary text-sm opacity-40 mt-0.5" />
         </div>
       </div>
     );
@@ -174,7 +173,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-center text-light-text dark:text-white active:scale-95 transition-all"
             aria-label="View Controls"
           >
-            <span className="material-symbols-outlined text-xl">tune</span>
+            <Icon name="tune" className="text-xl" />
           </button>
 
           <button
@@ -182,7 +181,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-primary-500 text-white shadow-lg shadow-primary-500/30 flex items-center justify-center active:scale-95 transition-all"
             aria-label="Add Account"
           >
-            <span className="material-symbols-outlined text-xl">add</span>
+            <Icon name="add" className="text-xl" />
           </button>
         </div>
       </div>
@@ -233,7 +232,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
               onClick={() => setShowControlsModal(false)}
               className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-lg"
             >
-              <span className="material-symbols-outlined text-base">close</span>
+              <Icon name="close" className="text-base" />
             </button>
           </div>
 
@@ -307,9 +306,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary-500 text-lg">
-                    account_balance
-                  </span>
+                  <Icon name="account_balance" className="text-primary-500 text-lg" />
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-light-text dark:text-white">
                     Assets ({assetAccounts.length})
                   </h3>
@@ -325,9 +322,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-rose-500 text-lg">
-                    money_off
-                  </span>
+                  <Icon name="money_off" className="text-rose-500 text-lg" />
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-light-text dark:text-white">
                     Liabilities ({debtAccounts.length})
                   </h3>
@@ -357,9 +352,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             className="w-full flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary"
           >
             <span>Closed Accounts ({closedAccounts.length})</span>
-            <span className="material-symbols-outlined text-sm">
-              {showClosed ? 'expand_less' : 'expand_more'}
-            </span>
+            <Icon name={showClosed ? 'expand_less' : 'expand_more'} className="text-sm" />
           </button>
 
           {showClosed && (

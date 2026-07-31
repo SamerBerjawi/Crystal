@@ -59,6 +59,7 @@ import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
 import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
+import Icon from '../components/ui/Icon';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -154,7 +155,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
   <div className="ios-regular p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] border border-black/5 dark:border-white/5 bg-white/80 dark:bg-dark-card/80 backdrop-blur-md shadow-sm flex items-center gap-3.5 sm:gap-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
     <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-105 transition-transform`}>
-      <span className="material-symbols-outlined text-2xl sm:text-3xl">{icon}</span>
+      <Icon name={icon} className="text-2xl sm:text-3xl" />
     </div>
     <div className="min-w-0 relative z-10 flex-1">
       <p className="text-[10px] sm:text-[12px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
@@ -1630,7 +1631,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white'
                       }`}
                   >
-                    <span className={`material-symbols-outlined text-lg sm:text-xl ${activeTab === tab ? 'filled-icon' : 'opacity-70'}`}>{tabConfig.icon}</span>
+                    <Icon name={tabConfig.icon} className={`text-lg sm:text-xl ${activeTab === tab ? '' : 'opacity-70'}`} />
                     <span>{tabConfig.label}</span>
                     {tabConfig.badge !== null && (
                       <span className="ml-0.5 px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-500 text-white shadow-sm">
@@ -1657,7 +1658,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
                       ))}
                     </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-base">expand_more</span></div>
+                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-base" /></div>
                   </div>
 
                   <div className="w-[1px] h-5 bg-black/10 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
@@ -1669,7 +1670,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       title={showForecast ? "Hide Forecast" : "Show Forecast"}
                       aria-label="Toggle Forecast"
                     >
-                      <span className={`material-symbols-outlined text-lg sm:text-xl ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
+                      <Icon name="show_chart" className={`text-lg sm:text-xl ${showForecast ? '' : ''}`} />
                     </button>
 
                     <button
@@ -1678,7 +1679,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       title={showGoals ? "Hide Goals" : "Show Goals"}
                       aria-label="Toggle Goals"
                     >
-                      <span className={`material-symbols-outlined text-lg sm:text-xl ${showGoals ? 'filled-icon' : ''}`}>flag</span>
+                      <Icon name="flag" className={`text-lg sm:text-xl ${showGoals ? '' : ''}`} />
                     </button>
                   </div>
 
@@ -1841,7 +1842,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                             <div className="flex justify-between text-sm mb-2">
                               <div className="flex items-center gap-3">
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
-                                  <span className="material-symbols-outlined text-[16px]">{group.icon}</span>
+                                  <Icon name={group.icon} className="text-[16px]" />
                                 </div>
                                 <span className="font-bold text-light-text dark:text-dark-text tracking-tight">{name}</span>
                               </div>
@@ -1872,7 +1873,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                             <div className="flex justify-between text-sm mb-2">
                               <div className="flex items-center gap-3">
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
-                                  <span className="material-symbols-outlined text-[16px]">{group.icon}</span>
+                                  <Icon name={group.icon} className="text-[16px]" />
                                 </div>
                                 <span className="font-bold text-light-text dark:text-dark-text tracking-tight">{name}</span>
                               </div>

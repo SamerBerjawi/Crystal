@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface EnableBankingSyncModalProps {
   isOpen: boolean;
@@ -92,7 +93,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-lg">sync_alt</span>
+                    <Icon name="sync_alt" className="text-lg" />
                 </div>
                 <h4 className="text-xl font-bold text-light-text dark:text-dark-text">{title}</h4>
             </div>
@@ -102,7 +103,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
             onClick={onClose}
             className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-black/5 dark:hover:bg-white/10 p-1 rounded-full transition-colors"
           >
-            <span className="material-symbols-outlined">close</span>
+            <Icon name="close" />
           </button>
         </div>
 

@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import Card from './Card';
 import { Prediction, Transaction, Account } from '../types';
 import { formatCurrency, parseLocalDate, convertToEur, calculateAccountTotals } from '../utils';
+import Icon from './ui/Icon';
 
 interface PredictionCardProps {
     prediction: Prediction;
@@ -143,7 +144,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
                 )}
                 {isActive && (
                     <button onClick={() => onDelete(prediction.id)} className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
-                        <span className="material-symbols-outlined text-sm">close</span>
+                        <Icon name="close" className="text-sm" />
                     </button>
                 )}
             </div>
@@ -169,7 +170,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
             {prediction.status === 'won' && (
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <span className="material-symbols-outlined text-8xl text-emerald-500">emoji_events</span>
+                        <Icon name="emoji_events" className="text-8xl text-emerald-500" />
                     </div>
                 </div>
             )}

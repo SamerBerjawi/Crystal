@@ -1,5 +1,6 @@
 import React from 'react';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface TransactionMatcherCardProps {
   suggestionsCount: number;
@@ -19,7 +20,7 @@ export const TransactionMatcherCard: React.FC<TransactionMatcherCardProps> = ({
       
       <div className="flex items-center gap-4 relative z-10">
         <div className="h-12 w-12 rounded-2xl bg-primary-100 dark:bg-primary-950/40 flex items-center justify-center text-primary-600 dark:text-primary-400 border border-primary-500/20 shrink-0">
-          <span className="material-symbols-outlined text-2.5xl animate-pulse">flowsheet</span>
+          <Icon name="flowsheet" className="text-2.5xl animate-pulse" />
         </div>
         <div>
           <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">

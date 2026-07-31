@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, CrystalLogo, BTN_SECONDARY_STYLE } from '../constants';
 import { Theme } from '../types';
+import Icon from '../components/ui/Icon';
 
 interface SignInProps {
   onSignIn: (email: string, password: string) => void;
@@ -31,7 +32,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
             <span className="text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text">Crystal</span>
           </div>
           <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300 mb-2">
-            <span className="material-symbols-outlined text-xl">login</span>
+            <Icon name="login" className="text-xl" />
             <span>Welcome Back</span>
           </div>
           <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-3 tracking-tight">Sign In</h1>
@@ -43,7 +44,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-              <span className="material-symbols-outlined text-lg mt-0.5">error</span>
+              <Icon name="error" className="text-lg mt-0.5" />
               <span>{error}</span>
             </div>
           )}
@@ -51,7 +52,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           <div className="space-y-1.5">
             <label htmlFor="email" className="block text-sm font-semibold text-light-text dark:text-dark-text">Email</label>
             <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
+                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                     id="email"
                     type="email"
@@ -71,7 +72,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                  <button type="button" className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot password?</button>
             </div>
             <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
+                <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                     id="password"
                     type="password"
@@ -108,7 +109,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
         </div>
 
         <button onClick={onEnterDemoMode} className={`${BTN_SECONDARY_STYLE} w-full !py-3.5 !text-base !rounded-xl flex items-center justify-center gap-2 group`}>
-            <span className="material-symbols-outlined text-primary-500 group-hover:scale-110 transition-transform">science</span>
+            <Icon name="science" className="text-primary-500 group-hover:scale-110 transition-transform" />
             Explore Demo Mode
         </button>
 
@@ -142,12 +143,12 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
             
             <div className="grid grid-cols-2 gap-6">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                    <span className="material-symbols-outlined text-3xl text-primary-400 mb-2">show_chart</span>
+                    <Icon name="show_chart" className="text-3xl text-primary-400 mb-2" />
                     <h3 className="font-bold text-lg mb-1">Advanced Forecasting</h3>
                     <p className="text-sm text-gray-400">Predict future balances based on recurring habits.</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                    <span className="material-symbols-outlined text-3xl text-purple-400 mb-2">account_balance</span>
+                    <Icon name="account_balance" className="text-3xl text-purple-400 mb-2" />
                     <h3 className="font-bold text-lg mb-1">Bank Connectivity</h3>
                     <p className="text-sm text-gray-400">Sync with 2,500+ banks across Europe instantly.</p>
                 </div>

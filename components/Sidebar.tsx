@@ -5,6 +5,7 @@ import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS } from '../constants';
 import ThemeToggle from './ThemeToggle';
 import { getColorClasses, getGlowClasses, getBgClasses } from '../utils/colors';
 import { APP_VERSION } from '../version';
+import Icon from './ui/Icon';
 
 interface SidebarProps {
   currentPage: Page;
@@ -131,9 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Icon & Label */}
           <div className={`flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3.5 min-w-0'}`}>
-            <span className={`material-symbols-outlined text-[20px] sm:text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 filled-icon drop-shadow-[0_0_10px_currentColor]' : 'group-hover:scale-110 opacity-70'}`}>
-              {item.icon}
-            </span>
+            <Icon name={item.icon} className={`text-[20px] sm:text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_10px_currentColor]' : 'group-hover:scale-110 opacity-70'}`} />
             <span className={`whitespace-nowrap text-[13.5px] font-medium tracking-tight truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden invisible' : 'w-auto opacity-100'}`}>
               {item.name}
             </span>
@@ -188,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => setSidebarOpen(false)}
                 className="md:hidden ml-auto p-2 rounded-xl text-gray-500 hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10 transition-colors"
               >
-                <span className="material-symbols-outlined">close</span>
+                <Icon name="close" />
               </button>
             )}
           </div>
@@ -233,7 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isPrivacyMode ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 shadow-lg shadow-primary-500/20' : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'}`}
                   title={isPrivacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
                 >
-                  <span className="material-symbols-outlined text-[19px]">{isPrivacyMode ? 'visibility_off' : 'visibility'}</span>
+                  <Icon name={isPrivacyMode ? 'visibility_off' : 'visibility'} className="text-[19px]" />
                 </button>
 
                 {/* Theme Toggle */}
@@ -247,9 +246,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300"
                   title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                 >
-                  <span className="material-symbols-outlined text-[19px]">
-                    {isSidebarCollapsed ? 'last_page' : 'first_page'}
-                  </span>
+                  <Icon name={isSidebarCollapsed ? 'last_page' : 'first_page'} className="text-[19px]" />
                 </button>
               )}
             </div>
@@ -268,14 +265,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                     >
-                      <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors">person</span>
+                      <Icon name="person" className="text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors" />
                       <span className="font-semibold">My Account</span>
                     </button>
                     <button
                       onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                     >
-                      <span className="material-symbols-outlined text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors">settings</span>
+                      <Icon name="settings" className="text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors" />
                       <span className="font-semibold">Preferences</span>
                     </button>
                     <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-3"></div>
@@ -283,7 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onClick={onLogout}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all duration-200"
                     >
-                      <span className="material-symbols-outlined text-[19px]">logout</span>
+                      <Icon name="logout" className="text-[19px]" />
                       <span className="font-semibold">Sign Out</span>
                     </button>
                   </motion.div>
@@ -310,7 +307,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {!isSidebarCollapsed && (
-                  <span className="material-symbols-outlined text-gray-400 text-[18px] mr-1">unfold_more</span>
+                  <Icon name="unfold_more" className="text-gray-400 text-[18px] mr-1" />
                 )}
               </button>
             </div>

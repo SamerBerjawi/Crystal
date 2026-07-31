@@ -8,6 +8,7 @@ import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import Icon from './ui/Icon';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -757,7 +758,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         </div>
                         {isLoanPayment && (
                             <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/15 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full mt-1 border border-blue-100 dark:border-blue-800/20">
-                                <span className="material-symbols-outlined text-xs">account_balance</span>
+                                <Icon name="account_balance" className="text-xs" />
                                 <span className="text-[11px] font-black  tracking-widest">Loan Payment Detected</span>
                             </div>
                         )}
@@ -771,7 +772,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                     <div className="lg:col-span-7 space-y-4 flex flex-col justify-between">
                         <div className="bg-light-fill/30 dark:bg-dark-fill/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 space-y-4">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 mb-1">
-                                <span className="material-symbols-outlined text-primary-500 text-base">assignment</span>
+                                <Icon name="assignment" className="text-primary-500 text-base" />
                                 Core Information
                             </h3>
 
@@ -779,7 +780,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 <div>
                                     <label className={labelStyle}>Execution Date</label>
                                     <div className="relative group">
-                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">calendar_today</span>
+                                        <Icon name="calendar_today" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
                                         <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-9 h-10 font-bold text-sm`} required />
                                     </div>
                                 </div>
@@ -787,7 +788,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 <div ref={merchantContainerRef}>
                                     <label className={labelStyle}>Counterparty / Merchant</label>
                                     <div className="relative group">
-                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">store</span>
+                                        <Icon name="store" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
                                         <div className="relative">
                                             <input
                                                 id="tx-merchant"
@@ -813,7 +814,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                             className="w-full text-left px-3.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text flex items-center justify-between transition-colors group"
                                                         >
                                                             <div className="flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-gray-400 text-sm group-hover:text-primary-500 transition-colors">history</span>
+                                                                <Icon name="history" className="text-gray-400 text-sm group-hover:text-primary-500 transition-colors" />
                                                                 <span className="font-bold tracking-tight">{name}</span>
                                                             </div>
                                                             <span className="text-[11px] font-black  tracking-widest text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
@@ -836,14 +837,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                     <option value="" disabled>Select account</option>
                                                     <AccountOptions accounts={accounts} />
                                                 </select>
-                                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                                             </div>
                                         </div>
                                         
                                         {type === 'transfer' && (
                                             <>
                                                 <div className="mt-5 text-primary-500 bg-primary-500/10 p-1.5 rounded-lg shrink-0">
-                                                    <span className="material-symbols-outlined rotate-90 sm:rotate-0 text-sm font-bold">sync_alt</span>
+                                                    <Icon name="sync_alt" className="rotate-90 sm:rotate-0 text-sm font-bold" />
                                                 </div>
                                                 <div className="flex-1 w-full">
                                                     <label className={labelStyle}>To Account</label>
@@ -852,7 +853,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                             <option value="" disabled>Select account</option>
                                                             <AccountOptions accounts={accounts.filter(a => a.id !== fromAccountId)} />
                                                         </select>
-                                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                                                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                                                     </div>
                                                 </div>
                                             </>
@@ -867,7 +868,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
                                                 <CategoryOptions categories={activeCategories} />
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                                         </div>
                                     </div>
                                 ) : (
@@ -877,7 +878,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             <select id="tx-category" value={category} onChange={e => setCategory(e.target.value || 'Transfer')} className={`${SELECT_STYLE} h-10 font-bold text-sm`}>
                                                 <CategoryOptions categories={activeCategories} showTransferOption />
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                                         </div>
                                     </div>
                                 )}
@@ -886,7 +887,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                             <div>
                                 <label className={labelStyle}>Internal Memo / Description</label>
                                 <div className="relative group">
-                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">description</span>
+                                    <Icon name="description" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
                                     <input 
                                         id="tx-description" 
                                         type="text" 
@@ -936,7 +937,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${enableRoundUp ? 'bg-cyan-500 text-white shadow-md' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
-                                            <span className="material-symbols-outlined text-sm font-bold">savings</span>
+                                            <Icon name="savings" className="text-sm font-bold" />
                                         </div>
                                         <div className="flex flex-col">
                                             <h4 className={`text-xs font-bold tracking-tight ${enableRoundUp ? 'text-cyan-600' : 'text-gray-500'}`}>Spare Change Round-Up</h4>
@@ -979,7 +980,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         <div className="bg-light-fill/30 dark:bg-dark-fill/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 space-y-4 h-full flex flex-col justify-between">
                             <div className="space-y-4">
                                 <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 mb-1">
-                                    <span className="material-symbols-outlined text-primary-500 text-base">style</span>
+                                    <Icon name="style" className="text-primary-500 text-base" />
                                     Metadata & Context
                                 </h3>
 

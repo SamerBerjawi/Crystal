@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Account, PriceHistoryEntry } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString, parseLocalDate } from '../utils';
+import Icon from './ui/Icon';
 
 interface PropertyValuationModalProps {
   onClose: () => void;
@@ -53,7 +54,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                     <div className="space-y-6">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-orange-500 text-lg">assessment</span>
+                                <Icon name="assessment" className="text-orange-500 text-lg" />
                             </div>
                             <h3 className="text-[10px] font-bold tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary">Valuation Specifications</h3>
                         </div>
@@ -102,7 +103,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                 <div className="mt-12 pt-12 border-t border-black/5 dark:border-white/5">
                     <div className="flex items-center gap-3 mb-8 ml-2">
                         <div className="w-8 h-8 rounded-xl bg-gray-500/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-gray-500 text-lg">history_edu</span>
+                            <Icon name="history_edu" className="text-gray-500 text-lg" />
                         </div>
                         <h3 className="text-[10px] font-bold tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary">Valuation History Ledger</h3>
                     </div>
@@ -125,7 +126,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                                         className="w-10 h-10 rounded-xl flex items-center justify-center text-primary-500 hover:bg-primary-500/10 transition-all"
                                         title="Edit entry"
                                     >
-                                        <span className="material-symbols-outlined text-lg">edit_note</span>
+                                        <Icon name="edit_note" className="text-lg" />
                                     </button>
                                     {onDeleteEntry && (
                                         <button 
@@ -134,7 +135,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({ onClose
                                             className="w-10 h-10 rounded-xl flex items-center justify-center text-rose-500 hover:bg-rose-500/10 transition-all"
                                             title="Delete entry"
                                         >
-                                            <span className="material-symbols-outlined text-lg">delete_sweep</span>
+                                            <Icon name="delete_sweep" className="text-lg" />
                                         </button>
                                     )}
                                 </div>

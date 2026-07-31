@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { Category } from '../types';
 import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface BulkCategorizeModalProps {
     onClose: () => void;
@@ -70,7 +71,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ onClose, onSa
                             <optgroup label="--- INCOME ---"></optgroup>
                             <CategoryOptions categories={incomeCategories} />
                         </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                     </div>
                 </div>
                  <div className="flex justify-end gap-4 pt-4">

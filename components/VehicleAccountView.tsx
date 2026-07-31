@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 const CAR_MAKE_DOMAINS: Record<string, string> = {
   bmw: 'bmw.com',
@@ -115,11 +116,11 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
                          {trend.val}
                     </div>
                 )}
@@ -267,7 +268,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -277,7 +278,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light">directions_car</span>
+                      <Icon name="directions_car" className="text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light" />
                   </h1>
               </div>
           </div>
@@ -285,13 +286,13 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {!isClosed && (
                 <button onClick={() => { if (onUpdateValuation) { onUpdateValuation(); } else if (onAddTransaction) { onAddTransaction(); } }} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                    <span className="material-symbols-outlined text-lg mr-2">add</span>
+                    <Icon name="add" className="text-lg mr-2" />
                     Value Update
                 </button>
               )}
               {isClosed && onRevertClosure && (
                     <button onClick={() => onRevertClosure()} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                        <span className="material-symbols-outlined text-lg mr-2">history</span>
+                        <Icon name="history" className="text-lg mr-2" />
                         Reopen
                     </button>
               )}
@@ -299,12 +300,12 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                   onClick={() => onAddLog()} 
                   className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card flex items-center gap-2 hover:bg-primary-500 hover:text-white transition-all`}
               >
-                  <span className="material-symbols-outlined text-lg">speed</span>
+                  <Icon name="speed" className="text-lg" />
                   Add Log
               </button>
               {!isClosed && onCloseAsset && (
                     <button onClick={() => onCloseAsset()} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm">event_busy</span>
+                        <Icon name="event_busy" className="text-sm" />
                         Retire Vehicle
                     </button>
               )}
@@ -318,7 +319,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
            className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/40 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center gap-10"
         >
             <div className="w-20 h-20 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-xl shadow-rose-500/20">
-                <span className="material-symbols-outlined text-4xl text-white">lock</span>
+                <Icon name="lock" className="text-4xl text-white" />
             </div>
             <div className="flex-grow text-center md:text-left">
                 <h3 className="text-2xl font-bold text-rose-900 dark:text-rose-100 mb-2 tracking-tight">Vehicle retired from inventory</h3>
@@ -447,7 +448,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                 {/* Valuation Trajectory */}
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
-                         <span className="material-symbols-outlined text-8xl">trending_down</span>
+                         <Icon name="trending_down" className="text-8xl" />
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
@@ -498,7 +499,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-black/5 dark:bg-white/5 rounded-[2rem] border-2 border-dashed border-black/5 dark:border-white/5">
-                                <span className="material-symbols-outlined text-4xl text-light-text-secondary/20 mb-4">insights</span>
+                                <Icon name="insights" className="text-4xl text-light-text-secondary/20 mb-4" />
                                 <p className="text-sm font-bold text-light-text-secondary/60 tracking-wider">Awaiting data points</p>
                             </div>
                         )}
@@ -533,7 +534,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col group h-full shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Mileage Journal</h3>
-                         <span className="material-symbols-outlined text-slate-400">history</span>
+                         <Icon name="history" className="text-slate-400" />
                     </div>
                     
                     <div className="flex-grow overflow-y-auto space-y-4 max-h-[500px] pr-2 custom-scrollbar">
@@ -549,10 +550,10 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                             </span>
                                             <div className="flex gap-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
                                                 <button onClick={() => onEditLog(log)} className="text-primary-500 hover:text-primary-600">
-                                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                                    <Icon name="edit" className="text-sm" />
                                                 </button>
                                                 <button onClick={() => onDeleteLog(log.id)} className="text-rose-500 hover:text-rose-600">
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                    <Icon name="delete" className="text-sm" />
                                                 </button>
                                             </div>
                                         </div>
@@ -567,7 +568,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                             })
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                                 <span className="material-symbols-outlined text-4xl mb-2 text-light-text-secondary/20 font-light">auto_stories</span>
+                                 <Icon name="auto_stories" className="text-4xl mb-2 text-light-text-secondary/20 font-light" />
                                  <p className="text-[10px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/60 ">No Logs recorded</p>
                             </div>
                         )}

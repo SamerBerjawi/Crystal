@@ -6,6 +6,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_ST
 import { toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useSafeState } from '../hooks/useSafeState';
+import Icon from './ui/Icon';
 
 interface WarrantPriceModalProps {
   onClose: () => void;
@@ -421,7 +422,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
 
                         <div className="flex items-center gap-4 text-center">
                             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-amber-500">analytics</span>
+                                <Icon name="analytics" className="text-amber-500" />
                             </div>
                             <div className="space-y-0.5 text-left">
                                 <span className="text-[10px] font-black  tracking-[0.25em] text-amber-600 dark:text-amber-400 opacity-70">Current Asset</span>
@@ -436,7 +437,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                         {/* Entry Card */}
                         <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500 text-lg">payments</span>
+                                <Icon name="payments" className="text-primary-500 text-lg" />
                                 Valuation Parameters
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
@@ -475,7 +476,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-lg">auto_fix</span>
+                                            <Icon name="auto_fix" className="text-lg" />
                                         </div>
                                         <span className="text-[10px] font-black  tracking-[0.25em] text-indigo-600 dark:text-indigo-400">Autonomous Retrieval</span>
                                     </div>
@@ -530,7 +531,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                 className="flex-1 h-12 bg-indigo-600 text-white text-[10px] font-black  tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                                                 disabled={smartFetcherStatus === 'loading'}
                                             >
-                                                <span className="material-symbols-outlined text-lg">{smartFetcherStatus === 'loading' ? 'sync' : 'radar'}</span>
+                                                <Icon name={smartFetcherStatus === 'loading' ? 'sync' : 'radar'} className="text-lg" />
                                                 {smartFetcherStatus === 'loading' ? 'Extracting Data...' : 'Scan Webpage'}
                                             </button>
                                             {smartFetcherBinding && (
@@ -541,7 +542,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                     title="Refresh from saved binding"
                                                     disabled={smartFetcherStatus === 'loading'}
                                                 >
-                                                    <span className="material-symbols-outlined text-lg">refresh</span>
+                                                    <Icon name="refresh" className="text-lg" />
                                                 </button>
                                             )}
                                         </div>
@@ -550,7 +551,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                             <div className="space-y-4 pt-2">
                                                 <div className="flex items-center justify-between px-1">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-sm text-indigo-600">center_focus_strong</span>
+                                                        <Icon name="center_focus_strong" className="text-sm text-indigo-600" />
                                                         <p className="text-[10px] font-black  tracking-[0.2em] text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</p>
                                                     </div>
                                                     <span className="text-[9px] font-black text-indigo-600/50 px-2 py-0.5 rounded-full bg-indigo-600/5 ">Select Binding</span>
@@ -569,7 +570,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                                 <p className="font-black text-xl tabular-nums mb-1 tracking-tight">€{candidate.value}</p>
                                                                 <p className="text-[9px] font-black opacity-60 truncate  tracking-tighter">{candidate.context}</p>
                                                             </div>
-                                                            {smartFetcherSelection === candidate.id && <span className="material-symbols-outlined text-base absolute top-3 right-3 text-white/50">check_circle</span>}
+                                                            {smartFetcherSelection === candidate.id && <Icon name="check_circle" className="text-base absolute top-3 right-3 text-white/50" />}
                                                         </label>
                                                     ))}
                                                 </div>
@@ -593,7 +594,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                         <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary-500 text-lg">description</span>
+                                    <Icon name="description" className="text-primary-500 text-lg" />
                                     Input Stream
                                 </h4>
                                 <div className="text-[9px] font-black text-primary-500/50 px-2 py-0.5 rounded-full bg-primary-500/5  tracking-widest">TSV/CSV Format</div>
@@ -611,7 +612,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-emerald-500 text-base">task_alt</span>
+                                                <Icon name="task_alt" className="text-emerald-500 text-base" />
                                             </div>
                                             <span className="text-[10px] font-black  tracking-[0.2em] text-emerald-700 dark:text-emerald-400">{bulkPreview.length} Validated Data Points Detected</span>
                                         </div>
@@ -640,7 +641,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                             disabled={mode === 'bulk' && bulkPreview.length === 0}
                         >
                             {mode === 'bulk' ? 'Commit Batch' : 'Log Valuation'}
-                            <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">save</span>
+                            <Icon name="save" className="text-lg transition-transform group-hover:translate-x-1" />
                         </button>
                     </div>
                 </div>

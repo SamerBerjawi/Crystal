@@ -1,5 +1,6 @@
 import React from 'react';
 import { useHeaderControls } from '@/contexts/HeaderContext';
+import Icon from './ui/Icon';
 
 interface PageHeaderProps {
   markerIcon?: string;
@@ -31,14 +32,14 @@ const PageHeader: React.FC<PageHeaderProps> = ({
               className="md:hidden p-2 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0 mt-0.5"
               aria-label="Open navigation menu"
             >
-              <span className="material-symbols-outlined text-xl">menu</span>
+              <Icon name="menu" className="text-xl" />
             </button>
           )}
 
           <div className="flex flex-col gap-1 min-w-0">
             {markerIcon && markerLabel && (
               <div className="flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 tracking-wide">
-                <span className="material-symbols-outlined text-base leading-none">{markerIcon}</span>
+                <Icon name={markerIcon} className="text-base leading-none" />
                 <span className="leading-none">{markerLabel}</span>
               </div>
             )}
@@ -64,7 +65,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 className="hidden sm:flex items-center gap-2 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold transition-all text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 active:scale-[0.98]"
                 title="Search & Quick Actions (⌘K)"
               >
-                <span className="material-symbols-outlined text-base">search</span>
+                <Icon name="search" className="text-base" />
                 <span>Search</span>
                 <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-mono leading-none">⌘K</kbd>
               </button>
@@ -74,7 +75,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 title="Search & Quick Actions"
                 aria-label="Search"
               >
-                <span className="material-symbols-outlined text-base">search</span>
+                <Icon name="search" className="text-base" />
               </button>
             </>
           )}

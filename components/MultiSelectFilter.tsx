@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CHECKBOX_STYLE, INPUT_BASE_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface Option {
   value: string;
@@ -61,7 +62,7 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
         className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap font-semibold text-[11px] !pl-4 !pr-2 bg-light-fill dark:bg-dark-fill transition-all duration-200`}
       >
         <span className="mr-2 truncate max-w-[12rem]">{buttonText}</span>
-        <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
+        <Icon name="expand_more" className={`text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
         /* Removed background slate, shadow-2xl, border-white, and rounded-2xl to give total control to .ios-regular */

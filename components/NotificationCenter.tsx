@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BillNotificationItem } from '../hooks/useBillNotifications';
 import { formatCurrency } from '../utils';
 import { Page, RecurringTransaction, BillPayment } from '../types';
+import Icon from './ui/Icon';
 
 interface NotificationCenterProps {
   notifications: BillNotificationItem[];
@@ -57,9 +58,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         title="Recurring Bill Notifications"
         aria-label="View bill notifications"
       >
-        <span className={`material-symbols-outlined text-xl ${notificationCount > 0 ? 'animate-bounce' : ''}`}>
-          notifications
-        </span>
+        <Icon name="notifications" className={`text-xl ${notificationCount > 0 ? 'animate-bounce' : ''}`} />
 
         {/* Animated Counter Badge */}
         {notificationCount > 0 && (
@@ -83,7 +82,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-lg">event_upcoming</span>
+                  <Icon name="event_upcoming" className="text-lg" />
                 </div>
                 <div>
                   <h3 className="font-bold text-sm tracking-tight text-light-text dark:text-dark-text leading-none">
@@ -110,7 +109,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               {notifications.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
-                    <span className="material-symbols-outlined text-2xl">verified</span>
+                    <Icon name="verified" className="text-2xl" />
                   </div>
                   <p className="text-xs font-bold text-light-text dark:text-dark-text">No Upcoming Bill Alerts</p>
                   <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary max-w-[220px] mx-auto opacity-70">
@@ -169,7 +168,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   className="text-xs font-bold text-primary-500 hover:text-primary-600 transition-colors inline-flex items-center gap-1"
                 >
                   Manage Schedule & Bills
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  <Icon name="arrow_forward" className="text-sm" />
                 </button>
               </div>
             )}
@@ -204,9 +203,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
               isUrgent ? 'bg-rose-500/15 text-rose-500' : 'bg-amber-500/15 text-amber-500'
             }`}
           >
-            <span className="material-symbols-outlined text-lg">
-              {isUrgent ? 'priority_high' : 'schedule'}
-            </span>
+            <Icon name={isUrgent ? 'priority_high' : 'schedule'} className="text-lg" />
           </div>
 
           <div className="min-w-0">
@@ -228,7 +225,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
           className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors rounded-lg"
           title="Dismiss alert"
         >
-          <span className="material-symbols-outlined text-sm leading-none">close</span>
+          <Icon name="close" className="text-sm leading-none" />
         </button>
       </div>
 

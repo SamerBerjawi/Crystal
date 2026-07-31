@@ -17,6 +17,7 @@ import HeaderButton from '../components/HeaderButton';
 import { MobileAccountsView } from '../components/MobileAccountsView';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import Icon from '../components/ui/Icon';
 
 interface AccountsProps {
     accounts: Account[];
@@ -325,13 +326,13 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         {contextMenu && (
             <div ref={contextMenuRef} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed z-50 w-56 ios-regular rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up">
                 <ul className="text-sm">
-                    <li><button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">visibility</span><span>View Account</span></button></li>
-                    <li><button onClick={() => { onNavigateToTransactions({ accountName: contextMenu.account.name }); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">filter_list</span><span>Filter Transactions</span></button></li>
+                    <li><button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="visibility" className="text-base" /><span>View Account</span></button></li>
+                    <li><button onClick={() => { onNavigateToTransactions({ accountName: contextMenu.account.name }); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="filter_list" className="text-base" /><span>Filter Transactions</span></button></li>
                     <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
-                    <li><button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">edit</span><span>Edit Account</span></button></li>
-                    <li><button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">tune</span><span>Adjust Balance</span></button></li>
+                    <li><button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="edit" className="text-base" /><span>Edit Account</span></button></li>
+                    <li><button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="tune" className="text-base" /><span>Adjust Balance</span></button></li>
                     <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
-                    <li><button onClick={() => { setDeletingAccount(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><span className="material-symbols-outlined text-base">delete</span><span>Delete Account</span></button></li>
+                    <li><button onClick={() => { setDeletingAccount(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><Icon name="delete" className="text-base" /><span>Delete Account</span></button></li>
                 </ul>
             </div>
         )}
@@ -410,7 +411,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             className="cursor-pointer group/nw min-w-0"
                         >
                             <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                                <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
+                                <Icon name="account_balance_wallet" className="text-primary-500 text-sm" />
                                 <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
                             </div>
                             <div className="flex items-baseline gap-2">
@@ -429,7 +430,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                 onClick={() => setAddModalOpen(true)} 
                                 className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3 !text-xs !rounded-xl flex items-center gap-1`}
                             >
-                                <span className="material-symbols-outlined text-sm">add</span>
+                                <Icon name="add" className="text-sm" />
                                 <span>Add Account</span>
                             </button>
                         </div>
@@ -466,7 +467,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                 >
                                     <div className="flex items-center justify-between mb-1 sm:mb-1.5">
                                         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                            <span className="material-symbols-outlined text-base sm:text-lg">{seg.icon}</span>
+                                            <Icon name={seg.icon} className="text-base sm:text-lg" />
                                         </div>
                                         {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                     </div>
@@ -488,7 +489,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         onClick={() => setAddModalOpen(true)} 
                         className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add`}
                     >
-                        <span className="material-symbols-outlined text-xl transition-transform group-hover/add:rotate-90">add</span>
+                        <Icon name="add" className="text-xl transition-transform group-hover/add:rotate-90" />
                         <span className="hidden sm:inline">Add Account</span>
                     </button>
                 </div>
@@ -507,7 +508,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         {segmentMetrics.details.map((detail, i) => (
                              <div key={i} className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-base text-primary-500/70">{detail.icon}</span>
+                                    <Icon name={detail.icon} className="text-base text-primary-500/70" />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70">{detail.label}</span>
@@ -522,11 +523,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5 overflow-x-auto no-scrollbar max-w-full">
                         <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
-                            <span className="material-symbols-outlined text-[16px]">vertical_split</span>
+                            <Icon name="vertical_split" className="text-[16px]" />
                             <span className="hidden md:inline">Split</span>
                         </button>
                         <button onClick={() => setSplitAssetsLiabilities(false)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${!splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Combined View">
-                            <span className="material-symbols-outlined text-[16px]">view_agenda</span>
+                            <Icon name="view_agenda" className="text-[16px]" />
                             <span className="hidden md:inline">Combined</span>
                         </button>
                     </div>
@@ -537,24 +538,24 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             <option value="name">Sort: Name</option>
                             <option value="balance">Sort: Balance</option>
                         </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                     </div>
                     
                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
                         <button onClick={() => setViewStyle('detailed')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'detailed' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Standard Cards">
-                            <span className="material-symbols-outlined text-[18px]">style</span>
+                            <Icon name="style" className="text-[18px]" />
                         </button>
                         <button onClick={() => setViewStyle('minimal')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'minimal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Minimalist Rows">
-                            <span className="material-symbols-outlined text-[18px]">density_medium</span>
+                            <Icon name="density_medium" className="text-[18px]" />
                         </button>
                     </div>
 
                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
                         <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Grid Layout">
-                            <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                            <Icon name="grid_view" className="text-[18px]" />
                         </button>
                         <button onClick={() => setLayoutMode('stacked')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="List Layout">
-                            <span className="material-symbols-outlined text-[18px]">view_list</span>
+                            <Icon name="view_list" className="text-[18px]" />
                         </button>
                     </div>
                 </div>
@@ -569,7 +570,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Assets"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-primary-500">account_balance</span></div>}
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0"><Icon name="account_balance" className="text-primary-500" /></div>}
                         headerSubtitle="Wealth & Resources"
                         accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 
@@ -594,7 +595,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Liabilities"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-rose-500">money_off</span></div>}
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0"><Icon name="money_off" className="text-rose-500" /></div>}
                         headerSubtitle="Debts & Obligations"
                         accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 

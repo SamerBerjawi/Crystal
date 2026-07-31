@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { normalizeMerchantKey } from '../utils/brandfetch';
 import { evaluateRuleCondition, applyTransactionRulesToFields } from '../utils/rules';
+import Icon from '../components/ui/Icon';
 import {
   ResponsiveContainer,
   BarChart,
@@ -1119,7 +1120,7 @@ const Rules: React.FC<RulesProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl">settings_suggest</span>
+              <Icon name="settings_suggest" className="text-2xl" />
             </div>
             <div>
               <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 tracking-wider uppercase">Engine Capacity</span>
@@ -1129,7 +1130,7 @@ const Rules: React.FC<RulesProps> = ({
 
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl">check_circle</span>
+              <Icon name="check_circle" className="text-2xl" />
             </div>
             <div>
               <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 tracking-wider uppercase">Historical Matches</span>
@@ -1139,7 +1140,7 @@ const Rules: React.FC<RulesProps> = ({
 
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl">storefront</span>
+              <Icon name="storefront" className="text-2xl" />
             </div>
             <div>
               <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 tracking-wider uppercase">Merchant Priority</span>
@@ -1158,7 +1159,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <span className="material-symbols-outlined text-base">settings_suggest</span>
+            <Icon name="settings_suggest" className="text-base" />
             <span>Rules Workspace</span>
           </button>
 
@@ -1170,7 +1171,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <span className="material-symbols-outlined text-base">storefront</span>
+            <Icon name="storefront" className="text-base" />
             <span>Merchant Overrides</span>
           </button>
 
@@ -1182,7 +1183,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <span className="material-symbols-outlined text-base">science</span>
+            <Icon name="science" className="text-base" />
             <span>Interactive Sandbox</span>
           </button>
 
@@ -1194,7 +1195,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <span className="material-symbols-outlined text-base">receipt_long</span>
+            <Icon name="receipt_long" className="text-base" />
             <span>Execution History & Logs</span>
           </button>
 
@@ -1206,7 +1207,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <span className="material-symbols-outlined text-base">search</span>
+            <Icon name="search" className="text-base" />
             <span>Scan Database</span>
             {historicalRuleCalculations.length > 0 && (
               <span className="px-1.5 py-0.5 text-[9px] bg-amber-500 text-white rounded-full font-black font-mono">
@@ -1263,7 +1264,7 @@ const Rules: React.FC<RulesProps> = ({
                         <span className="text-[10px] text-primary-500 font-bold tracking-normal normal-case">Integrated drag & drop</span>
                       </label>
                       <div className="p-2 sm:p-2.5 bg-gray-100 dark:bg-white/[0.03] text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 rounded-xl leading-snug border border-black/5 dark:border-white/5 flex items-start gap-2 h-[42px] overflow-hidden select-none">
-                        <span className="material-symbols-outlined text-sm leading-none shrink-0 text-primary-500 mt-0.5">drag_indicator</span>
+                        <Icon name="drag_indicator" className="text-sm leading-none shrink-0 text-primary-500 mt-0.5" />
                         <span>Drag & drop rules inside the workspace list below to adjust priority order anytime!</span>
                       </div>
                     </div>
@@ -1273,7 +1274,7 @@ const Rules: React.FC<RulesProps> = ({
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-black text-amber-500  tracking-widest flex items-center gap-1">
-                        <span className="material-symbols-outlined text-base">filter_alt</span>
+                        <Icon name="filter_alt" className="text-base" />
                         <span>WHEN: Conditions (Match all)</span>
                       </span>
                       <button
@@ -1281,7 +1282,7 @@ const Rules: React.FC<RulesProps> = ({
                         onClick={addConditionField}
                         className="text-[10px] font-bold text-primary-500 hover:underline flex items-center gap-0.5"
                       >
-                        <span className="material-symbols-outlined text-sm">add_circle</span>
+                        <Icon name="add_circle" className="text-sm" />
                         Add Condition
                       </button>
                     </div>
@@ -1356,7 +1357,7 @@ const Rules: React.FC<RulesProps> = ({
                               onClick={() => removeConditionField(idx)}
                               className="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 p-2 rounded-lg"
                             >
-                              <span className="material-symbols-outlined text-lg leading-none">delete</span>
+                              <Icon name="delete" className="text-lg leading-none" />
                             </button>
                           )}
                         </div>
@@ -1368,7 +1369,7 @@ const Rules: React.FC<RulesProps> = ({
                   <div className="space-y-3 pt-2">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-black text-emerald-500  tracking-widest flex items-center gap-1">
-                        <span className="material-symbols-outlined text-base">bolt</span>
+                        <Icon name="bolt" className="text-base" />
                         <span>THEN: Update Transactions</span>
                       </span>
                       <button
@@ -1376,7 +1377,7 @@ const Rules: React.FC<RulesProps> = ({
                         onClick={addActionField}
                         className="text-[10px] font-bold text-primary-500 hover:underline flex items-center gap-0.5"
                       >
-                        <span className="material-symbols-outlined text-sm">add_circle</span>
+                        <Icon name="add_circle" className="text-sm" />
                         Add Action
                       </button>
                     </div>
@@ -1437,7 +1438,7 @@ const Rules: React.FC<RulesProps> = ({
                               onClick={() => removeActionField(idx)}
                               className="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 p-2 rounded-lg"
                             >
-                              <span className="material-symbols-outlined text-lg leading-none">delete</span>
+                              <Icon name="delete" className="text-lg leading-none" />
                             </button>
                           )}
                         </div>
@@ -1450,7 +1451,7 @@ const Rules: React.FC<RulesProps> = ({
                     <div className="bg-primary-500/[0.04] dark:bg-primary-500/[0.02] border border-primary-500/20 p-4 rounded-xl space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-primary-600 dark:text-primary-400 flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-base">bolt</span>
+                          <Icon name="bolt" className="text-base" />
                           <span>Live Impact Preview ({liveDraftMatches.length} matching transactions in your ledger)</span>
                         </span>
                         <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider font-bold">Real-time Match</span>
@@ -1512,7 +1513,7 @@ const Rules: React.FC<RulesProps> = ({
                   <Card className="bg-primary-500/[0.02] border-2 border-dashed border-primary-500/20 p-5 rounded-2xl space-y-4">
                     <div>
                       <h4 className="text-xs font-bold text-primary-600 dark:text-primary-400 tracking-tight flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-base">emoji_objects</span>
+                        <Icon name="emoji_objects" className="text-base" />
                         <span>Intelligent Automation Suggestions</span>
                       </h4>
                       <p className="text-[11px] text-gray-400 mt-0.5">
@@ -1556,7 +1557,7 @@ const Rules: React.FC<RulesProps> = ({
                               onClick={() => handleAcceptSuggestedRule(sug)}
                               className="w-full py-1.5 bg-primary-500 hover:bg-primary-600 text-white font-bold text-[10px] rounded-lg transition-colors flex items-center justify-center gap-1"
                             >
-                              <span className="material-symbols-outlined text-sm">emoji_objects</span>
+                              <Icon name="emoji_objects" className="text-sm" />
                               <span>Accept and Activate</span>
                             </button>
                           </div>
@@ -1570,14 +1571,14 @@ const Rules: React.FC<RulesProps> = ({
 
             {existingRules.length === 0 ? (
               <div className="py-12 px-4 text-center bg-gray-50 dark:bg-white/[0.01] rounded-2xl border-2 border-dashed border-black/5 dark:border-white/5 flex flex-col items-center justify-center">
-                <span className="material-symbols-outlined text-4xl text-gray-300">smart_toy</span>
+                <Icon name="smart_toy" className="text-4xl text-gray-300" />
                 <p className="font-bold text-xs text-gray-400 tracking-widest mt-3">No Rules Configured</p>
                 <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Build an automated rule right now to keep your incoming bank/CSV transactions tidy.</p>
                 <button
                   onClick={() => setIsAddingRule(true)}
                   className={`${BTN_PRIMARY_STYLE} mt-4 !w-auto inline-flex items-center justify-center px-5 py-2.5 text-xs shadow-sm`}
                 >
-                  <span className="material-symbols-outlined text-base mr-1">add</span>
+                  <Icon name="add" className="text-base mr-1" />
                   <span>Create First Rule</span>
                 </button>
               </div>
@@ -1593,7 +1594,7 @@ const Rules: React.FC<RulesProps> = ({
                       className="bg-amber-500/[0.04] dark:bg-amber-500/[0.01] border-2 border-dashed border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs"
                     >
                       <div className="flex items-start gap-3">
-                        <span className="material-symbols-outlined text-amber-500 text-2xl shrink-0 mt-0.5">restore</span>
+                        <Icon name="restore" className="text-amber-500 text-2xl shrink-0 mt-0.5" />
                         <div>
                           <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400  tracking-wide">Historical Data Optimization Pending</h5>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -1606,7 +1607,7 @@ const Rules: React.FC<RulesProps> = ({
                         className={`${BTN_PRIMARY_STYLE} bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white flex items-center gap-1.5 text-xs self-stretch sm:self-auto justify-center`}
                         id="btn-apply-historical-inline"
                       >
-                        <span className="material-symbols-outlined text-base">settings_backup_restore</span>
+                        <Icon name="settings_backup_restore" className="text-base" />
                         <span>Apply to existing transactions</span>
                       </button>
                     </motion.div>
@@ -1616,7 +1617,7 @@ const Rules: React.FC<RulesProps> = ({
                     {/* Visual hint for Drag and Drop */}
                     <div className="bg-gray-50 dark:bg-white/[0.01] border border-black/5 dark:border-white/5 p-3 rounded-xl flex items-center justify-between text-xs text-gray-400 select-none">
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm leading-none text-primary-500 font-bold">info</span>
+                        <Icon name="info" className="text-sm leading-none text-primary-500 font-bold" />
                         <span>Drag items by the handle or card body to reorder priorities (top card executes first).</span>
                       </div>
                       <span className="text-[10px]  font-black tracking-wider text-primary-500 font-mono bg-primary-500/10 px-2 py-0.5 rounded-sm">Drag Active</span>
@@ -1689,7 +1690,7 @@ const Rules: React.FC<RulesProps> = ({
                           <div className="flex items-start md:items-center gap-3 flex-1 min-w-0">
                             {/* Grip drag handle icon */}
                             <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-500 transition-colors shrink-0 flex items-center justify-center p-1" title="Drag to reorder priority">
-                              <span className="material-symbols-outlined text-xl leading-none font-bold select-none">drag_indicator</span>
+                              <Icon name="drag_indicator" className="text-xl leading-none font-bold select-none" />
                             </div>
 
                             <div className="space-y-3 flex-1 min-w-0">
@@ -1699,7 +1700,7 @@ const Rules: React.FC<RulesProps> = ({
                                   {rule.isActive ? 'Active' : 'Disabled'}
                                 </span>
                                 <span className="px-2 py-0.5 text-[8px] font-black rounded bg-primary-100 dark:bg-primary-950/40 text-primary-600 dark:text-primary-300 flex items-center gap-0.5">
-                                  <span className="material-symbols-outlined text-[10px] leading-none shrink-0 font-black">speed</span>
+                                  <Icon name="speed" className="text-[10px] leading-none shrink-0 font-black" />
                                   <span>Priority {rule.priority ?? 0}</span>
                                 </span>
                               </div>
@@ -1739,23 +1740,21 @@ const Rules: React.FC<RulesProps> = ({
                               onClick={() => handleToggleRuleActive(rule.id, !rule.isActive)}
                               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${rule.isActive ? 'bg-green-50 hover:bg-green-100 text-green-600 dark:bg-green-950/20 dark:hover:bg-green-900/40 dark:text-green-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-500 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-400'}`}
                             >
-                              <span className="material-symbols-outlined text-lg leading-none">
-                                {rule.isActive ? 'toggle_on' : 'toggle_off'}
-                              </span>
+                              <Icon name={rule.isActive ? 'toggle_on' : 'toggle_off'} className="text-lg leading-none" />
                             </button>
 
                             <button
                               onClick={() => handleEditRule(rule)}
                               className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 flex items-center justify-center transition-colors"
                             >
-                              <span className="material-symbols-outlined text-lg leading-none">edit</span>
+                              <Icon name="edit" className="text-lg leading-none" />
                             </button>
 
                             <button
                               onClick={() => handleDeleteRule(rule.id, rule.name)}
                               className="w-9 h-9 rounded-xl bg-red-100/10 hover:bg-red-100/30 text-red-500 flex items-center justify-center transition-colors"
                             >
-                              <span className="material-symbols-outlined text-lg leading-none">delete</span>
+                              <Icon name="delete" className="text-lg leading-none" />
                             </button>
                           </div>
                         </motion.div>
@@ -1769,7 +1768,7 @@ const Rules: React.FC<RulesProps> = ({
                   <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4 lg:sticky lg:top-6">
                     <div>
                       <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-base text-teal-500">bar_chart</span>
+                        <Icon name="bar_chart" className="text-base text-teal-500" />
                         <span>Rule Impact Analysis</span>
                       </h4>
                       <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
@@ -1873,7 +1872,7 @@ const Rules: React.FC<RulesProps> = ({
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-2xl font-black">history</span>
+                    <Icon name="history" className="text-2xl font-black" />
                   </div>
                   <div>
                     <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400 tracking-wide">Optimization Rollback Point Available</h5>
@@ -1886,7 +1885,7 @@ const Rules: React.FC<RulesProps> = ({
                   onClick={handleRevertLastRun}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 self-stretch md:self-auto shadow-sm transition-colors shrink-0"
                 >
-                  <span className="material-symbols-outlined text-base font-black">settings_backup_restore</span>
+                  <Icon name="settings_backup_restore" className="text-base font-black" />
                   <span>Revert Last Run ({preferences.lastRuleRunBackup.transactions.length})</span>
                 </button>
               </motion.div>
@@ -1896,7 +1895,7 @@ const Rules: React.FC<RulesProps> = ({
             {preferences.ruleExecutionHistory && preferences.ruleExecutionHistory.length > 0 && (
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-light-text dark:text-dark-text flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base text-amber-500">history</span>
+                  <Icon name="history" className="text-base text-amber-500" />
                   <span>Execution Rollback Points ({preferences.ruleExecutionHistory.length} Batches Available)</span>
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1917,7 +1916,7 @@ const Rules: React.FC<RulesProps> = ({
                         onClick={() => handleRevertBatch(batch)}
                         className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shrink-0"
                       >
-                        <span className="material-symbols-outlined text-sm">undo</span>
+                        <Icon name="undo" className="text-sm" />
                         <span>Rollback Batch</span>
                       </button>
                     </div>
@@ -1953,7 +1952,7 @@ const Rules: React.FC<RulesProps> = ({
                     }}
                     className="text-[10px] font-black text-red-500 hover:underline flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-sm font-black">delete_sweep</span>
+                    <Icon name="delete_sweep" className="text-sm font-black" />
                     <span>Clear logs</span>
                   </button>
                 )}
@@ -1961,7 +1960,7 @@ const Rules: React.FC<RulesProps> = ({
 
               {!preferences.ruleExecutionLogs || preferences.ruleExecutionLogs.length === 0 ? (
                 <div className="py-12 text-center border-2 border-dashed border-black/5 rounded-2xl">
-                  <span className="material-symbols-outlined text-4xl text-gray-300">receipt_long</span>
+                  <Icon name="receipt_long" className="text-4xl text-gray-300" />
                   <p className="font-bold text-xs text-gray-400 tracking-widest mt-3">Log is Empty</p>
                   <p className="text-xs text-gray-400 mt-1">No transaction rules have been run on historical or incoming ledger records yet.</p>
                 </div>
@@ -2025,7 +2024,7 @@ const Rules: React.FC<RulesProps> = ({
             <div className="bg-teal-500/10 border border-teal-500/20 text-teal-950 dark:text-teal-300 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-xl">storefront</span>
+                  <Icon name="storefront" className="text-xl" />
                 </div>
                 <div>
                   <h5 className="font-bold text-xs  tracking-wider text-teal-800 dark:text-teal-400">Merchant Priority Overrides</h5>
@@ -2038,7 +2037,7 @@ const Rules: React.FC<RulesProps> = ({
                 onClick={handleFeedFromMerchants}
                 className={`${BTN_SECONDARY_STYLE} border-teal-500/30 hover:border-teal-500 text-teal-600 dark:text-teal-400 flex items-center gap-1.5 text-xs self-stretch sm:self-auto justify-center`}
               >
-                <span className="material-symbols-outlined text-sm">download</span>
+                <Icon name="download" className="text-sm" />
                 <span>Feed from Merchants Ledger</span>
               </button>
             </div>
@@ -2174,7 +2173,7 @@ const Rules: React.FC<RulesProps> = ({
               <Card className="bg-teal-500/[0.01] border border-dashed border-teal-500/20 p-5 rounded-2xl space-y-4">
                 <div>
                   <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-tight flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-base">auto_awesome</span>
+                    <Icon name="auto_awesome" className="text-base" />
                     <span>Automatically Identified Merchant Rules ({autoGeneratedMerchantRules.length})</span>
                   </h4>
                   <p className="text-[11px] mt-0.5 text-gray-400">
@@ -2213,7 +2212,7 @@ const Rules: React.FC<RulesProps> = ({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
                 <div className="relative flex-1">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
+                  <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                   <input
                     type="text"
                     placeholder="Search override rules database..."
@@ -2227,7 +2226,7 @@ const Rules: React.FC<RulesProps> = ({
                     onClick={() => setIsAddingMerchantOverride(true)}
                     className={`${BTN_PRIMARY_STYLE} flex items-center gap-1.5 justify-center leading-none`}
                   >
-                    <span className="material-symbols-outlined text-sm leading-none">add</span>
+                    <Icon name="add" className="text-sm leading-none" />
                     <span>Add Custom Override</span>
                   </button>
                 )}
@@ -2235,7 +2234,7 @@ const Rules: React.FC<RulesProps> = ({
 
               {Object.keys(merchantRules).length === 0 ? (
                 <div className="py-12 text-center bg-gray-50 dark:bg-white/[0.01] rounded-2xl border border-black/5 dark:border-white/5">
-                  <span className="material-symbols-outlined text-4xl text-gray-300">storefront</span>
+                  <Icon name="storefront" className="text-4xl text-gray-300" />
                   <p className="font-bold text-xs text-gray-400  tracking-widest mt-2">No Overrides Configured</p>
                   <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Create rules specifically mapped to merchant names for instant automated categorization.</p>
                 </div>
@@ -2299,12 +2298,12 @@ const Rules: React.FC<RulesProps> = ({
                                 <td className="p-3">
                                   {rule.isHidden ? (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 rounded-full font-bold">
-                                      <span className="material-symbols-outlined text-[10px]">visibility_off</span>
+                                      <Icon name="visibility_off" className="text-[10px]" />
                                       <span>Hidden</span>
                                     </span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] bg-green-100 text-green-700 dark:bg-green-950/20 dark:text-green-400 rounded-full font-bold">
-                                      <span className="material-symbols-outlined text-[10px]">visibility</span>
+                                      <Icon name="visibility" className="text-[10px]" />
                                       <span>Visible</span>
                                     </span>
                                   )}
@@ -2328,14 +2327,14 @@ const Rules: React.FC<RulesProps> = ({
                                       className="p-1 text-gray-400 hover:text-primary-500 transition-colors"
                                       title="Edit fields"
                                     >
-                                      <span className="material-symbols-outlined text-base">edit</span>
+                                      <Icon name="edit" className="text-base" />
                                     </button>
                                     <button
                                       onClick={() => handleDeleteMerchantOverride(key, key)}
                                       className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                                       title="Delete override"
                                     >
-                                      <span className="material-symbols-outlined text-base">delete</span>
+                                      <Icon name="delete" className="text-base" />
                                     </button>
                                   </div>
                                 </td>
@@ -2355,7 +2354,7 @@ const Rules: React.FC<RulesProps> = ({
         {activeTab === 'rules-sandbox' && (
           <div className="space-y-6">
             <div className="bg-primary-500/10 border border-primary-500/20 text-primary-950 dark:text-primary-300 p-4 rounded-2xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-2xl shrink-0 mt-0.5 text-primary-500">science</span>
+              <Icon name="science" className="text-2xl shrink-0 mt-0.5 text-primary-500" />
               <div>
                 <h5 className="font-bold text-xs  tracking-wider">Interactive Automation Sandbox</h5>
                 <p className="text-xs mt-1 leading-relaxed opacity-90">
@@ -2550,7 +2549,7 @@ const Rules: React.FC<RulesProps> = ({
                         <div className="pt-2 text-[10px]">
                           {sandboxEvaluation.matchedRule ? (
                             <p className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                              <span className="material-symbols-outlined text-sm leading-none">task_alt</span>
+                              <Icon name="task_alt" className="text-sm leading-none" />
                               <span>Processed via custom rule: "<strong>{sandboxEvaluation.matchedRule.name}</strong>"</span>
                             </p>
                           ) : (
@@ -2609,7 +2608,7 @@ const Rules: React.FC<RulesProps> = ({
                                     <span className="text-primary-500 font-black">"{result.condition.value}"</span>
                                   </span>
                                   <span className={`font-sans font-black flex items-center gap-0.5 text-[9px] ${result.matched ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-                                    <span className="material-symbols-outlined text-[11px] font-black">{result.matched ? 'check_circle' : 'cancel'}</span>
+                                    <Icon name={result.matched ? 'check_circle' : 'cancel'} className="text-[11px] font-black" />
                                     <span>{result.matched ? 'True' : 'False'}</span>
                                   </span>
                                 </div>
@@ -2643,14 +2642,14 @@ const Rules: React.FC<RulesProps> = ({
         {activeTab === 'historical-scan' && (
           <div className="space-y-4">
             <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 p-4 rounded-2xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-2xl shrink-0 mt-0.5">info</span>
+              <Icon name="info" className="text-2xl shrink-0 mt-0.5" />
               <div>
                 <h5 className="font-bold text-xs  tracking-wider">Database Synchronization Pass</h5>
                 <p className="text-xs mt-1 leading-relaxed opacity-90">
                   This tool scans every recorded transaction in your files/synced accounts. If a transaction matches your custom rule conditions or configured Merchant Categories, you can quickly realign the fields automatically.
                 </p>
                 <p className="text-xs mt-2 font-bold flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                  <span className="material-symbols-outlined text-sm">lock</span>
+                  <Icon name="lock" className="text-sm" />
                   <span>Keep in mind that Merchant categories take precedence over general Rule Engine rules.</span>
                 </p>
               </div>
@@ -2658,7 +2657,7 @@ const Rules: React.FC<RulesProps> = ({
 
             {historicalRuleCalculations.length === 0 ? (
               <div className="py-12 text-center bg-gray-50 dark:bg-white/[0.01] rounded-2xl border border-black/5 dark:border-white/5">
-                <span className="material-symbols-outlined text-4xl text-green-500">auto_awesome</span>
+                <Icon name="auto_awesome" className="text-4xl text-green-500" />
                 <p className="font-bold text-xs text-gray-400  tracking-widest mt-3">All Database Ledger Aligned</p>
                 <p className="text-xs text-gray-400 mt-1">No transaction fields require updating based on current configured Rules or Merchant registry overrides.</p>
               </div>
@@ -2673,7 +2672,7 @@ const Rules: React.FC<RulesProps> = ({
                     className={`${BTN_PRIMARY_STYLE} flex items-center gap-1 leading-none text-xs`}
                     id="btn-apply-database-changes"
                   >
-                    <span className="material-symbols-outlined text-base">check_circle</span>
+                    <Icon name="check_circle" className="text-base" />
                     <span>Commit {historicalRuleCalculations.length} Updates</span>
                   </button>
                 </div>
@@ -2784,7 +2783,7 @@ const Rules: React.FC<RulesProps> = ({
                 <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-4 shrink-0">
                   <div>
                     <span className="px-2.5 py-1 text-[9px] font-black tracking-wider text-indigo-700 bg-indigo-500/10 dark:text-indigo-400 rounded-full inline-flex items-center gap-1">
-                      <span className="material-symbols-outlined text-xs leading-none font-black">science</span>
+                      <Icon name="science" className="text-xs leading-none font-black" />
                       <span>Ledger Dry-Run Simulation</span>
                     </span>
                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text mt-1.5 tracking-wide">
@@ -2798,7 +2797,7 @@ const Rules: React.FC<RulesProps> = ({
                     onClick={() => setIsSimulateModalOpen(false)}
                     className="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center text-gray-400 hover:text-light-text dark:hover:text-dark-text transition-colors"
                   >
-                    <span className="material-symbols-outlined text-xl leading-none">close</span>
+                    <Icon name="close" className="text-xl leading-none" />
                   </button>
                 </div>
 
@@ -2806,7 +2805,7 @@ const Rules: React.FC<RulesProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
                   <div className="bg-gray-50 dark:bg-white/[0.01] border border-black/5 dark:border-white/5 p-4 rounded-2xl flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gray-500/10 text-gray-500 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-lg">receipt</span>
+                      <Icon name="receipt" className="text-lg" />
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-gray-400 block tracking-wider">Total Ledger</span>
@@ -2816,7 +2815,7 @@ const Rules: React.FC<RulesProps> = ({
 
                   <div className="bg-emerald-500/[0.02] border border-emerald-500/10 p-4 rounded-2xl flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-lg">published_with_changes</span>
+                      <Icon name="published_with_changes" className="text-lg" />
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 block tracking-wider font-sans">Proposed Changes</span>
@@ -2826,7 +2825,7 @@ const Rules: React.FC<RulesProps> = ({
 
                   <div className="bg-indigo-500/[0.02] border border-indigo-500/10 p-4 rounded-2xl flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-lg">verified</span>
+                      <Icon name="verified" className="text-lg" />
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 block tracking-wider font-sans">Healthy / Aligned</span>
@@ -2850,7 +2849,7 @@ const Rules: React.FC<RulesProps> = ({
 
                   {historicalRuleCalculations.length === 0 ? (
                     <div className="py-12 text-center text-gray-400 border border-dashed border-black/5 dark:border-white/5 rounded-2xl">
-                      <span className="material-symbols-outlined text-3xl text-gray-300">task_alt</span>
+                      <Icon name="task_alt" className="text-3xl text-gray-300" />
                       <p className="font-bold text-xs  tracking-widest mt-2">Zero impact modifications</p>
                       <p className="text-[11px] text-gray-400 mt-1">All transactions perfectly align with active rules.</p>
                     </div>
@@ -2963,7 +2962,7 @@ const Rules: React.FC<RulesProps> = ({
                         }}
                         className={`${BTN_PRIMARY_STYLE} flex items-center gap-1.5`}
                       >
-                        <span className="material-symbols-outlined text-base leading-none font-bold">published_with_changes</span>
+                        <Icon name="published_with_changes" className="text-base leading-none font-bold" />
                         <span>Accept & Apply to Past Transactions</span>
                       </button>
                     )}
@@ -3004,9 +3003,7 @@ const Rules: React.FC<RulesProps> = ({
                       ? 'bg-rose-500/10 text-rose-500' 
                       : 'bg-primary-500/10 text-primary-500'
                   }`}>
-                    <span className="material-symbols-outlined text-xl leading-none font-bold">
-                      {confirmConfig.isDestructive ? 'warning' : 'help'}
-                    </span>
+                    <Icon name={confirmConfig.isDestructive ? 'warning' : 'help'} className="text-xl leading-none font-bold" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">

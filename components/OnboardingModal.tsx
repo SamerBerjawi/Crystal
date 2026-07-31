@@ -5,6 +5,7 @@ import { Account, Category, AccountType, Currency, User, AppPreferences, Financi
 import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
 import Card from './Card';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -170,7 +171,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
               <select name="currency" value={currencyPref} onChange={e => setCurrencyPref(e.target.value)} className={SELECT_STYLE}>
                 {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+              <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
             </div>
           </Card>
         );
@@ -192,7 +193,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       <select value={accountType} onChange={e => setAccountType(e.target.value as AccountType)} className={SELECT_STYLE}>
                           {ALL_ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                       </select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -206,7 +207,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       <select value={accountCurrency} onChange={e => setAccountCurrency(e.target.value as Currency)} className={SELECT_STYLE}>
                           {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                     </div>
                   </div>
                 </div>
@@ -242,7 +243,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                           <option value="">None</option>
                           {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                       </select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                   </div>
               </div>
             </div>
@@ -277,7 +278,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                                 <option value="">Select...</option>
                                 {activeCategories.filter(c => !c.parentId).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                         </div>
                     </div>
                 </div>
@@ -288,7 +289,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
          return (
           <div className="text-center">
             <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mx-auto mb-6">
-              <span className="material-symbols-outlined text-6xl text-green-500">check_circle</span>
+              <Icon name="check_circle" className="text-6xl text-green-500" />
             </div>
             <h1 className="text-4xl font-bold mb-4">You're all set!</h1>
             <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">

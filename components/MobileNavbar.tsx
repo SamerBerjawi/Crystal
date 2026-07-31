@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Page } from '../types';
 import { NAV_ITEMS, ITEM_COLORS } from '../constants';
 import { getColorClasses, getBgClasses, getGlowClasses } from '../utils/colors';
+import Icon from './ui/Icon';
 
 interface MobileNavbarProps {
   currentPage: string;
@@ -81,13 +82,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <span
-                  className={`material-symbols-outlined text-[22px] transition-all duration-300 relative z-10 ${
-                    isActive ? 'scale-110 filled-icon' : 'scale-100'
-                  }`}
-                >
-                  {item.icon}
-                </span>
+                <Icon name={item.icon} className={`text-[22px] transition-all duration-300 relative z-10 ${ isActive ? 'scale-110 ' : 'scale-100' }`} />
                 <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
                   {item.label}
                 </span>
@@ -112,13 +107,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <span
-              className={`material-symbols-outlined text-[22px] transition-all duration-300 relative z-10 ${
-                isMoreOpen || !isPrimaryActive ? 'scale-110 filled-icon' : 'scale-100'
-              }`}
-            >
-              {isMoreOpen ? 'close' : 'grid_view'}
-            </span>
+            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-[22px] transition-all duration-300 relative z-10 ${ isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100' }`} />
             <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
               {isMoreOpen ? 'Close' : 'More'}
             </span>
@@ -162,7 +151,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                   onClick={() => setIsMoreOpen(false)}
                   className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-lg">close</span>
+                  <Icon name="close" className="text-lg" />
                 </button>
               </div>
 
@@ -190,9 +179,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                             }`}
                           >
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getBgClasses(colorKey)}`}>
-                              <span className={`material-symbols-outlined text-xl ${getColorClasses(colorKey, true)}`}>
-                                {iconName}
-                              </span>
+                              <Icon name={iconName} className={`text-xl ${getColorClasses(colorKey, true)}`} />
                             </div>
                             <span className="text-xs font-semibold truncate leading-tight">
                               {pageName}

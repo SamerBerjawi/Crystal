@@ -50,6 +50,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import Icon from '../components/ui/Icon';
 
 const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
@@ -60,15 +61,15 @@ const MetricCard: React.FC<{ title: string; value: string; subValue?: string; ic
         <div className="flex justify-between items-start mb-3 relative z-10">
             <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">{title}</span>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClass} bg-opacity-10 dark:bg-opacity-20 group-hover:scale-110 transition-transform duration-300`}>
-                <span className="material-symbols-outlined text-xl">{icon}</span>
+                <Icon name={icon} className="text-xl" />
             </div>
         </div>
         <div className="relative z-10">
             <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter">{value}</p>
             {subValue && (
                 <div className="flex items-center gap-1 mt-1">
-                     {trend === 'up' && <span className="material-symbols-outlined text-xs text-green-500 font-bold">trending_up</span>}
-                     {trend === 'down' && <span className="material-symbols-outlined text-xs text-red-500 font-bold">trending_down</span>}
+                     {trend === 'up' && <Icon name="trending_up" className="text-xs text-green-500 font-bold" />}
+                     {trend === 'down' && <Icon name="trending_down" className="text-xs text-red-500 font-bold" />}
                      <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-90">{subValue}</p>
                 </div>
             )}
@@ -719,7 +720,7 @@ const Forecasting: React.FC = () => {
                  <div className="relative group/drag">
                     {goal.isBucket && (
                         <div {...attributes} {...listeners} className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-center opacity-0 group-hover/drag:opacity-100 cursor-grab active:cursor-grabbing transition-opacity">
-                            <span className="material-symbols-outlined text-sm text-gray-400">drag_indicator</span>
+                            <Icon name="drag_indicator" className="text-sm text-gray-400" />
                         </div>
                     )}
                     <FinancialGoalCard
@@ -907,7 +908,7 @@ const Forecasting: React.FC = () => {
                         <Card className="bg-primary-500/5 border-primary-500/20 mb-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center">
-                                    <span className="material-symbols-outlined">science</span>
+                                    <Icon name="science" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Scenario Playground</h3>
@@ -974,7 +975,7 @@ const Forecasting: React.FC = () => {
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-500">
-                                    <span className="material-symbols-outlined text-lg">insights</span>
+                                    <Icon name="insights" className="text-lg" />
                                 </div>
                                 <div className="space-y-0.5">
                                     <p className="text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Wealth Projection</p>
@@ -983,7 +984,7 @@ const Forecasting: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2 pt-1">
                                 <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                    <span className="material-symbols-outlined text-xs">trending_up</span>
+                                    <Icon name="trending_up" className="text-xs" />
                                     {((endBalance / startBalance - 1) * 100).toFixed(1)}% Growth
                                 </div>
                                 <div className="h-3 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
@@ -1018,7 +1019,7 @@ const Forecasting: React.FC = () => {
                             </h2>
                         </div>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${netChange >= 0 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
-                            <span className="material-symbols-outlined text-lg">{netChange >= 0 ? 'trending_up' : 'trending_down'}</span>
+                            <Icon name={netChange >= 0 ? 'trending_up' : 'trending_down'} className="text-lg" />
                         </div>
                     </div>
                     <div className="space-y-3">
@@ -1051,7 +1052,7 @@ const Forecasting: React.FC = () => {
                             </h2>
                         </div>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/10 text-primary-500 border border-primary-500/20">
-                            <span className="material-symbols-outlined text-lg">donut_large</span>
+                            <Icon name="donut_large" className="text-lg" />
                         </div>
                     </div>
                     
@@ -1109,14 +1110,14 @@ const Forecasting: React.FC = () => {
                                 onClick={() => setShowIndividualLines(false)}
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
-                                <span className="material-symbols-outlined text-xl">stacked_line_chart</span>
+                                <Icon name="stacked_line_chart" className="text-xl" />
                                 <span className="text-xs font-bold  tracking-wider">Combined</span>
                             </button>
                             <button 
                                 onClick={() => setShowIndividualLines(true)}
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
-                                <span className="material-symbols-outlined text-xl">multiline_chart</span>
+                                <Icon name="multiline_chart" className="text-xl" />
                                 <span className="text-xs font-bold tracking-wider">Split Accounts</span>
                             </button>
                         </div>
@@ -1149,7 +1150,7 @@ const Forecasting: React.FC = () => {
                  <div className="bg-light-fill dark:bg-dark-fill p-5 rounded-[2rem] flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-4">
                          <div className="p-3 rounded-2xl bg-white dark:bg-white/5 shadow-sm text-amber-500 border border-black/5 dark:border-white/10">
-                             <span className="material-symbols-outlined">flag</span>
+                             <Icon name="flag" />
                          </div>
                          <h3 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tighter">Financial Goals</h3>
                     </div>
@@ -1167,14 +1168,14 @@ const Forecasting: React.FC = () => {
                                 onClick={() => setViewMode('grid')}
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
-                                <span className="material-symbols-outlined text-xl">grid_view</span>
+                                <Icon name="grid_view" className="text-xl" />
                                 <span className="text-xs font-bold  tracking-wider">Grid</span>
                             </button>
                             <button 
                                 onClick={() => setViewMode('table')}
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'table' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
-                                <span className="material-symbols-outlined text-xl">table_rows</span>
+                                <Icon name="table_rows" className="text-xl" />
                                 <span className="text-xs font-bold  tracking-wider">Table</span>
                             </button>
                         </div>
@@ -1488,7 +1489,7 @@ const Forecasting: React.FC = () => {
                                         }) : (
                                             <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-[2.5rem] border border-dashed border-black/10 dark:border-white/10">
                                                 <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                                                     <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
+                                                     <Icon name="flag" className="text-4xl text-gray-300 dark:text-gray-600" />
                                                 </div>
                                                 <h4 className="text-xl font-bold text-light-text dark:text-dark-text mb-2 tracking-tight">No Goals Found</h4>
                                                 <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-8 opacity-60">
@@ -1517,7 +1518,7 @@ const Forecasting: React.FC = () => {
                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border border-primary-500/20 dark:border-primary-500/30">
-                             <span className="material-symbols-outlined text-xl">table_view</span>
+                             <Icon name="table_view" className="text-xl" />
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Forecast Ledger</h3>
@@ -1605,7 +1606,7 @@ const Forecasting: React.FC = () => {
                                                                 row.type === 'Bill/Payment' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
                                                                 'bg-primary-500/10 text-primary-500 border-primary-500/20'
                                                             }`}>
-                                                                <span className="material-symbols-outlined text-sm">{getIcon(row.type)}</span>
+                                                                <Icon name={getIcon(row.type)} className="text-sm" />
                                                             </div>
                                                             <span className="font-bold text-[12px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
                                                         </div>
@@ -1619,7 +1620,7 @@ const Forecasting: React.FC = () => {
                                                     <td className={`px-6 py-2 text-right font-mono text-[12px] ${isLowest ? 'text-red-600 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             {isMonthlyLowest && !isLowest && (
-                                                                <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold" title="Monthly Lowest Balance">arrow_downward</span>
+                                                                <Icon name="arrow_downward" className="text-[14px] text-amber-500 font-bold" title="Monthly Lowest Balance" />
                                                             )}
                                                             {formatCurrency(row.balance, 'EUR')}
                                                         </div>

@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { INPUT_BASE_STYLE } from '../constants';
 import { useLocationSearch, LocationData } from '../hooks/useLocationSearch';
+import Icon from './ui/Icon';
 
 interface LocationAutocompleteProps {
   value: string;
@@ -69,9 +70,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({ value, onCh
             className={`${INPUT_BASE_STYLE} pl-9`}
             placeholder={placeholder}
          />
-         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">
-            location_on
-         </span>
+         <Icon name="location_on" className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none" />
          {isFetching && (
              <div className="absolute right-3 top-1/2 -translate-y-1/2">
                  <svg className="animate-spin h-4 w-4 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { MileageLog } from '../types';
 import { parseLocalDate } from '../utils';
 import { LineChart, Line, Grid, XAxis, ChartTooltip } from '../src/components/charts';
+import Icon from './ui/Icon';
 
 interface VehicleMileageChartProps {
   logs: MileageLog[];
@@ -20,7 +21,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
   if (sortedLogs.length < 2) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-40 p-8 text-center">
-        <span className="material-symbols-outlined text-3xl mb-2">analytics</span>
+        <Icon name="analytics" className="text-3xl mb-2" />
         <p className="text-xs font-bold tracking-widest">Awaiting Log Data</p>
       </div>
     );

@@ -8,6 +8,7 @@ import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_T
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface AccountCardProps {
     account: Account;
@@ -222,9 +223,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                                 onError={() => setLogoError(true)}
                             />
                         ) : (
-                            <span className="material-symbols-outlined text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '28px' }}>
-                                {account.icon || style.icon}
-                            </span>
+                            <Icon name={account.icon || style.icon} className="text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '28px' }} />
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -254,7 +253,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         )}
                     </div>
                     <button onClick={handleEditClick} className="sm:opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary/40 hover:text-primary-500 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 ml-auto sm:ml-0">
-                        <span className="material-symbols-outlined text-[18px] sm:text-[20px]">edit</span>
+                        <Icon name="edit" className="text-[18px] sm:text-[20px]" />
                     </button>
                 </div>
             </Card>

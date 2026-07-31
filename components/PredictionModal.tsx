@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Account, Category, Prediction, PredictionType, InvestmentTransaction, Warrant } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface PredictionModalProps {
     onClose: () => void;
@@ -158,7 +159,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                                 ))
                             )}
                         </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                     </div>
                 </div>
 

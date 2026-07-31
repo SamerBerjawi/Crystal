@@ -6,6 +6,7 @@ import TransactionMatcherCard from './TransactionMatcherCard';
 import SyncedBillMatcherCard from './SyncedBillMatcherCard';
 import { PieChart, PieSlice, PieCenter } from '../src/components/charts';
 import Card from './Card';
+import Icon from './ui/Icon';
 
 export type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 
@@ -167,9 +168,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-center text-light-text dark:text-white transition-all active:scale-95"
             aria-label="Toggle Privacy Mode"
           >
-            <span className="material-symbols-outlined text-xl">
-              {isPrivacyMode ? 'visibility_off' : 'visibility'}
-            </span>
+            <Icon name={isPrivacyMode ? 'visibility_off' : 'visibility'} className="text-xl" />
           </button>
 
           <button
@@ -181,9 +180,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             }`}
             aria-label="Customize Layout"
           >
-            <span className="material-symbols-outlined text-xl">
-              {isEditMode ? 'done' : 'dashboard_customize'}
-            </span>
+            <Icon name={isEditMode ? 'done' : 'dashboard_customize'} className="text-xl" />
           </button>
         </div>
       </div>
@@ -209,13 +206,13 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
           <div className="flex items-center gap-2 pt-1">
             <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-emerald-400 text-xs font-bold flex-1 truncate">
-              <span className="material-symbols-outlined text-sm">arrow_upward</span>
+              <Icon name="arrow_upward" className="text-sm" />
               <span className="opacity-75 text-[10px]">Assets:</span>
               <span className="privacy-blur truncate">{assetsFormatted}</span>
             </div>
 
             <div className="flex items-center gap-1.5 bg-rose-500/15 border border-rose-500/20 px-3 py-1.5 rounded-xl text-rose-400 text-xs font-bold flex-1 truncate">
-              <span className="material-symbols-outlined text-sm">arrow_downward</span>
+              <Icon name="arrow_downward" className="text-sm" />
               <span className="opacity-75 text-[10px]">Debt:</span>
               <span className="privacy-blur truncate">{debtFormatted}</span>
             </div>
@@ -227,7 +224,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               onClick={handleOpenTransactionModal}
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white text-gray-900 font-bold active:scale-95 transition-all min-h-[50px] shadow-sm"
             >
-              <span className="material-symbols-outlined text-lg">add</span>
+              <Icon name="add" className="text-lg" />
               <span className="text-[10px] mt-0.5 font-bold">Transact</span>
             </button>
 
@@ -241,9 +238,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               }}
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold active:scale-95 transition-all min-h-[50px] border border-white/10"
             >
-              <span className={`material-symbols-outlined text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>
-                sync
-              </span>
+              <Icon name="sync" className={`text-lg ${isSyncingBanks ? 'animate-spin' : ''}`} />
               <span className="text-[10px] mt-0.5">{isSyncingBanks ? 'Syncing' : 'Sync'}</span>
             </button>
 
@@ -251,7 +246,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               onClick={() => setShowFilterDrawer(!showFilterDrawer)}
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold active:scale-95 transition-all min-h-[50px] border border-white/10"
             >
-              <span className="material-symbols-outlined text-lg">tune</span>
+              <Icon name="tune" className="text-lg" />
               <span className="text-[10px] mt-0.5">Filters</span>
             </button>
 
@@ -262,9 +257,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               }}
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold active:scale-95 transition-all min-h-[50px] border border-white/10"
             >
-              <span className="material-symbols-outlined text-lg">
-                {isEditMode ? 'add_circle' : 'widgets'}
-              </span>
+              <Icon name={isEditMode ? 'add_circle' : 'widgets'} className="text-lg" />
               <span className="text-[10px] mt-0.5">{isEditMode ? 'Add' : 'Widgets'}</span>
             </button>
           </div>
@@ -282,7 +275,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               onClick={() => setShowFilterDrawer(false)}
               className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-lg"
             >
-              <span className="material-symbols-outlined text-base">close</span>
+              <Icon name="close" className="text-base" />
             </button>
           </div>
 
@@ -322,7 +315,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                       ))}
                     </select>
                     <div className={SELECT_ARROW_STYLE}>
-                      <span className="material-symbols-outlined text-base">expand_more</span>
+                      <Icon name="expand_more" className="text-base" />
                     </div>
                   </div>
 
@@ -334,7 +327,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                         : 'bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-lg">show_chart</span>
+                    <Icon name="show_chart" className="text-lg" />
                   </button>
 
                   <button
@@ -345,7 +338,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                         : 'bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-lg">flag</span>
+                    <Icon name="flag" className="text-lg" />
                   </button>
                 </div>
               </div>
@@ -393,9 +386,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                   : 'text-light-text-secondary dark:text-dark-text-secondary'
               }`}
             >
-              <span className={`material-symbols-outlined text-lg ${isActive ? 'filled-icon' : 'opacity-70'}`}>
-                {tabConfig.icon}
-              </span>
+              <Icon name={tabConfig.icon} className={`text-lg ${isActive ? '' : 'opacity-70'}`} />
               <span className="capitalize">{tabConfig.label}</span>
             </button>
           );
@@ -410,7 +401,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
               <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-lg">savings</span>
+                <Icon name="savings" className="text-lg" />
               </div>
               <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">
                 Liquidity Ratio
@@ -425,7 +416,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
             <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
               <div className="w-9 h-9 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-lg">trending_up</span>
+                <Icon name="trending_up" className="text-lg" />
               </div>
               <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">
                 Savings Rate
@@ -440,7 +431,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
             <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
               <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-lg">pie_chart</span>
+                <Icon name="pie_chart" className="text-lg" />
               </div>
               <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">
                 Debt Ratio
@@ -462,7 +453,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
             <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md p-4 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
               <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2">
-                <span className="material-symbols-outlined text-lg">payments</span>
+                <Icon name="payments" className="text-lg" />
               </div>
               <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">
                 Net Flow
@@ -523,7 +514,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
         <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md rounded-3xl p-4 border border-black/5 dark:border-white/10 shadow-sm space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary-500 text-lg">history</span>
+              <Icon name="history" className="text-primary-500 text-lg" />
               <h3 className="text-xs font-bold text-light-text dark:text-white tracking-wide">
                 Recent Transactions
               </h3>
@@ -554,9 +545,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                           : 'bg-black/5 dark:bg-white/10 text-light-text dark:text-white'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-base">
-                        {isIncome ? 'arrow_downward' : 'shopping_bag'}
-                      </span>
+                      <Icon name={isIncome ? 'arrow_downward' : 'shopping_bag'} className="text-base" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-light-text dark:text-white truncate">
@@ -598,7 +587,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
                   {widgetDetails.icon && (
                     <div className="w-8 h-8 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-base">{widgetDetails.icon}</span>
+                      <Icon name={widgetDetails.icon} className="text-base" />
                     </div>
                   )}
                   <div className="min-w-0">
@@ -619,7 +608,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                     className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 flex items-center justify-center transition-all shrink-0"
                     aria-label="Remove widget"
                   >
-                    <span className="material-symbols-outlined text-base">close</span>
+                    <Icon name="close" className="text-base" />
                   </button>
                 )}
               </div>

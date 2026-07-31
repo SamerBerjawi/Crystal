@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE, INPUT_BASE_STYLE } from '../constants';
 import { Account } from '../types';
+import Icon from './ui/Icon';
 
 interface ExportModalProps {
   onClose: () => void;
@@ -86,13 +87,13 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                         onClick={() => setFormat('csv')} 
                         className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${format === 'csv' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                     >
-                        <span className="material-symbols-outlined text-lg">table_view</span> CSV (Spreadsheet)
+                        <Icon name="table_view" className="text-lg" /> CSV (Spreadsheet)
                     </button>
                     <button 
                         onClick={() => setFormat('json')} 
                         className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${format === 'json' ? 'bg-white dark:bg-dark-card shadow-sm text-purple-600 dark:text-purple-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                     >
-                        <span className="material-symbols-outlined text-lg">code</span> JSON (Backup)
+                        <Icon name="code" className="text-lg" /> JSON (Backup)
                     </button>
                 </div>
 
@@ -129,11 +130,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                                         className={CHECKBOX_STYLE} 
                                     />
                                     <div className="flex items-center gap-2">
-                                         <span className={`material-symbols-outlined text-lg ${
-                                             isSelected 
-                                                 ? 'text-primary-600 dark:text-primary-400 filled-icon' 
-                                                 : 'text-light-text-secondary dark:text-dark-text-secondary'
-                                         }`}>{type.icon}</span>
+                                         <Icon name={type.icon} className={`text-lg ${ isSelected ? 'text-primary-600 dark:text-primary-400 ' : 'text-light-text-secondary dark:text-dark-text-secondary' }`} />
                                          <span className={`font-semibold text-sm ${
                                              isSelected
                                                  ? 'text-primary-700 dark:text-primary-300'

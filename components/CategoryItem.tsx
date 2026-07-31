@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Category } from '../types';
+import Icon from './ui/Icon';
 
 interface CategoryItemProps {
   category: Category;
@@ -81,19 +82,14 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
             onClick={() => hasSubCategories && setIsExpanded(!isExpanded)}
         >
             {/* Drag Handle (Visible on Hover) */}
-            <span className="material-symbols-outlined absolute left-2 text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-50 cursor-grab text-base" title="Drag to reorder">drag_indicator</span>
+            <Icon name="drag_indicator" className="absolute left-2 text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-50 cursor-grab text-base" title="Drag to reorder" />
 
             <div className="flex items-center gap-3 pl-6 min-w-0 flex-grow">
                 <div className={`flex-shrink-0 rounded-lg flex items-center justify-center ${isSubCategory ? 'w-6 h-6' : 'w-10 h-10'}`} style={{ backgroundColor: `${category.color}20` }}>
-                    <span 
-                        className="material-symbols-outlined"
-                        style={{
+                    <Icon name={category.icon || 'category'} style={{
                             fontSize: isSubCategory ? '16px' : '20px',
                             color: category.color,
-                        }}
-                    >
-                        {category.icon || 'category'}
-                    </span>
+                        }} />
                 </div>
                 
                 <span className={`font-semibold text-light-text dark:text-dark-text truncate ${isSubCategory ? 'text-sm' : 'text-base'}`}>
@@ -116,7 +112,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
                             className="p-1.5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-md hover:text-primary-500 transition-colors" 
                             title="Add Sub-category"
                         >
-                            <span className="material-symbols-outlined text-lg">add</span>
+                            <Icon name="add" className="text-lg" />
                         </button>
                     )}
                     <button 
@@ -124,22 +120,20 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
                         className="p-1.5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-md hover:text-blue-500 transition-colors" 
                         title="Edit"
                     >
-                        <span className="material-symbols-outlined text-lg">edit</span>
+                        <Icon name="edit" className="text-lg" />
                     </button>
                     <button 
                         onClick={(e) => { e.stopPropagation(); onDelete(category.id); }} 
                         className="p-1.5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md hover:text-red-500 transition-colors" 
                         title="Delete"
                     >
-                        <span className="material-symbols-outlined text-lg">delete</span>
+                        <Icon name="delete" className="text-lg" />
                     </button>
                 </div>
 
                 {/* Expand/Collapse Chevron (Only for parents) */}
                 {hasSubCategories && !isSubCategory && (
-                    <span className={`material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                        expand_more
-                    </span>
+                    <Icon name="expand_more" className={`text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                 )}
             </div>
         </div>

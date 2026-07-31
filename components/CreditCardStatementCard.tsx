@@ -5,6 +5,7 @@ import { formatCurrency } from '../utils';
 import { Currency } from '../types';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface StatementInfo {
     period: string;
@@ -95,7 +96,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                             <span className="text-light-text-secondary dark:text-dark-text-secondary">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
                             {isPaid && (
                                 <span className="flex items-center gap-1 font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded scale-90 origin-left">
-                                    <span className="material-symbols-outlined text-[10px]">check</span> Paid
+                                    <Icon name="check" className="text-[10px]" /> Paid
                                 </span>
                             )}
                         </div>
@@ -112,7 +113,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
             <div className={`flex flex-col justify-center ${isWide ? 'w-1/3 border-r pr-3' : 'border-b pb-2'} border-black/5 dark:border-white/5`}>
                 <div className="flex items-center gap-3 mb-0.5">
                     <div className="w-6 h-6 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[14px]">credit_card</span>
+                        <Icon name="credit_card" className="text-[14px]" />
                     </div>
                     <h3 className="font-semibold text-[14px] text-light-text dark:text-dark-text truncate">{accountName}</h3>
                 </div>

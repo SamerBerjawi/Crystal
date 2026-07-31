@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { INPUT_BASE_STYLE } from '../constants';
 import { fuzzySearch } from '../utils';
 import { searchMaterialSymbols } from '../utils/materialSymbols';
+import Icon from './ui/Icon';
 
 interface IconPickerProps {
   onClose: () => void;
@@ -79,9 +80,10 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
       <div className="flex flex-col h-[60vh] max-h-[600px]">
         {/* Search Bar */}
         <div className="mb-4 relative flex-shrink-0">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">
-            search
-          </span>
+          <Icon
+            name="search"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none text-xl"
+          />
           <input
             type="text"
             value={searchTerm}
@@ -96,7 +98,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
                 title="Clear search"
             >
-                <span className="material-symbols-outlined text-sm block">close</span>
+                <Icon name="close" className="text-sm block" />
             </button>
            )}
         </div>
@@ -112,9 +114,10 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
                   className="group flex flex-col items-center justify-center aspect-square rounded-xl bg-light-bg dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:shadow-md transition-all duration-200 border border-transparent hover:border-black/5 dark:hover:border-white/10 relative overflow-hidden"
                   title={icon}
                 >
-                  <span className="material-symbols-outlined text-3xl text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 group-hover:scale-110 transition-transform duration-200">
-                    {icon}
-                  </span>
+                  <Icon
+                    name={icon}
+                    className="text-3xl text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 group-hover:scale-110 transition-transform duration-200"
+                  />
                   <span className="absolute bottom-1 w-full text-[10px] text-center text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate px-1 capitalize">
                       {icon.replace(/_/g, ' ')}
                   </span>
@@ -123,7 +126,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                <span className="material-symbols-outlined text-4xl mb-3">sentiment_dissatisfied</span>
+                <Icon name="sentiment_dissatisfied" className="text-4xl mb-3" />
                 <p>{isFetchingRemote ? 'Searching Material Symbols catalog…' : `No icons found for "${searchTerm}"`}</p>
             </div>
           )}

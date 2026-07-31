@@ -5,6 +5,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
+import Icon from './ui/Icon';
 
 interface PropertyAccountViewProps {
   account: Account;
@@ -46,11 +47,11 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
                          {trend.val}
                     </div>
                 )}
@@ -142,7 +143,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -152,7 +153,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light">home</span>
+                      <Icon name="home" className="text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light" />
                   </h1>
               </div>
           </div>
@@ -160,19 +161,19 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {!isClosed && (
                 <button onClick={onUpdateValuation || onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                    <span className="material-symbols-outlined text-lg mr-2">add</span>
+                    <Icon name="add" className="text-lg mr-2" />
                     Value Update
                 </button>
               )}
               {isClosed && onRevertClosure && (
                     <button onClick={onRevertClosure} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                        <span className="material-symbols-outlined text-lg mr-2">history</span>
+                        <Icon name="history" className="text-lg mr-2" />
                         Reopen
                     </button>
               )}
               {!isClosed && onCloseAsset && (
                     <button onClick={onCloseAsset} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-sm">sell</span>
+                        <Icon name="sell" className="text-sm" />
                         Record Sale
                     </button>
               )}
@@ -187,7 +188,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
            className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/40 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center gap-10"
         >
             <div className="w-24 h-24 rounded-full bg-rose-500 flex items-center justify-center text-white shadow-xl shadow-rose-500/20">
-                <span className="material-symbols-outlined text-5xl">lock</span>
+                <Icon name="lock" className="text-5xl" />
             </div>
             <div className="flex-grow text-center md:text-left">
                 <h3 className="text-2xl font-semibold text-rose-900 dark:text-rose-100 mb-2">Portfolio exit logged</h3>
@@ -297,7 +298,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                 {/* Valuation Trajectory */}
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
-                         <span className="material-symbols-outlined text-8xl">architecture</span>
+                         <Icon name="architecture" className="text-8xl" />
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
@@ -347,7 +348,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-black/5 dark:bg-white/5 rounded-[2rem] border-2 border-dashed border-black/5 dark:border-white/5">
-                                <span className="material-symbols-outlined text-4xl text-light-text-secondary/20 mb-4 font-light">insights</span>
+                                <Icon name="insights" className="text-4xl text-light-text-secondary/20 mb-4 font-light" />
                                 <p className="text-sm font-bold text-light-text-secondary/60 tracking-wider">Awaiting valuation points</p>
                             </div>
                         )}
@@ -384,7 +385,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                         <div className="mt-12 flex flex-wrap gap-4 pt-10 border-t border-black/5 dark:border-white/5">
                             {features.map((f, i) => (
                                 <div key={i} className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-dark-fill border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group/chip">
-                                    <span className="material-symbols-outlined text-primary-500 font-light group-hover/chip:scale-110 transition-transform">{f.icon}</span>
+                                    <Icon name={f.icon} className="text-primary-500 font-light group-hover/chip:scale-110 transition-transform" />
                                     <span className="text-xs font-bold tracking-wider text-light-text dark:text-dark-text">{f.label}</span>
                                 </div>
                             ))}
@@ -422,11 +423,11 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                              <div>
                                  <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Active mortgage</h3>
                                  <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
-                                     Loan profile <span className="material-symbols-outlined text-[12px]">arrow_forward</span>
+                                     Loan profile <Icon name="arrow_forward" className="text-[12px]" />
                                  </button>
                              </div>
                              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                                 <span className="material-symbols-outlined text-2xl">request_quote</span>
+                                 <Icon name="request_quote" className="text-2xl" />
                              </div>
                          </div>
                          <div className="space-y-6">
@@ -446,7 +447,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                     </motion.div>
                 ) : (
                     <div className="h-full min-h-[200px] rounded-[2.5rem] border-4 border-dashed border-black/5 dark:border-white/5 flex flex-col items-center justify-center text-center p-8 grayscale opacity-40">
-                         <span className="material-symbols-outlined text-4xl mb-2 font-light">account_balance</span>
+                         <Icon name="account_balance" className="text-4xl mb-2 font-light" />
                          <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">No Mortgage Link</p>
                     </div>
                 )}

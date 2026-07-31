@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getCardNetworkLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface CreditCardAccountViewProps {
   account: Account;
@@ -46,11 +47,11 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
                          {trend.val}
                     </div>
                 )}
@@ -166,7 +167,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -179,7 +180,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                         {logoUrl ? (
                             <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                         ) : (
-                            <span className="material-symbols-outlined text-primary-500 text-2xl">credit_card</span>
+                            <Icon name="credit_card" className="text-primary-500 text-2xl" />
                         )}
                       </div>
                       {account.name}
@@ -190,12 +191,12 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {isLinkedToEnableBanking && onSyncLinkedAccount && (
                   <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                      <span className="material-symbols-outlined text-lg mr-2">sync</span>
+                      <Icon name="sync" className="text-lg mr-2" />
                       Sync
                   </button>
               )}
               <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                  <span className="material-symbols-outlined text-lg mr-2">add</span>
+                  <Icon name="add" className="text-lg mr-2" />
                   Transaction
               </button>
           </div>
@@ -296,7 +297,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                 {/* Spending Velocity Chart */}
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
-                         <span className="material-symbols-outlined text-8xl">insights</span>
+                         <Icon name="insights" className="text-8xl" />
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
@@ -352,12 +353,12 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 h-full flex flex-col group">
                     <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-8 flex items-center gap-3">
                         Billing engine
-                        <span className="material-symbols-outlined text-slate-300">settings</span>
+                        <Icon name="settings" className="text-slate-300" />
                     </h3>
                     <div className="space-y-10">
                         <div className="flex items-center gap-6">
                             <div className="w-14 h-14 rounded-[1.25rem] bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/5">
-                                <span className="material-symbols-outlined text-2xl font-light">calendar_today</span>
+                                <Icon name="calendar_today" className="text-2xl font-light" />
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Statement Open</p>
@@ -368,7 +369,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                         </div>
                         <div className="flex items-center gap-6">
                             <div className="w-14 h-14 rounded-[1.25rem] bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/5">
-                                <span className="material-symbols-outlined text-2xl font-light">priority_high</span>
+                                <Icon name="priority_high" className="text-2xl font-light" />
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Settlement Due</p>
@@ -383,7 +384,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                              {account.settlementAccountId ? (
                                 <div className="p-6 rounded-[2rem] bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4 group/status">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center group-hover/status:scale-110 transition-transform">
-                                        <span className="material-symbols-outlined text-lg">verified</span>
+                                        <Icon name="verified" className="text-lg" />
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wider mb-0.5">Auto-Pay Active</p>
@@ -393,7 +394,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                              ) : (
                                 <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
                                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-lg">warning</span>
+                                        <Icon name="warning" className="text-lg" />
                                     </div>
                                     <p className="text-xs font-bold text-amber-600 dark:text-amber-400 tracking-wider">Manual Payment Required</p>
                                 </div>
@@ -421,7 +422,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                             />
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-20 grayscale opacity-20">
-                                 <span className="material-symbols-outlined text-6xl mb-4 font-light">receipt_long</span>
+                                 <Icon name="receipt_long" className="text-6xl mb-4 font-light" />
                                  <p className="text-xs font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/60">No transaction data identified</p>
                             </div>
                         )}

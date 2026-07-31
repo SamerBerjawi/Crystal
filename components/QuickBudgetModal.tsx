@@ -1,6 +1,7 @@
 import React from 'react';
 import Modal from './Modal';
 import { BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface QuickBudgetModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ const QuickBudgetModal: React.FC<QuickBudgetModalProps> = ({ isOpen, onClose, on
               className="w-full text-left p-4 rounded-lg bg-light-fill dark:bg-white/5 text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/10 transition-colors font-medium flex justify-between items-center group border border-black/5 dark:border-white/5"
             >
               <span>{option.label}</span>
-              <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              <Icon name="arrow_forward" className="text-light-text-secondary dark:text-dark-text-secondary group-hover:translate-x-1 transition-transform" />
             </button>
           ))}
         </div>

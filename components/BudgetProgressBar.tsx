@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Currency } from '../types';
 import { formatCurrency } from '../utils';
+import Icon from './ui/Icon';
 
 export interface BudgetProgressBarProps {
   spent: number;
@@ -148,7 +149,7 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
             )}
             <div className="flex items-center gap-2">
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeBg}`}>
-                <span className="material-symbols-outlined text-[13px] leading-none">{statusIcon}</span>
+                <Icon name={statusIcon} className="text-[13px] leading-none" />
                 {statusText}
               </span>
             </div>
@@ -221,7 +222,7 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
               className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-light-text dark:text-dark-text"
               title="Edit Budget"
             >
-              <span className="material-symbols-outlined text-sm leading-none">edit</span>
+              <Icon name="edit" className="text-sm leading-none" />
             </button>
           )}
         </div>

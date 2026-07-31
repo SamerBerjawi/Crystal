@@ -7,6 +7,7 @@ import { formatCurrency, parseLocalDate } from '../utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { toast } from 'sonner';
+import Icon from './ui/Icon';
 
 interface MerchantDetailModalProps {
     isOpen: boolean;
@@ -175,7 +176,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                          <div className="flex items-center gap-2 mt-1">
                              {website && (
                                  <a href={website} target="_blank" rel="noreferrer" className="text-xs text-primary-500 hover:underline flex items-center gap-1">
-                                     {website.replace(/^https?:\/\//, '')} <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                     {website.replace(/^https?:\/\//, '')} <Icon name="open_in_new" className="text-[10px]" />
                                  </a>
                              )}
                              {isHidden && <span className="text-[10px] bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-gray-500 font-bold  tracking-wide">Hidden</span>}
@@ -213,7 +214,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 >
                                     <CategoryOptions categories={allCategories} />
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                                 Automatically apply this category to future transactions from this merchant.
@@ -295,7 +296,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             onChange={handleFileChange} 
                                             className="hidden" 
                                         />
-                                        <span className="material-symbols-outlined text-xl text-light-text-secondary dark:text-dark-text-secondary mb-0.5">upload_file</span>
+                                        <Icon name="upload_file" className="text-xl text-light-text-secondary dark:text-dark-text-secondary mb-0.5" />
                                         <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Upload Custom Logo</p>
                                         <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Drag-and-drop or click here</p>
                                     </div>

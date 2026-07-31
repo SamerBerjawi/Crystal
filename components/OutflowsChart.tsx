@@ -3,6 +3,7 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { CategorySpending } from '../types';
 import { formatCurrency } from '../utils';
+import Icon from './ui/Icon';
 
 interface OutflowsChartProps {
   data: CategorySpending[];
@@ -25,7 +26,7 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-60 flex-col gap-2">
-        <span className="material-symbols-outlined text-3xl">bar_chart_4_bars</span>
+        <Icon name="bar_chart_4_bars" className="text-3xl" />
         <p>No outflow data.</p>
       </div>
     );

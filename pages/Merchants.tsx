@@ -12,6 +12,7 @@ import MerchantDetailModal from '../components/MerchantDetailModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import RegexCategorizationModal from '../components/RegexCategorizationModal';
+import Icon from '../components/ui/Icon';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -39,7 +40,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
             <p className="text-2xl font-bold text-light-text dark:text-dark-text">{value}</p>
         </div>
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}>
-            <span className="material-symbols-outlined text-2xl">{icon}</span>
+            <Icon name={icon} className="text-2xl" />
         </div>
     </div>
 );
@@ -533,7 +534,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {!brandfetchClientId && (
           <div className="bg-amber-100/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl px-5 py-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-               <span className="material-symbols-outlined text-xl">brand_awareness</span>
+               <Icon name="brand_awareness" className="text-xl" />
             </div>
             <p className="text-xs font-bold text-amber-800/80 dark:text-amber-200/80 leading-relaxed">
               Automatic branding enrichment is offline. Add a Brandfetch Access Key in Preferences to restore merchant telemetry.
@@ -545,7 +546,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         <div className="relative overflow-hidden bg-gradient-to-r from-primary-500/[0.08] via-indigo-500/[0.05] to-emerald-500/[0.05] p-5 rounded-3xl border border-primary-500/20 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
-                    <span className="material-symbols-outlined text-xl">psychology</span>
+                    <Icon name="psychology" className="text-xl" />
                 </div>
                 <div>
                     <div className="flex items-center gap-2">
@@ -620,7 +621,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       <div className="flex flex-col md:flex-row gap-6 justify-between items-center px-2">
            <div className="relative w-full md:max-w-md group">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-40 group-focus-within:text-primary-500 group-focus-within:opacity-100 transition-all">database_search</span>
+                  <Icon name="database_search" className="text-light-text-secondary dark:text-dark-text-secondary opacity-40 group-focus-within:text-primary-500 group-focus-within:opacity-100 transition-all" />
                 </div>
                 <input 
                     type="text" 
@@ -653,13 +654,13 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                       onClick={() => setViewMode('grid')}
                       className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
-                       <span className="material-symbols-outlined text-lg">grid_view</span>
+                       <Icon name="grid_view" className="text-lg" />
                    </button>
                    <button 
                       onClick={() => setViewMode('list')}
                       className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
-                       <span className="material-symbols-outlined text-lg">view_list</span>
+                       <Icon name="view_list" className="text-lg" />
                    </button>
                </div>
                
@@ -675,7 +676,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                        <option value="name">Identifier</option>
                    </select>
                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-light-text-secondary opacity-40">
-                      <span className="material-symbols-outlined text-sm">unfold_more</span>
+                      <Icon name="unfold_more" className="text-sm" />
                    </div>
                </div>
            </div>
@@ -684,7 +685,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       {filteredEntities.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
               <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-3xl opacity-20">search_off</span>
+                <Icon name="search_off" className="text-3xl opacity-20" />
               </div>
               <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Zero Results Found</p>
               {stats.missingCount > 0 && (
@@ -790,7 +791,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                            </div>
                                            <div className="flex items-center gap-2">
                                               <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors  tracking-tight">{entity.name}</span>
-                                              {isHidden && <span className="material-symbols-outlined text-sm text-gray-400">visibility_off</span>}
+                                              {isHidden && <Icon name="visibility_off" className="text-sm text-gray-400" />}
                                            </div>
                                       </div>
                                   </td>
@@ -824,16 +825,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 transition-all shadow-sm"
                                                 title={isHidden ? "Activate" : "Deactivate"}
                                             >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {isHidden ? 'notifications_active' : 'notifications_off'}
-                                                </span>
+                                                <Icon name={isHidden ? 'notifications_active' : 'notifications_off'} className="text-lg" />
                                             </button>
                                            <button 
                                                 onClick={(e) => { e.stopPropagation(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
                                                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
                                                 title="Protocol Configuration"
                                             >
-                                                <span className="material-symbols-outlined text-lg">tune</span>
+                                                <Icon name="tune" className="text-lg" />
                                             </button>
                                        </div>
                                   </td>

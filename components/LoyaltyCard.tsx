@@ -4,6 +4,7 @@ import { Membership } from '../types';
 import { parseLocalDate } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface LoyaltyCardProps {
   membership: Membership;
@@ -80,7 +81,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
       <div className="absolute inset-0 z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
       {!hasLogo && (
         <div className="absolute -right-8 -bottom-8 text-white opacity-10 z-0 pointer-events-none transform rotate-12 transition-transform duration-700 group-hover:rotate-0">
-             <span className="material-symbols-outlined text-[160px] leading-none">{membership.icon || 'loyalty'}</span>
+             <Icon name={membership.icon || 'loyalty'} className="text-[160px] leading-none" />
         </div>
       )}
       
@@ -91,7 +92,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
             className="w-10 h-10 rounded-2xl bg-black/20 hover:bg-rose-500 text-white flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all shadow-xl"
             title="Delete"
           >
-             <span className="material-symbols-outlined text-sm">delete</span>
+             <Icon name="delete" className="text-sm" />
           </button>
       </div>
 
@@ -110,7 +111,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                             onError={() => setLogoError(true)}
                         />
                     ) : (
-                        <span className="material-symbols-outlined text-2xl text-white/80">{membership.icon || 'loyalty'}</span>
+                        <Icon name={membership.icon || 'loyalty'} className="text-2xl text-white/80" />
                     )}
                 </div>
                 
@@ -141,9 +142,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                         {membership.memberId}
                     </span>
                     <div className={`flex items-center justify-center w-6 h-6 rounded-xl transition-all duration-300 ${copied ? 'bg-emerald-400 text-black scale-110' : 'bg-white/20 text-white scale-90 opacity-0 group-hover/id:opacity-100'}`}>
-                        <span className="material-symbols-outlined text-[10px] font-black">
-                            {copied ? 'check' : 'content_copy'}
-                        </span>
+                        <Icon name={copied ? 'check' : 'content_copy'} className="text-[10px] font-black" />
                     </div>
                 </div>
             </div>

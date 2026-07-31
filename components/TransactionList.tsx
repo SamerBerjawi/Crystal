@@ -5,6 +5,7 @@ import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { useTagsContext } from '../contexts/FinancialDataContext';
+import Icon from './ui/Icon';
 
 interface TransactionListProps {
   transactions: DisplayTransaction[];
@@ -160,7 +161,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     return (
       <div className={`flex flex-col items-center justify-center p-8 text-center bg-black/[0.01] dark:bg-white/[0.01] rounded-3xl border border-dashed border-black/10 dark:border-white/10 my-2 ${className}`}>
         <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary mb-2">
-          <span className="material-symbols-outlined text-2xl opacity-60">receipt_long</span>
+          <Icon name="receipt_long" className="text-2xl opacity-60" />
         </div>
         <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">No activity recorded</p>
         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 max-w-xs">
@@ -229,9 +230,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                         onError={() => handleLogoError(merchantLogoUrl)}
                       />
                     ) : (
-                      <span className={`material-symbols-outlined ${density === 'high' ? 'text-lg' : 'text-xl'} text-white`}>
-                        {icon}
-                      </span>
+                      <Icon name={icon} className={`${density === 'high' ? 'text-lg' : 'text-xl'} text-white`} />
                     )}
                   </div>
                   <div className="ml-3 sm:ml-3.5 min-w-0 overflow-hidden flex-1">
@@ -245,9 +244,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           </span>
                         )}
                         {tx.recurringSourceId && (
-                          <span className="material-symbols-outlined text-[13px] text-purple-500 shrink-0" title="Recurring Transaction">
-                            repeat
-                          </span>
+                          <Icon name="repeat" className="text-[13px] text-purple-500 shrink-0" title="Recurring Transaction" />
                         )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden flex-wrap">
@@ -281,9 +278,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           </div>
                         )}
                         {tx.notes && (
-                          <span className="material-symbols-outlined text-[12px] text-primary-500/60 shrink-0" title={tx.notes}>
-                            description
-                          </span>
+                          <Icon name="description" className="text-[12px] text-primary-500/60 shrink-0" title={tx.notes} />
                         )}
                     </div>
                   </div>
@@ -301,7 +296,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     </p>
                     {spareAmountEur && (
                       <div className="flex items-center gap-0.5 mt-0.5">
-                        <span className="material-symbols-outlined text-[10px] text-emerald-500">savings</span>
+                        <Icon name="savings" className="text-[10px] text-emerald-500" />
                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
                       </div>
                     )}

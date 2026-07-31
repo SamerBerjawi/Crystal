@@ -7,6 +7,7 @@ import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Ba
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
+import Icon from './ui/Icon';
 
 interface SavingsAccountViewProps {
   account: Account;
@@ -46,11 +47,11 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
                          {trend.val}
                     </div>
                 )}
@@ -217,7 +218,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -227,7 +228,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">{account.icon || 'savings'}</span>
+                      <Icon name={account.icon || 'savings'} className="text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light" />
                   </h1>
               </div>
           </div>
@@ -235,12 +236,12 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {isLinkedToEnableBanking && onSyncLinkedAccount && (
                   <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                      <span className="material-symbols-outlined text-lg mr-2">sync</span>
+                      <Icon name="sync" className="text-lg mr-2" />
                       Sync
                   </button>
               )}
               <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                  <span className="material-symbols-outlined text-lg mr-2">add</span>
+                  <Icon name="add" className="text-lg mr-2" />
                   Transaction
               </button>
           </div>
@@ -332,7 +333,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 {/* Balance Trajectory Chart */}
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
-                         <span className="material-symbols-outlined text-8xl">account_balance</span>
+                         <Icon name="account_balance" className="text-8xl" />
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
@@ -484,7 +485,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 h-full flex flex-col group">
                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-8 flex items-center gap-3">
                             Linked Goals
-                            <span className="material-symbols-outlined text-amber-500">ads_click</span>
+                            <Icon name="ads_click" className="text-amber-500" />
                         </h3>
                         <div className="space-y-8">
                             {linkedGoals.map(goal => {

@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { Account, AssetClosureDetails } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { formatCurrency } from '../utils';
+import Icon from './ui/Icon';
 
 interface CloseAssetModalProps {
   onClose: () => void;
@@ -108,7 +109,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
                   ))}
                 </select>
                 <div className={SELECT_ARROW_STYLE}>
-                  <span className="material-symbols-outlined">expand_more</span>
+                  <Icon name="expand_more" />
                 </div>
               </div>
             </div>

@@ -20,6 +20,7 @@ import PriceHistoryChart from '../components/PriceHistoryChart';
 import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
 import HeaderButton from '../components/HeaderButton';
 import { useConfirm } from '../components/ConfirmationModal';
+import Icon from '../components/ui/Icon';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -112,7 +113,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
         return (
             <div className="space-y-6">
                 <button onClick={onBack} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                    <span className="material-symbols-outlined">arrow_back</span>
+                    <Icon name="arrow_back" />
                     Back to Investments
                 </button>
                 <Card>
@@ -220,7 +221,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
             <div className="flex flex-col gap-6">
                 <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 flex items-center gap-2 transition-colors self-start group">
                      <div className="p-1 rounded-full group-hover:bg-black/5 dark:group-hover:bg-white/10 transition-colors">
-                        <span className="material-symbols-outlined text-lg">arrow_back</span>
+                        <Icon name="arrow_back" className="text-lg" />
                      </div>
                      <span className="text-sm font-medium">Investments Portfolio</span>
                 </button>
@@ -228,7 +229,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                     <div className="flex items-center gap-5">
                         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${typeStyle.bg} ${typeStyle.color} border border-current/10 shadow-sm`}>
-                            <span className="material-symbols-outlined text-5xl">{typeStyle.icon}</span>
+                            <Icon name={typeStyle.icon} className="text-5xl" />
                         </div>
                         <div>
                              <div className="flex items-center gap-3 mb-1">
@@ -263,7 +264,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                      {/* Decorative Background */}
                      <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                      <div className="absolute bottom-0 right-0 p-4 opacity-10 pointer-events-none transform group-hover:scale-110 transition-transform duration-500 origin-bottom-right">
-                         <span className="material-symbols-outlined text-[8rem] leading-none">account_balance_wallet</span>
+                         <Icon name="account_balance_wallet" className="text-[8rem] leading-none" />
                      </div>
                      
                      <div className="relative z-10 flex flex-col h-full justify-between">
@@ -272,7 +273,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                             <h2 className="text-4xl font-bold tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
                          </div>
                          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 w-fit">
-                             <span className="material-symbols-outlined text-sm">layers</span>
+                             <Icon name="layers" className="text-sm" />
                              <span className="text-sm font-medium">{holding.quantity.toLocaleString()} units</span>
                          </div>
                      </div>
@@ -281,7 +282,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 {/* Total Return - Performance Indicator */}
                 <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group flex flex-col justify-between">
                      <div className={`absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                         <span className="material-symbols-outlined text-8xl">trending_up</span>
+                         <Icon name="trending_up" className="text-8xl" />
                      </div>
                      
                      <div>
@@ -293,7 +294,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                      
                      <div className="mt-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm font-bold ${isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                            <span className="material-symbols-outlined text-base">{isPositive ? 'arrow_upward' : 'arrow_downward'}</span>
+                            <Icon name={isPositive ? 'arrow_upward' : 'arrow_downward'} className="text-base" />
                             {Math.abs(gainLossPercent).toFixed(2)}%
                         </span>
                      </div>
@@ -307,7 +308,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Per Unit</p>
                     </div>
                     <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                         <span className="material-symbols-outlined text-2xl">history</span>
+                         <Icon name="history" className="text-2xl" />
                     </div>
                 </div>
                 
@@ -319,7 +320,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Last Logged</p>
                     </div>
                     <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                         <span className="material-symbols-outlined text-2xl">sell</span>
+                         <Icon name="sell" className="text-2xl" />
                     </div>
                 </div>
             </div>
@@ -360,7 +361,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         <Card>
                             <div className="flex justify-between items-center mb-6 border-b border-black/5 dark:border-white/5 pb-4">
                                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                                     <span className="material-symbols-outlined text-primary-500">show_chart</span>
+                                     <Icon name="show_chart" className="text-primary-500" />
                                      Performance Trend
                                 </h3>
                                 <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5 text-xs font-bold">
@@ -391,7 +392,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 <Card className="flex flex-col h-full max-h-[600px]">
                     <div className="flex justify-between items-center mb-4 border-b border-black/5 dark:border-white/5 pb-4">
                         <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                             <span className="material-symbols-outlined text-blue-500">receipt_long</span>
+                             <Icon name="receipt_long" className="text-blue-500" />
                              Transaction History
                         </h3>
                     </div>
@@ -438,9 +439,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                                 className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
                                                 title={item.isWarrant ? 'Edit Grant' : 'Edit Transaction'}
                                             >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {item.isWarrant ? 'card_membership' : 'edit_note'}
-                                                </span>
+                                                <Icon name={item.isWarrant ? 'card_membership' : 'edit_note'} className="text-lg" />
                                             </button>
                                         </div>
                                     </div>
@@ -454,7 +453,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 <Card className="flex flex-col h-full max-h-[600px]">
                     <div className="flex justify-between items-center mb-4 border-b border-black/5 dark:border-white/5 pb-4">
                         <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                             <span className="material-symbols-outlined text-purple-500">history</span>
+                             <Icon name="history" className="text-purple-500" />
                              Price Log
                         </h3>
                          <button onClick={handleAddPrice} className="text-xs font-bold text-primary-500 hover:text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg transition-colors">
@@ -473,7 +472,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                      <div key={`${entry.date}-${index}`} className="group flex items-center justify-between p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                          <div className="flex items-center gap-3">
                                              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
-                                                 <span className="material-symbols-outlined text-sm">calendar_today</span>
+                                                 <Icon name="calendar_today" className="text-sm" />
                                              </div>
                                              <span className="text-sm font-medium text-light-text dark:text-dark-text">
                                                  {parseLocalDate(entry.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -490,14 +489,14 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                                     className="p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/20 text-blue-500 transition-colors"
                                                     title="Edit"
                                                  >
-                                                     <span className="material-symbols-outlined text-lg">edit</span>
+                                                     <Icon name="edit" className="text-lg" />
                                                  </button>
                                                  <button 
                                                     onClick={() => handleDeletePrice(entry.date)} 
                                                     className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors"
                                                     title="Delete"
                                                  >
-                                                     <span className="material-symbols-outlined text-lg">delete</span>
+                                                     <Icon name="delete" className="text-lg" />
                                                  </button>
                                              </div>
                                          </div>

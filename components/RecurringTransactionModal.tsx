@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
 import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS, ALL_ACCOUNT_TYPES } from '../constants';
 import { parseLocalDate, toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface RecurringTransactionModalProps {
     onClose: () => void;
@@ -246,7 +247,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                 <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-14`} required={type !== 'transfer'}>
                                     <CategoryOptions categories={activeCategories} showTransferOption={type === 'transfer'} />
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                     </div>
@@ -280,11 +281,11 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                         <option value="" disabled>Select account</option>
                                         <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                             </div>
                             <div className="pt-6 text-gray-400">
-                                 <span className="material-symbols-outlined">sync_alt</span>
+                                 <Icon name="sync_alt" />
                             </div>
                             <div className="flex-1">
                                 <label htmlFor="rec-to-account" className={labelStyle}>To</label>
@@ -293,7 +294,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                         <option value="" disabled>Select account</option>
                                         <AccountOptions accounts={availableAccounts.filter(a => a.id !== accountId)} />
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                             </div>
                         </div>
@@ -305,7 +306,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                     <option value="" disabled>Select an account</option>
                                     <AccountOptions accounts={availableAccounts} />
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                     )}
@@ -314,7 +315,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                 {/* Schedule Rules Card */}
                 <div className="p-6 bg-white dark:bg-black/20 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500 text-lg">event_repeat</span>
+                        <Icon name="event_repeat" className="text-primary-500 text-lg" />
                         Schedule Configuration
                     </h4>
                     
@@ -327,7 +328,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                     <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} font-bold h-12`}>
                                         {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                             </div>
                         </div>
@@ -337,7 +338,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                 <select id="rec-weekend-adjustment" value={weekendAdjustment} onChange={e => setWeekendAdjustment(e.target.value as WeekendAdjustment)} className={`${SELECT_STYLE} h-12`}>
                                     {WEEKEND_ADJUSTMENTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                     </div>

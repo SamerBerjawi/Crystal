@@ -7,6 +7,7 @@ import ConfidenceScoreBar from './ConfidenceScoreBar';
 import MatcherConfigPanel from './MatcherConfigPanel';
 import { MatcherConfig } from '../hooks/useMatcherConfig';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface PendingMatchesViewProps {
   billSuggestions: SyncedBillMatchSuggestion[];
@@ -213,9 +214,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-2xl text-emerald-600 dark:text-emerald-400">
-                checklist_rtl
-              </span>
+              <Icon name="checklist_rtl" className="text-2xl text-emerald-600 dark:text-emerald-400" />
               <h2 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">
                 Pending Transaction Matches
               </h2>
@@ -229,11 +228,9 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
             onClick={() => setShowConfigPanel(prev => !prev)}
             className={`${BTN_SECONDARY_STYLE} !py-2 !px-3.5 !text-xs flex items-center gap-1.5 shrink-0`}
           >
-            <span className="material-symbols-outlined text-base text-emerald-600 dark:text-emerald-400">tune</span>
+            <Icon name="tune" className="text-base text-emerald-600 dark:text-emerald-400" />
             <span>Configure Matching Thresholds</span>
-            <span className="material-symbols-outlined text-sm opacity-60">
-              {showConfigPanel ? 'expand_less' : 'expand_more'}
-            </span>
+            <Icon name={showConfigPanel ? 'expand_less' : 'expand_more'} className="text-sm opacity-60" />
           </button>
         </div>
 
@@ -337,9 +334,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           </select>
 
           <div className="relative flex-1 md:w-56">
-            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-light-text-secondary">
-              search
-            </span>
+            <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-light-text-secondary" />
             <input
               type="text"
               placeholder="Search matches..."
@@ -358,9 +353,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
             onClick={handleToggleSelectAll}
             className="flex items-center gap-1.5 text-xs font-bold text-light-text dark:text-dark-text"
           >
-            <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-lg">
-              {isAllFilteredSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'}
-            </span>
+            <Icon name={isAllFilteredSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-600 dark:text-emerald-400 text-lg" />
             <span>
               {selectedIds.size === 0
                 ? 'Select All Filtered'
@@ -392,7 +385,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
             disabled={selectedIds.size === 0}
             className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3.5 !text-xs bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40`}
           >
-            <span className="material-symbols-outlined text-sm">done_all</span>
+            <Icon name="done_all" className="text-sm" />
             Approve Selected ({selectedIds.size})
           </button>
         </div>
@@ -421,9 +414,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                       onClick={() => handleToggleSelectOne(item.id)}
                       className="pt-1 text-light-text-secondary hover:text-emerald-600 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-xl">
-                        {isSelected ? 'check_box' : 'check_box_outline_blank'}
-                      </span>
+                      <Icon name={isSelected ? 'check_box' : 'check_box_outline_blank'} className="text-xl" />
                     </button>
 
                     <div className="flex-1 space-y-3">
@@ -462,9 +453,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
 
                         {/* Vs Arrow */}
                         <div className="flex justify-center items-center py-1">
-                          <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-lg">
-                            swap_horiz
-                          </span>
+                          <Icon name="swap_horiz" className="text-light-text-secondary dark:text-dark-text-secondary text-lg" />
                         </div>
 
                         {/* Planned Item */}
@@ -506,7 +495,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                             onClick={() => onConfirmBillMatch(raw)}
                             className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3.5 !text-xs bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20`}
                           >
-                            <span className="material-symbols-outlined text-sm">check_circle</span>
+                            <Icon name="check_circle" className="text-sm" />
                             <span>Confirm & Post</span>
                           </button>
                         </div>
@@ -533,9 +522,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                       onClick={() => handleToggleSelectOne(item.id)}
                       className="pt-1 text-light-text-secondary hover:text-emerald-600 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-xl">
-                        {isSelected ? 'check_box' : 'check_box_outline_blank'}
-                      </span>
+                      <Icon name={isSelected ? 'check_box' : 'check_box_outline_blank'} className="text-xl" />
                     </button>
 
                     <div className="flex-1 space-y-3">
@@ -552,7 +539,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                         {/* Expense TX */}
                         <div className="p-3 rounded-xl bg-light-bg/70 dark:bg-dark-bg/70 border border-black/5 dark:border-white/5 flex justify-between items-center">
                           <div className="flex items-center gap-2.5">
-                            <span className="material-symbols-outlined text-rose-500 text-xl">arrow_circle_up</span>
+                            <Icon name="arrow_circle_up" className="text-rose-500 text-xl" />
                             <div>
                               <p className="font-bold text-xs text-light-text dark:text-dark-text">{expenseAccount?.name || 'Account'}</p>
                               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-1">{raw.expenseTx.description}</p>
@@ -567,7 +554,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                         {/* Income TX */}
                         <div className="p-3 rounded-xl bg-light-bg/70 dark:bg-dark-bg/70 border border-black/5 dark:border-white/5 flex justify-between items-center">
                           <div className="flex items-center gap-2.5">
-                            <span className="material-symbols-outlined text-emerald-500 text-xl">arrow_circle_down</span>
+                            <Icon name="arrow_circle_down" className="text-emerald-500 text-xl" />
                             <div>
                               <p className="font-bold text-xs text-light-text dark:text-dark-text">{incomeAccount?.name || 'Account'}</p>
                               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-1">{raw.incomeTx.description}</p>
@@ -603,9 +590,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
         </div>
       ) : (
         <div className="text-center py-16 bg-white/60 dark:bg-dark-card/60 rounded-3xl border border-black/5 dark:border-white/5 space-y-3">
-          <span className="material-symbols-outlined text-5xl text-emerald-600 dark:text-emerald-400">
-            verified
-          </span>
+          <Icon name="verified" className="text-5xl text-emerald-600 dark:text-emerald-400" />
           <div className="space-y-1">
             <h3 className="font-bold text-base text-light-text dark:text-dark-text">No Pending Matches Found</h3>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, CrystalLogo } from '../constants';
 import { Theme, User } from '../types';
+import Icon from '../components/ui/Icon';
 
 interface SignUpProps {
   onSignUp: (newUser: Pick<User, 'firstName' | 'lastName' | 'email'> & { password: string }) => void;
@@ -25,7 +26,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
   const FeatureItem = ({ icon, title, desc }: { icon: string, title: string, desc: string }) => (
       <div className="flex gap-4">
           <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 backdrop-blur-sm border border-white/10">
-              <span className="material-symbols-outlined text-2xl text-white">{icon}</span>
+              <Icon name={icon} className="text-2xl text-white" />
           </div>
           <div>
               <h3 className="font-bold text-white text-lg">{title}</h3>
@@ -73,7 +74,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 relative z-10 bg-light-card dark:bg-dark-card lg:bg-transparent lg:dark:bg-transparent">
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300 mb-2">
-            <span className="material-symbols-outlined text-xl">person_add</span>
+            <Icon name="person_add" className="text-xl" />
             <span>Get Started</span>
           </div>
           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">Create Your Account</h1>
@@ -85,7 +86,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
         <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-                    <span className="material-symbols-outlined text-lg mt-0.5">error</span>
+                    <Icon name="error" className="text-lg mt-0.5" />
                     <span>{error}</span>
                 </div>
             )}
@@ -122,7 +123,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
             <div className="space-y-1.5">
               <label htmlFor="email-signup" className="block text-sm font-semibold text-light-text dark:text-dark-text">Email Address</label>
               <div className="relative">
-                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
+                 <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                  <input
                     id="email-signup"
                     type="email"
@@ -139,7 +140,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
             <div className="space-y-1.5">
               <label htmlFor="password-signup" className="block text-sm font-semibold text-light-text dark:text-dark-text">Password</label>
               <div className="relative">
-                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
+                 <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                  <input
                     id="password-signup"
                     type="password"

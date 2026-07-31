@@ -6,6 +6,7 @@ import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../con
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
+import Icon from '../components/ui/Icon';
 
 interface PersonalInfoProps {
   user: User;
@@ -88,11 +89,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                     className="w-full h-full rounded-xl object-cover"
                                 />
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white z-20 backdrop-blur-sm">
-                                  <span className="material-symbols-outlined text-3xl">photo_camera</span>
+                                  <Icon name="photo_camera" className="text-3xl" />
                                 </div>
                             </div>
                             <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white w-8 h-8 flex items-center justify-center rounded-lg border-4 border-white dark:border-dark-card shadow-lg z-30">
-                                <span className="material-symbols-outlined text-base">sync</span>
+                                <Icon name="sync" className="text-base" />
                             </div>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                         </div>
@@ -130,7 +131,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
 
                 <div className="p-6 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl border border-primary-500/10 flex items-start gap-4">
                    <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
-                      <span className="material-symbols-outlined text-xl">shield</span>
+                      <Icon name="shield" className="text-xl" />
                    </div>
                    <div>
                       <h4 className="text-xs font-bold text-primary-600 dark:text-primary-400 tracking-tight">Privacy Mode</h4>
@@ -148,7 +149,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 p-8">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <span className="material-symbols-outlined text-2xl">badge</span>
+                            <Icon name="badge" className="text-2xl" />
                         </div>
                         <div>
                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text leading-tight tracking-tight">Legal Identity</h3>
@@ -172,7 +173,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 p-8">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-                            <span className="material-symbols-outlined text-2xl">contact_mail</span>
+                            <Icon name="contact_mail" className="text-2xl" />
                         </div>
                         <div>
                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text leading-tight tracking-tight">Reachability</h3>
@@ -186,10 +187,10 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                 <label htmlFor="email" className={labelStyle}>Email Protocol</label>
                                 <div className="relative group">
                                     <input type="email" id="email" name="email" value={formData.email} readOnly className={`${INPUT_BASE_STYLE} h-12 pl-12 bg-gray-50/50 dark:bg-white/5 text-gray-500 cursor-not-allowed border-transparent font-bold`} />
-                                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors">verified_user</span>
+                                    <Icon name="verified_user" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors" />
                                 </div>
                                 <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-50">
-                                   <span className="material-symbols-outlined text-[10px]">info</span>
+                                   <Icon name="info" className="text-[10px]" />
                                    Your email is your primary login key and cannot be altered.
                                 </p>
                             </div>
@@ -209,7 +210,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 p-8">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                            <span className="material-symbols-outlined text-2xl">safety_check</span>
+                            <Icon name="safety_check" className="text-2xl" />
                         </div>
                         <div>
                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text leading-tight tracking-tight">Access Control</h3>
@@ -221,7 +222,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 group">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-white dark:bg-dark-card flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary transition-transform group-hover:rotate-12">
-                                  <span className="material-symbols-outlined">password</span>
+                                  <Icon name="password" />
                                 </div>
                                 <div>
                                     <p className="font-black text-sm text-light-text dark:text-dark-text  tracking-tight">Main Password</p>
@@ -234,7 +235,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-dashed border-black/20 dark:border-white/20 opacity-60 grayscale">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                                  <span className="material-symbols-outlined">stay_current_portrait</span>
+                                  <Icon name="stay_current_portrait" />
                                 </div>
                                 <div>
                                     <p className="font-black text-sm text-light-text dark:text-dark-text  tracking-tight">Two-Factor Authentication</p>

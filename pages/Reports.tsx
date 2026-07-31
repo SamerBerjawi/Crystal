@@ -34,6 +34,7 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { motion } from 'motion/react';
+import Icon from '../components/ui/Icon';
 
 const SAVED_REPORTS_KEY = 'reports.savedViews.v1';
 
@@ -123,7 +124,7 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
             <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
-                        <span className="material-symbols-outlined text-lg">{icon}</span>
+                        <Icon name={icon} className="text-lg" />
                     </div>
                     <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
                 </div>
@@ -136,7 +137,7 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
             
             {/* Background Icon Accent */}
             <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
-                <span className="material-symbols-outlined text-8xl">{icon}</span>
+                <Icon name={icon} className="text-8xl" />
             </div>
         </div>
     );
@@ -820,7 +821,7 @@ const Reports: React.FC = () => {
                     onClick={() => deleteView(view.id)} 
                     className="w-6 h-6 flex items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-rose-500 hover:text-white transition-all transform scale-90 group-hover:scale-100"
                   >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
+                    <Icon name="close" className="text-[16px]" />
                   </button>
                 </div>
               ))}
@@ -879,7 +880,7 @@ const Reports: React.FC = () => {
           <div className="relative flex-1 w-full space-y-2">
             <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Save report settings</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
+              <Icon name="bookmark" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary text-[18px]" />
               <input 
                 type="text" 
                 value={reportName} 
@@ -890,7 +891,7 @@ const Reports: React.FC = () => {
             </div>
           </div>
           <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto h-12 !rounded-xl !px-8 flex items-center justify-center gap-2 group`}>
-            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-12">save</span>
+            <Icon name="save" className="text-[20px] transition-transform group-hover:rotate-12" />
             <span className="text-[11px] font-bold tracking-widest">Save settings</span>
           </button>
         </div>
@@ -1065,7 +1066,7 @@ const Reports: React.FC = () => {
           <div className="mt-auto pt-10">
             <div className="p-5 bg-black/5 dark:bg-white/5 rounded-[1.5rem] border border-dashed border-black/10 dark:border-white/10 relative group-hover:border-primary-500/30 transition-colors">
               <div className="absolute top-4 right-4 text-primary-500/20 group-hover:text-primary-500/40 transition-colors">
-                <span className="material-symbols-outlined text-2xl">auto_awesome</span>
+                <Icon name="auto_awesome" className="text-2xl" />
               </div>
               <p className="text-[11px] font-bold leading-relaxed text-light-text-secondary dark:text-dark-text-secondary opacity-70 group-hover:opacity-100 transition-opacity">
                 {(() => {
@@ -1182,7 +1183,7 @@ const Reports: React.FC = () => {
                           ) : (
                             <div className="flex items-center gap-4">
                               <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center text-light-text-secondary">
-                                <span className="material-symbols-outlined text-[20px]" style={{ color: category?.color }}>{category?.icon || 'category'}</span>
+                                <Icon name={category?.icon || 'category'} className="text-[20px]" style={{ color: category?.color }} />
                               </div>
                               <span className="text-[13px] font-bold tracking-tight text-light-text dark:text-dark-text">{row.label}</span>
                             </div>
@@ -1205,7 +1206,7 @@ const Reports: React.FC = () => {
               </table>
               {groupedRows.length === 0 && (
                 <div className="p-20 text-center flex flex-col items-center gap-4 opacity-30">
-                  <span className="material-symbols-outlined text-6xl">search_off</span>
+                  <Icon name="search_off" className="text-6xl" />
                   <p className="text-[10px] font-bold tracking-[0.2em]">No transactions matched filters</p>
                 </div>
               )}
@@ -1217,7 +1218,7 @@ const Reports: React.FC = () => {
         <div className="space-y-4">
           <Card className="bg-primary-600 dark:bg-primary-800 text-white border-none shadow-2xl rounded-2xl p-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-10 transition-transform group-hover:scale-125 duration-700">
-              <span className="material-symbols-outlined text-[8rem]">lightbulb</span>
+              <Icon name="lightbulb" className="text-[8rem]" />
             </div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -ml-24 -mb-24"></div>
             
@@ -1231,9 +1232,7 @@ const Reports: React.FC = () => {
                 <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-3xl rounded-xl p-4 border border-white/10 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300" 
                      style={{ animationDelay: `${idx * 150}ms` }}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/10 ${item.tone === 'warning' ? 'bg-amber-500/20 text-amber-300' : item.tone === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/20 text-white'}`}>
-                    <span className="material-symbols-outlined text-base">
-                      {item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'}
-                    </span>
+                    <Icon name={item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'} className="text-base" />
                   </div>
                   <p className="text-xs font-bold leading-relaxed privacy-blur drop-shadow-sm">{item.text}</p>
                 </div>
@@ -1271,7 +1270,7 @@ const Reports: React.FC = () => {
                       <div className="h-full bg-primary-500 shadow-sm shadow-primary-500/40 transition-all duration-1000" style={{ width: `${(forecast.mtdSpendEur / forecast.projectedMonthEnd) * 100}%` }} />
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                       <span className="material-symbols-outlined text-[12px] opacity-30">calendar_month</span>
+                       <Icon name="calendar_month" className="text-[12px] opacity-30" />
                        <p className="text-[8px] text-light-text-secondary font-bold tracking-[0.2em] opacity-40">
                          {forecast.remainingDays} Days remaining in cycle
                        </p>
@@ -1280,7 +1279,7 @@ const Reports: React.FC = () => {
                 </div>
               ) : (
                 <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
-                  <span className="material-symbols-outlined text-3xl">query_stats</span>
+                  <Icon name="query_stats" className="text-3xl" />
                   <p className="text-[10px] font-bold tracking-[0.2em]">Projection data pending</p>
                 </div>
               )}
@@ -1297,7 +1296,7 @@ const Reports: React.FC = () => {
                 <div key={row.id} className="flex items-center justify-between p-3 rounded-xl border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-lg hover:shadow-black/5 group/anomaly">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 border border-rose-500/10 group-hover/anomaly:scale-110 transition-transform">
-                      <span className="material-symbols-outlined text-xl">warning</span>
+                      <Icon name="warning" className="text-xl" />
                     </div>
                     <div>
                       <p className="text-xs font-bold tracking-tight truncate max-w-[120px] leading-none mb-1">{row.merchant}</p>
@@ -1312,7 +1311,7 @@ const Reports: React.FC = () => {
               ))}
               {anomalyCandidates.length === 0 && (
                 <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
-                  <span className="material-symbols-outlined text-3xl">verified</span>
+                  <Icon name="verified" className="text-3xl" />
                   <p className="text-[10px] font-bold tracking-[0.2em]">All data within normal range</p>
                 </div>
               )}
@@ -1322,14 +1321,14 @@ const Reports: React.FC = () => {
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
             <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
               <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Recurring patterns</p>
-              <span className="material-symbols-outlined text-base opacity-20">autorenew</span>
+              <Icon name="autorenew" className="text-base opacity-20" />
             </div>
             <div className="p-5 space-y-4">
               {recurringCandidates.slice(0, 5).map(candidate => (
                 <div key={candidate.merchant} className="flex items-center justify-between group/recurring">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0 border border-primary-500/10 group-hover/recurring:rotate-12 transition-transform">
-                      <span className="material-symbols-outlined text-base">event_repeat</span>
+                      <Icon name="event_repeat" className="text-base" />
                     </div>
                     <div>
                       <p className="text-xs font-bold tracking-tight leading-none mb-1">{candidate.merchant}</p>
@@ -1344,7 +1343,7 @@ const Reports: React.FC = () => {
               ))}
               {recurringCandidates.length === 0 && (
                 <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
-                  <span className="material-symbols-outlined text-3xl">fingerprint</span>
+                  <Icon name="fingerprint" className="text-3xl" />
                   <p className="text-[10px] font-bold tracking-[0.2em]">Monitoring for patterns</p>
                 </div>
               )}
@@ -1380,9 +1379,7 @@ const Reports: React.FC = () => {
                       <td className="py-2 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center text-light-text-secondary group-hover:bg-white dark:group-hover:bg-neutral-800 transition-colors shadow-sm">
-                            <span className="material-symbols-outlined text-[16px]">
-                              {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
-                            </span>
+                            <Icon name={findCategoryByName(row.categoryName, allCategories)?.icon || 'category'} className="text-[16px]" />
                           </div>
                           <span className="text-xs font-bold tracking-tight">{row.categoryName}</span>
                         </div>
@@ -1400,7 +1397,7 @@ const Reports: React.FC = () => {
               </table>
               {budgetVsActual.length === 0 && (
                 <div className="p-10 text-center flex flex-col items-center gap-3 opacity-30">
-                  <span className="material-symbols-outlined text-4xl">list_alt_off</span>
+                  <Icon name="list_alt_off" className="text-4xl" />
                   <p className="text-[10px] font-bold tracking-[0.2em]">No budget configurations detected</p>
                 </div>
               )}

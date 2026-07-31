@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface InvoiceModalProps {
     isOpen: boolean;
@@ -161,7 +162,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     
                     <div className="md:col-span-8 flex items-center gap-8">
                         <div className={`w-20 h-20 flex items-center justify-center rounded-3xl shadow-2xl transition-transform hover:scale-105 active:scale-95 ${type === 'invoice' ? 'bg-blue-500 text-white shadow-blue-500/30' : 'bg-amber-500 text-white shadow-amber-500/30'}`}>
-                            <span className="material-symbols-outlined text-4xl leading-none">{type === 'invoice' ? 'receipt_long' : 'request_quote'}</span>
+                            <Icon name={type === 'invoice' ? 'receipt_long' : 'request_quote'} className="text-4xl leading-none" />
                         </div>
                         <div className="flex-1 space-y-4">
                             <div className="space-y-1">
@@ -190,7 +191,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                         <div className="space-y-1">
                             <label className={labelStyle}>Fiscal Basis</label>
                             <div className="relative group">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-lg group-focus-within:text-primary-500 transition-colors">payments</span>
+                                <Icon name="payments" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 transition-colors" />
                                 <select 
                                     value={currency} 
                                     onChange={e => setCurrency(e.target.value as Currency)} 
@@ -201,7 +202,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                                     <option value="GBP">GBP (£)</option>
                                 </select>
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-300">
-                                    <span className="material-symbols-outlined text-sm">expand_more</span>
+                                    <Icon name="expand_more" className="text-sm" />
                                 </div>
                             </div>
                         </div>
@@ -213,7 +214,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     {/* Document Logistics */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-8 rounded-[2rem] border border-black/5 dark:border-white/5 space-y-8">
                         <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary-500 text-lg">assured_workload</span>
+                            <Icon name="assured_workload" className="text-primary-500 text-lg" />
                             Document Parameters
                         </h4>
                         <div className="space-y-6">
@@ -255,7 +256,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-8 rounded-[2rem] border border-black/5 dark:border-white/5 space-y-8">
                         <div className="flex justify-between items-center">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-blue-500 text-lg">corporate_fare</span>
+                                <Icon name="corporate_fare" className="text-blue-500 text-lg" />
                                 Entity Identification
                             </h4>
                             {showLogo && (
@@ -278,7 +279,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                             </div>
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="relative group">
-                                    <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-lg">alternate_email</span>
+                                    <Icon name="alternate_email" className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
                                     <input 
                                         type="email" 
                                         value={entityEmail} 
@@ -359,7 +360,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                                                 onClick={() => handleRemoveItem(item.id)}
                                                 className="w-10 h-10 flex items-center justify-center text-gray-300 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100 active:scale-90"
                                             >
-                                                <span className="material-symbols-outlined text-xl leading-none">close</span>
+                                                <Icon name="close" className="text-xl leading-none" />
                                             </button>
                                         </td>
                                     </tr>
@@ -373,7 +374,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                         onClick={handleAddItem} 
                         className="w-full py-8 text-[11px] font-black  tracking-[0.4em] text-primary-500 hover:bg-primary-500/5 transition-all flex items-center justify-center gap-3 border-t border-black/5 dark:border-white/5 active:bg-primary-500/[0.08]"
                     >
-                        <span className="material-symbols-outlined text-xl leading-none">add_circle</span> 
+                        <Icon name="add_circle" className="text-xl leading-none" /> 
                         Initialize New Entry Node
                     </button>
                 </div>
@@ -449,7 +450,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-14 px-10  tracking-[0.2em] text-[10px] font-black rounded-2xl`}>Retract Order</button>
                     <button type="submit" className={`${BTN_PRIMARY_STYLE} h-14 px-12 gap-4 group animate-glow  tracking-[0.2em] text-[10px] font-black rounded-2xl`}>
                         Commit to Ledger
-                        <span className="material-symbols-outlined text-2xl transition-transform group-hover:translate-x-2">send_and_archive</span>
+                        <Icon name="send_and_archive" className="text-2xl transition-transform group-hover:translate-x-2" />
                     </button>
                 </div>
             </form>

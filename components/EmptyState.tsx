@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import HeaderButton from './HeaderButton';
+import Icon from './ui/Icon';
 
 interface EmptyStateProps {
   icon?: string;
@@ -31,7 +32,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       className={`flex flex-col items-center justify-center text-center p-8 sm:p-12 rounded-3xl bg-white/60 dark:bg-gray-900/40 border border-black/5 dark:border-white/5 backdrop-blur-xl ${className}`}
     >
       <div className="w-16 h-16 rounded-2xl bg-primary-500/10 dark:bg-primary-500/20 flex items-center justify-center mb-4 text-primary-600 dark:text-primary-400">
-        <span className="material-symbols-outlined text-3xl">{icon}</span>
+        <Icon name={icon} className="text-3xl" />
       </div>
       <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight mb-1">
         {title}

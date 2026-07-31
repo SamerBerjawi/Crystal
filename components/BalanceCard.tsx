@@ -3,6 +3,7 @@ import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
 import { LineChart, Line, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import Icon from './ui/Icon';
 
 interface BalanceCardProps {
   title: string;
@@ -22,9 +23,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
         <div className="flex justify-between items-start mb-2">
             <h3 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
             <div className={`p-1.5 rounded-lg ${isPositive ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
-                <span className="material-symbols-outlined text-lg">
-                    {title === 'Expenses' ? 'arrow_upward' : 'arrow_downward'}
-                </span>
+                <Icon name={title === 'Expenses' ? 'arrow_upward' : 'arrow_downward'} className="text-lg" />
             </div>
         </div>
         

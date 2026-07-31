@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { Task, TaskPriority, TaskStatus } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface TaskModalProps {
   onClose: () => void;
@@ -84,7 +85,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                 {/* 2. Execution Logistics */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500 text-lg">settings_suggest</span>
+                        <Icon name="settings_suggest" className="text-primary-500 text-lg" />
                         Operational Configuration
                     </h4>
 
@@ -112,7 +113,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                         <div className="space-y-2">
                             <label htmlFor="dueDate" className={labelStyle}>Maturity Event (Due Date)</label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-lg">event</span>
+                                <Icon name="event" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
                                 <input 
                                     id="dueDate" 
                                     type="date" 
@@ -131,7 +132,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                         <div className="space-y-2">
                             <label htmlFor="reminderDate" className={labelStyle}>Notification / Recall</label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400 text-lg">notifications_active</span>
+                                <Icon name="notifications_active" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
                                 <input 
                                     id="reminderDate" 
                                     type="date" 
@@ -147,7 +148,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                             <label className={labelStyle}>Contextual Account</label>
                             <div className="bg-white/50 dark:bg-black/20 p-3 rounded-2xl border border-black/5 dark:border-white/5 flex items-center justify-between">
                                 <span className="text-[10px] font-black  tracking-widest text-light-text-secondary/60">Auto-Linked Assets</span>
-                                <span className="material-symbols-outlined text-emerald-500 text-lg">link</span>
+                                <Icon name="link" className="text-emerald-500 text-lg" />
                             </div>
                         </div>
                     </div>
@@ -175,7 +176,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                         <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
                         <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black`}>
                             {isEditing ? 'Commit Changes' : 'Initialize Objective'}
-                            <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">rocket_launch</span>
+                            <Icon name="rocket_launch" className="text-lg transition-transform group-hover:translate-x-1" />
                         </button>
                     </div>
                 </div>

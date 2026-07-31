@@ -15,6 +15,7 @@ import HeaderButton from '../components/HeaderButton';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { motion, AnimatePresence } from 'motion/react';
 import { useConfirm } from '../components/ConfirmationModal';
+import Icon from '../components/ui/Icon';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -455,7 +456,7 @@ const Subscriptions: React.FC = () => {
                                     />
                                 )}
                                 <span className="relative z-10 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-sm">{seg.icon}</span>
+                                    <Icon name={seg.icon} className="text-sm" />
                                     <span>{seg.label}</span>
                                     <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums leading-none ${
                                         isActive 
@@ -487,7 +488,7 @@ const Subscriptions: React.FC = () => {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className={`material-symbols-outlined text-sm ${heroAccentClass}`}>autorenew</span>
+                                    <Icon name="autorenew" className={`text-sm ${heroAccentClass}`} />
                                     <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-light-text-secondary dark:text-dark-text-secondary">Monthly Commitment</span>
                                 </div>
                                 <div className="flex items-baseline gap-3">
@@ -517,7 +518,7 @@ const Subscriptions: React.FC = () => {
                                         <>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
                                                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-base text-amber-500">wallet</span>
+                                                    <Icon name="wallet" className="text-base text-amber-500" />
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Total Cards</span>
@@ -526,7 +527,7 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-orange-500/[0.04] dark:bg-orange-500/[0.03]">
                                                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-base text-orange-500">timer</span>
+                                                    <Icon name="timer" className="text-base text-orange-500" />
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Expiring 30d</span>
@@ -535,7 +536,7 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
                                                 <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-base text-primary-500">category</span>
+                                                    <Icon name="category" className="text-base text-primary-500" />
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Categories</span>
@@ -544,7 +545,7 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                             <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/[0.04] dark:bg-emerald-500/[0.03]">
                                                 <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-base text-emerald-500">loyalty</span>
+                                                    <Icon name="loyalty" className="text-base text-emerald-500" />
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
@@ -556,7 +557,7 @@ const Subscriptions: React.FC = () => {
                                         <>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-rose-500/[0.04] dark:bg-rose-500/[0.03]">
                                                 <div className="w-9 h-9 rounded-xl bg-rose-500/10 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-base text-rose-500">event_upcoming</span>
+                                                    <Icon name="event_upcoming" className="text-base text-rose-500" />
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Due 7 Days</span>
@@ -565,7 +566,7 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
                                                 <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
-                                                    <span className="material-symbols-outlined text-base text-primary-500">subscriptions</span>
+                                                    <Icon name="subscriptions" className="text-base text-primary-500" />
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
@@ -575,7 +576,7 @@ const Subscriptions: React.FC = () => {
                                             {detectedSubscriptions.length > 0 && (
                                                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
                                                     <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 relative">
-                                                        <span className="material-symbols-outlined text-base text-amber-500">radar</span>
+                                                        <Icon name="radar" className="text-base text-amber-500" />
                                                         <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse border-2 border-white dark:border-dark-card" />
                                                     </div>
                                                     <div className="flex flex-col min-w-0">
@@ -628,7 +629,7 @@ const Subscriptions: React.FC = () => {
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center relative">
-                                                    <span className="material-symbols-outlined text-base text-primary-500">radar</span>
+                                                    <Icon name="radar" className="text-base text-primary-500" />
                                                     <span className="absolute inset-0 rounded-xl border border-primary-500/30 animate-ping opacity-30" />
                                                 </div>
                                                 <div>
@@ -704,7 +705,7 @@ const Subscriptions: React.FC = () => {
                                 <div className="flex items-center justify-between p-6 md:px-8 md:pt-8 pb-0">
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-base text-primary-500">subscriptions</span>
+                                            <Icon name="subscriptions" className="text-base text-primary-500" />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Active Subscriptions</h3>
@@ -718,7 +719,7 @@ const Subscriptions: React.FC = () => {
                                         {activeSubscriptions.length === 0 ? (
                                             <div className="col-span-full py-16 text-center">
                                                 <div className="w-16 h-16 rounded-2xl bg-light-fill dark:bg-dark-fill flex items-center justify-center mx-auto mb-4">
-                                                    <span className="material-symbols-outlined text-3xl text-light-text-secondary/30 dark:text-dark-text-secondary/30">subscriptions</span>
+                                                    <Icon name="subscriptions" className="text-3xl text-light-text-secondary/30 dark:text-dark-text-secondary/30" />
                                                 </div>
                                                 <h4 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight mb-1">No active services</h4>
                                                 <p className="text-xs text-light-text-secondary/50 dark:text-dark-text-secondary/50 mb-6">Add your first subscription to start tracking.</p>
@@ -799,7 +800,7 @@ const Subscriptions: React.FC = () => {
                                                                     onClick={(e) => { e.stopPropagation(); handleDeleteActive(sub.id); }}
                                                                     className="opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg text-light-text-secondary/30 active:scale-[0.95]"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                                    <Icon name="delete" className="text-sm" />
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -864,7 +865,7 @@ const Subscriptions: React.FC = () => {
                                         transition={{ type: 'spring', stiffness: 200 }}
                                         className="w-20 h-20 bg-light-fill dark:bg-dark-fill rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner"
                                     >
-                                        <span className="material-symbols-outlined text-4xl text-light-text-secondary/20 dark:text-dark-text-secondary/20">loyalty</span>
+                                        <Icon name="loyalty" className="text-4xl text-light-text-secondary/20 dark:text-dark-text-secondary/20" />
                                     </motion.div>
                                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Your wallet is empty</h3>
                                     <p className="text-sm text-light-text-secondary/60 dark:text-dark-text-secondary/60 max-w-xs mx-auto mt-2 font-medium leading-relaxed">

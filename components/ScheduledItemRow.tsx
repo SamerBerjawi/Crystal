@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ScheduledItem, RecurringTransaction, BillPayment } from '../types';
 import { Account } from '../types';
 import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface ScheduledItemRowProps {
     item: ScheduledItem;
@@ -98,13 +99,13 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                     )}
                     {isOverdue && item.isRecurring && (
                         <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 tracking-wider border border-indigo-500/30 flex items-center gap-1 animate-pulse">
-                            <span className="material-symbols-outlined text-[12px]">repeat</span>
+                            <Icon name="repeat" className="text-[12px]" />
                             RECURRING OVERDUE
                         </span>
                     )}
                     {isOverdue && !item.isRecurring && (
                         <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 tracking-wider border border-rose-500/30 flex items-center gap-1 animate-pulse">
-                            <span className="material-symbols-outlined text-[12px]">receipt_long</span>
+                            <Icon name="receipt_long" className="text-[12px]" />
                             ONE-TIME OVERDUE
                         </span>
                     )}
@@ -117,7 +118,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                 <span>{weekday}</span>
                 <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
                 <span className="flex items-center gap-1.5 truncate">
-                    <span className="material-symbols-outlined text-sm">{isTransfer ? 'sync_alt' : (item.isRecurring ? 'repeat' : 'description')}</span>
+                    <Icon name={isTransfer ? 'sync_alt' : (item.isRecurring ? 'repeat' : 'description')} className="text-sm" />
                     {subText}
                 </span>
             </div>
@@ -137,7 +138,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-500 text-white hover:shadow-lg hover:shadow-emerald-500/30 active:scale-95 transition-all" 
                         title="Post Transaction"
                     >
-                        <span className="material-symbols-outlined text-[18px]">check</span>
+                        <Icon name="check" className="text-[18px]" />
                     </button>
                 )}
 
@@ -147,7 +148,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white active:scale-95 transition-all" 
                         title="Mark as Expired"
                     >
-                        <span className="material-symbols-outlined text-[18px]">event_busy</span>
+                        <Icon name="event_busy" className="text-[18px]" />
                     </button>
                 )}
 
@@ -156,7 +157,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                     className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 text-light-text-secondary hover:bg-primary-500 hover:text-white active:scale-95 transition-all" 
                     title={isSkipped ? "Unskip / Edit" : "Edit"}
                 >
-                    <span className="material-symbols-outlined text-[18px]">settings</span>
+                    <Icon name="settings" className="text-[18px]" />
                 </button>
                 
                 {/* Delete Menu Trigger */}
@@ -166,7 +167,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 text-light-text-secondary hover:bg-rose-500 hover:text-white active:scale-95 transition-all"
                         title="Delete Options"
                     >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                        <Icon name="delete" className="text-[18px]" />
                     </button>
                     {isMenuOpen && (
                         <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-dark-card rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 py-1.5 z-[100] animate-fade-in-up origin-top-right overflow-hidden">
@@ -181,7 +182,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                                     }}
                                     className="w-full text-left px-4 py-3 text-[11px] font-black tracking-widest hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-amber-600 transition-colors"
                                 >
-                                    <span className="material-symbols-outlined text-base">stop_circle</span>
+                                    <Icon name="stop_circle" className="text-base" />
                                     Stop Series
                                 </button>
                             )}
@@ -196,7 +197,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                                     }}
                                     className="w-full text-left px-4 py-3 text-[11px] font-black tracking-widest hover:bg-amber-500 hover:text-white flex items-center gap-3 text-amber-600 transition-colors"
                                 >
-                                    <span className="material-symbols-outlined text-base">event_busy</span>
+                                    <Icon name="event_busy" className="text-base" />
                                     Mark as Expired
                                 </button>
                             )}
@@ -205,7 +206,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
                                 onClick={(e) => { e.stopPropagation(); onDelete(item.originalItem.id, item.isRecurring); setIsMenuOpen(false); }}
                                 className="w-full text-left px-4 py-3 text-[11px] font-black tracking-widest hover:bg-rose-500 hover:text-white flex items-center gap-3 text-rose-600 transition-colors"
                             >
-                                <span className="material-symbols-outlined text-base">delete_forever</span>
+                                <Icon name="delete_forever" className="text-base" />
                                 Purge All
                             </button>
                         </div>

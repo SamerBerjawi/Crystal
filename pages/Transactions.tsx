@@ -21,6 +21,7 @@ import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import Icon from '../components/ui/Icon';
 
 interface TransactionsProps {
   initialAccountFilter?: string | null;
@@ -46,7 +47,7 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
             <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
-                        <span className="material-symbols-outlined text-lg">{icon}</span>
+                        <Icon name={icon} className="text-lg" />
                     </div>
                     <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
                 </div>
@@ -59,7 +60,7 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
             
             {/* Background Icon Accent */}
             <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
-                <span className="material-symbols-outlined text-8xl">{icon}</span>
+                <Icon name={icon} className="text-8xl" />
             </div>
         </div>
     );
@@ -125,8 +126,8 @@ const ColumnHeader = React.memo(function ColumnHeader({
                 
                 {sortKey && (
                     <div className={`flex flex-col gap-[1px] ${isSorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-40'} transition-opacity duration-300`}>
-                        <span className={`material-symbols-outlined text-[10px] leading-none ${isSorted && isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_up</span>
-                        <span className={`material-symbols-outlined text-[10px] leading-none -mt-1 ${isSorted && !isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_down</span>
+                        <Icon name="arrow_drop_up" className={`text-[10px] leading-none ${isSorted && isAsc ? 'text-primary-500' : 'text-gray-400'}`} />
+                        <Icon name="arrow_drop_down" className={`text-[10px] leading-none -mt-1 ${isSorted && !isAsc ? 'text-primary-500' : 'text-gray-400'}`} />
                     </div>
                 )}
             </div>
@@ -137,7 +138,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
                         className={`w-6 h-6 flex items-center justify-center rounded-xl transition-all duration-300 ${isFilterActive || isFilterOpen ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5'}`}
                         title="Filter"
                     >
-                        <span className={`material-symbols-outlined text-[14px] ${isFilterActive ? 'filled-icon' : ''}`}>filter_alt</span>
+                        <Icon name="filter_alt" className={`text-[14px] ${isFilterActive ? '' : ''}`} />
                     </button>
                     {isFilterOpen && (
                         <div className={`absolute top-full mt-3 ${alignRight ? 'right-0' : 'left-0'} z-50 w-72 bg-white/95 dark:bg-dark-card/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 p-5 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text overflow-hidden`} onClick={e => e.stopPropagation()}>
@@ -1127,7 +1128,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         </div>
     );
     if (network.includes('amex')) return <span className="font-bold text-xs text-blue-500 border border-blue-500 px-0.5 rounded">AMEX</span>;
-    return <span className="material-symbols-outlined text-gray-400 text-sm">credit_card</span>;
+    return <Icon name="credit_card" className="text-gray-400 text-sm" />;
   };
 
   return (
@@ -1207,11 +1208,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 className="fixed z-50 w-56 bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
                 <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-lg text-primary-500">edit</span>
+                    <Icon name="edit" className="text-lg text-primary-500" />
                     <span>Edit Transaction</span>
                 </button>
                 <button onClick={() => { handleDuplicate(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-lg text-green-500">content_copy</span>
+                    <Icon name="content_copy" className="text-lg text-green-500" />
                     <span>Duplicate</span>
                 </button>
                 <button 
@@ -1219,7 +1220,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     disabled={contextMenu.transaction.isTransfer}
                     className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                    <span className="material-symbols-outlined text-lg text-purple-500">repeat</span>
+                    <Icon name="repeat" className="text-lg text-purple-500" />
                     <span>Make Recurring</span>
                 </button>
                 <div className="my-1 h-px bg-light-separator dark:bg-dark-separator"></div>
@@ -1228,7 +1229,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     setIsDeleteConfirmOpen(true);
                     setContextMenu(null);
                 }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                    <span className="material-symbols-outlined text-lg">delete</span>
+                    <Icon name="delete" className="text-lg" />
                     <span>Delete Transaction</span>
                 </button>
             </div>
@@ -1297,7 +1298,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             <div className="relative z-10">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
-                        <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
+                        <Icon name="receipt_long" className="text-base sm:text-lg" />
                     </div>
                     <p className="text-[9px] sm:text-[10px] font-semibold text-white/80">Total transactions</p>
                 </div>
@@ -1309,7 +1310,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             </div>
             
             <div className="absolute -right-4 -bottom-4 text-white opacity-10 transition-transform group-hover:scale-110 duration-500 hidden sm:block">
-                <span className="material-symbols-outlined text-8xl">receipt_long</span>
+                <Icon name="receipt_long" className="text-8xl" />
             </div>
         </div>
         <MetricCard 
@@ -1349,7 +1350,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                  <div className="flex-grow w-full xl:w-auto">
                       <label htmlFor="search" className={labelStyle}>Search registry</label>
                       <div className="relative">
-                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none opacity-50">search</span>
+                          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none opacity-50" />
                           <input ref={searchInputRef} type="text" id="search" placeholder="Type to search transactions, merchants, categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
                       </div>
                  </div>
@@ -1360,7 +1361,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                               <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
                                   {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
-                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                              <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                           </div>
                       </div>
                       <div>
@@ -1376,7 +1377,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 <option value="category-asc">Category (A-Z)</option>
                                 <option value="category-desc">Category (Z-A)</option>
                               </select>
-                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                              <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                           </div>
                       </div>
                       <div className="col-span-2 md:col-span-2 flex items-end">
@@ -1384,7 +1385,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
                             className={`w-full h-[42px] flex items-center justify-center gap-2 rounded-2xl font-semibold text-[11px] tracking-wider transition-all ${isFiltersExpanded ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10'}`}
                         >
-                            <span className="material-symbols-outlined text-lg">{isFiltersExpanded ? 'keyboard_double_arrow_up' : 'tune'}</span>
+                            <Icon name={isFiltersExpanded ? 'keyboard_double_arrow_up' : 'tune'} className="text-lg" />
                             {isFiltersExpanded ? 'Collapse filters' : 'Advanced filters'}
                          </button>
                       </div>
@@ -1448,7 +1449,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
                                 aria-label="Deselect all"
                              >
-                                 <span className="material-symbols-outlined text-lg">close</span>
+                                 <Icon name="close" className="text-lg" />
                              </button>
                          )}
                      </div>
@@ -1475,7 +1476,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                     }
                                 `}
                             >
-                                <span className="material-symbols-outlined text-base">{btn.icon}</span>
+                                <Icon name={btn.icon} className="text-base" />
                                 <span className="hidden md:inline">{btn.label}</span>
                             </button>
                         ))}
@@ -1686,15 +1687,15 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                             ) : merchantInitial ? (
                                                 <span className="text-sm font-black tracking-widest">{merchantInitial}</span>
                                             ) : (
-                                                <span className="material-symbols-outlined text-xl">{categoryIcon}</span>
+                                                <Icon name={categoryIcon} className="text-xl" />
                                             )}
                                         </div>
                                     </div>
                                     <div className="min-w-0 flex-grow">
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <p className="font-semibold text-[14px] sm:text-[15px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
-                                            {tx.recurringSourceId && <span className="material-symbols-outlined text-[13px] text-primary-500 shrink-0">repeat</span>}
-                                            {tx.notes && <span className="material-symbols-outlined text-[13px] text-primary-500/40 shrink-0">notes</span>}
+                                            {tx.recurringSourceId && <Icon name="repeat" className="text-[13px] text-primary-500 shrink-0" />}
+                                            {tx.notes && <Icon name="notes" className="text-[13px] text-primary-500/40 shrink-0" />}
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-x-2">
                                             <span className="text-[11px] sm:text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-60 truncate max-w-[150px]">
@@ -1703,7 +1704,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                             {/* Mobile Secondary Info - Balanced Polish */}
                                             <div className="lg:hidden flex flex-wrap items-center gap-1 mt-1">
                                                 <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60">
-                                                    <span className="material-symbols-outlined text-[9px]">account_balance_wallet</span>
+                                                    <Icon name="account_balance_wallet" className="text-[9px]" />
                                                     <span className="text-[8px] sm:text-[9px] font-medium truncate max-w-[50px] sm:max-w-[80px]">{accountName}</span>
                                                 </div>
                                                 <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-lg font-bold tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
@@ -1730,7 +1731,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                             </div>
                                         ) : (
                                             <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded-2xl shrink-0">
-                                                <span className="material-symbols-outlined text-xl text-light-text-secondary dark:text-dark-text-secondary opacity-40">account_balance</span>
+                                                <Icon name="account_balance" className="text-xl text-light-text-secondary dark:text-dark-text-secondary opacity-40" />
                                             </div>
                                         )}
                                     </div>
@@ -1747,7 +1748,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                         style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
                                         onClick={(e) => { e.stopPropagation(); setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
                                     >
-                                        <span className="material-symbols-outlined text-[16px] shrink-0" style={{ color: categoryColor }}>{categoryIcon}</span>
+                                        <Icon name={categoryIcon} className="text-[16px] shrink-0" style={{ color: categoryColor }} />
                                         <span className="truncate">
                                             {tx.category || 'Uncategorized'}
                                         </span>
@@ -1783,13 +1784,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                     </span>
                                     {tx.spareChangeAmount ? (
                                         <div className="flex items-center justify-end gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-500 animate-pulse">
-                                            <span className="material-symbols-outlined text-[12px]">savings</span>
+                                            <Icon name="savings" className="text-[12px]" />
                                             <span className="text-[11px] font-semibold tracking-widest">{formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}</span>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-60 transition-opacity">
                                             <span className="text-[8px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Verified</span>
-                                            <span className="material-symbols-outlined text-[10px] text-green-500">verified</span>
+                                            <Icon name="verified" className="text-[10px] text-green-500" />
                                         </div>
                                     )}
                                 </div>
@@ -1806,7 +1807,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                     }}
                                     aria-label="Actions"
                                 >
-                                    <span className="material-symbols-outlined text-xl">more_vert</span>
+                                    <Icon name="more_vert" className="text-xl" />
                                 </button>
                             </div>
                          </motion.div>
@@ -1816,7 +1817,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     </VirtualizedList>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-16 text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-                      <span className="material-symbols-outlined text-5xl mb-2">search_off</span>
+                      <Icon name="search_off" className="text-5xl mb-2" />
                       <p>No transactions match the current filters.</p>
                     </div>
                   )}

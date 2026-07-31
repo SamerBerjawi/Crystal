@@ -5,6 +5,7 @@ import { Suggestion } from '../hooks/useTransactionMatcher';
 import { Account } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
 import ConfidenceScoreBar from './ConfidenceScoreBar';
+import Icon from './ui/Icon';
 
 interface TransactionMatcherModalProps {
   isOpen: boolean;
@@ -45,9 +46,7 @@ const SuggestionItem: React.FC<{
           className="pt-1 text-light-text-secondary hover:text-emerald-600 transition-colors"
           title="Select for batch approval"
         >
-          <span className="material-symbols-outlined text-xl">
-            {isSelected ? 'check_box' : 'check_box_outline_blank'}
-          </span>
+          <Icon name={isSelected ? 'check_box' : 'check_box_outline_blank'} className="text-xl" />
         </button>
 
         <div className="flex-1 space-y-3">
@@ -64,7 +63,7 @@ const SuggestionItem: React.FC<{
             {/* Expense TX */}
             <div className="p-3 rounded-lg bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/5 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-rose-500 text-xl">arrow_circle_up</span>
+                <Icon name="arrow_circle_up" className="text-rose-500 text-xl" />
                 <div>
                   <p className="font-bold text-xs text-light-text dark:text-dark-text">{expenseAccount?.name || 'Account'}</p>
                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-1">{suggestion.expenseTx.description}</p>
@@ -79,7 +78,7 @@ const SuggestionItem: React.FC<{
             {/* Income TX */}
             <div className="p-3 rounded-lg bg-white/70 dark:bg-white/5 border border-black/5 dark:border-white/5 flex justify-between items-center">
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-emerald-500 text-xl">arrow_circle_down</span>
+                <Icon name="arrow_circle_down" className="text-emerald-500 text-xl" />
                 <div>
                   <p className="font-bold text-xs text-light-text dark:text-dark-text">{incomeAccount?.name || 'Account'}</p>
                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary line-clamp-1">{suggestion.incomeTx.description}</p>
@@ -190,9 +189,7 @@ const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({
             onClick={handleToggleSelectAll}
             className="flex items-center gap-1.5 text-xs font-bold text-light-text dark:text-dark-text"
           >
-            <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">
-              {isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'}
-            </span>
+            <Icon name={isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-600 dark:text-emerald-400" />
             <span>
               {selectedIds.size === 0
                 ? 'Select All'

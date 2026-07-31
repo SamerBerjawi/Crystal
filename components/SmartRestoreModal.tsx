@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { FinancialData } from '../types';
+import Icon from './ui/Icon';
 
 interface SmartRestoreModalProps {
   onClose: () => void;
@@ -156,7 +157,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
             <div className="space-y-6">
                 {!parsedData ? (
                     <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-10 text-center hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                        <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">upload_file</span>
+                        <Icon name="upload_file" className="text-4xl text-gray-400 mb-2" />
                         <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-2">Upload Backup File</h3>
                         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">Select a .json file exported from Crystal.</p>
                         <input 
@@ -228,7 +229,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                                 className={CHECKBOX_STYLE}
                                             />
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-white/10 text-light-text dark:text-dark-text`}>
-                                                <span className="material-symbols-outlined text-lg">{section.icon}</span>
+                                                <Icon name={section.icon} className="text-lg" />
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-sm text-light-text dark:text-dark-text">{section.label}</p>
