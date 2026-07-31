@@ -1,6 +1,6 @@
 
-import React, { useMemo, useState } from 'react';
-import { ResponsiveContainer, Sankey, Tooltip, Layer, Rectangle } from 'recharts';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip } from '@/src/components/charts/sankey';
 import { Transaction, Category } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
 
@@ -13,51 +13,52 @@ interface CashflowSankeyProps {
 const OTHER_LABEL = 'Misc';
 const MAX_SUBS_PER_CAT = 5;
 
-// Colors
-const COLOR_HUB = '#6366F1'; // Indigo
-const COLOR_SAVINGS = '#10B981'; // Emerald
-const COLOR_DEFICIT = '#F59E0B'; // Amber
-
 const getCategoryColor = (name: string, categories: Category[]) => {
-    const cat = categories.find(c => c.name === name);
-    return cat?.color || '#94A3B8';
+  const cat = categories.find(c => c.name === name);
+  return cat?.color || '#94A3B8';
 };
 
 const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCategories, expenseCategories }) => {
   const [viewMode, setViewMode] = useState<'detailed' | 'category'>('category');
-  
-  const { nodes, links, gradients, totalFlow } = useMemo(() => {
-    const nodes: { id: string; name: string; color: string; depth: number }[] = [];
-    const links: { source: number; target: number; value: number; gradientId: string }[] = [];
-    const gradients: { id: string; start: string; end: string }[] = [];
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkDarkMode = () => document.documentElement.classList.contains('dark');
+    setIsDarkMode(checkDarkMode());
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const COLOR_HUB = isDarkMode ? '#818CF8' : '#4F46E5';
+  const COLOR_SAVINGS = isDarkMode ? '#34D399' : '#059669';
+  const COLOR_DEFICIT = isDarkMode ? '#FBBF24' : '#D97706';
+
+  const { data, nodeColors, totalFlow } = useMemo(() => {
+    const nodes: { name: string; category?: 'source' | 'landing' | 'outcome'; color: string }[] = [];
+    const links: { source: number; target: number; value: number }[] = [];
+    const nodeColors: string[] = [];
 
     const isDetailed = viewMode === 'detailed';
-    const FLOW_DEPTH = {
-        subIn: 0,
-        catIn: isDetailed ? 1 : 0,
-        net: isDetailed ? 2 : 1,
-        catOut: isDetailed ? 3 : 2,
-        subOut: 4
-    };
 
-    const addNode = (id: string, displayName: string, color: string, depth: number) => {
-      const existingIndex = nodes.findIndex(n => n.id === id);
+    const addNode = (displayName: string, color: string, category: 'source' | 'landing' | 'outcome') => {
+      const existingIndex = nodes.findIndex(n => n.name === displayName && n.category === category);
       if (existingIndex !== -1) return existingIndex;
-      nodes.push({ id, name: displayName, color, depth });
+      nodes.push({ name: displayName, category, color });
+      nodeColors.push(color);
       return nodes.length - 1;
     };
 
-    const addLink = (source: number, target: number, value: number, colorStart: string, colorEnd: string) => {
+    const addLink = (source: number, target: number, value: number) => {
       if (value < 0.01) return;
-      const gradientId = `grad-${source}-${target}-${Math.floor(value * 100)}-${Math.random().toString(36).substr(2, 5)}`; 
-      gradients.push({ id: gradientId, start: colorStart, end: colorEnd });
-      links.push({ source, target, value, gradientId });
+      links.push({ source, target, value: Number(value.toFixed(2)) });
     };
 
     let totalIncome = 0;
     let totalExpense = 0;
-    const incMap = new Map<string, Map<string, number>>(); 
-    const expMap = new Map<string, Map<string, number>>(); 
+    const incMap = new Map<string, Map<string, number>>();
+    const expMap = new Map<string, Map<string, number>>();
 
     transactions.forEach(tx => {
       if (tx.transferId) return;
@@ -67,7 +68,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       const isIncome = tx.type === 'income';
       const categories = isIncome ? incomeCategories : expenseCategories;
       const targetMap = isIncome ? incMap : expMap;
-      
+
       let categoryName = tx.category;
       let parentName = '';
 
@@ -91,216 +92,146 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     const capitalDrawdown = Math.max(0, totalExpense - totalIncome);
     const flowVolume = Math.max(totalIncome, totalExpense);
 
-    const hubIdx = addNode('hub', 'Cashflow Hub', COLOR_HUB, FLOW_DEPTH.net);
+    const hubIdx = addNode('Cashflow Hub', COLOR_HUB, 'landing');
 
     incMap.forEach((subs, parentName) => {
-        const pColor = getCategoryColor(parentName, incomeCategories);
-        const pNodeIdx = addNode(`inc_p_${parentName}`, parentName, pColor, FLOW_DEPTH.catIn);
-        
-        let pTotal = 0;
-        const sortedSubs = Array.from(subs.entries()).sort((a, b) => b[1] - a[1]);
-        const topSubs = sortedSubs.slice(0, MAX_SUBS_PER_CAT);
-        const otherSubs = sortedSubs.slice(MAX_SUBS_PER_CAT);
+      const pColor = getCategoryColor(parentName, incomeCategories);
+      const pNodeIdx = addNode(parentName, pColor, 'source');
 
-        if (isDetailed) {
-            topSubs.forEach(([subName, val]) => {
-                const sNodeIdx = addNode(`inc_s_${parentName}_${subName}`, subName, pColor, FLOW_DEPTH.subIn);
-                addLink(sNodeIdx, pNodeIdx, val, pColor, pColor);
-                pTotal += val;
-            });
+      let pTotal = 0;
+      const sortedSubs = Array.from(subs.entries()).sort((a, b) => b[1] - a[1]);
+      const topSubs = sortedSubs.slice(0, MAX_SUBS_PER_CAT);
+      const otherSubs = sortedSubs.slice(MAX_SUBS_PER_CAT);
 
-            if (otherSubs.length > 0) {
-                const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
-                const sNodeIdx = addNode(`inc_s_${parentName}_other`, OTHER_LABEL, pColor, FLOW_DEPTH.subIn);
-                addLink(sNodeIdx, pNodeIdx, otherVal, pColor, pColor);
-                pTotal += otherVal;
-            }
-        } else {
-            pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
+      if (isDetailed) {
+        topSubs.forEach(([subName, val]) => {
+          const sNodeIdx = addNode(subName, pColor, 'source');
+          addLink(sNodeIdx, pNodeIdx, val);
+          pTotal += val;
+        });
+
+        if (otherSubs.length > 0) {
+          const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
+          const sNodeIdx = addNode(`${parentName} (${OTHER_LABEL})`, pColor, 'source');
+          addLink(sNodeIdx, pNodeIdx, otherVal);
+          pTotal += otherVal;
         }
-
-        addLink(pNodeIdx, hubIdx, pTotal, pColor, COLOR_HUB);
+        addLink(pNodeIdx, hubIdx, pTotal);
+      } else {
+        pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
+        addLink(pNodeIdx, hubIdx, pTotal);
+      }
     });
 
     if (capitalDrawdown > 0) {
-        const drawIdx = addNode('drawdown', 'Capital Drawdown', COLOR_DEFICIT, FLOW_DEPTH.catIn);
-        addLink(drawIdx, hubIdx, capitalDrawdown, COLOR_DEFICIT, COLOR_HUB);
+      const drawIdx = addNode('Capital Drawdown', COLOR_DEFICIT, 'source');
+      addLink(drawIdx, hubIdx, capitalDrawdown);
     }
 
     expMap.forEach((subs, parentName) => {
-        const pColor = getCategoryColor(parentName, expenseCategories);
-        const pNodeIdx = addNode(`exp_p_${parentName}`, parentName, pColor, FLOW_DEPTH.catOut);
-        
-        let pTotal = 0;
-        const sortedSubs = Array.from(subs.entries()).sort((a, b) => b[1] - a[1]);
-        const topSubs = sortedSubs.slice(0, MAX_SUBS_PER_CAT);
-        const otherSubs = sortedSubs.slice(MAX_SUBS_PER_CAT);
+      const pColor = getCategoryColor(parentName, expenseCategories);
+      const pNodeIdx = addNode(parentName, pColor, 'outcome');
 
-        if (isDetailed) {
-            topSubs.forEach(([subName, val]) => {
-                const sNodeIdx = addNode(`exp_s_${parentName}_${subName}`, subName, pColor, FLOW_DEPTH.subOut);
-                addLink(pNodeIdx, sNodeIdx, val, pColor, pColor);
-                pTotal += val;
-            });
+      let pTotal = 0;
+      const sortedSubs = Array.from(subs.entries()).sort((a, b) => b[1] - a[1]);
+      const topSubs = sortedSubs.slice(0, MAX_SUBS_PER_CAT);
+      const otherSubs = sortedSubs.slice(MAX_SUBS_PER_CAT);
 
-            if (otherSubs.length > 0) {
-                const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
-                const sNodeIdx = addNode(`exp_s_${parentName}_other`, OTHER_LABEL, pColor, FLOW_DEPTH.subOut);
-                addLink(pNodeIdx, sNodeIdx, otherVal, pColor, pColor);
-                pTotal += otherVal;
-            }
-        } else {
-            pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
+      if (isDetailed) {
+        topSubs.forEach(([subName, val]) => {
+          const sNodeIdx = addNode(subName, pColor, 'outcome');
+          addLink(pNodeIdx, sNodeIdx, val);
+          pTotal += val;
+        });
+
+        if (otherSubs.length > 0) {
+          const otherVal = otherSubs.reduce((s, [, v]) => s + v, 0);
+          const sNodeIdx = addNode(`${parentName} (${OTHER_LABEL})`, pColor, 'outcome');
+          addLink(pNodeIdx, sNodeIdx, otherVal);
+          pTotal += otherVal;
         }
-
-        addLink(hubIdx, pNodeIdx, pTotal, COLOR_HUB, pColor);
+        addLink(hubIdx, pNodeIdx, pTotal);
+      } else {
+        pTotal = Array.from(subs.values()).reduce((sum, val) => sum + val, 0);
+        addLink(hubIdx, pNodeIdx, pTotal);
+      }
     });
 
     if (netSurplus > 0) {
-        const surplusIdx = addNode('surplus', 'Retained Savings', COLOR_SAVINGS, FLOW_DEPTH.catOut);
-        addLink(hubIdx, surplusIdx, netSurplus, COLOR_HUB, COLOR_SAVINGS);
+      const surplusIdx = addNode('Retained Savings', COLOR_SAVINGS, 'outcome');
+      addLink(hubIdx, surplusIdx, netSurplus);
     }
 
-    return { nodes, links, gradients, totalFlow: flowVolume };
-  }, [transactions, incomeCategories, expenseCategories, viewMode]);
+    return { data: { nodes, links }, nodeColors, totalFlow: flowVolume };
+  }, [transactions, incomeCategories, expenseCategories, viewMode, COLOR_HUB, COLOR_SAVINGS, COLOR_DEFICIT]);
 
-  const SankeyNode = ({ x, y, width, height, index, payload }: any) => {
-      if (payload.value < 0.01) return null;
-      const isDetailed = viewMode === 'detailed';
-      const isRight = payload.depth > (isDetailed ? 2 : 1);
-      const isCenter = payload.depth === (isDetailed ? 2 : 1);
-      const textAnchor = isCenter ? 'middle' : (isRight ? 'start' : 'end');
-      const textX = isCenter ? x + width / 2 : (isRight ? x + width + 8 : x - 8);
-
-      return (
-        <Layer key={`node-${index}`}>
-          <Rectangle
-            x={x} y={y} width={width} height={height}
-            fill={payload.color}
-            fillOpacity={0.9}
-            rx={6} ry={6} // Increased roundness for nodes
-          />
-          <text
-            x={textX}
-            y={y + height / 2}
-            textAnchor={textAnchor}
-            fontSize={11}
-            fontWeight={isCenter ? 800 : 600}
-            fill="currentColor"
-            className="dark:fill-gray-200 fill-gray-700"
-          >
-            {payload.name}
-          </text>
-        </Layer>
-      );
-  };
-
-  const SankeyLink = (props: any) => {
-      const { sourceX, sourceY, targetX, targetY, linkWidth, payload } = props;
-      if (linkWidth < 1) return null;
-
-      // Calculate deep curves using half the horizontal distance as control offset
-      const curvature = (targetX - sourceX) / 2;
-      
-      const path = `
-        M${sourceX},${sourceY + linkWidth / 2}
-        C${sourceX + curvature},${sourceY + linkWidth / 2}
-         ${targetX - curvature},${targetY + linkWidth / 2}
-         ${targetX},${targetY + linkWidth / 2}
-        L${targetX},${targetY - linkWidth / 2}
-        C${targetX - curvature},${targetY - linkWidth / 2}
-         ${sourceX + curvature},${sourceY - linkWidth / 2}
-         ${sourceX},${sourceY - linkWidth / 2}
-        Z
-      `;
-
-      return (
-        <Layer key={`link-${props.index}`}>
-          <path 
-            d={path} 
-            fill={`url(#${payload.gradientId})`} 
-            fillOpacity={0.35}
-            className="transition-all duration-300 hover:fill-opacity-70"
-          />
-        </Layer>
-      );
-  };
+  const getNodeColor = useCallback((node: any, index: number) => {
+    return nodeColors[index] || node.color || (isDarkMode ? '#60A5FA' : '#2563EB');
+  }, [nodeColors, isDarkMode]);
 
   if (totalFlow === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20 text-light-text-secondary opacity-40">
-          <span className="material-symbols-outlined text-5xl mb-2">account_tree</span>
-          <p className="font-medium">No cash flow activity in this period.</p>
+        <span className="material-symbols-outlined text-5xl mb-2">account_tree</span>
+        <p className="font-medium">No cash flow activity in this period.</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full relative" style={{ minHeight: '600px' }}>
-        <div className="absolute top-0 right-0 z-20 flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md">
-            <button
-                onClick={() => setViewMode('category')}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest  transition-all ${
-                    viewMode === 'category' 
-                    ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm' 
-                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
-                }`}
-            >
-                Categories
-            </button>
-            <button
-                onClick={() => setViewMode('detailed')}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest  transition-all ${
-                    viewMode === 'detailed' 
-                    ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm' 
-                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
-                }`}
-            >
-                Subcategories
-            </button>
+    <div className="h-full w-full flex flex-col relative min-h-[420px]">
+      <div className="flex items-center justify-between mb-2 z-20">
+        <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 backdrop-blur-md ml-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode('category')}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest transition-all ${viewMode === 'category'
+                ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+              }`}
+          >
+            Categories
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('detailed')}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest transition-all ${viewMode === 'detailed'
+                ? 'bg-white dark:bg-dark-card text-primary-500 shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+              }`}
+          >
+            Subcategories
+          </button>
         </div>
+      </div>
 
-        <svg width="0" height="0" style={{ position: 'absolute' }}>
-            <defs>
-                {gradients.map(g => (
-                    <linearGradient key={g.id} id={g.id} x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={g.start} />
-                        <stop offset="100%" stopColor={g.end} />
-                    </linearGradient>
-                ))}
-            </defs>
-        </svg>
-
-        <ResponsiveContainer width="100%" height="100%">
-            <Sankey
-                data={{ nodes, links }}
-                node={<SankeyNode />}
-                link={<SankeyLink />}
-                nodePadding={viewMode === 'detailed' ? 24 : 48}
-                margin={{ left: 100, right: 100, top: 20, bottom: 20 }}
-            >
-                <Tooltip 
-                    contentStyle={{ 
-                        backgroundColor: 'var(--light-card)', 
-                        backdropFilter: 'blur(5px) saturate(180%) brightness(105%)', 
-                        WebkitBackdropFilter: 'blur(5px) saturate(180%) brightness(105%)',
-                        border: 'none', 
-                        borderRadius: '2rem', 
-                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
-                    }}
-                    // Add itemStyle to dynamically color the inner text/values
-                    itemStyle={{ color: 'var(--text-main)' }} 
-                    // Add labelStyle if your tooltip displays a title/label at the top
-                    labelStyle={{ color: 'var(--text-main)' }}
-                    formatter={(value: number) => {
-                        const pct = ((value / totalFlow) * 100).toFixed(1);
-                        return [`${formatCurrency(value, 'EUR')} (${pct}%)`, 'Volume'];
-                    }}
-                />
-            </Sankey>
-        </ResponsiveContainer>
+      <div className="flex-1 w-full relative min-h-[360px]">
+        <SankeyChart
+          data={data}
+          aspectRatio={undefined}
+          nodeWidth={18}
+          nodePadding={viewMode === 'detailed' ? 14 : 26}
+          margin={{ top: 20, right: 140, bottom: 20, left: 140 }}
+          className="w-full h-full"
+        >
+          <SankeyLink
+            useGradient={true}
+            getNodeColor={getNodeColor}
+            strokeOpacity={isDarkMode ? 0.55 : 0.42}
+            fadedOpacity={0.08}
+          />
+          <SankeyNode
+            lineCap={4}
+            labelOrientation="horizontal"
+            getNodeColor={getNodeColor}
+            formatValue={(val) => formatCurrency(val, 'EUR')}
+          />
+          <SankeyTooltip />
+        </SankeyChart>
+      </div>
     </div>
   );
 };
 
 export default React.memo(CashflowSankey);
+

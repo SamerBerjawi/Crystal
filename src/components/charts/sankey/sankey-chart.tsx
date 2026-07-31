@@ -242,7 +242,10 @@ export function SankeyChart({
   const margin = { ...DEFAULT_MARGIN, ...marginProp };
 
   return (
-    <div className={cn("relative w-full", className)} style={{ aspectRatio }}>
+    <div
+      className={cn("relative w-full h-full min-h-[300px]", className)}
+      style={aspectRatio ? { aspectRatio } : undefined}
+    >
       <ParentSize>
         {({ width, height }) => (
           <SankeyChartInner
