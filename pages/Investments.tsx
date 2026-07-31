@@ -11,6 +11,7 @@ import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
 import { buildHoldingsOverview } from '../utils/investments';
+import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import AccountsListSection from '../components/AccountsListSection';
@@ -134,6 +135,20 @@ const Investments: React.FC<InvestmentsProps> = ({
         },
         [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings, activeSegment]
     );
+
+    const segmentPriceHistory = useMemo(() => {
+        const matchingAccounts = activeSegment === 'all' 
+            ? investmentAccounts 
+            : investmentAccounts.filter(a => a.subType === (activeSegment as any));
+
+        const entries: { date: string; price: number }[] = [];
+        matchingAccounts.forEach(acc => {
+            if (acc.priceHistory && acc.priceHistory.length > 0) {
+                entries.push(...acc.priceHistory);
+            }
+        });
+        return entries;
+    }, [investmentAccounts, activeSegment]);
 
     const accountBySymbol = useMemo(() => {
         const map = new Map<string, Account>();
@@ -836,6 +851,19 @@ const Investments: React.FC<InvestmentsProps> = ({
                         </div>
                     </div>
                 </div>
+
+                {/* Investment Candlestick Performance Trend Chart */}
+                <InvestmentCandlestickChart
+                    title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
+                    subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
+                    currentValue={segmentMetrics.totalValue}
+                    costBasis={activeSegment === 'all' ? totalCostBasis : undefined}
+                    isNegativeTrend={segmentMetrics.totalValue < (totalCostBasis || 0)}
+                    priceHistory={segmentPriceHistory}
+                    transactions={investmentTransactions}
+                    currency="EUR"
+                    height={320}
+                />
 
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                     {/* Main Table Column */}

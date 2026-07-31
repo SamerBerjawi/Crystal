@@ -17,6 +17,7 @@ import AddInvestmentTransactionModal from '../components/AddInvestmentTransactio
 import WarrantModal from '../components/WarrantModal';
 import { formatHoldingType } from '../utils/investments';
 import PriceHistoryChart from '../components/PriceHistoryChart';
+import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
 import HeaderButton from '../components/HeaderButton';
 import { useConfirm } from '../components/ConfirmationModal';
 
@@ -55,6 +56,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
     const [isWarrantModalOpen, setIsWarrantModalOpen] = useState(false);
+    const [chartViewMode, setChartViewMode] = useState<'candlestick' | 'line'>('candlestick');
 
     const holding: HoldingSummary | undefined = useMemo(
         () => holdingsOverview.holdings.find(h => h.symbol === holdingSymbol),
@@ -140,8 +142,16 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
 
     const holdingTypeLabel = isWarrant ? 'Warrant' : formatHoldingType(relatedAccount?.subType || holding.subType);
     
-    // Only show price history chart if there is data
-    const historyData = priceHistory[holding.symbol] || [];
+    // Combine price history from global price logs and account-specific logs
+    const historyData = useMemo(() => {
+        const fromDict = priceHistory[holding.symbol] || [];
+        const fromAcc = relatedAccount?.priceHistory || [];
+        const map = new Map<string, number>();
+        [...fromDict, ...fromAcc].forEach((entry) => map.set(entry.date, entry.price));
+        return Array.from(map.entries())
+            .map(([date, price]) => ({ date, price }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [priceHistory, holding.symbol, relatedAccount]);
 
     const handleEditPrice = (entry: { date: string, price: number }) => {
         setEditingEntry(entry);
@@ -314,17 +324,64 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 </div>
             </div>
             
-            {/* Price History Chart */}
-            {historyData.length > 1 && (
-                <Card>
-                    <div className="flex justify-between items-center mb-6 border-b border-black/5 dark:border-white/5 pb-4">
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                             <span className="material-symbols-outlined text-primary-500">show_chart</span>
-                             Performance Trend
-                        </h3>
-                    </div>
-                    <PriceHistoryChart history={historyData} />
-                </Card>
+            {/* Price History Chart & Candlestick Performance */}
+            {holding && (
+                <div>
+                    {chartViewMode === 'candlestick' ? (
+                        <div className="space-y-3">
+                            <div className="flex justify-end">
+                                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5 text-xs font-bold">
+                                    <button
+                                        onClick={() => setChartViewMode('candlestick')}
+                                        className="px-3 py-1 rounded-xl transition-all bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400"
+                                    >
+                                        Candlestick OHLC
+                                    </button>
+                                    <button
+                                        onClick={() => setChartViewMode('line')}
+                                        className="px-3 py-1 rounded-xl transition-all text-gray-400 hover:text-gray-600"
+                                    >
+                                        Line Trend
+                                    </button>
+                                </div>
+                            </div>
+                            <InvestmentCandlestickChart
+                                title={`${holding.symbol} (${holding.name}) Price Action`}
+                                subtitle="OHLC Candlestick performance trend analysis"
+                                currentValue={holding.currentValue}
+                                costBasis={holding.totalCost}
+                                isNegativeTrend={holding.currentValue < holding.totalCost}
+                                priceHistory={historyData}
+                                currency="EUR"
+                                height={300}
+                            />
+                        </div>
+                    ) : (
+                        <Card>
+                            <div className="flex justify-between items-center mb-6 border-b border-black/5 dark:border-white/5 pb-4">
+                                <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                                     <span className="material-symbols-outlined text-primary-500">show_chart</span>
+                                     Performance Trend
+                                </h3>
+                                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5 text-xs font-bold">
+                                    <button
+                                        onClick={() => setChartViewMode('candlestick')}
+                                        className="px-3 py-1 rounded-xl transition-all text-gray-400 hover:text-gray-600"
+                                    >
+                                        Candlestick OHLC
+                                    </button>
+                                    <button
+                                        onClick={() => setChartViewMode('line')}
+                                        className="px-3 py-1 rounded-xl transition-all bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400"
+                                    >
+                                        Line Trend
+                                    </button>
+                                </div>
+                            </div>
+                            <PriceHistoryChart history={historyData} />
+                        </Card>
+                    )}
+                </div>
             )}
 
             {/* Split View: Activity & Price Logs */}
