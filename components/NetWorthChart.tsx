@@ -167,10 +167,11 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
       <LineChart
         data={chartData}
         xDataKey="date"
+        revealSignature={chartData.length.toString()}
         yDomainTween
         aspectRatio=""
         className="w-full h-full min-h-[250px]"
-        margin={{ top: 20, right: 20, bottom: 30, left: 55 }}
+        margin={{ top: 25, right: 25, bottom: 30, left: 70 }}
       >
         <Grid horizontal stroke="rgba(255, 255, 255, 0.08)" />
         <XAxis />

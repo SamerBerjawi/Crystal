@@ -655,7 +655,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
                 animating={isRevealAnimating || isRevealConcealing}
                 clipPathId={clipPathId}
                 enterTransition={effectiveEnterTransition}
-                height={innerHeight + 20}
+                height={height + 100}
                 mode={isRevealConcealing ? "conceal" : "reveal"}
                 onComplete={
                   isRevealConcealing ? notifyRevealConcealComplete : undefined

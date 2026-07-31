@@ -916,13 +916,13 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="h-[300px] w-full flex-1 relative z-10">
+          <div className="flex-1 w-full relative z-10 flex flex-col min-h-[320px] h-full">
             <BklitLineChart
               data={velocityData}
               xDataKey="day"
               yDomainTween
               aspectRatio=""
-              className="w-full h-[300px]"
+              className="w-full h-full flex-1 min-h-[300px]"
               margin={{ top: 15, right: 15, bottom: 25, left: 55 }}
             >
               <BklitGrid horizontal stroke="rgba(255, 255, 255, 0.06)" />
