@@ -4,7 +4,7 @@ import Modal from './Modal';
 import { Category, MerchantRule } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
@@ -357,17 +357,21 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
 
                         <div className="h-48 w-full">
                             <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-2">Spending Trend (6mo)</h4>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={stats.chartData}>
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', fontSize: '12px' }}
-                                        formatter={(val: number) => [formatCurrency(val, 'EUR'), 'Spent']}
-                                    />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }} />
-                                    <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <BarChart
+                                data={stats.chartData}
+                                xDataKey="name"
+                                aspectRatio="auto"
+                                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                                className="w-full h-40"
+                            >
+                                <Grid horizontal vertical={false} strokeOpacity={0.06} />
+                                <Bar dataKey="value" fill="#3B82F6" lineCap="round" />
+                                <BarXAxis />
+                                <BarYAxis />
+                                <ChartTooltip
+                                    valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
+                                />
+                            </BarChart>
                         </div>
                     </div>
                 )}

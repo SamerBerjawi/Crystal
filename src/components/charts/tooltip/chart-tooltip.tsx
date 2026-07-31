@@ -23,8 +23,6 @@ import { TooltipDot } from "./tooltip-dot";
 import { TooltipIndicator } from "./tooltip-indicator";
 
 export interface ChartTooltipProps {
-  /** Optional formatter function for row values */
-  valueFormatter?: (val: any) => string;
   /** Whether to show the date pill at bottom. Default: true */
   showDatePill?: boolean;
   /** Whether to show the vertical crosshair line. Default: true */
@@ -58,8 +56,8 @@ export interface ChartTooltipProps {
    * When a function, receives the hovered point and line config.
    */
   dotColor?:
-  | string
-  | ((point: Record<string, unknown>, line: LineConfig) => string);
+    | string
+    | ((point: Record<string, unknown>, line: LineConfig) => string);
   /** Additional content to show below rows (e.g., markers) */
   children?: React.ReactNode;
   /** Custom class name */
@@ -91,6 +89,8 @@ export interface ChartTooltipProps {
    * Default: `var(--chart-tooltip-background)`.
    */
   backgroundColor?: string;
+  /** Custom formatter for row values in default tooltip rows */
+  valueFormatter?: (value: any, key?: string) => string;
 }
 
 interface ChartTooltipInnerProps extends ChartTooltipProps {
@@ -98,7 +98,6 @@ interface ChartTooltipInnerProps extends ChartTooltipProps {
 }
 
 const ChartTooltipInner = memo(function ChartTooltipInner({
-  valueFormatter,
   showDatePill = true,
   showCrosshair = true,
   showDots = true,
@@ -123,6 +122,7 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
   boxSpringConfig,
   panelStyle,
   backgroundColor,
+  valueFormatter,
 }: ChartTooltipInnerProps) {
   const {
     tooltipData,
@@ -206,11 +206,12 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
 
     // Default: generate rows from registered lines
     return lines.map((line) => {
-      const rawVal = (tooltipData.point[line.dataKey] as number) ?? 0;
+      const rawVal = tooltipData.point[line.dataKey];
+      const val = typeof rawVal === "number" ? rawVal : (rawVal as any) ?? 0;
       return {
         color: line.stroke,
         label: line.dataKey,
-        value: valueFormatter ? valueFormatter(rawVal) : rawVal,
+        value: valueFormatter ? valueFormatter(val, line.dataKey) : val,
       };
     });
   }, [tooltipData, lines, rowsRenderer, valueFormatter]);
@@ -336,14 +337,14 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
       >
         {content && tooltipData
           ? content({
-            point: tooltipData.point,
-            index: tooltipData.index,
-          })
+              point: tooltipData.point,
+              index: tooltipData.index,
+            })
           : !content && (
-            <TooltipContent rows={tooltipRows} title={title}>
-              {children}
-            </TooltipContent>
-          )}
+              <TooltipContent rows={tooltipRows} title={title}>
+                {children}
+              </TooltipContent>
+            )}
       </TooltipBox>
 
       {/* Date/Category Ticker - only show for vertical charts */}

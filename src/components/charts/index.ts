@@ -24,3 +24,9 @@ export { PieSlice, type PieSliceProps } from "./pie-slice";
 export { PieCenter, type PieCenterProps } from "./pie-center";
 export { PieCenterShell, type PieCenterShellProps } from "./pie-center-shell";
 export { type PieData } from "./pie-context";
+export { BarChart, type BarChartProps } from "./bar-chart";
+export { Bar, type BarProps } from "./bar";
+export { BarXAxis, type BarXAxisProps } from "./bar-x-axis";
+export { BarYAxis, type BarYAxisProps } from "./bar-y-axis";
+export { BarSquares, type BarSquaresProps } from "./bar-squares";
+

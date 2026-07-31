@@ -3,7 +3,7 @@ import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, convertToEur, getPreferredTimeZone } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar, Cell } from 'recharts';
+import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
 import Icon from './ui/Icon';
@@ -285,35 +285,23 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                         </div>
 
                         <div className="flex-grow w-full h-full min-h-[220px] relative z-10">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={flowData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }} barSize={32}>
-                                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} stroke="currentColor" />
-                                    <XAxis
-                                        dataKey="name"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }}
-                                    />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
-                                    <Tooltip
-                                        cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
-                                        contentStyle={{
-                                            backgroundColor: 'var(--light-card)',
-                                            backdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                            WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                            border: 'none',
-                                            borderRadius: '24px',
-                                            boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)',
-                                            padding: '16px'
-                                        }}
-                                        itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
-                                        labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px', letterSpacing: '0.1em', fontSize: '10px' }}
-                                        formatter={(value: number, name: string) => [`${formatCurrency(value, account.currency)}`, name]}
-                                    />
-                                    <Bar dataKey="income" name="Intake" stackId="a" fill="#10B981" radius={[0, 0, 12, 12]} />
-                                    <Bar dataKey="expense" name="Spend" stackId="a" fill="#F43F5E" radius={[12, 12, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <BarChart
+                                data={flowData}
+                                xDataKey="name"
+                                stacked
+                                aspectRatio="auto"
+                                margin={{ top: 15, right: 15, left: 15, bottom: 25 }}
+                                className="w-full h-full"
+                            >
+                                <Grid horizontal vertical={false} strokeOpacity={0.06} />
+                                <Bar dataKey="income" fill="#10B981" lineCap="round" />
+                                <Bar dataKey="expense" fill="#F43F5E" lineCap="round" />
+                                <BarXAxis />
+                                <BarYAxis />
+                                <ChartTooltip
+                                    valueFormatter={(val: number) => formatCurrency(val, account.currency)}
+                                />
+                            </BarChart>
                         </div>
                     </div>
                 </div>

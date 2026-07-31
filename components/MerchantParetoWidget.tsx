@@ -1,9 +1,8 @@
-
 import React, { useMemo } from 'react';
-import { Transaction, Category } from '../types';
+import { Transaction } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import Icon from './ui/Icon';
+import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
 interface MerchantParetoWidgetProps {
   transactions: Transaction[];
@@ -48,32 +47,27 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      <div className="flex-grow">
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={data.sorted} layout="vertical" margin={{ left: -10, right: 40 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.05} />
-            <XAxis type="number" hide />
-            <YAxis
-              dataKey="name"
-              type="category"
-              axisLine={false}
-              tickLine={false}
-              fontSize={11}
-              width={100}
-              tick={{ fill: 'currentColor', opacity: 0.7 }}
-            />
-            <Tooltip
-              cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}
-              formatter={(value: number) => [formatCurrency(value, 'EUR'), 'Total Spent']}
-            />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
-              {data.sorted.map((entry, index) => (
-                <Cell key={index} fill={index < 3 ? '#fa9a1d' : '#94A3B8'} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="flex-grow min-h-[220px]">
+        <BarChart
+          data={data.sorted}
+          xDataKey="name"
+          orientation="horizontal"
+          aspectRatio="auto"
+          margin={{ top: 10, right: 30, left: 90, bottom: 10 }}
+          className="w-full h-full"
+        >
+          <Grid vertical horizontal={false} strokeOpacity={0.05} />
+          <Bar
+            dataKey="value"
+            fill={(_, index) => (index < 3 ? '#fa9a1d' : '#94A3B8')}
+            lineCap="round"
+          />
+          <BarXAxis />
+          <BarYAxis />
+          <ChartTooltip
+            valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
+          />
+        </BarChart>
       </div>
 
       <div className="bg-primary-500/5 dark:bg-primary-400/5 p-3 rounded-xl border border-primary-500/10 dark:border-primary-400/10">

@@ -10,15 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { normalizeMerchantKey } from '../utils/brandfetch';
 import { evaluateRuleCondition, applyTransactionRulesToFields } from '../utils/rules';
 import Icon from '../components/ui/Icon';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell
-} from 'recharts';
+import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
 
 interface RulesProps {
@@ -1778,43 +1770,26 @@ const Rules: React.FC<RulesProps> = ({
                       <div className="space-y-4">
                         {/* Horizontal Bar Chart */}
                         <div className="h-48 w-full font-sans text-[10px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={ruleImpactData}
-                              layout="vertical"
-                              margin={{ top: 5, right: 10, left: -25, bottom: 5 }}
-                            >
-                              <XAxis type="number" stroke="currentColor" className="opacity-30" fontSize={8} tickLine={false} axisLine={false} />
-                              <YAxis
-                                type="category"
-                                dataKey="shortName"
-                                stroke="currentColor"
-                                className="opacity-70 font-sans"
-                                fontSize={9}
-                                tickLine={false}
-                                axisLine={false}
-                              />
-                              <Tooltip
-                                cursor={{ fill: 'rgba(20, 184, 166, 0.05)' }}
-                                contentStyle={{
-                                  backgroundColor: '#0f172a',
-                                  border: '1px solid rgba(255,255,255,0.08)',
-                                  borderRadius: '12px',
-                                  color: '#f8fafc',
-                                  fontSize: '11px',
-                                }}
-                                formatter={(value: any, name: any, props: any) => [
-                                  `${value} transactions matched`,
-                                  props.payload.ruleName
-                                ]}
-                              />
-                              <Bar dataKey="Matched Count" radius={[0, 4, 4, 0]} barSize={12}>
-                                {ruleImpactData.map((entry, idx) => (
-                                  <Cell key={`cell-${idx}`} fill={entry.color} />
-                                ))}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
+                          <BarChart
+                            data={ruleImpactData}
+                            xDataKey="shortName"
+                            orientation="horizontal"
+                            aspectRatio="auto"
+                            margin={{ top: 5, right: 10, left: 70, bottom: 5 }}
+                            className="w-full h-full"
+                          >
+                            <Grid vertical horizontal={false} strokeOpacity={0.05} />
+                            <Bar
+                              dataKey="Matched Count"
+                              fill={(d) => (d.color as string) || '#14b8a6'}
+                              lineCap="round"
+                            />
+                            <BarXAxis />
+                            <BarYAxis />
+                            <ChartTooltip
+                              valueFormatter={(val: number) => `${val} matched`}
+                            />
+                          </BarChart>
                         </div>
 
                         {/* List impact breakdown panel */}

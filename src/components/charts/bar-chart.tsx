@@ -130,7 +130,11 @@ function extractBarConfigs(children: ReactNode): LineConfig[] {
       // Use stroke for tooltip dot color if provided, otherwise fall back to fill
       // This allows gradient/pattern fills to have a solid dot color
       const dotColor =
-        props.stroke || props.fill || "var(--chart-line-primary)";
+        typeof props.stroke === "string"
+          ? props.stroke
+          : typeof props.fill === "string"
+          ? props.fill
+          : "var(--chart-line-primary)";
       configs.push({
         dataKey: props.dataKey,
         stroke: dotColor,
@@ -696,7 +700,7 @@ export function BarChart({
     <div
       className={cn("relative w-full overflow-visible", className)}
       ref={containerRef}
-      style={{ aspectRatio }}
+      style={aspectRatio && aspectRatio !== "auto" ? { aspectRatio } : { height: "100%", minHeight: "100%" }}
     >
       <ParentSize debounceTime={10}>
         {({ width, height }) => (

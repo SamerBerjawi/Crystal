@@ -1,26 +1,13 @@
-
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { CategorySpending } from '../types';
 import { formatCurrency } from '../utils';
 import Icon from './ui/Icon';
+import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
 interface OutflowsChartProps {
   data: CategorySpending[];
   onCategoryClick: (categoryName: string) => void;
 }
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md text-sm">
-        <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2  tracking-widest text-[10px]">{label}</p>
-        <p style={{ color: payload[0].payload.color }} className="font-black font-mono text-base">{formatCurrency(payload[0].value, 'EUR')}</p>
-      </div>
-    );
-  }
-  return null;
-};
 
 const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) => {
   if (!data || data.length === 0) {
@@ -34,32 +21,27 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
 
   return (
     <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
-      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} horizontal={false} />
-          <XAxis type="number" hide />
-          <YAxis
-            type="category"
-            dataKey="name"
-            axisLine={false}
-            tickLine={false}
-            width={120}
-            tick={{ fill: 'currentColor', opacity: 0.7, fontSize: 12, fontWeight: 500 }}
-            style={{ cursor: 'pointer' }}
-            onClick={(payload) => onCategoryClick(payload.value)}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 8 }} />
-          <Bar dataKey="value" barSize={12} radius={[0, 6, 6, 0]} onClick={(barData: any) => onCategoryClick(barData.name)}>
-            {data.map((entry) => (
-              <Cell key={`cell-${entry.name}`} fill={entry.color} cursor="pointer" style={{ transition: 'all 0.3s ease' }} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <BarChart
+        data={data as unknown as Record<string, unknown>[]}
+        xDataKey="name"
+        orientation="horizontal"
+        aspectRatio="auto"
+        margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+        className="w-full h-full"
+      >
+        <Grid vertical horizontal={false} strokeOpacity={0.05} />
+        <Bar
+          dataKey="value"
+          fill={(d) => (d.color as string) || '#3B82F6'}
+          lineCap="round"
+          onClick={(d) => onCategoryClick(d.name as string)}
+        />
+        <BarXAxis />
+        <BarYAxis />
+        <ChartTooltip
+          valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
+        />
+      </BarChart>
     </div>
   );
 };

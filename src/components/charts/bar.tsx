@@ -56,8 +56,8 @@ export interface BarProps {
   dataKey: string;
   /** Y-scale group id for vertical bars (Recharts `yAxisId`). Default: `"left"`. */
   yAxisId?: string | number;
-  /** Fill color for the bar. Can be a color, gradient url, or pattern url. Default: var(--chart-line-primary) */
-  fill?: string;
+  /** Fill color for the bar, or a function returning a fill color per item. Default: var(--chart-line-primary) */
+  fill?: string | ((datum: Record<string, unknown>, index: number) => string);
   /** Color for tooltip dot. Use when fill is a gradient/pattern. Default: uses fill value */
   stroke?: string;
   /** Line cap style for bar ends: "round", "butt", or a number for custom radius. Default: "round" */
@@ -83,6 +83,8 @@ export interface BarProps {
    * zero-value bars so they stay visible. Pair with the same value on
    * `<BarDepthProvider minBarHeight>` when using the 3D surfaces. Default: 0 */
   minBarHeight?: number;
+  /** Optional click handler for bar element */
+  onClick?: (datum: Record<string, unknown>, index: number) => void;
 }
 
 interface BarInnerProps extends BarProps {
@@ -189,6 +191,7 @@ const BarInner = memo(function BarInner({
   groupGap = 4,
   perspective = false,
   minBarHeight = 0,
+  onClick,
   barScale,
   bandWidth,
   barXAccessor,
@@ -309,7 +312,7 @@ const BarInner = memo(function BarInner({
           y = stacked
             ? bandPos
             : bandPos +
-            seriesIndex * (barWidth + (seriesCount > 1 ? groupGap : 0));
+              seriesIndex * (barWidth + (seriesCount > 1 ? groupGap : 0));
         } else {
           // Vertical bars: category on x-axis, value on y-axis
           const valuePos = scale(value) ?? 0;
@@ -335,7 +338,7 @@ const BarInner = memo(function BarInner({
           x = stacked
             ? bandPos
             : bandPos +
-            seriesIndex * (barWidth + (seriesCount > 1 ? groupGap : 0));
+              seriesIndex * (barWidth + (seriesCount > 1 ? groupGap : 0));
 
           // Minimum visible height — floor short/zero non-stacked bars so a
           // zero-value data point still reads as a tiny bar instead of
@@ -382,6 +385,11 @@ const BarInner = memo(function BarInner({
           }
         }
 
+        const itemFill =
+          typeof fill === "function"
+            ? fill(d, i)
+            : (d.color as string) || (d.fill as string) || fill;
+
         const isFaded =
           (hoveredBarIndex !== null && hoveredBarIndex !== i) || isLegendDimmed;
 
@@ -396,13 +404,16 @@ const BarInner = memo(function BarInner({
         const effectiveRx = applyRounding ? cornerRadius : 0;
         const effectiveRy = applyRounding ? cornerRadius : 0;
 
+        const handleClick = onClick ? () => onClick(d, i) : undefined;
+        const cursorStyle = onClick ? "pointer" : "default";
+
         if (animate && !isLoaded) {
           return (
             <AnimatedBar
               animationType={animationType}
               enterTransition={enterTransition}
               fadedOpacity={fadedOpacity}
-              fill={fill}
+              fill={itemFill}
               height={barHeight}
               index={i}
               innerHeight={innerHeight}
@@ -423,14 +434,15 @@ const BarInner = memo(function BarInner({
         // Static bar after animation completes
         return (
           <rect
-            fill={fill}
+            fill={itemFill}
             height={barHeight}
             key={barKey}
+            onClick={handleClick}
             opacity={isFaded ? fadedOpacity : 1}
             rx={effectiveRx}
             ry={effectiveRy}
             style={{
-              cursor: "default",
+              cursor: cursorStyle,
               transition: "opacity 0.15s ease-in-out",
             }}
             width={barW}

@@ -3,7 +3,8 @@ import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, parseLocalDate, getPreferredTimeZone, toLocalISOString, calculateTrendLine } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, AreaChart, Area, Line, Cell } from 'recharts';
+import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, Area, Line, Cell } from 'recharts';
+import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
@@ -398,42 +399,25 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         </div>
 
                         <div className="h-64 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={interestHistory} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} stroke="currentColor" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
-                                    <Tooltip
-                                        cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
-                                        contentStyle={{
-                                            backgroundColor: 'var(--light-card)',
-                                            backdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                            WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                            border: 'none',
-                                            borderRadius: '24px',
-                                            boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)'
-                                        }}
-                                        itemStyle={{ fontSize: '12px', fontWeight: '900' }}
-                                        labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '4px', letterSpacing: '0.1em' }}
-                                        formatter={(val: number, name: any, props: any) => {
-                                            const isProj = props.payload?.isProjected;
-                                            return [
-                                                `${formatCurrency(val, account.currency)}`,
-                                                isProj ? 'Projected Yield' : 'Actual Interest'
-                                            ];
-                                        }}
-                                    />
-                                    <Bar dataKey="value" radius={[12, 12, 12, 12]} barSize={24}>
-                                        {interestHistory.map((entry: any, index: number) => (
-                                            <Cell
-                                                key={`cell-${index}`}
-                                                fill={entry.isProjected ? "#3B82F6" : "#10B981"}
-                                                fillOpacity={entry.isProjected ? 0.3 : (index === interestHistory.length - 1 ? 1 : 0.4)}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <BarChart
+                                data={interestHistory}
+                                xDataKey="name"
+                                aspectRatio="auto"
+                                margin={{ top: 15, right: 15, left: 15, bottom: 25 }}
+                                className="w-full h-full"
+                            >
+                                <Grid horizontal vertical={false} strokeOpacity={0.06} />
+                                <Bar
+                                    dataKey="value"
+                                    fill={(d) => (d.isProjected ? "#3B82F6" : "#10B981")}
+                                    lineCap="round"
+                                />
+                                <BarXAxis />
+                                <BarYAxis />
+                                <ChartTooltip
+                                    valueFormatter={(val: number) => formatCurrency(val, account.currency)}
+                                />
+                            </BarChart>
                         </div>
                     </div>
 

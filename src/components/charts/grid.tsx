@@ -2,7 +2,7 @@
 
 import { GridColumns, GridRows } from "@visx/grid";
 import { motion } from "motion/react";
-import { useId, useMemo } from "react";
+import { useId } from "react";
 import { chartCssVars, useChartStable, useYScale } from "./chart-context";
 import { useGridShimmer } from "./use-grid-shimmer";
 import {
@@ -28,6 +28,8 @@ export interface GridProps {
   rowTickValues?: number[];
   /** Grid line stroke color. Default: var(--chart-grid) */
   stroke?: string;
+  /** Grid stroke while loading chrome is active. Falls back to `stroke`. */
+  loadingStroke?: string;
   /** Grid line stroke opacity. Default: 1 */
   strokeOpacity?: number;
   /** Grid line stroke width. Default: 1 */
@@ -64,30 +66,6 @@ export interface GridProps {
   shimmerSpeed?: number;
   /** Match loop timing to the loading line pulse (cycle + inter-loop pause). */
   shimmerSync?: boolean;
-  /** Highlight zero baseline (0 axis) with a distinct line style. Default: true */
-  highlightZero?: boolean;
-  /** Stroke color for zero baseline line. Default: "currentColor" */
-  zeroStroke?: string;
-  /** Stroke opacity for zero baseline line. Default: 0.4 */
-  zeroStrokeOpacity?: number;
-  /** Stroke width for zero baseline line. Default: 1.5 */
-  zeroStrokeWidth?: number;
-  /** Stroke dasharray for zero baseline line. Default: "2,2" (dotted) */
-  zeroStrokeDasharray?: string;
-  /** Show dotted X-axis line along bottom. Default: true */
-  showXAxisLine?: boolean;
-  /** Show dotted Y-axis line along left. Default: true */
-  showYAxisLine?: boolean;
-  /** Dash array for X and Y axis border lines. Default: "2,2" (dotted) */
-  axisDasharray?: string;
-  /** Stroke color for X and Y axis border lines. Default: "currentColor" */
-  axisStroke?: string;
-  /** Stroke opacity for X and Y axis border lines. Default: 0.3 */
-  axisStrokeOpacity?: number;
-  /** Stroke width for X and Y axis border lines. Default: 1 */
-  axisStrokeWidth?: number;
-  /** Grid stroke while loading chrome is active. Falls back to `stroke`. */
-  loadingStroke?: string;
 }
 
 function hideEdgeTicks<T>(ticks: T[], hideEdgeLines: boolean): T[] {
@@ -141,57 +119,10 @@ export function Grid({
   shimmerLength = DEFAULT_SHIMMER_LENGTH_PX,
   shimmerSpeed = DEFAULT_SHIMMER_SPEED,
   shimmerSync = false,
-  highlightZero = true,
-  zeroStroke = "currentColor",
-  zeroStrokeOpacity = 0.35,
-  zeroStrokeWidth = 1,
-  zeroStrokeDasharray = "2,2",
-  showXAxisLine = false,
-  showYAxisLine = true,
-  axisDasharray = "2,2",
-  axisStroke = "currentColor",
-  axisStrokeOpacity = 0.3,
-  axisStrokeWidth = 1,
 }: GridProps) {
   const { xScale, innerWidth, innerHeight, orientation, barScale, chartPhase } =
     useChartStable();
   const yScale = useYScale(yAxisId);
-
-  // Compute Y coordinate of 0 for horizontal zero line
-  const zeroY = useMemo(() => {
-    if (!highlightZero || !yScale || typeof yScale !== "function") return null;
-    const domain = yScale.domain?.();
-    if (!domain || domain.length < 2) return null;
-    const raw0 = domain[0] as any;
-    const raw1 = domain[1] as any;
-    const d0 = typeof raw0 === "number" ? raw0 : (raw0 instanceof Date ? raw0.getTime() : Number(raw0));
-    const d1 = typeof raw1 === "number" ? raw1 : (raw1 instanceof Date ? raw1.getTime() : Number(raw1));
-    const min = Math.min(d0, d1);
-    const max = Math.max(d0, d1);
-    if (0 >= min && 0 <= max) {
-      const pos = yScale(0);
-      return Number.isFinite(pos) ? pos : null;
-    }
-    return null;
-  }, [highlightZero, yScale]);
-
-  // Compute X coordinate of 0 for vertical zero line in horizontal bar charts
-  const zeroX = useMemo(() => {
-    if (!highlightZero || !xScale || typeof xScale !== "function") return null;
-    const domain = xScale.domain?.();
-    if (!domain || domain.length < 2) return null;
-    const raw0 = domain[0] as any;
-    const raw1 = domain[1] as any;
-    const d0 = typeof raw0 === "number" ? raw0 : (raw0 instanceof Date ? raw0.getTime() : Number(raw0));
-    const d1 = typeof raw1 === "number" ? raw1 : (raw1 instanceof Date ? raw1.getTime() : Number(raw1));
-    const min = Math.min(d0, d1);
-    const max = Math.max(d0, d1);
-    if (0 >= min && 0 <= max) {
-      const pos = xScale(0);
-      return Number.isFinite(pos) ? pos : null;
-    }
-    return null;
-  }, [highlightZero, xScale]);
   const shimmerActive = shimmer && isLoadingChromePhase(chartPhase);
   const gridStroke =
     isLoadingGridChromePhase(chartPhase) && loadingStroke != null
@@ -376,64 +307,6 @@ export function Grid({
             tickValues={columnTickValuesResolved}
           />
         </g>
-      )}
-
-      {/* Prominent 0 Baseline Axis Line */}
-      {highlightZero && zeroY != null && (
-        <line
-          className="chart-grid-zero-line-horizontal"
-          stroke={zeroStroke}
-          strokeDasharray={zeroStrokeDasharray}
-          strokeOpacity={zeroStrokeOpacity}
-          strokeWidth={zeroStrokeWidth}
-          x1={0}
-          x2={innerWidth}
-          y1={zeroY}
-          y2={zeroY}
-        />
-      )}
-      {highlightZero && zeroX != null && (
-        <line
-          className="chart-grid-zero-line-vertical"
-          stroke={zeroStroke}
-          strokeDasharray={zeroStrokeDasharray}
-          strokeOpacity={zeroStrokeOpacity}
-          strokeWidth={zeroStrokeWidth}
-          x1={zeroX}
-          x2={zeroX}
-          y1={0}
-          y2={innerHeight}
-        />
-      )}
-
-      {/* Dotted X-Axis Line along bottom */}
-      {showXAxisLine && (
-        <line
-          className="chart-x-axis-line"
-          stroke={axisStroke}
-          strokeDasharray={axisDasharray}
-          strokeOpacity={axisStrokeOpacity}
-          strokeWidth={axisStrokeWidth}
-          x1={0}
-          x2={innerWidth}
-          y1={innerHeight}
-          y2={innerHeight}
-        />
-      )}
-
-      {/* Dotted Y-Axis Line along left */}
-      {showYAxisLine && (
-        <line
-          className="chart-y-axis-line"
-          stroke={axisStroke}
-          strokeDasharray={axisDasharray}
-          strokeOpacity={axisStrokeOpacity}
-          strokeWidth={axisStrokeWidth}
-          x1={0}
-          x2={0}
-          y1={0}
-          y2={innerHeight}
-        />
       )}
     </g>
   );
