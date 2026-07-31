@@ -5,6 +5,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_ST
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { motion } from 'motion/react';
+import Icon from './ui/Icon';
 
 interface RegexCategorizationModalProps {
   isOpen: boolean;
@@ -148,7 +149,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
         {/* Create Rule Form with standard merchant-form ID */}
         <form id="merchant-form" onSubmit={handleAddRule} className="bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl p-5 border border-black/5 dark:border-white/5 space-y-4">
           <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-sm text-primary-500">add_moderator</span>
+            <Icon name="add_moderator" className="text-sm text-primary-500" />
             Deploy New Matching Protocol
           </h4>
           
@@ -181,7 +182,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                   </optgroup>
                 </select>
                 <div className={SELECT_ARROW_STYLE}>
-                  <span className="material-symbols-outlined">expand_more</span>
+                  <Icon name="expand_more" />
                 </div>
               </div>
             </div>
@@ -218,7 +219,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                 className="text-[10px] font-black text-primary-500 hover:text-primary-600  tracking-wider flex items-center gap-1"
                 title="Reparse existing transaction histories against these classifications"
               >
-                <span className="material-symbols-outlined text-sm">history_toggle_off</span>
+                <Icon name="history_toggle_off" className="text-sm" />
                 Reparse History
               </button>
             )}
@@ -226,7 +227,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
 
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 bg-black/[0.01] dark:bg-white/[0.01] rounded-2xl border border-dashed border-black/5 dark:border-white/5">
-              <span className="material-symbols-outlined text-2xl opacity-25 mb-2">schema</span>
+              <Icon name="schema" className="text-2xl opacity-25 mb-2" />
               <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Zero active regex categorization rules.
               </p>
@@ -249,16 +250,14 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                       onDragEnd={handleDragEnd}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="material-symbols-outlined text-base text-gray-400 select-none group-hover:text-primary-500 shrink-0">
-                          drag_indicator
-                        </span>
+                        <Icon name="drag_indicator" className="text-base text-gray-400 select-none group-hover:text-primary-500 shrink-0" />
                         
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-mono font-bold bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded text-primary-600 dark:text-primary-400">
                               {rule.pattern}
                             </span>
-                            <span className="material-symbols-outlined text-[10px] opacity-40">arrow_forward</span>
+                            <Icon name="arrow_forward" className="text-[10px] opacity-40" />
                             <span className="text-[10px] font-black  tracking-widest text-emerald-600 dark:text-emerald-400">
                               {rule.category}
                             </span>
@@ -303,7 +302,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                           onClick={() => handleDeleteRule(rule.id)}
                           className="p-1 rounded bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 shrink-0"
                         >
-                          <span className="material-symbols-outlined text-sm">delete</span>
+                          <Icon name="delete" className="text-sm" />
                         </button>
                       </div>
                     </div>

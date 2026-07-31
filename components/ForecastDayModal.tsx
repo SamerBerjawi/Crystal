@@ -3,6 +3,7 @@ import React from 'react';
 import Modal from './Modal';
 import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface ForecastItem {
     id: string;
@@ -62,9 +63,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
                                         item.type === 'Financial Goal' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' :
                                         'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400'
                                     }`}>
-                                        <span className="material-symbols-outlined">
-                                            {item.type === 'Recurring' ? 'repeat' : item.type === 'Financial Goal' ? 'flag' : 'receipt_long'}
-                                        </span>
+                                        <Icon name={item.type === 'Recurring' ? 'repeat' : item.type === 'Financial Goal' ? 'flag' : 'receipt_long'} />
                                     </div>
                                     <div>
                                         <p className="font-semibold text-sm text-light-text dark:text-dark-text">{item.description}</p>

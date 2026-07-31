@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from './ui/Icon';
 
 interface StatCardProps {
   title: string;
@@ -18,7 +19,7 @@ const StatCard: React.FC<StatCardProps> = ({
     <div className="p-5 md:p-6 rounded-[2rem] bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden group h-full">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-110 transition-transform`}>
-            <span className="material-symbols-outlined text-3xl">{icon}</span>
+            <Icon name={icon} className="text-3xl" />
         </div>
         <div className="min-w-0 relative z-10 w-full">
             <p className="text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary  opacity-60 group-hover:opacity-100 transition-opacity">{title}</p>

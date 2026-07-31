@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Account } from '../types';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES, BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface MultiAccountFilterProps {
   accounts: Account[];
@@ -101,7 +102,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
         className={`${BTN_SECONDARY_STYLE} w-auto pl-6 pr-4 gap-1 !bg-white dark:!bg-dark-fill !border !border-black/15 dark:!border-white/5 shadow-sm`}
       >
         <span className="truncate max-w-[150px]">{buttonText()}</span>
-        <span className="material-symbols-outlined text-sm">expand_more</span>
+        <Icon name="expand_more" className="text-sm" />
       </button>
       {isOpen && (
         /* Removed background overrides, shadows, and borders to let .ios-regular dictate the styles */

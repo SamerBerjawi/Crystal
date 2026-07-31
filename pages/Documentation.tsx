@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import Icon from '../components/ui/Icon';
 
 interface DocumentationProps {
   setCurrentPage: (page: Page) => void;
@@ -32,14 +33,14 @@ const sections: Section[] = [
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                     <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-xl">security</span>
+                            <Icon name="security" className="text-xl" />
                         </div>
                         <h4 className="font-bold text-[10px] tracking-tight opacity-40">Security Protocol</h4>
                         <p className="text-xs font-bold leading-relaxed">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
                     </div>
                     <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-xl">database</span>
+                            <Icon name="database" className="text-xl" />
                         </div>
                         <h4 className="font-bold text-[10px] tracking-tight opacity-40">Local Persistence</h4>
                         <p className="text-xs font-bold leading-relaxed">By default, all telemetry resides within your browser's encrypted sandbox. No data leaves your secure perimeter unless explicitly synchronized.</p>
@@ -118,7 +119,7 @@ const sections: Section[] = [
                             { icon: 'rule', text: 'Custom Aggregation Rules' }
                         ].map((item, i) => (
                             <li key={i} className="flex items-center gap-3 text-xs font-bold  tracking-widest opacity-80">
-                                <span className="material-symbols-outlined text-[18px] opacity-40">{item.icon}</span>
+                                <Icon name={item.icon} className="text-[18px] opacity-40" />
                                 {item.text}
                             </li>
                         ))}
@@ -249,9 +250,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                         : 'text-light-text-secondary opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5'
                                 }`}
                             >
-                                <span className={`material-symbols-outlined text-xl transition-all ${activeSection === section.id ? 'scale-110' : 'opacity-40 scale-90'}`}>
-                                    {section.icon}
-                                </span>
+                                <Icon name={section.icon} className={`text-xl transition-all ${activeSection === section.id ? 'scale-110' : 'opacity-40 scale-90'}`} />
                                 <span className="text-[11px] font-black  tracking-widest">{section.title}</span>
                             </button>
                         ))}
@@ -287,7 +286,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                             <div className="space-y-8">
                                 <div className="flex items-center gap-6">
                                     <div className={`w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center ${section.iconColor} group-hover:scale-110 transition-transform`}>
-                                        <span className="material-symbols-outlined text-3xl">{section.icon}</span>
+                                        <Icon name={section.icon} className="text-3xl" />
                                     </div>
                                     <div>
                                         <h2 className="text-xl font-bold tracking-[0.2em] text-light-text dark:text-dark-text">{section.title}</h2>
@@ -306,7 +305,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                             onClick={handleBackToTop}
                             className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-[11px] font-black  tracking-widest shadow-sm"
                         >
-                            <span className="material-symbols-outlined group-hover:-translate-y-1 transition-transform">arrow_upward</span>
+                            <Icon name="arrow_upward" className="group-hover:-translate-y-1 transition-transform" />
                             Scroll to Origin
                         </button>
                     </div>

@@ -9,6 +9,7 @@ import {
 } from '../src/components/charts';
 import { formatCurrency } from '../utils';
 import { PriceHistoryEntry, InvestmentTransaction, Currency } from '../types';
+import Icon from './ui/Icon';
 
 export type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 export type GranularityOption = 'raw' | 'weekly';
@@ -361,7 +362,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-primary-500 text-lg">candlestick_chart</span>
+            <Icon name="candlestick_chart" className="text-primary-500 text-lg" />
             <h3 className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight">
               {title}
             </h3>

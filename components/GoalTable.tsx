@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { FinancialGoal, Account } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
+import Icon from './ui/Icon';
 
 interface GoalTableProps {
   goals: FinancialGoal[];
@@ -73,8 +74,8 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
   };
 
   const renderSortIcon = (field: SortField) => {
-    if (sortField !== field) return <span className="material-symbols-outlined text-xs opacity-50">swap_vert</span>;
-    return <span className="material-symbols-outlined text-xs">{sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}</span>;
+    if (sortField !== field) return <Icon name="swap_vert" className="text-xs opacity-50" />;
+    return <Icon name={sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'} className="text-xs" />;
   };
 
   const renderGoalRow = (goal: FinancialGoal) => {
@@ -104,7 +105,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
         <td className="py-4 px-4">
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getGoalColor()}`}>
-              <span className="material-symbols-outlined text-base">{getGoalIcon()}</span>
+              <Icon name={getGoalIcon()} className="text-base" />
             </div>
             <div>
               <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors cursor-pointer" onClick={() => onGoalClick(goal)}>{goal.name}</p>
@@ -161,10 +162,10 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
         <td className="py-4 px-4">
           <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={() => onEdit(goal)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 rounded-lg">
-              <span className="material-symbols-outlined text-base">edit</span>
+              <Icon name="edit" className="text-base" />
             </button>
             <button onClick={() => onDelete(goal.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-500 rounded-lg">
-              <span className="material-symbols-outlined text-base">delete</span>
+              <Icon name="delete" className="text-base" />
             </button>
           </div>
         </td>
@@ -227,7 +228,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
                     <tr className="bg-black/[0.01] dark:bg-white/[0.01]">
                       <td colSpan={8} className="py-2 px-4 border-b border-black/5 dark:border-white/5">
                         <div className="flex items-center gap-2">
-                           <span className="material-symbols-outlined text-sm text-indigo-500">folder</span>
+                           <Icon name="folder" className="text-sm text-indigo-500" />
                            <span className="text-[10px] font-bold tracking-wider text-indigo-500">{bucket.name}</span>
                         </div>
                       </td>
@@ -240,7 +241,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
                   <tr className="bg-black/[0.01] dark:bg-white/[0.01]">
                     <td colSpan={8} className="py-2 px-4 border-b border-black/5 dark:border-white/5">
                       <div className="flex items-center gap-2">
-                         <span className="material-symbols-outlined text-sm text-gray-400">label_off</span>
+                         <Icon name="label_off" className="text-sm text-gray-400" />
                          <span className="text-[10px] font-bold tracking-wider text-gray-400">Unassigned</span>
                       </div>
                     </td>
@@ -255,7 +256,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
         </table>
         {sortedGoals.length === 0 && (
           <div className="py-20 text-center">
-            <span className="material-symbols-outlined text-4xl text-light-text-secondary opacity-20">flag</span>
+            <Icon name="flag" className="text-4xl text-light-text-secondary opacity-20" />
             <p className="mt-2 text-sm font-medium text-light-text-secondary">No goals found for this view.</p>
           </div>
         )}

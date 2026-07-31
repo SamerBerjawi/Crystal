@@ -3,6 +3,7 @@ import React from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Tag } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
+import Icon from './ui/Icon';
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                         onClick={() => onEdit(tx)}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-light-separator dark:border-dark-separator text-light-text dark:text-dark-text hover:bg-light-fill dark:hover:bg-dark-fill transition"
                     >
-                        <span className="material-symbols-outlined text-base">edit</span>
+                        <Icon name="edit" className="text-base" />
                         <span>Edit</span>
                     </button>
                 )}
@@ -51,7 +52,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                         onClick={() => onDelete(tx)}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-semantic-red text-white hover:bg-red-700 transition shadow-sm"
                     >
-                        <span className="material-symbols-outlined text-base">delete</span>
+                        <Icon name="delete" className="text-base" />
                         <span>Delete</span>
                     </button>
                 )}
@@ -108,9 +109,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                   <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
                     tx.type === 'income' ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'
                   }`}>
-                    <span className={`material-symbols-outlined ${
-                      tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }`}>{tx.transferId ? 'swap_horiz' : (tx.type === 'income' ? 'add' : 'remove')}</span>
+                    <Icon name={tx.transferId ? 'swap_horiz' : (tx.type === 'income' ? 'add' : 'remove')} className={`${ tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }`} />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-light-text dark:text-dark-text">{tx.description}</p>

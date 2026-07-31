@@ -11,6 +11,7 @@ import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 import EmptyState from '../components/EmptyState';
+import Icon from '../components/ui/Icon';
 
 interface TagsProps {
   tags: Tag[];
@@ -188,7 +189,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
       {/* Controls Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">
           <div className="relative flex-1 max-w-md group">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors">search_activity</span>
+              <Icon name="search_activity" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Query semantic labels..." 
@@ -216,13 +217,13 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                       onClick={() => setViewMode('grid')}
                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-xl text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                    >
-                       <span className="material-symbols-outlined text-sm">grid_view</span>
+                       <Icon name="grid_view" className="text-sm" />
                    </button>
                    <button 
                       onClick={() => setViewMode('list')}
                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-xl text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                    >
-                       <span className="material-symbols-outlined text-sm">view_headline</span>
+                       <Icon name="view_headline" className="text-sm" />
                    </button>
                </div>
           </div>
@@ -242,7 +243,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                           <div className="flex justify-between items-start mb-8">
                               <div className="flex items-center gap-4">
                                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110" style={{ backgroundColor: `${tag.color}10`, border: `1px solid ${tag.color}20` }}>
-                                      <span className="material-symbols-outlined text-2xl" style={{ color: tag.color }}>{tag.icon}</span>
+                                      <Icon name={tag.icon} className="text-2xl" style={{ color: tag.color }} />
                                   </div>
                                   <div>
                                       <h3 className="font-bold text-xs tracking-tight text-light-text dark:text-dark-text">{tag.name}</h3>
@@ -257,13 +258,13 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                       onClick={(e) => { e.stopPropagation(); handleOpenModal(tag); }} 
                                       className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white text-light-text-secondary transition-all"
                                   >
-                                      <span className="material-symbols-outlined text-sm">edit_square</span>
+                                      <Icon name="edit_square" className="text-sm" />
                                   </button>
                                   <button 
                                       onClick={(e) => { e.stopPropagation(); setDeletingTagId(tag.id); }} 
                                       className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white text-light-text-secondary transition-all"
                                   >
-                                      <span className="material-symbols-outlined text-sm">delete_forever</span>
+                                      <Icon name="delete_forever" className="text-sm" />
                                   </button>
                               </div>
                           </div>
@@ -316,7 +317,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: `${tag.color}15` }}>
-                                                <span className="material-symbols-outlined text-lg" style={{ color: tag.color }}>{tag.icon}</span>
+                                                <Icon name={tag.icon} className="text-lg" style={{ color: tag.color }} />
                                             </div>
                                             <span className="text-[11px] font-black  underline decoration-2 underline-offset-4 decoration-transparent group-hover:decoration-primary-500/30 transition-all">{tag.name}</span>
                                         </div>
@@ -330,10 +331,10 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                                             <button onClick={(e) => { e.stopPropagation(); handleOpenModal(tag); }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-light-text-secondary">
-                                                <span className="material-symbols-outlined text-sm">edit</span>
+                                                <Icon name="edit" className="text-sm" />
                                             </button>
                                             <button onClick={(e) => { e.stopPropagation(); setDeletingTagId(tag.id); }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white transition-all text-light-text-secondary">
-                                                <span className="material-symbols-outlined text-sm">delete</span>
+                                                <Icon name="delete" className="text-sm" />
                                             </button>
                                         </div>
                                     </td>

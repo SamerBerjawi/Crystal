@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Membership } from '../types';
 import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import IconPicker from './IconPicker';
+import Icon from './ui/Icon';
 
 interface MembershipModalProps {
   onClose: () => void;
@@ -110,7 +111,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                         className="w-24 h-24 rounded-3xl flex items-center justify-center text-white shadow-2xl transition-all transform hover:scale-105 active:scale-95 border-4 border-white dark:border-dark-card"
                         style={{ backgroundColor: color }}
                     >
-                        <span className="material-symbols-outlined text-5xl">{icon}</span>
+                        <Icon name={icon} className="text-5xl" />
                     </button>
                     <label className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-white dark:bg-dark-card border-2 border-primary-500 flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform overflow-hidden">
                         <input
@@ -119,7 +120,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                             onChange={(e) => setColor(e.target.value)}
                             className="w-full h-full opacity-0 cursor-pointer absolute inset-0 z-10"
                         />
-                        <span className="material-symbols-outlined text-primary-500 text-lg">palette</span>
+                        <Icon name="palette" className="text-primary-500 text-lg" />
                     </label>
                 </div>
                 
@@ -149,7 +150,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                             <option key={cat} value={cat}>{cat}</option>
                         ))}
                     </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                 </div>
               </div>
               <div>
@@ -201,7 +202,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                         className={`${INPUT_BASE_STYLE} pl-12 h-12`} 
                         placeholder="https://..." 
                     />
-                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">public</span>
+                    <Icon name="public" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
                 </div>
               </div>
 

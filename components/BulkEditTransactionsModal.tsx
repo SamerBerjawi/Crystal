@@ -4,6 +4,7 @@ import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {
     const indent = '\u00A0\u00A0'.repeat(level * 2);
@@ -177,7 +178,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   return (
     <Modal onClose={onClose} title={`Bulk Edit ${transactionsToEdit.length} Transactions`} zIndexClass="z-[9999]" size="2xl">
         <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-xl flex items-start gap-3 text-sm border border-blue-100 dark:border-blue-800/30">
-            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
+            <Icon name="info" className="text-blue-600 dark:text-blue-400" />
             <div>
                 <p className="font-semibold mb-0.5 text-base">Editing {transactionsToEdit.length} selected transaction{transactionsToEdit.length !== 1 ? 's' : ''}</p>
                 <p className="opacity-90">Only selected fields will be applied. Empty fields will replace existing data if checked.</p>
@@ -186,7 +187,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-3">
             <CheckboxField field="date" label="Adjust Date" isChecked={fieldsToUpdate.date} onToggle={handleToggle}>
                 <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 pointer-events-none">calendar_today</span>
+                    <Icon name="calendar_today" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 pointer-events-none" />
                     <input type="date" value={updatedValues.date} onChange={e => handleChange('date', e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11 [&::-webkit-calendar-picker-indicator]:cursor-pointer`} />
                 </div>
             </CheckboxField>
@@ -196,20 +197,20 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                     <select value={updatedValues.accountId} onChange={e => handleChange('accountId', e.target.value)} className={`${SELECT_STYLE} h-11 pl-4 cursor-pointer`}>
                        {accounts.map(acc => <option className="bg-white dark:bg-gray-900 text-black dark:text-white" key={acc.id} value={acc.id}>{acc.name}</option>)}
                     </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                 </div>
             </CheckboxField>
             
              <CheckboxField field="description" label="Update Memo" isChecked={fieldsToUpdate.description} onToggle={handleToggle}>
                 <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 pointer-events-none">description</span>
+                    <Icon name="description" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 pointer-events-none" />
                     <input type="text" value={updatedValues.description} onChange={e => handleChange('description', e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} placeholder="New memo..." />
                 </div>
             </CheckboxField>
             
              <CheckboxField field="merchant" label="Update Source" isChecked={fieldsToUpdate.merchant} onToggle={handleToggle}>
                 <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 pointer-events-none">store</span>
+                    <Icon name="store" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 pointer-events-none" />
                     <input type="text" value={updatedValues.merchant} onChange={e => handleChange('merchant', e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} placeholder="New merchant or payee..." />
                 </div>
             </CheckboxField>
@@ -223,10 +224,10 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                          <optgroup className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-[10px]  tracking-[0.2em] h-10" label="Incoming"></optgroup>
                          <CategoryOptions categories={incomeCategories} />
                     </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                 </div>
                  <div className="flex gap-2.5 items-start mt-4 p-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
-                     <span className="material-symbols-outlined text-[18px] text-orange-600 dark:text-orange-400 mt-0.5">warning</span>
+                     <Icon name="warning" className="text-[18px] text-orange-600 dark:text-orange-400 mt-0.5" />
                      <p className="text-[11px] text-orange-800 dark:text-orange-300 leading-relaxed font-bold  tracking-tight">Type conversion alert: Categorizing as income will flip expense amounts to positive.</p>
                  </div>
             </CheckboxField>
@@ -254,7 +255,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                         ) : (
                             <span className="text-gray-400 text-sm">Add tags to overwrite...</span>
                         )}
-                        <span className="material-symbols-outlined ml-auto text-gray-400 text-lg pr-2 pointer-events-none">label_important</span>
+                        <Icon name="label_important" className="ml-auto text-gray-400 text-lg pr-2 pointer-events-none" />
                     </div>
                     {isTagSelectorOpen && (
                         <div className="absolute bottom-full mb-2 left-0 w-full bg-white/95 dark:bg-[#1E1E1E]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-black/10 dark:border-white/10 z-[100] max-h-60 overflow-y-auto p-2">

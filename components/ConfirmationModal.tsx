@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import HeaderButton from './HeaderButton';
+import Icon from './ui/Icon';
 
 export interface ConfirmOptions {
   title: string;
@@ -113,9 +114,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <div className="p-6 flex flex-col items-center text-center gap-4">
               {/* Icon */}
               <div className={`w-14 h-14 rounded-2xl ${config.iconBg} flex items-center justify-center`}>
-                <span className={`material-symbols-outlined text-2xl ${config.iconColor}`}>
-                  {displayIcon}
-                </span>
+                <Icon name={displayIcon} className={`text-2xl ${config.iconColor}`} />
               </div>
 
               {/* Title & Message */}

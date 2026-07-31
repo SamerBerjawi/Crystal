@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Account, BillPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface BillPaymentModalProps {
     bill: Omit<BillPayment, 'id'> & { id?: string } | null;
@@ -126,7 +127,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
                                         );
                                     })}
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                     </div>

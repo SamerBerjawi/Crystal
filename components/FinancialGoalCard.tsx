@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { FinancialGoal, Account } from '../types';
 import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import Icon from './ui/Icon';
 
 interface FinancialGoalCardProps {
   goal: FinancialGoal;
@@ -168,7 +169,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-[2.5rem] shadow-sm border transition-all duration-300 self-start w-full ${cardBorder}`}>
         {isCompleted && (
             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-                <span className="material-symbols-outlined text-8xl text-green-500">emoji_events</span>
+                <Icon name="emoji_events" className="text-8xl text-green-500" />
             </div>
         )}
 
@@ -177,7 +178,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3 min-w-0 pr-2">
                      <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${iconColorClass} border border-black/5 dark:border-white/10`}>
-                        <span className="material-symbols-outlined text-xl">{iconName}</span>
+                        <Icon name={iconName} className="text-xl" />
                     </div>
                     <div>
                         <h4 className="font-bold text-base text-light-text dark:text-dark-text tracking-tight truncate leading-tight" title={goal.name}>{goal.name}</h4>
@@ -203,7 +204,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                             onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
                             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
                         >
-                            <span className="material-symbols-outlined text-xl">more_vert</span>
+                            <Icon name="more_vert" className="text-xl" />
                         </button>
                         {isMenuOpen && (
                             <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-black/5 dark:border-white/10 py-1.5 z-50 animate-fade-in-up origin-top-right">
@@ -212,7 +213,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                         onClick={(e) => { e.stopPropagation(); onAddSubGoal(goal.id); setIsMenuOpen(false); }} 
                                         className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-light-text dark:text-dark-text transition-colors"
                                     >
-                                        <span className="material-symbols-outlined text-lg text-primary-500">add</span> 
+                                        <Icon name="add" className="text-lg text-primary-500" /> 
                                         Add Item
                                     </button>
                                 )}
@@ -220,14 +221,14 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                     onClick={(e) => { e.stopPropagation(); onEdit(goal); setIsMenuOpen(false); }} 
                                     className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-light-text dark:text-dark-text transition-colors"
                                 >
-                                    <span className="material-symbols-outlined text-lg text-blue-500">edit</span> 
+                                    <Icon name="edit" className="text-lg text-blue-500" /> 
                                     Edit
                                 </button>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); onDuplicate(goal); setIsMenuOpen(false); }} 
                                     className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-light-text dark:text-dark-text transition-colors"
                                 >
-                                    <span className="material-symbols-outlined text-lg text-teal-500">content_copy</span> 
+                                    <Icon name="content_copy" className="text-lg text-teal-500" /> 
                                     Duplicate
                                 </button>
                                 <div className="h-px bg-black/5 dark:bg-white/5 my-1"></div>
@@ -235,7 +236,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                     onClick={(e) => { e.stopPropagation(); onDelete(goal.id); setIsMenuOpen(false); }} 
                                     className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400 transition-colors"
                                 >
-                                    <span className="material-symbols-outlined text-lg">delete</span> 
+                                    <Icon name="delete" className="text-lg" /> 
                                     Delete
                                 </button>
                             </div>
@@ -255,19 +256,19 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
                 {statusStyle && isActive && !isCompleted && (
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold  tracking-wider border ${statusStyle.bg} ${statusStyle.textCol} ${statusStyle.border}`}>
-                        <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
+                        <Icon name={statusStyle.icon} className="text-[12px]" />
                         {statusStyle.text}
                     </span>
                 )}
                 {isCompleted && (
                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold  tracking-wider border bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
-                        <span className="material-symbols-outlined text-[12px]">emoji_events</span>
+                        <Icon name="emoji_events" className="text-[12px]" />
                         Completed
                     </span>
                 )}
                 {(goalToDisplay.date && !isBucket) && (
                     <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                        <span className="material-symbols-outlined text-[12px]">event</span>
+                        <Icon name="event" className="text-[12px]" />
                         {formatDate(goalToDisplay.date)}
                     </div>
                 )}
@@ -304,7 +305,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                  <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
                      <div className="flex items-center gap-2">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center ${statusStyle?.bg} ${statusStyle?.textCol}`}>
-                            <span className="material-symbols-outlined text-[10px]">timeline</span>
+                            <Icon name="timeline" className="text-[10px]" />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider">Expected</span>
@@ -328,7 +329,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                     className="flex items-center justify-between w-full text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider hover:text-primary-500 transition-colors"
                 >
                     <span>{subGoals.length} Items</span>
-                    <span className={`material-symbols-outlined text-base transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                    <Icon name="expand_more" className={`text-base transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
                 
                 {isExpanded && (
@@ -348,7 +349,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                          <span className={`text-[9px] font-bold  px-1.5 py-0.5 rounded ${sgCategory === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sgCategory === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
                                             {sgCategory === 'savings' ? 'Save' : sgCategory === 'expense' ? 'Spend' : 'Earn'}
                                          </span>
-                                         {isSubComplete && <span className="material-symbols-outlined text-[14px] text-green-600 dark:text-green-400">check_circle</span>}
+                                         {isSubComplete && <Icon name="check_circle" className="text-[14px] text-green-600 dark:text-green-400" />}
                                      </div>
                                      <div className="flex items-center gap-1 text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
                                          <span>{formatDate(sg.date)}</span>
@@ -368,21 +369,21 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                             className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-blue-500"
                                             title="Edit Item"
                                         >
-                                            <span className="material-symbols-outlined text-base">edit</span>
+                                            <Icon name="edit" className="text-base" />
                                         </button>
                                          <button 
                                             onClick={(e) => { e.stopPropagation(); onDuplicate(sg); }}
                                             className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-teal-500"
                                             title="Duplicate Item"
                                         >
-                                            <span className="material-symbols-outlined text-base">content_copy</span>
+                                            <Icon name="content_copy" className="text-base" />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onDelete(sg.id); }}
                                             className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-red-500"
                                             title="Delete Item"
                                         >
-                                            <span className="material-symbols-outlined text-base">delete</span>
+                                            <Icon name="delete" className="text-base" />
                                         </button>
                                      </div>
                                  </div>

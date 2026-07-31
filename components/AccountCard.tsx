@@ -3,11 +3,12 @@ import React, { useMemo } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Currency, Transaction, Warrant } from '../types';
 import Card from './Card';
 import { convertCurrency, formatCurrency, convertToEur, generateAmortizationSchedule, toLocalISOString } from '../utils';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, Line } from '../src/components/charts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface AccountCardProps {
     account: Account;
@@ -124,18 +125,21 @@ const AccountCard: React.FC<AccountCardProps> = ({
         });
 
         const runningDate = new Date(endDate);
-        const history: number[] = [];
+        const history: { date: Date; value: number }[] = [];
         let runningBal = currentBal;
 
         for (let i = 0; i < NUM_POINTS; i++) {
-            history.push(runningBal);
+            history.push({
+                date: new Date(runningDate),
+                value: runningBal,
+            });
             const dateStr = toLocalISOString(runningDate);
             const change = txsByDate[dateStr] || 0;
             runningBal -= change;
             runningDate.setDate(runningDate.getDate() - 1);
         }
         
-        const data = history.reverse().map(val => ({ value: Math.max(0, val) }));
+        const data = history.reverse().map(item => ({ date: item.date, value: Math.max(0, item.value) }));
         const trendVal = data[data.length - 1].value - data[0].value;
         const isPositive = trendVal >= 0;
         
@@ -222,9 +226,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                                 onError={() => setLogoError(true)}
                             />
                         ) : (
-                            <span className="material-symbols-outlined text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '28px' }}>
-                                {account.icon || style.icon}
-                            </span>
+                            <Icon name={account.icon || style.icon} className="text-light-text dark:text-dark-text opacity-90" style={{ fontSize: '28px' }} />
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -236,12 +238,15 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 sm:ml-4 relative z-10">
-                    <div className="hidden sm:block w-20 h-8 shrink-0 opacity-60">
-                        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-                            <LineChart width={80} height={32} data={sparklineData}>
-                                 <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                    <div className="hidden sm:block w-20 h-8 shrink-0 opacity-80 select-none">
+                        <LineChart
+                            data={sparklineData}
+                            xDataKey="date"
+                            margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+                            className="w-20 h-8"
+                        >
+                             <Line dataKey="value" stroke={sparklineColor} strokeWidth={2} fadeEdges={true} animate={false} showHighlight={true} />
+                        </LineChart>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
                         <p className={`font-black text-xl sm:text-2xl tracking-tighter tabular-nums ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-rose-500'}`}>
@@ -254,7 +259,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         )}
                     </div>
                     <button onClick={handleEditClick} className="sm:opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary/40 hover:text-primary-500 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 ml-auto sm:ml-0">
-                        <span className="material-symbols-outlined text-[18px] sm:text-[20px]">edit</span>
+                        <Icon name="edit" className="text-[18px] sm:text-[20px]" />
                     </button>
                 </div>
             </Card>

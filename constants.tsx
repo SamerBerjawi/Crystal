@@ -82,7 +82,7 @@ export const BTN_DANGER_STYLE = "h-9 inline-flex items-center justify-center bg-
 export const INPUT_BASE_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-xl px-4 border-none hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 text-sm";
 export const SELECT_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-bold text-[11px] tracking-wider pl-4 pr-10 rounded-xl border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 whitespace-nowrap cursor-pointer";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
-export const SELECT_ARROW_STYLE = "material-symbols-outlined pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-light-text-secondary dark:text-dark-text-secondary";
+export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-light-text-secondary dark:text-dark-text-secondary";
 export const CHECKBOX_STYLE = "h-4 w-4 rounded text-white bg-light-bg dark:bg-dark-fill border border-gray-400 dark:border-gray-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-light-card dark:focus:ring-offset-dark-card focus:ring-primary-500 checked:bg-primary-500 checked:border-transparent cursor-pointer";
 
 

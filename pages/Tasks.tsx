@@ -12,6 +12,7 @@ import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
 import EmptyState from '../components/EmptyState';
+import Icon from '../components/ui/Icon';
 
 interface TasksProps {
   tasks: Task[];
@@ -249,7 +250,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                             <option value="dueDate-asc">Temporal Sort</option>
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                            <span className="material-symbols-outlined text-lg">swap_vert</span>
+                            <Icon name="swap_vert" className="text-lg" />
                         </div>
                     </div>
                 </div>
@@ -299,7 +300,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                                 </div>
                                 {status === 'To Do' && (
                                     <button onClick={() => handleOpenModal()} className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all">
-                                        <span className="material-symbols-outlined text-lg">add</span>
+                                        <Icon name="add" className="text-lg" />
                                     </button>
                                 )}
                             </header>
@@ -307,7 +308,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                             <div className="space-y-4 min-h-[400px]">
                                 {tasksInColumn.length === 0 ? (
                                     <div className="h-40 border-2 border-dashed border-black/5 dark:border-white/5 rounded-[2rem] flex flex-col items-center justify-center gap-2 opacity-20">
-                                        <span className="material-symbols-outlined text-3xl">task_alt</span>
+                                        <Icon name="task_alt" className="text-3xl" />
                                         <span className="text-[10px] font-black  tracking-widest">Queue Clear</span>
                                     </div>
                                 ) : (

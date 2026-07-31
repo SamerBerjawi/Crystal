@@ -8,6 +8,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { fetchSymbolMetadata } from '../src/services/twelveDataService';
 import { useDebounce } from '../hooks/useDebounce';
 import { useConfirm } from './ConfirmationModal';
+import Icon from './ui/Icon';
 
 interface AddInvestmentTransactionModalProps {
   onClose: () => void;
@@ -221,7 +222,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                 {/* 3. Asset Details Card */}
                 <div className="p-6 bg-light-fill dark:bg-dark-fill/50 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500 text-lg">database</span>
+                        <Icon name="database" className="text-primary-500 text-lg" />
                         Asset Parameters
                     </h4>
 
@@ -229,7 +230,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                         <div className="relative space-y-2">
                             <label htmlFor="inv-symbol" className={labelStyle}>Symbol / Identification</label>
                             <div className="relative group">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 transition-colors">search</span>
+                                <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500 transition-colors" />
                                 <input 
                                     id="inv-symbol" 
                                     type="text" 
@@ -300,7 +301,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-emerald-500">inventory_2</span>
+                                            <Icon name="inventory_2" className="text-emerald-500" />
                                         </div>
                                         <div>
                                             <span className="text-[10px] font-black  tracking-widest text-emerald-800 dark:text-emerald-400">Available Inventory</span>
@@ -328,7 +329,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                             <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-12 text-sm font-black  tracking-widest`} required>
                                                 {INVESTMENT_SUB_TYPES.map(subType => <option key={subType} value={subType}>{subType}</option>)}
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                         </div>
                                     </div>
                                 </div>
@@ -343,7 +344,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-4">
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${createCashTx ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
-                                    <span className="material-symbols-outlined">payments</span>
+                                    <Icon name="payments" />
                                 </div>
                                 <div className="space-y-0.5">
                                     <h4 className="text-[11px] font-bold tracking-[0.2em] text-light-text dark:text-dark-text">Funding Pipeline</h4>
@@ -368,7 +369,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                             </optgroup>
                                         ))}
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">account_balance_wallet</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="account_balance_wallet" /></div>
                                 </div>
                             </div>
                         )}
@@ -379,7 +380,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                     <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
                     <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black`}>
                         {isEditing ? 'Commit Changes' : 'Execute Order'}
-                        <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">rocket_launch</span>
+                        <Icon name="rocket_launch" className="text-lg transition-transform group-hover:translate-x-1" />
                     </button>
                 </div>
             </form>

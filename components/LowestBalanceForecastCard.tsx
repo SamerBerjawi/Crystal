@@ -2,6 +2,7 @@
 import React from 'react';
 import Card from './Card';
 import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import Icon from './ui/Icon';
 
 interface LowestBalanceForecastCardProps {
     period: string;
@@ -25,7 +26,7 @@ const LowestBalanceForecastCard: React.FC<LowestBalanceForecastCardProps> = ({ p
                     <span className={`text-[10px] font-bold  tracking-wider px-2 py-0.5 rounded-md ${statusColor}`}>
                         {period}
                     </span>
-                    {isLow && <span className="material-symbols-outlined text-red-500 text-lg">priority_high</span>}
+                    {isLow && <Icon name="priority_high" className="text-red-500 text-lg" />}
                 </div>
                 
                 <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-0.5">projected low</p>
@@ -35,7 +36,7 @@ const LowestBalanceForecastCard: React.FC<LowestBalanceForecastCardProps> = ({ p
             </div>
             
             <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                <span className="material-symbols-outlined text-sm">event</span>
+                <Icon name="event" className="text-sm" />
                 <span className="font-medium">{formattedDate}</span>
             </div>
         </Card>

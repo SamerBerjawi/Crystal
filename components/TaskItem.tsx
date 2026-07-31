@@ -2,6 +2,7 @@
 import React from 'react';
 import { Task, TaskPriority } from '../types';
 import { parseLocalDate } from '../utils';
+import Icon from './ui/Icon';
 
 interface TaskItemProps {
   task: Task;
@@ -57,7 +58,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
                     </div>
                     {task.status === 'Done' && (
                         <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                             <span className="material-symbols-outlined text-[16px] font-bold">check</span>
+                             <Icon name="check" className="text-[16px] font-bold" />
                         </div>
                     )}
                 </div>
@@ -75,7 +76,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                     {dateInfo ? (
                         <div className={`flex items-center gap-2 text-[9px] font-black  tracking-widest ${dateInfo.color}`}>
-                            <span className="material-symbols-outlined text-[14px] opacity-40">calendar_today</span>
+                            <Icon name="calendar_today" className="text-[14px] opacity-40" />
                             <span>{dateInfo.text}</span>
                         </div>
                     ) : (
@@ -84,7 +85,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
                     
                     {task.reminderDate && (
                          <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">
-                              <span className="material-symbols-outlined text-[16px]">notifications</span>
+                              <Icon name="notifications" className="text-[16px]" />
                          </div>
                     )}
                 </div>

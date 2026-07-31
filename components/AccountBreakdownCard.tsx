@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { formatCurrency } from '../utils';
+import Icon from './ui/Icon';
 
 interface BreakdownItem {
     name: string;
@@ -25,7 +26,7 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
             <div>
                 <div className="flex justify-between items-start mb-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} ${iconColor}`}>
-                        <span className="material-symbols-outlined text-xl">{iconName}</span>
+                        <Icon name={iconName} className="text-xl" />
                     </div>
                         <div className="text-right">
                         <p className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-white/60 mb-1">{title}</p>

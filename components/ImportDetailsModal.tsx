@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ImportExportHistoryItem } from '../types';
 import Modal from './Modal';
 import ConfirmationModal from './ConfirmationModal';
+import Icon from './ui/Icon';
 
 interface ImportDetailsModalProps {
     item: ImportExportHistoryItem;
@@ -106,7 +107,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
                             onClick={handleDeleteClick}
                             className="flex items-center gap-2 bg-red-100 text-red-700 font-semibold py-2 px-4 rounded-lg hover:bg-red-200 transition-all duration-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/70"
                         >
-                            <span className="material-symbols-outlined">delete_forever</span>
+                            <Icon name="delete_forever" />
                             Delete Import
                         </button>
                     </div>

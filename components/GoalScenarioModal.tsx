@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { FinancialGoal, GoalType, GoalCategory, RecurrenceFrequency, Account } from '../types';
 import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface GoalScenarioModalProps {
     onClose: () => void;
@@ -175,7 +176,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500 text-lg">flag</span>
+                        <Icon name="flag" className="text-primary-500 text-lg" />
                         Objective Parameters
                     </h4>
 
@@ -200,7 +201,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                          <div className="space-y-6">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500 text-lg">donut_large</span>
+                                <Icon name="donut_large" className="text-primary-500 text-lg" />
                                 Progress Metrics
                             </h4>
                             <div className="grid grid-cols-1 gap-6">
@@ -227,7 +228,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                              <option value="expense">Spending Target</option>
                                              <option value="income">Income Objective</option>
                                          </select>
-                                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                         <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                      </div>
                                 </div>
                             </div>
@@ -235,7 +236,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
                         <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500 text-lg">event</span>
+                                <Icon name="event" className="text-primary-500 text-lg" />
                                 Temporal Configuration
                             </h4>
                             {type === 'one-time' ? (
@@ -251,7 +252,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                             <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black  tracking-widest`}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
@@ -267,7 +268,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                         <div className="space-y-6">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500 text-lg">savings</span>
+                                <Icon name="savings" className="text-primary-500 text-lg" />
                                 Contribution Strategy
                             </h4>
                             <div>
@@ -291,7 +292,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
                         <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500 text-lg">account_tree</span>
+                                <Icon name="account_tree" className="text-primary-500 text-lg" />
                                 Network Integration
                             </h4>
                             <div className="space-y-4">
@@ -306,14 +307,14 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                                 </optgroup>
                                             ))}
                                         </select>
-                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                     </div>
                                 </div>
                                 
                                 {parentId && (
                                      <div className="bg-primary-500/5 dark:bg-primary-500/10 p-4 rounded-2xl border border-primary-500/20">
                                         <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-primary-500 text-base">subdirectory_arrow_right</span>
+                                            <Icon name="subdirectory_arrow_right" className="text-primary-500 text-base" />
                                             <span className="text-[10px] font-black  tracking-widest text-primary-600">Sub-Goal Active</span>
                                         </div>
                                     </div>
@@ -328,7 +329,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
                     <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}>
                         {isEditing ? 'Commit Objective' : 'Deploy Goal'}
-                        <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">track_changes</span>
+                        <Icon name="track_changes" className="text-lg transition-transform group-hover:translate-x-1" />
                     </button>
                 </div>
             </form>

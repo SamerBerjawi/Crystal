@@ -2,6 +2,7 @@
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
+import Icon from './ui/Icon';
 
 interface NetBalanceCardProps {
   netBalance: number;
@@ -19,7 +20,7 @@ const NetBalanceCard: React.FC<NetBalanceCardProps> = ({ netBalance, totalIncome
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">Net Balance</h3>
           <div className={`p-1.5 rounded-lg ${isPositive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'}`}>
-            <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
+            <Icon name="account_balance_wallet" className="text-lg" />
           </div>
         </div>
         <p className={`text-2xl font-extrabold tracking-tight ${isPositive ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>

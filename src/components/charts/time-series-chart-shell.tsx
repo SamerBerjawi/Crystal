@@ -259,7 +259,18 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   const xAccessor = useCallback(
     (d: Record<string, unknown>): Date => {
       const value = d[xDataKey];
-      return value instanceof Date ? value : new Date(value as string | number);
+      if (value instanceof Date) {
+        return isNaN(value.getTime()) ? new Date(0) : value;
+      }
+      if (typeof value === "number") {
+        const dt = new Date(value);
+        return isNaN(dt.getTime()) ? new Date(0) : dt;
+      }
+      if (typeof value === "string") {
+        const dt = new Date(value);
+        return isNaN(dt.getTime()) ? new Date(0) : dt;
+      }
+      return new Date(0);
     },
     [xDataKey]
   );

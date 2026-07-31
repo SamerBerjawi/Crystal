@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
 import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
+import Icon from './ui/Icon';
 
 interface FinancialRunwayWidgetProps {
   accounts: Account[];
@@ -49,7 +50,7 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
           </h2>
         </div>
         <div className={`px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider flex items-center gap-1.5 ${status.color} shadow-sm`}>
-          <span className="material-symbols-outlined text-sm">{status.icon}</span>
+          <Icon name={status.icon} className="text-sm" />
           {status.label}
         </div>
       </div>

@@ -51,8 +51,6 @@ export interface ChartTooltipProps {
   }) => React.ReactNode;
   /** Custom row renderer - return array of TooltipRow */
   rows?: (point: Record<string, unknown>) => TooltipRow[];
-  /** Custom formatter for numeric row values */
-  valueFormatter?: (value: number, dataKey: string) => string | number;
   /**
    * Override tooltip dot fill. When omitted and `rows` is set, dot colors match row colors.
    * When a function, receives the hovered point and line config.
@@ -91,6 +89,8 @@ export interface ChartTooltipProps {
    * Default: `var(--chart-tooltip-background)`.
    */
   backgroundColor?: string;
+  /** Custom formatter for row values in default tooltip rows */
+  valueFormatter?: (value: any, key?: string) => string;
 }
 
 interface ChartTooltipInnerProps extends ChartTooltipProps {
@@ -109,7 +109,6 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
   indicatorColor: indicatorColorProp,
   content,
   rows: rowsRenderer,
-  valueFormatter,
   dotColor: dotColorProp,
   children,
   className = "",
@@ -123,6 +122,7 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
   boxSpringConfig,
   panelStyle,
   backgroundColor,
+  valueFormatter,
 }: ChartTooltipInnerProps) {
   const {
     tooltipData,
@@ -207,14 +207,11 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
     // Default: generate rows from registered lines
     return lines.map((line) => {
       const rawVal = tooltipData.point[line.dataKey];
-      const valNum = typeof rawVal === "number" ? rawVal : 0;
-      const formattedVal = valueFormatter
-        ? valueFormatter(valNum, line.dataKey)
-        : valNum;
+      const val = typeof rawVal === "number" ? rawVal : (rawVal as any) ?? 0;
       return {
         color: line.stroke,
         label: line.dataKey,
-        value: formattedVal,
+        value: valueFormatter ? valueFormatter(val, line.dataKey) : val,
       };
     });
   }, [tooltipData, lines, rowsRenderer, valueFormatter]);

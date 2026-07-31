@@ -21,6 +21,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import Modal from '../components/Modal';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSafeState } from '../hooks/useSafeState';
+import Icon from '../components/ui/Icon';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -778,7 +779,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <div className="flex flex-col lg:flex-row lg:items-center gap-8 flex-1">
                             <div onClick={() => setActiveSegment('all')} className="cursor-pointer group/nw">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-primary-500 text-sm">candlestick_chart</span>
+                                    <Icon name="candlestick_chart" className="text-primary-500 text-sm" />
                                     <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Assets</span>
                                 </div>
                                 <div className="flex items-baseline gap-2">
@@ -809,7 +810,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <div key={seg.id} onClick={() => setActiveSegment(seg.id)} className={`group cursor-pointer p-3 sm:p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}>
                                             <div className="flex items-center justify-between mb-1.5">
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <span className="material-symbols-outlined text-lg">{seg.icon}</span>
+                                                    <Icon name={seg.icon} className="text-lg" />
                                                 </div>
                                                 {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                             </div>
@@ -833,7 +834,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 {segmentMetrics.details.map((detail, i) => (
                                      <div key={i} className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-base text-primary-500/70">{detail.icon}</span>
+                                            <Icon name={detail.icon} className="text-base text-primary-500/70" />
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">{detail.label}</span>
@@ -872,7 +873,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <Card className="!p-0 overflow-hidden border-none shadow-sm">
                             <div className="px-6 py-5 flex justify-between items-center border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
                                 <div className="flex items-center gap-3 text-xs font-bold  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
-                                    <span className="material-symbols-outlined text-primary-500">list_alt</span>
+                                    <Icon name="list_alt" className="text-primary-500" />
                                     <span>{activeSegment === 'all' ? 'All Holdings' : `${segments.find(s => s.id === activeSegment)?.label} Positions`}</span>
                                 </div>
                             </div>
@@ -946,7 +947,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <td className="py-4 pl-6">
                                                                     <div className="flex items-center gap-3">
                                                                         <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs shrink-0 ${iconColorClass}`}>
-                                                                            <span className="material-symbols-outlined text-base">{icon}</span>
+                                                                            <Icon name={icon} className="text-base" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
                                                                             <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{acc.name}</p>
@@ -978,21 +979,21 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                             className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
                                                                             title="Edit Account Settings"
                                                                         >
-                                                                            <span className="material-symbols-outlined text-base">edit_note</span>
+                                                                            <Icon name="edit_note" className="text-base" />
                                                                         </button>
                                                                         <button 
                                                                             onClick={() => { setAdjustingAccount(acc); setAdjustModalOpen(true); }}
                                                                             className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
                                                                             title="Adjust Balance"
                                                                         >
-                                                                            <span className="material-symbols-outlined text-base">payments</span>
+                                                                            <Icon name="payments" className="text-base" />
                                                                         </button>
                                                                         <button 
                                                                             onClick={() => handleAccountClick(acc.id)}
                                                                             className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
                                                                             title="Account Details"
                                                                         >
-                                                                            <span className="material-symbols-outlined text-base">analytics</span>
+                                                                            <Icon name="analytics" className="text-base" />
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -1050,21 +1051,21 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                         className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
                                                                         title="Set / Scrape Price"
                                                                     >
-                                                                        <span className="material-symbols-outlined text-base">edit_note</span>
+                                                                        <Icon name="edit_note" className="text-base" />
                                                                     </button>
                                                                     <button 
                                                                         onClick={() => handleOpenModal({ id: '', type: 'buy', symbol: holding.symbol, name: holding.name, quantity: 1, price: holding.currentPrice || 0, date: toLocalISOString(new Date()) })}
                                                                         className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
                                                                         title="Trade Asset"
                                                                     >
-                                                                        <span className="material-symbols-outlined text-base">swap_horiz</span>
+                                                                        <Icon name="swap_horiz" className="text-base" />
                                                                     </button>
                                                                     <button 
                                                                         onClick={() => onOpenHoldingDetail(holding.symbol)}
                                                                         className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-blue-500 transition-colors"
                                                                         title="Holding Details"
                                                                     >
-                                                                        <span className="material-symbols-outlined text-base">analytics</span>
+                                                                        <Icon name="analytics" className="text-base" />
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -1081,7 +1082,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card className="!p-0 overflow-hidden">
                         <div className="px-6 py-5 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
                             <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-3">
-                                <span className="material-symbols-outlined text-primary-500">history</span>
+                                <Icon name="history" className="text-primary-500" />
                                 Activity Log
                             </h3>
                         </div>
@@ -1113,7 +1114,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 onClick={(e) => { e.stopPropagation(); setItemToDelete({ id: item.id, isWarrant: item.isWarrant }); }}
                                                 className="p-1 text-gray-400 hover:text-red-500"
                                             >
-                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                                <Icon name="delete" className="text-lg" />
                                             </button>
                                         </div>
                                     </div>
@@ -1204,7 +1205,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500 text-lg">workspace_premium</span>
+                                <Icon name="workspace_premium" className="text-primary-500 text-lg" />
                                 <span>Realized Return</span>
                             </h3>
                             <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">

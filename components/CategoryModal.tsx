@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Category } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import IconPicker from './IconPicker';
+import Icon from './ui/Icon';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -74,7 +75,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
                     onClick={() => setClassification('expense')}
                     className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${classification === 'expense' ? 'bg-white dark:bg-dark-card text-red-500 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                 >
-                    <span className="material-symbols-outlined text-lg">trending_down</span>
+                    <Icon name="trending_down" className="text-lg" />
                     Expense
                 </button>
                 <button
@@ -82,7 +83,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
                     onClick={() => setClassification('income')}
                     className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${classification === 'income' ? 'bg-white dark:bg-dark-card text-green-500 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                 >
-                    <span className="material-symbols-outlined text-lg">trending_up</span>
+                    <Icon name="trending_up" className="text-lg" />
                     Income
                 </button>
             </div>
@@ -120,7 +121,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
                         className="w-20 h-20 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform transform hover:scale-105 active:scale-95 ring-4 ring-transparent hover:ring-black/5 dark:hover:ring-white/10"
                         style={{ backgroundColor: color }}
                     >
-                        <span className="material-symbols-outlined text-4xl drop-shadow-md">{icon}</span>
+                        <Icon name={icon} className="text-4xl drop-shadow-md" />
                     </button>
                     <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">Tap to change</span>
                 </div>
@@ -139,7 +140,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
                         ))}
                         {/* Custom Color Input Wrapper */}
                         <div className="relative w-8 h-8 rounded-full overflow-hidden cursor-pointer hover:scale-110 transition-transform bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center">
-                             <span className="material-symbols-outlined text-white text-sm drop-shadow-md">add</span>
+                             <Icon name="add" className="text-white text-sm drop-shadow-md" />
                              <input
                                 type="color"
                                 value={color}
@@ -156,7 +157,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
         <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex items-center justify-between border border-black/5 dark:border-white/5">
              <div className="flex items-center gap-3">
                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: color }}>
-                     <span className="material-symbols-outlined text-xl">{icon}</span>
+                     <Icon name={icon} className="text-xl" />
                  </div>
                  <div>
                      <p className="font-bold text-light-text dark:text-dark-text text-sm">{name || 'Category Name'}</p>

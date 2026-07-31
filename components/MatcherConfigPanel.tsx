@@ -1,6 +1,7 @@
 import React from 'react';
 import { MatcherConfig, DEFAULT_MATCHER_CONFIG } from '../hooks/useMatcherConfig';
 import { BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface MatcherConfigPanelProps {
   config: MatcherConfig;
@@ -23,7 +24,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
     <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-dark-card/90 backdrop-blur-md border border-emerald-500/20 shadow-xl space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">tune</span>
+          <Icon name="tune" className="text-emerald-600 dark:text-emerald-400" />
           <div>
             <h4 className="font-bold text-sm text-light-text dark:text-dark-text">Transaction Matching Thresholds</h4>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
@@ -45,7 +46,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
               onClick={onClose}
               className="text-light-text-secondary hover:text-light-text dark:hover:text-dark-text p-1 rounded-lg"
             >
-              <span className="material-symbols-outlined text-lg">close</span>
+              <Icon name="close" className="text-lg" />
             </button>
           )}
         </div>

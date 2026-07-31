@@ -1,5 +1,6 @@
 import React from 'react';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import Icon from './ui/Icon';
 
 interface SyncedBillMatcherCardProps {
   suggestionsCount: number;
@@ -19,7 +20,7 @@ export const SyncedBillMatcherCard: React.FC<SyncedBillMatcherCardProps> = ({
 
       <div className="flex items-center gap-4 relative z-10">
         <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-          <span className="material-symbols-outlined text-2.5xl animate-pulse">published_with_changes</span>
+          <Icon name="published_with_changes" className="text-2.5xl animate-pulse" />
         </div>
         <div>
           <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">

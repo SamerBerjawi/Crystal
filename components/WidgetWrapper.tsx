@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Card from './Card';
+import Icon from './ui/Icon';
 
 interface WidgetWrapperProps {
   children: React.ReactNode;
@@ -57,7 +58,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
           <div className="flex items-center gap-2.5 overflow-hidden">
             {icon && (
                <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-10 h-10 rounded-xl'} bg-primary-100 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/10`}>
-                  <span className={`material-symbols-outlined ${isCompact ? 'text-[18px]' : 'text-[18px]'}`}>{icon}</span>
+                  <Icon name={icon} className={`${isCompact ? 'text-[18px]' : 'text-[18px]'}`} />
                </div>
             )}
             <div className="overflow-hidden">
@@ -88,7 +89,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
                 className="text-light-text-secondary dark:text-dark-text-secondary p-1.5 rounded-full hover:bg-rose-500/10 hover:text-rose-500 transition-colors cursor-pointer shrink-0" 
                 title="Remove widget"
               >
-                <span className="material-symbols-outlined text-base">delete</span>
+                <Icon name="delete" className="text-base" />
               </button>
             )}
           </div>

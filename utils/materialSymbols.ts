@@ -1,3 +1,5 @@
+import { ICON_NAME_MAP } from '../components/ui/Icon';
+
 const EXTRA_TAGS: Record<string, string[]> = {
   weekend: ['couch', 'sofa', 'relax', 'sleep'],
   chair: ['seat', 'couch', 'sofa', 'sit'],
@@ -13,27 +15,7 @@ const EXTRA_TAGS: Record<string, string[]> = {
   bathtub: ['bathroom', 'tub', 'shower'],
 };
 
-const ICON_LIBRARY_INTERNAL: string[] = [
-  'account_balance', 'savings', 'credit_card', 'account_balance_wallet', 'wallet', 'paid', 'monetization_on',
-  'attach_money', 'price_check', 'payments', 'receipt', 'receipt_long', 'request_quote', 'currency_exchange',
-  'currency_bitcoin', 'show_chart', 'trending_up', 'bar_chart', 'pie_chart', 'analytics', 'real_estate_agent',
-  'gavel', 'store', 'local_mall', 'shopping_cart', 'shopping_bag', 'shopping_basket', 'sell', 'local_offer',
-  'work', 'badge', 'construction', 'build', 'verified', 'security', 'lock', 'key', 'fingerprint', 'help', 'info',
-  'home', 'cottage', 'apartment', 'map', 'location_on', 'directions_car', 'electric_car', 'local_gas_station',
-  'directions_bus', 'train', 'flight', 'weekend', 'chair', 'living', 'event_seat', 'bed', 'night_shelter', 'crib',
-  'baby_changing_station', 'family_restroom', 'child_care', 'pets', 'bathtub', 'local_florist', 'park', 'nature',
-  'forest', 'devices', 'smartphone', 'laptop', 'desktop_windows', 'tablet', 'tv', 'router', 'memory', 'cloud',
-  'cloud_upload', 'cloud_download', 'download', 'upload', 'sync', 'code', 'terminal', 'camera_alt', 'photo_camera',
-  'photo_library', 'image', 'collections', 'music_note', 'mic', 'chat', 'mail', 'send', 'videocam', 'notifications',
-  'notifications_active', 'language', 'translate', 'travel_explore', 'calendar_today', 'calendar_month', 'event',
-  'schedule', 'alarm', 'timer', 'history', 'watch_later', 'health_and_safety', 'monitor_heart', 'healing',
-  'medication', 'medical_services', 'volunteer_activism', 'self_improvement', 'fitness_center', 'sports_esports',
-  'sports_tennis', 'sports_soccer', 'sports_basketball', 'run_circle', 'hiking', 'pool', 'restaurant', 'local_cafe',
-  'local_bar', 'fastfood', 'emoji_food_beverage', 'liquor', 'cake', 'local_pizza', 'coffee', 'lightbulb',
-  'electric_bolt', 'battery_charging_full', 'solar_power', 'eco', 'water_drop', 'wb_sunny', 'tune', 'filter_alt',
-  'search', 'apps', 'dashboard', 'grid_view', 'view_list', 'view_kanban', 'view_timeline', 'view_week', 'settings',
-  'insights'
-];
+export const ICON_LIBRARY: string[] = Object.keys(ICON_NAME_MAP);
 
 const fuzzyMatch = (needle: string, haystack: string): boolean => {
   if (!needle) return true;
@@ -58,8 +40,6 @@ const buildTags = (name: string): string[] => {
   return Array.from(new Set([...base, ...extras]));
 };
 
-export const ICON_LIBRARY: string[] = Array.from(new Set(ICON_LIBRARY_INTERNAL));
-
 const MATERIAL_SYMBOL_METADATA = ICON_LIBRARY.map(name => ({
   name,
   tags: buildTags(name),
@@ -77,3 +57,4 @@ export const searchMaterialSymbols = (term: string): string[] => {
 };
 
 export default MATERIAL_SYMBOL_METADATA;
+

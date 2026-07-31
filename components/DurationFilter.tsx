@@ -2,6 +2,7 @@
 import React from 'react';
 import { Duration } from '../types';
 import { SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, DURATION_OPTIONS } from '../constants';
+import Icon from './ui/Icon';
 
 interface DurationFilterProps {
   selectedDuration: Duration;
@@ -21,7 +22,7 @@ const DurationFilter: React.FC<DurationFilterProps> = ({ selectedDuration, onDur
         ))}
       </select>
       <div className={SELECT_ARROW_STYLE}>
-         <span className="material-symbols-outlined text-base">expand_more</span>
+         <Icon name="expand_more" className="text-base" />
       </div>
     </div>
   );

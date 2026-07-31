@@ -6,6 +6,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend, ComposedChart, Line, Cell } from 'recharts';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
+import Icon from './ui/Icon';
 
 interface PensionAccountViewProps {
   account: Account;
@@ -45,11 +46,11 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
                     <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
                          {trend.val}
                     </div>
                 )}
@@ -201,7 +202,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -211,7 +212,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">{account.icon || 'elderly'}</span>
+                      <Icon name={account.icon || 'elderly'} className="text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light" />
                   </h1>
               </div>
           </div>
@@ -219,18 +220,18 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {isLinkedToEnableBanking && onSyncLinkedAccount && (
                   <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                      <span className="material-symbols-outlined text-lg mr-2">sync</span>
+                      <Icon name="sync" className="text-lg mr-2" />
                       Sync
                   </button>
               )}
               {onAdjustBalance && (
                   <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                      <span className="material-symbols-outlined text-lg mr-2">tune</span>
+                      <Icon name="tune" className="text-lg mr-2" />
                       Adjust
                   </button>
               )}
               <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                  <span className="material-symbols-outlined text-lg mr-2">add</span>
+                  <Icon name="add" className="text-lg mr-2" />
                   Contribution
               </button>
           </div>
@@ -402,7 +403,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                     <div className="mt-12 p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-lg">verified</span>
+                                <Icon name="verified" className="text-lg" />
                             </div>
                             <p className="text-[10px] font-bold text-indigo-500 tracking-wider">Asset Integrity Verified</p>
                         </div>

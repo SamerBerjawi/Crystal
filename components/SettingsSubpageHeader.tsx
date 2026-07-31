@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page } from '../types';
 import PageHeader from './PageHeader';
+import Icon from './ui/Icon';
 
 interface SettingsSubpageHeaderProps {
   title: string;
@@ -32,7 +33,7 @@ const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
             className="group flex items-center gap-1.5 font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
           >
             <div className="w-5 h-5 rounded-md bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
-              <span className="material-symbols-outlined text-sm leading-none">arrow_back</span>
+              <Icon name="arrow_back" className="text-sm leading-none" />
             </div>
             <span>Settings</span>
           </button>

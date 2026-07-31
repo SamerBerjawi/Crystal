@@ -3,6 +3,7 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { SankeyChart, SankeyNode, SankeyLink, SankeyTooltip } from '@/src/components/charts/sankey';
 import { Transaction, Category } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
+import Icon from './ui/Icon';
 
 interface CashflowSankeyProps {
   transactions: Transaction[];
@@ -172,7 +173,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
   if (totalFlow === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20 text-light-text-secondary opacity-40">
-        <span className="material-symbols-outlined text-5xl mb-2">account_tree</span>
+        <Icon name="account_tree" className="text-5xl mb-2" />
         <p className="font-medium">No cash flow activity in this period.</p>
       </div>
     );

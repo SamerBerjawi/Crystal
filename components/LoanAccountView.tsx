@@ -7,6 +7,7 @@ import PaymentPlanTable from './PaymentPlanTable';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
+import Icon from './ui/Icon';
 
 interface LoanAccountViewProps {
   account: Account;
@@ -47,7 +48,7 @@ const MetricTile = ({ label, value, icon, subValue, colorClass = 'primary' }: {
             <div className="flex justify-between items-start relative z-10">
                 {icon ? (
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                        <span className="material-symbols-outlined text-xl">{icon}</span>
+                        <Icon name={icon} className="text-xl" />
                     </div>
                 ) : <div />}
             </div>
@@ -140,7 +141,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
               </button>
                <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -152,9 +153,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className={`material-symbols-outlined font-light ${isLending ? 'text-emerald-500/60 dark:text-emerald-400/80' : 'text-rose-500/60 dark:text-rose-400/80'}`}>
-                          {isLending ? 'real_estate_agent' : 'contract'}
-                      </span>
+                      <Icon name={isLending ? 'real_estate_agent' : 'contract'} className={`font-light ${isLending ? 'text-emerald-500/60 dark:text-emerald-400/80' : 'text-rose-500/60 dark:text-rose-400/80'}`} />
                   </h1>
               </div>
           </div>
@@ -272,7 +271,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                 {/* Amortization Curve */}
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-5">
-                         <span className="material-symbols-outlined text-8xl">waterfall_chart</span>
+                         <Icon name="waterfall_chart" className="text-8xl" />
                     </div>
                     <div className="flex justify-between items-center mb-6 relative z-10">
                         <div>
@@ -324,11 +323,11 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                              <div>
                                  <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-2">Interconnected Assets</h3>
                                  <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
-                                     Asset portfolio <span className="material-symbols-outlined text-[12px]">arrow_forward</span>
+                                     Asset portfolio <Icon name="arrow_forward" className="text-[12px]" />
                                  </button>
                              </div>
                              <div className="w-12 h-12 rounded-2xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                                 <span className="material-symbols-outlined text-2xl">home</span>
+                                 <Icon name="home" className="text-2xl" />
                              </div>
                          </div>
                          <div className="space-y-6">

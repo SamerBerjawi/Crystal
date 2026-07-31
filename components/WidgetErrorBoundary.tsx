@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import Icon from './ui/Icon';
 
 interface WidgetErrorBoundaryProps {
   children: ReactNode;
@@ -29,7 +30,7 @@ class WidgetErrorBoundary extends Component<WidgetErrorBoundaryProps, WidgetErro
       return (
         <div className="p-5 rounded-2xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 text-center flex flex-col items-center justify-center min-h-[160px] gap-2">
           <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
-            <span className="material-symbols-outlined text-xl">warning</span>
+            <Icon name="warning" className="text-xl" />
           </div>
           <h4 className="text-xs font-bold text-light-text dark:text-dark-text">
             Unable to load {this.props.widgetTitle || 'widget'}

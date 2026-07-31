@@ -14,10 +14,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 import {
   ArrowLeft,
   ArrowRight,
-  MoreHorizontal,
-  Pause,
+  DotsHorizontal as MoreHorizontal,
+  PauseCircle as Pause,
   Play,
-} from "lucide-react";
+} from "@untitledui/icons";
 import React from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

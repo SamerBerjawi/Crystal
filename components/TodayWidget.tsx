@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride } from '../types';
 import { parseLocalDate, formatCurrency, toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface TodayWidgetProps {
     tasks: Task[];
@@ -171,7 +172,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         return (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-transparent">
                 <div className="w-16 h-16 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                    <span className="material-symbols-outlined text-4xl text-emerald-500">check_circle</span>
+                    <Icon name="check_circle" className="text-4xl text-emerald-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">No upcoming bills in 3 days</h3>
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
@@ -198,7 +199,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
-                                        <span className="material-symbols-outlined text-[10px]">check_circle</span> Task
+                                        <Icon name="check_circle" className="text-[10px]" /> Task
                                     </p>
                                 </div>
                             </div>
@@ -215,7 +216,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         return (
                             <div key={`${item.type}-${data.id}`} className="flex items-center p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 shrink-0 ${isBill ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                                    <span className="material-symbols-outlined text-lg">{isBill ? 'receipt' : 'update'}</span>
+                                    <Icon name={isBill ? 'receipt' : 'update'} className="text-lg" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
@@ -244,7 +245,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         return (
                             <div key={`goal-${item.data.id}`} className="flex items-center p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/50">
                                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3 shrink-0 bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                    <span className="material-symbols-outlined text-lg">flag</span>
+                                    <Icon name="flag" className="text-lg" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">

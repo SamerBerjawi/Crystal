@@ -68,6 +68,7 @@ function SeriesDashTailOverlayImpl({
       dashArray={dashArray}
       dashStartLength={dashStartLength}
       dashStartX={dashStartX}
+      dashStroke={dashStroke}
       innerHeight={innerHeight}
       innerWidth={innerWidth}
       pathD={pathD}

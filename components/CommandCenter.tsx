@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Page, Account, Transaction } from '../types';
 import { NAV_ITEMS } from '../constants';
 import { APP_VERSION } from '../version';
+import Icon from './ui/Icon';
 
 interface CommandCenterProps {
   isOpen: boolean;
@@ -148,7 +149,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
           >
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
               <div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center">
-                <span className="material-symbols-outlined text-primary-500 text-2xl">search</span>
+                <Icon name="search" className="text-primary-500 text-2xl" />
               </div>
               <input
                 ref={inputRef}
@@ -179,7 +180,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                         <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm border border-black/5 dark:border-white/5 transition-colors ${
                            index === selectedIndex ? 'bg-white/20 text-white' : 'bg-white dark:bg-white/5 text-gray-500 group-hover:text-primary-500'
                         }`}>
-                           <span className="material-symbols-outlined text-[22px] sm:text-[24px]">{item.icon}</span>
+                           <Icon name={item.icon} className="text-[22px] sm:text-[24px]" />
                         </div>
                         <div className="min-w-0">
                           <p className={`font-black text-[13px] sm:text-sm  tracking-widest truncate ${index === selectedIndex ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
@@ -202,7 +203,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
               ) : (
                 <div className="px-6 py-20 text-center">
                   <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-6 scale-110">
-                    <span className="material-symbols-outlined text-4xl text-gray-300">search_off</span>
+                    <Icon name="search_off" className="text-4xl text-gray-300" />
                   </div>
                   <p className="text-light-text dark:text-dark-text font-black text-lg mb-1">No Intelligence Found</p>
                   <p className="text-gray-400 text-sm font-medium">Unable to locate records for "{query}"</p>

@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import IconPicker from './IconPicker';
+import Icon from './ui/Icon';
 
 interface TagModalProps {
   onClose: () => void;
@@ -84,7 +85,7 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
                     <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col items-center justify-center gap-2">
                         <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider font-semibold">Preview</span>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold shadow-sm transition-all duration-300" style={{ backgroundColor: `${color}20`, color: color }}>
-                            <span className="material-symbols-outlined text-lg">{icon}</span>
+                            <Icon name={icon} className="text-lg" />
                             {name || 'Tag Name'}
                         </span>
                     </div>
@@ -97,7 +98,7 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
                             className="flex-shrink-0 w-12 h-12 bg-light-bg dark:bg-dark-bg rounded-xl flex items-center justify-center border border-black/10 dark:border-white/10 hover:border-primary-500 transition-colors group"
                             title="Change Icon"
                         >
-                            <span className="material-symbols-outlined text-2xl text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">{icon}</span>
+                            <Icon name={icon} className="text-2xl text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors" />
                         </button>
 
                         {/* Color Grid */}
@@ -113,7 +114,7 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
                             ))}
                              {/* Custom Color Input Wrapper */}
                             <div className="relative w-8 h-8 rounded-full overflow-hidden cursor-pointer hover:scale-110 transition-transform bg-gradient-to-br from-gray-200 to-gray-400 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-white text-xs">colorize</span>
+                                <Icon name="colorize" className="text-white text-xs" />
                                 <input
                                     type="color"
                                     value={color}

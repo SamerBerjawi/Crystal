@@ -4,6 +4,7 @@ import Card from '../components/Card';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import { INPUT_BASE_STYLE } from '../constants';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
+import Icon from '../components/ui/Icon';
 
 interface IntegrationsProps {
   preferences: AppPreferences;
@@ -52,7 +53,7 @@ const ApiKeyCard = ({
         <Card className="flex flex-col h-full border border-black/5 dark:border-white/5 hover:border-primary-500/20 shadow-xs hover:shadow-lg transition-all duration-300 rounded-3xl p-6 relative overflow-hidden group">
             <div className="flex items-start justify-between mb-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass} shadow-md group-hover:scale-105 transition-transform duration-300`}>
-                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                    <Icon name={icon} className="text-2xl" />
                 </div>
                 <div className={`px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 border ${
                   isConfigured 
@@ -71,7 +72,7 @@ const ApiKeyCard = ({
 
             <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-light-text-secondary opacity-50">
-                    <span className="material-symbols-outlined text-lg">key</span>
+                    <Icon name="key" className="text-lg" />
                 </div>
                 <input
                     type={isVisible ? 'text' : 'password'}
@@ -87,7 +88,7 @@ const ApiKeyCard = ({
                     onClick={() => setIsVisible(!isVisible)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-light-text-secondary hover:text-primary-500 transition-colors cursor-pointer"
                 >
-                    <span className="material-symbols-outlined text-lg">{isVisible ? 'visibility_off' : 'visibility'}</span>
+                    <Icon name={isVisible ? 'visibility_off' : 'visibility'} className="text-lg" />
                 </button>
             </div>
         </Card>

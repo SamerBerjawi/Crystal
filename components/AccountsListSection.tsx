@@ -4,6 +4,7 @@ import { Account, Transaction, Warrant, AccountType } from '../types';
 import AccountRow from './AccountRow';
 import { convertToEur, formatCurrency } from '../utils';
 import { ACCOUNT_TYPE_ACCENT_STYLES } from '../constants';
+import Icon from './ui/Icon';
 
 interface AccountsListSectionProps {
     title: string;
@@ -142,9 +143,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                 >
                     <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-lg bg-white/50 dark:bg-white/5 flex items-center justify-center transition-colors group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 border border-black/5 dark:border-white/5`}>
-                             <span className={`material-symbols-outlined transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`}>
-                                expand_more
-                            </span>
+                             <Icon name="expand_more" className={`transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                         <h3 className="text-m font-bold text-light-text dark:text-dark-text tracking-[0.2em]">{title}</h3>
                         <span className="bg-primary-100 dark:bg-primary-900/30 text-[10px] font-black px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
@@ -156,7 +155,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                             className="flex items-center justify-center w-8 h-8 rounded-lg transition-all bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 border border-transparent hover:border-black/5 dark:hover:border-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
                             title={isAnyExpanded ? 'Collapse All Categories' : 'Expand All Categories'}
                         >
-                            <span className="material-symbols-outlined text-base">{isAnyExpanded ? 'unfold_less' : 'unfold_more'}</span>
+                            <Icon name={isAnyExpanded ? 'unfold_less' : 'unfold_more'} className="text-base" />
                         </button>
                     )}
                 </div>
@@ -175,7 +174,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                             className="flex items-center justify-center w-8 h-8 rounded-lg transition-all bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 border border-transparent hover:border-black/5 dark:hover:border-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
                             title={isAnyExpanded ? 'Collapse All Categories' : 'Expand All Categories'}
                         >
-                            <span className="material-symbols-outlined text-base">{isAnyExpanded ? 'unfold_less' : 'unfold_more'}</span>
+                            <Icon name={isAnyExpanded ? 'unfold_less' : 'unfold_more'} className="text-base" />
                         </button>
                     )}
                 </div>
@@ -199,7 +198,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                         <span className={`font-mono text-m font-bold px-2 py-0.5 rounded-full transition-colors ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.pill || 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'}`}>
                                             {formatCurrency(groupTotal, 'EUR')}
                                         </span>
-                                         <span className={`material-symbols-outlined text-m text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`}>expand_more</span>
+                                         <Icon name="expand_more" className={`text-m text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`} />
                                     </div>
                                 </div>
                                 
@@ -233,7 +232,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                         );
                     }) : (
                         <div className="text-center py-16 bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border-2 border-dashed border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary text-sm">
-                            <span className="material-symbols-outlined text-4xl mb-2 opacity-30">account_balance_wallet</span>
+                            <Icon name="account_balance_wallet" className="text-4xl mb-2 opacity-30" />
                             <p className="font-medium">No {title.toLowerCase()} found.</p>
                         </div>
                     )}

@@ -3,6 +3,7 @@ import React from 'react';
 import { Category } from '../types';
 import Card from './Card';
 import BudgetProgressBar from './BudgetProgressBar';
+import Icon from './ui/Icon';
 
 interface BudgetProgressCardProps {
   category: Category;
@@ -22,15 +23,10 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
       <div className="flex justify-between items-start relative z-10">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-center shadow-inner group-hover:rotate-12 transition-transform duration-500" style={{ backgroundColor: `${category.color}15` }}>
-            <span
-              className="material-symbols-outlined text-xl"
-              style={{
+            <Icon name={category.icon || 'category'} className="text-xl" style={{
                 color: category.color,
                 fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24"
-              }}
-            >
-              {category.icon || 'category'}
-            </span>
+              }} />
           </div>
           <div>
             <h4 className="font-bold text-[13px] tracking-tight text-light-text dark:text-dark-text leading-none mb-1">{category.name}</h4>
@@ -44,7 +40,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
             className="p-2 bg-black/5 dark:bg-white/5 hover:bg-black dark:hover:bg-white text-light-text dark:text-dark-text hover:text-white dark:hover:text-black rounded-lg transition-all active:scale-90" 
             title={hasBudget ? 'Edit Budget' : 'Set Budget'}
         >
-          <span className="material-symbols-outlined text-base leading-none">{hasBudget ? 'edit' : 'add'}</span>
+          <Icon name={hasBudget ? 'edit' : 'add'} className="text-base leading-none" />
         </button>
       </div>
       

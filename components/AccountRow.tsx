@@ -2,11 +2,12 @@
 import React, { useMemo, useState } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { LineChart, Line } from '../src/components/charts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
+import Icon from './ui/Icon';
 
 interface AccountRowProps {
     account: Account;
@@ -94,18 +95,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         });
 
         const runningDate = new Date(endDate);
-        const history: number[] = [];
+        const history: { date: Date; value: number }[] = [];
         let runningBal = currentBal;
 
         for (let i = 0; i < NUM_POINTS; i++) {
-            history.push(runningBal);
+            history.push({
+                date: new Date(runningDate),
+                value: runningBal,
+            });
             const dateStr = toLocalISOString(runningDate);
             const change = txsByDate[dateStr] || 0;
             runningBal -= change;
             runningDate.setDate(runningDate.getDate() - 1);
         }
         
-        const data = history.reverse().map(val => ({ value: Math.max(0, val) }));
+        const data = history.reverse().map(item => ({ date: item.date, value: Math.max(0, item.value) }));
 
         const trendVal = data[data.length - 1].value - data[0].value;
         const isPositive = trendVal >= 0;
@@ -264,7 +268,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         {showLogo ? (
                             <img src={logoUrl!} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
                         ) : (
-                            <span className="material-symbols-outlined text-lg sm:text-xl">{iconName}</span>
+                            <Icon name={iconName} className="text-lg sm:text-xl" />
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -286,12 +290,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
                 {/* Middle Section: Small Sparkline (Hidden on tiny screens/mobile to avoid masking name) */}
                 <div className="hidden sm:flex items-center gap-3 shrink-0">
-                    <div className="h-8 w-20 opacity-30 group-hover:opacity-85 transition-opacity">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={sparklineData}>
-                                <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={1.5} fill="transparent" isAnimationActive={false} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="h-8 w-20 opacity-30 group-hover:opacity-85 transition-opacity select-none">
+                         <LineChart
+                            data={sparklineData}
+                            xDataKey="date"
+                            margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+                            className="w-20 h-8"
+                        >
+                            <Line dataKey="value" stroke={chartColor} strokeWidth={1.5} fadeEdges={true} animate={false} showHighlight={true} />
+                        </LineChart>
                      </div>
                 </div>
 
@@ -321,7 +328,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     </div>
 
                     {isLinkedToEnableBanking && (
-                         <span className="material-symbols-outlined text-emerald-500 text-sm animate-pulse shrink-0" title="Live Sync Active">sync</span>
+                         <Icon name="sync" className="text-emerald-500 text-sm animate-pulse shrink-0" title="Live Sync Active" />
                     )}
                 </div>
 
@@ -333,14 +340,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         title="Adjust Balance"
                         disabled={isComputedAccount}
                     >
-                        <span className="material-symbols-outlined text-[15px]">tune</span>
+                        <Icon name="tune" className="text-[15px]" />
                     </button>
                     <button 
                         onClick={handleEditClick} 
                         className="w-7 h-7 flex items-center justify-center rounded-md bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
                         title="Edit Account"
                     >
-                        <span className="material-symbols-outlined text-[15px]">edit</span>
+                        <Icon name="edit" className="text-[15px]" />
                     </button>
                 </div>
             </div>
@@ -397,14 +404,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     title="Adjust Balance"
                     disabled={isComputedAccount}
                 >
-                    <span className="material-symbols-outlined text-lg sm:text-base">tune</span>
+                    <Icon name="tune" className="text-lg sm:text-base" />
                 </button>
                 <button 
                     onClick={handleEditClick} 
                     className="w-11 h-11 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl sm:rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
                     title="Edit Account"
                 >
-                    <span className="material-symbols-outlined text-lg sm:text-base">edit</span>
+                    <Icon name="edit" className="text-lg sm:text-base" />
                 </button>
             </div>
 
@@ -415,7 +422,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             {showLogo ? (
                                 <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                             ) : (
-                                <span className="material-symbols-outlined text-xl sm:text-2xl">{iconName}</span>
+                                <Icon name={iconName} className="text-xl sm:text-2xl" />
                             )}
                         </div>
                         <div className="min-w-0">
@@ -465,20 +472,17 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                          {isLinkedToEnableBanking && (
-                             <span className="material-symbols-outlined text-emerald-500 text-base sm:text-lg animate-pulse shrink-0" title="Live Sync Active">sync</span>
+                             <Icon name="sync" className="text-emerald-500 text-base sm:text-lg animate-pulse shrink-0" title="Live Sync Active" />
                          )}
-                         <div className={`h-8 sm:h-12 w-24 sm:w-48 opacity-40 group-hover:opacity-100 transition-opacity`}>
-                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={sparklineData}>
-                                    <defs>
-                                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={2} fill={`url(#${gradientId})`} isAnimationActive={false} />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                         <div className={`h-8 sm:h-12 w-24 sm:w-48 opacity-40 group-hover:opacity-100 transition-opacity select-none`}>
+                             <LineChart
+                                 data={sparklineData}
+                                 xDataKey="date"
+                                 margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+                                 className="w-24 sm:w-48 h-8 sm:h-12"
+                             >
+                                 <Line dataKey="value" stroke={chartColor} strokeWidth={2} fadeEdges={true} animate={false} showHighlight={true} />
+                             </LineChart>
                          </div>
                     </div>
                 </div>

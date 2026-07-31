@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import PageHeader from '../components/PageHeader';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import Icon from '../components/ui/Icon';
 
 interface DataImportExportProps {
   accounts: Account[];
@@ -42,7 +43,7 @@ const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
 
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${bg} ${text}`}>
-            <span className="material-symbols-outlined text-[14px]">{icon}</span>
+            <Icon name={icon} className="text-[14px]" />
             {status}
         </span>
     );
@@ -89,14 +90,14 @@ const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDat
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                                    <span className="material-symbols-outlined">{source.icon}</span>
+                                    <Icon name={source.icon} />
                                 </div>
                                 <div>
                                     <span className="font-semibold text-light-text dark:text-dark-text block">{source.name}</span>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{source.description}</p>
                                 </div>
                             </div>
-                            <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">chevron_right</span>
+                            <Icon name="chevron_right" className="text-light-text-secondary dark:text-dark-text-secondary" />
                         </button>
                     ))}
                 </div>
@@ -112,7 +113,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
             <p className="text-2xl font-bold text-light-text dark:text-dark-text">{value}</p>
         </div>
         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}>
-            <span className="material-symbols-outlined text-2xl">{icon}</span>
+            <Icon name={icon} className="text-2xl" />
         </div>
     </div>
 );
@@ -427,7 +428,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
               <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
                   <div className="flex items-center gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-xl shadow-blue-500/20">
-                          <span className="material-symbols-outlined text-3xl">table_chart</span>
+                          <Icon name="table_chart" className="text-3xl" />
                       </div>
                       <div>
                           <h3 className="text-xl font-bold text-light-text dark:text-dark-text leading-tight">External Data Desk</h3>
@@ -439,11 +440,11 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                   </p>
                   <div className="mt-auto grid grid-cols-2 gap-4">
                       <button onClick={() => setNewImportModalOpen(true)} className="px-6 py-4 rounded-2xl bg-blue-500 text-white text-[10px] font-black  tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-lg">add_circle</span>
+                        <Icon name="add_circle" className="text-lg" />
                         Import
                       </button>
                       <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className="px-6 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black  tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-lg">download</span>
+                        <Icon name="download" className="text-lg" />
                         Export
                       </button>
                   </div>
@@ -456,7 +457,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
               <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
                   <div className="flex items-center gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-500/20">
-                          <span className="material-symbols-outlined text-3xl">terminal</span>
+                          <Icon name="terminal" className="text-3xl" />
                       </div>
                       <div>
                           <h3 className="text-xl font-bold text-light-text dark:text-dark-text leading-tight">System Snapshots</h3>
@@ -468,11 +469,11 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                   </p>
                   <div className="mt-auto grid grid-cols-2 gap-4">
                       <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className="px-6 py-4 rounded-2xl bg-indigo-500 text-white text-[10px] font-black  tracking-widest shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-lg">backup</span>
+                        <Icon name="backup" className="text-lg" />
                         Backup
                       </button>
                       <button onClick={() => setRestoreModalOpen(true)} className="px-6 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black  tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-lg">restore</span>
+                        <Icon name="restore" className="text-lg" />
                         Restore
                       </button>
                   </div>
@@ -485,7 +486,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
           <div className="p-8 border-b border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4">
                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                    <span className="material-symbols-outlined">history</span>
+                    <Icon name="history" />
                  </div>
                  <div>
                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Audit Trail</h3>
@@ -537,14 +538,14 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                                             className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-primary-500 hover:text-white disabled:opacity-20 transition-all shadow-sm"
                                             title="Inspector"
                                         >
-                                            <span className="material-symbols-outlined text-lg">analytics</span>
+                                            <Icon name="analytics" className="text-lg" />
                                         </button>
                                         <button 
                                             onClick={() => props.onDeleteHistoryItem(item.id)}
                                             className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                                             title="Evict Log"
                                         >
-                                            <span className="material-symbols-outlined text-lg">delete_sweep</span>
+                                            <Icon name="delete_sweep" className="text-lg" />
                                         </button>
                                     </div>
                                 </td>
@@ -554,7 +555,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                         <tr>
                             <td colSpan={5} className="px-8 py-20 text-center">
                                 <div className="flex flex-col items-center gap-3 opacity-20">
-                                   <span className="material-symbols-outlined text-5xl">inventory_2</span>
+                                   <Icon name="inventory_2" className="text-5xl" />
                                    <p className="text-[11px] font-black  tracking-[0.3em]">Vault Empty</p>
                                 </div>
                             </td>
@@ -569,7 +570,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       <div className="bg-red-500/5 border border-red-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-6">
                 <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0 border border-red-500/20">
-                    <span className="material-symbols-outlined text-3xl">dangerous</span>
+                    <Icon name="dangerous" className="text-3xl" />
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-red-600 dark:text-red-400 tracking-tighter">Factory Reset</h3>

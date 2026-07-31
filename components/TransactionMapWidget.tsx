@@ -6,6 +6,7 @@ import { countries, type TCountryCode } from 'countries-list';
 import { Transaction, Currency } from '../types';
 import { formatCurrency } from '../utils';
 import L from 'leaflet';
+import Icon from './ui/Icon';
 
 type CountryCode = Lowercase<TCountryCode>;
 
@@ -274,7 +275,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
     return (
       <div className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary min-h-[300px]">
         <div className="text-center">
-          <span className="material-symbols-outlined text-4xl mb-2 opacity-50">public_off</span>
+          <Icon name="public_off" className="text-4xl mb-2 opacity-50" />
           <p>No location data found in recent transactions.</p>
         </div>
       </div>
@@ -296,7 +297,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
               : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
             }`}
         >
-          <span className="material-symbols-outlined text-base">grid_view</span>
+          <Icon name="grid_view" className="text-base" />
           <span>Dotted Map</span>
         </button>
         <button
@@ -307,7 +308,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
               : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
             }`}
         >
-          <span className="material-symbols-outlined text-base">public</span>
+          <Icon name="public" className="text-base" />
           <span>3D Globe</span>
         </button>
         <button
@@ -318,7 +319,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
               : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
             }`}
         >
-          <span className="material-symbols-outlined text-base">map</span>
+          <Icon name="map" className="text-base" />
           <span>Interactive Map</span>
         </button>
       </div>
@@ -486,7 +487,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-light-text dark:text-dark-text transition-colors"
             title="Zoom In"
           >
-            <span className="material-symbols-outlined text-base">add</span>
+            <Icon name="add" className="text-base" />
           </button>
           <button
             type="button"
@@ -494,7 +495,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-light-text dark:text-dark-text transition-colors"
             title="Zoom Out"
           >
-            <span className="material-symbols-outlined text-base">remove</span>
+            <Icon name="remove" className="text-base" />
           </button>
           <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700 mx-0.5" />
           <button

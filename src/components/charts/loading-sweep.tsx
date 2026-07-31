@@ -251,8 +251,8 @@ export function LineLoadingSweep({
   });
   const yScale = scaleLinear({ domain: [0, 100], range: [innerHeight, 0] });
   const points = heights.map((value, index) => ({ index, value }));
-  const getX = (d: { index: number; value: number }) => xScale(d.index);
-  const getY = (d: { index: number; value: number }) => yScale(d.value);
+  const getX = (d: any) => xScale(d.index);
+  const getY = (d: any) => yScale(d.value);
 
   const silhouette = (
     <>

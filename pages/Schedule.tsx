@@ -59,7 +59,7 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
                 <div className="relative w-14 h-14 flex items-center justify-center flex-shrink-0">
                     <div className={`absolute inset-0 rounded-full opacity-20 ${accentBg}`}></div>
                     <div className={`relative w-10 h-10 rounded-full flex items-center justify-center bg-white/50 dark:bg-black/20 ${colorClass}`}>
-                        <span className="material-symbols-outlined text-2xl leading-none">{icon}</span>
+                        <Icon name={icon} className="text-2xl leading-none" />
                     </div>
                 </div>
             </div>
@@ -101,7 +101,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
     return (
         <div className="bg-white/60 dark:bg-dark-card/60 rounded-[2.5rem] p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
             <div className="absolute top-0 right-0 p-8 opacity-5">
-                <span className="material-symbols-outlined text-8xl text-primary-500">analytics</span>
+                <Icon name="analytics" className="text-8xl text-primary-500" />
             </div>
             
             <div className="relative z-10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6">
@@ -141,7 +141,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                             <div className="flex items-center gap-1.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2.5 py-0.5 rounded-full">
-                                <span className="material-symbols-outlined text-sm">donut_large</span>
+                                <Icon name="donut_large" className="text-sm" />
                                 <span className="text-[9px] font-black  tracking-widest">Commitment Index</span>
                             </div>
                             <div className={`px-2.5 py-0.5 rounded-full text-[9px] font-black  tracking-widest ${statusBg} ${statusColor}`}>
@@ -218,7 +218,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
             >
                 <div className="flex items-center gap-4">
                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                         <span className={`material-symbols-outlined text-xl transition-transform duration-300 ${isOpen ? '' : '-rotate-90'}`}>expand_more</span>
+                         <Icon name="expand_more" className={`text-xl transition-transform duration-300 ${isOpen ? '' : '-rotate-90'}`} />
                      </div>
                      <div className="flex flex-col">
                         <div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4 px-3 py-2 bg-rose-500/5 dark:bg-rose-500/10 rounded-2xl border border-rose-500/10 dark:border-rose-500/20 ml-8">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm">filter_alt</span>
+                            <Icon name="filter_alt" className="text-sm" />
                             <span>Filter Overdue:</span>
                         </span>
                     </div>
@@ -274,7 +274,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
                                     : 'bg-white/60 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-indigo-500/10'
                             }`}
                         >
-                            <span className="material-symbols-outlined text-sm">repeat</span>
+                            <Icon name="repeat" className="text-sm" />
                             <span>Recurring Only</span>
                             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${overdueFilter === 'recurring' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{recurringCount}</span>
                         </button>
@@ -288,7 +288,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
                                     : 'bg-white/60 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-rose-500/10'
                             }`}
                         >
-                            <span className="material-symbols-outlined text-sm">receipt_long</span>
+                            <Icon name="receipt_long" className="text-sm" />
                             <span>One-Time Bills Only</span>
                             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${overdueFilter === 'one-time' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{oneTimeCount}</span>
                         </button>
@@ -325,6 +325,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
 // --- Main Page Component ---
 
 import { motion, AnimatePresence } from 'motion/react';
+import Icon from '../components/ui/Icon';
 
 type ScheduleSegment = 'all' | 'timeline' | 'calendar' | 'rules' | 'expired';
 
@@ -943,7 +944,7 @@ const SchedulePage: React.FC = () => {
                         <div className="flex flex-col lg:flex-row lg:items-center gap-10 flex-1">
                             <div className="group/val cursor-pointer">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="material-symbols-outlined text-primary-500 text-sm">payments</span>
+                                    <Icon name="payments" className="text-primary-500 text-sm" />
                                     <span className="text-[10px] font-black tracking-[0.2em]  text-light-text-secondary dark:text-dark-text-secondary">Next 30 Days Outflow</span>
                                 </div>
                                 <div className="flex items-baseline gap-3">
@@ -971,7 +972,7 @@ const SchedulePage: React.FC = () => {
                                         >
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <span className="material-symbols-outlined text-xl">{seg.icon}</span>
+                                                    <Icon name={seg.icon} className="text-xl" />
                                                 </div>
                                                 {isActive && <motion.div layoutId="active-dot" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
                                             </div>
@@ -990,7 +991,7 @@ const SchedulePage: React.FC = () => {
                          <div className="flex flex-wrap items-center gap-x-12 gap-y-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-emerald-500/70">arrow_downward</span>
+                                    <Icon name="arrow_downward" className="text-emerald-500/70" />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Expected Income</span>
@@ -999,7 +1000,7 @@ const SchedulePage: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-2xl bg-rose-500/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-rose-500/70">warning</span>
+                                    <Icon name="warning" className="text-rose-500/70" />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Overdue</span>
@@ -1008,7 +1009,7 @@ const SchedulePage: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-2xl bg-primary-500/5 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-primary-500/70">event_repeat</span>
+                                    <Icon name="event_repeat" className="text-primary-500/70" />
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Active Rules</span>
@@ -1019,7 +1020,7 @@ const SchedulePage: React.FC = () => {
 
                          {/* Search Integrated */}
                          <div className="relative flex-grow max-w-[280px]">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">search</span>
+                            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary" />
                             <input 
                                 type="text" 
                                 placeholder="Global Search..." 
@@ -1067,7 +1068,7 @@ const SchedulePage: React.FC = () => {
 
                     <div className="md:col-span-4 group bg-gradient-to-br from-emerald-500/5 to-teal-500/5 dark:bg-emerald-900/10 rounded-[2rem] p-6 border border-emerald-500/10 dark:border-emerald-500/20 relative overflow-hidden">
                          <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <span className="material-symbols-outlined text-8xl text-emerald-500">savings</span>
+                            <Icon name="savings" className="text-8xl text-emerald-500" />
                         </div>
                         <div className="relative z-10 flex flex-col h-full justify-between">
                             <div className="space-y-2">
@@ -1077,7 +1078,7 @@ const SchedulePage: React.FC = () => {
                                         <h3 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
                                         <div className="flex items-center gap-2 pt-2">
                                             <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-sm text-emerald-500">download</span>
+                                                <Icon name="download" className="text-sm text-emerald-500" />
                                             </div>
                                             <p className="font-bold text-xs truncate opacity-70">{majorInflow.description}</p>
                                         </div>
@@ -1096,7 +1097,7 @@ const SchedulePage: React.FC = () => {
 
                     <div className="md:col-span-4 group bg-gradient-to-br from-rose-500/5 to-pink-500/5 dark:bg-rose-900/10 rounded-[2rem] p-6 border border-rose-500/10 dark:border-rose-500/20 relative overflow-hidden">
                          <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <span className="material-symbols-outlined text-8xl text-rose-500">payments</span>
+                            <Icon name="payments" className="text-8xl text-rose-500" />
                         </div>
                         <div className="relative z-10 flex flex-col h-full justify-between">
                              <div className="space-y-2">
@@ -1106,7 +1107,7 @@ const SchedulePage: React.FC = () => {
                                         <h3 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
                                         <div className="flex items-center gap-2 pt-2">
                                             <div className="w-5 h-5 rounded-md bg-rose-500/10 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-sm text-rose-500">upload</span>
+                                                <Icon name="upload" className="text-sm text-rose-500" />
                                             </div>
                                             <p className="font-bold text-xs truncate opacity-70">{majorOutflow.description}</p>
                                         </div>
@@ -1144,7 +1145,7 @@ const SchedulePage: React.FC = () => {
                                 <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
-                                            <span className="material-symbols-outlined text-2xl">event_busy</span>
+                                            <Icon name="event_busy" className="text-2xl" />
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-sm text-light-text dark:text-dark-text">
@@ -1160,7 +1161,7 @@ const SchedulePage: React.FC = () => {
                                         onClick={handleExpireAllOldBills}
                                         className="px-4 py-2.5 rounded-2xl bg-amber-500 text-white font-bold text-xs hover:bg-amber-600 transition-all flex items-center gap-2 flex-shrink-0 shadow-md shadow-amber-500/20"
                                     >
-                                        <span className="material-symbols-outlined text-sm">archive</span>
+                                        <Icon name="archive" className="text-sm" />
                                         <span>Mark as Expired & Archive</span>
                                     </button>
                                 </div>
@@ -1203,7 +1204,7 @@ const SchedulePage: React.FC = () => {
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${rt.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <span className="material-symbols-outlined text-xl">{rt.type === 'transfer' ? 'sync_alt' : rt.type === 'income' ? 'download' : 'upload'}</span>
+                                                    <Icon name={rt.type === 'transfer' ? 'sync_alt' : rt.type === 'income' ? 'download' : 'upload'} className="text-xl" />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <h4 className="font-bold text-base truncate pr-8">{rt.description}</h4>
@@ -1221,8 +1222,8 @@ const SchedulePage: React.FC = () => {
                                                 <span className={`text-lg font-black tabular-nums ${rt.type === 'income' ? 'text-emerald-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(rt.amount, rt.currency)}</span>
                                             </div>
                                             <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} disabled={rt.isSynthetic} className="p-2 hover:bg-primary-500/10 text-primary-500 rounded-xl disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-lg">settings</span></button>
-                                                <button onClick={() => handleDeleteItem(rt.id, true)} disabled={rt.isSynthetic} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-xl disabled:opacity-20 transition-all"><span className="material-symbols-outlined text-lg">delete</span></button>
+                                                <button onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} disabled={rt.isSynthetic} className="p-2 hover:bg-primary-500/10 text-primary-500 rounded-xl disabled:opacity-20 transition-all"><Icon name="settings" className="text-lg" /></button>
+                                                <button onClick={() => handleDeleteItem(rt.id, true)} disabled={rt.isSynthetic} className="p-2 hover:bg-rose-500/10 text-rose-500 rounded-xl disabled:opacity-20 transition-all"><Icon name="delete" className="text-lg" /></button>
                                             </div>
                                         </div>
                                     </div>
@@ -1238,7 +1239,7 @@ const SchedulePage: React.FC = () => {
                                     <div>
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-2xl">inventory_2</span>
+                                                <Icon name="inventory_2" className="text-2xl" />
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Expired & Archived Bills</h3>
@@ -1255,7 +1256,7 @@ const SchedulePage: React.FC = () => {
                                             onClick={handleExpireAllOldBills}
                                             className="px-4 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-white text-xs font-bold transition-all flex items-center gap-2 self-start sm:self-auto"
                                         >
-                                            <span className="material-symbols-outlined text-base">event_busy</span>
+                                            <Icon name="event_busy" className="text-base" />
                                             <span>Archive {oldUnpaidBills.length} Old Unpaid Bill(s)</span>
                                         </button>
                                     )}
@@ -1264,7 +1265,7 @@ const SchedulePage: React.FC = () => {
                                 {expiredBills.length === 0 ? (
                                     <div className="py-16 text-center space-y-3">
                                         <div className="w-16 h-16 rounded-3xl bg-gray-100 dark:bg-white/5 mx-auto flex items-center justify-center text-light-text-secondary">
-                                            <span className="material-symbols-outlined text-3xl">inbox</span>
+                                            <Icon name="inbox" className="text-3xl" />
                                         </div>
                                         <h4 className="font-bold text-base text-light-text dark:text-dark-text">No Expired Bills Archived</h4>
                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">
@@ -1279,7 +1280,7 @@ const SchedulePage: React.FC = () => {
                                                     <div>
                                                         <h4 className="font-bold text-base text-light-text dark:text-dark-text">{bill.description}</h4>
                                                         <div className="flex items-center gap-1.5 text-xs font-medium text-light-text-secondary/80 dark:text-dark-text-secondary/80 mt-1">
-                                                            <span className="material-symbols-outlined text-sm">calendar_today</span>
+                                                            <Icon name="calendar_today" className="text-sm" />
                                                             <span>Due {parseLocalDate(bill.dueDate).toLocaleDateString()}</span>
                                                         </div>
                                                         <div className="text-xs font-medium text-light-text-secondary/70 dark:text-dark-text-secondary/70 mt-1">
@@ -1303,7 +1304,7 @@ const SchedulePage: React.FC = () => {
                                                             className="px-3 py-1.5 rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white text-xs font-bold transition-all flex items-center gap-1"
                                                             title="Restore to Active Bills"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm">restore</span>
+                                                            <Icon name="restore" className="text-sm" />
                                                             <span>Restore</span>
                                                         </button>
                                                         <button
@@ -1321,7 +1322,7 @@ const SchedulePage: React.FC = () => {
                                                             className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all"
                                                             title="Mark as Paid"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm">check</span>
+                                                            <Icon name="check" className="text-sm" />
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1332,7 +1333,7 @@ const SchedulePage: React.FC = () => {
                                                             className="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
                                                             title="Delete Bill"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                            <Icon name="delete" className="text-sm" />
                                                         </button>
                                                     </div>
                                                 </div>

@@ -2,6 +2,7 @@
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
+import Icon from './ui/Icon';
 
 interface InvestmentHeroProps {
     totalValue: number;
@@ -37,7 +38,7 @@ const InvestmentHero: React.FC<InvestmentHeroProps> = ({
                     <div>
                         <div className="flex items-center gap-3 mb-6">
                             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 shadow-inner">
-                                <span className="material-symbols-outlined text-primary-400 text-lg">account_balance_wallet</span>
+                                <Icon name="account_balance_wallet" className="text-primary-400 text-lg" />
                             </div>
                             <span className="text-[11px] font-black  tracking-[0.25em] text-gray-400/80">Net Investment Value</span>
                         </div>
@@ -48,9 +49,7 @@ const InvestmentHero: React.FC<InvestmentHeroProps> = ({
                             </h2>
                             <div className="flex flex-wrap items-center gap-4 mt-4">
                                 <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-black border ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} shadow-lg shadow-black/20`}>
-                                    <span className="material-symbols-outlined text-base">
-                                        {isPositive ? 'trending_up' : 'trending_down'}
-                                    </span>
+                                    <Icon name={isPositive ? 'trending_up' : 'trending_down'} className="text-base" />
                                     {isPositive ? '+' : ''}{totalGainLossPercent.toFixed(2)}%
                                 </div>
                                 <div className="text-sm font-bold text-gray-300 flex items-center gap-2 privacy-blur">
@@ -109,7 +108,7 @@ const InvestmentHero: React.FC<InvestmentHeroProps> = ({
                                     <p className="text-2xl font-black text-white">{activeHoldingsCount}</p>
                                 </div>
                                 <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400">
-                                    <span className="material-symbols-outlined">pie_chart</span>
+                                    <Icon name="pie_chart" />
                                 </div>
                             </div>
                         </div>
@@ -121,7 +120,7 @@ const InvestmentHero: React.FC<InvestmentHeroProps> = ({
                                         {i === 1 ? <img src="https://logo.clearbit.com/apple.com" className="w-full h-full p-1.5 opacity-80" /> : 
                                          i === 2 ? <img src="https://logo.clearbit.com/nvidia.com" className="w-full h-full p-1.5 opacity-80" /> :
                                          i === 3 ? <img src="https://logo.clearbit.com/microsoft.com" className="w-full h-full p-1.5 opacity-80" /> : 
-                                         <span className="material-symbols-outlined text-xs">add</span>}
+                                         <Icon name="add" className="text-xs" />}
                                     </div>
                                 ))}
                             </div>

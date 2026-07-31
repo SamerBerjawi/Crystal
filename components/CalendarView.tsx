@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ScheduledItem, FinancialGoal, Account } from '../types';
 import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface CalendarViewProps {
   items: ScheduledItem[];
@@ -116,7 +117,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               className="p-1.5 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-700/60 rounded-md transition-all duration-150"
               title="Previous Month"
             >
-              <span className="material-symbols-outlined text-lg leading-none">chevron_left</span>
+              <Icon name="chevron_left" className="text-lg leading-none" />
             </button>
             <button
               onClick={goToToday}
@@ -129,7 +130,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               className="p-1.5 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-700/60 rounded-md transition-all duration-150"
               title="Next Month"
             >
-              <span className="material-symbols-outlined text-lg leading-none">chevron_right</span>
+              <Icon name="chevron_right" className="text-lg leading-none" />
             </button>
           </div>
         </div>
@@ -245,9 +246,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded text-neutral-500 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all flex-shrink-0"
                             title="Post Transaction"
                           >
-                            <span className="material-symbols-outlined text-[13px] leading-none">
-                              check
-                            </span>
+                            <Icon name="check" className="text-[13px] leading-none" />
                           </button>
                         )}
                       </div>

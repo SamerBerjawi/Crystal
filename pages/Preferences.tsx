@@ -4,6 +4,7 @@ import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
 import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
+import Icon from '../components/ui/Icon';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -19,7 +20,7 @@ const SectionHeader = React.memo(function SectionHeader({ title, icon, descripti
     <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
       <div className="flex items-center gap-3 mb-2">
           <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-lg">{icon}</span>
+          <Icon name={icon} className="text-lg" />
           </div>
           <h3 className="text-lg font-bold text-light-text dark:text-dark-text">{title}</h3>
       </div>
@@ -82,9 +83,7 @@ const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, se
       </div>
 
       <div className="flex items-center gap-2">
-        <span className={`material-symbols-outlined text-base ${isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-          {icon}
-        </span>
+        <Icon name={icon} className={`text-base ${isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`} />
         <span className={`text-xs font-bold ${isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
           {label}
         </span>
@@ -123,7 +122,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <span className="material-symbols-outlined text-xl">palette</span>
+                  <Icon name="palette" className="text-xl" />
                 </div>
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Interface Theme</h3>
               </div>
@@ -143,7 +142,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <span className="material-symbols-outlined text-xl">payments</span>
+                  <Icon name="payments" className="text-xl" />
                 </div>
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Financial Context</h3>
               </div>
@@ -155,7 +154,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <label className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] ml-1">Base Denomination</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary z-10">
-                    <span className="material-symbols-outlined text-lg">monetization_on</span>
+                    <Icon name="monetization_on" className="text-lg" />
                   </div>
                   <select 
                     name="currency" 
@@ -166,14 +165,14 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                     {CURRENCY_OPTIONS.map(c => <option key={c} value={c} className="bg-white dark:bg-dark-card">{c}</option>)}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
-                    <span className="material-symbols-outlined">expand_more</span>
+                    <Icon name="expand_more" />
                   </div>
                 </div>
               </div>
 
               <div className="p-5 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl border border-primary-500/10 flex items-start gap-4">
                   <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
-                    <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                    <Icon name="auto_awesome" className="text-sm" />
                   </div>
                   <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 leading-normal">
                       Crystal automatically synchronizes language, date-strings, and temporal offsets via your browser environment for atomic precision.
@@ -189,7 +188,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <span className="material-symbols-outlined text-xl">bolt</span>
+                  <Icon name="bolt" className="text-xl" />
                 </div>
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Operational Defaults</h3>
               </div>
@@ -203,7 +202,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
-                      <span className="material-symbols-outlined text-sm">expand_more</span>
+                      <Icon name="expand_more" className="text-sm" />
                     </div>
                   </div>
                 </SettingRow>
@@ -219,7 +218,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
-                      <span className="material-symbols-outlined text-sm">expand_more</span>
+                      <Icon name="expand_more" className="text-sm" />
                     </div>
                   </div>
                 </SettingRow>
@@ -230,7 +229,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
-                      <span className="material-symbols-outlined text-sm">expand_more</span>
+                      <Icon name="expand_more" className="text-sm" />
                     </div>
                   </div>
                 </SettingRow>
@@ -241,7 +240,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       className={`p-5 rounded-2xl border transition-all text-left space-y-2 ${preferences.excludeTransfersFromAnalytics ? 'bg-primary-500 border-primary-500 shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 border-transparent hover:border-black/10 dark:hover:border-white/10'}`}
                    >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${preferences.excludeTransfersFromAnalytics ? 'bg-white text-primary-500' : 'bg-white dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                        <span className="material-symbols-outlined text-sm">{preferences.excludeTransfersFromAnalytics ? 'visibility_off' : 'visibility'}</span>
+                        <Icon name={preferences.excludeTransfersFromAnalytics ? 'visibility_off' : 'visibility'} className="text-sm" />
                       </div>
                       <div>
                         <p className={`text-[11px] font-black  tracking-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Transfers</p>
@@ -254,7 +253,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       className={`p-5 rounded-2xl border transition-all text-left space-y-2 ${preferences.showBalanceAdjustments ? 'bg-primary-500 border-primary-500 shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 border-transparent hover:border-black/10 dark:hover:border-white/10'}`}
                    >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${preferences.showBalanceAdjustments ? 'bg-white text-primary-500' : 'bg-white dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                        <span className="material-symbols-outlined text-sm">{preferences.showBalanceAdjustments ? 'check_circle' : 'cancel'}</span>
+                        <Icon name={preferences.showBalanceAdjustments ? 'check_circle' : 'cancel'} className="text-sm" />
                       </div>
                       <div>
                         <p className={`text-[11px] font-black  tracking-tight ${preferences.showBalanceAdjustments ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Adjustments</p>

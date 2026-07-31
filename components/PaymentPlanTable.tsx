@@ -4,6 +4,7 @@ import { Account, Transaction, ScheduledPayment } from '../types';
 import { generateAmortizationSchedule, formatCurrency, parseLocalDate } from '../utils';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import LoanPaymentBulkEditModal, { BulkPaymentEntry } from './LoanPaymentBulkEditModal';
+import Icon from './ui/Icon';
 
 interface PaymentPlanTableProps {
   account: Account;
@@ -94,7 +95,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
     if (schedule.length === 0) {
         return (
             <div className="text-center text-light-text-secondary dark:text-dark-text-secondary py-12 bg-light-bg dark:bg-dark-bg rounded-lg border border-dashed border-light-separator dark:border-dark-separator">
-                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">pending_actions</span>
+                <Icon name="pending_actions" className="text-4xl mb-2 opacity-50" />
                 <p>To generate a payment plan, please edit the account and set the Principal, Interest Rate, Duration, and Start Date.</p>
             </div>
         );
@@ -156,8 +157,8 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                 <td className="p-3 text-right">
                                     {isEditing ? (
                                         <div className="flex justify-end gap-2">
-                                            <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600"><span className="material-symbols-outlined text-lg">check</span></button>
-                                            <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"><span className="material-symbols-outlined text-lg">close</span></button>
+                                            <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600"><Icon name="check" className="text-lg" /></button>
+                                            <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"><Icon name="close" className="text-lg" /></button>
                                         </div>
                                     ) : payment.status !== 'Paid' ? (
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -165,7 +166,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                                 {isLending ? 'Receive' : 'Pay'}
                                             </button>
                                             <button onClick={() => handleEditClick(payment)} className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-colors" title="Edit Schedule">
-                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                <Icon name="edit" className="text-lg" />
                                             </button>
                                         </div>
                                     ) : null}

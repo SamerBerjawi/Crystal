@@ -6,6 +6,7 @@ import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, B
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
 import { toLocalISOString } from '../utils';
+import Icon from './ui/Icon';
 
 interface EditAccountModalProps {
   onClose: () => void;
@@ -425,11 +426,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 >
                     <div className="absolute inset-0 bg-primary-500/20 blur-2xl rounded-full opacity-0 group-hover/icon:opacity-100 transition-opacity" />
                     <div className="relative w-32 h-32 rounded-[2.5rem] bg-white dark:bg-dark-bg shadow-2xl flex items-center justify-center border border-black/5 dark:border-white/5 transition-transform duration-500 group-hover/icon:-rotate-6">
-                        <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '64px' }}>
-                            {icon}
-                        </span>
+                        <Icon name={icon} className={`${iconColorClass}`} style={{ fontSize: '64px' }} />
                         <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/40">
-                            <span className="material-symbols-outlined text-xl">edit_square</span>
+                            <Icon name="edit_square" className="text-xl" />
                         </div>
                     </div>
                 </button>
@@ -455,7 +454,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                              </span>
                         </div>
                         <div className="px-4 py-2 bg-black/5 dark:bg-white/5 rounded-full border border-black/10 dark:border-white/10 flex items-center gap-2">
-                             <span className="material-symbols-outlined text-xs text-gray-400">fingerprint</span>
+                             <Icon name="fingerprint" className="text-xs text-gray-400" />
                              <span className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary">
                                 ID: {account.id.split('-')[0].toUpperCase()}
                              </span>
@@ -470,7 +469,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             {/* 1. Core Identification Card */}
             <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                 <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500 text-lg">settings_input_component</span>
+                    <Icon name="settings_input_component" className="text-primary-500 text-lg" />
                     Node Identification
                 </h4>
                 
@@ -495,7 +494,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             >
                               {ALL_ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                         </div>
                     </div>
 
@@ -521,7 +520,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 >
                                   {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
-                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                 <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                           </div>
                           {isComputedAccount && <p className="text-[10px] font-black text-primary-500  tracking-widest text-center animate-pulse mt-2">Sync-Driven: Calculated from holdings</p>}
@@ -535,7 +534,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 {(showBankingDetails || ['Checking', 'Savings', 'Credit Card'].includes(type)) && (
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="material-symbols-outlined text-primary-500">account_balance</span>
+                            <Icon name="account_balance" className="text-primary-500" />
                             <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Banking Architecture</h4>
                         </div>
                         
@@ -581,7 +580,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                      <div className="flex items-center justify-between mb-8 cursor-pointer group/card" onClick={() => setHasCard(!hasCard)}>
                         <div className="flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${hasCard ? 'bg-primary-500 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
-                                <span className="material-symbols-outlined text-2xl">credit_card</span>
+                                <Icon name="credit_card" className="text-2xl" />
                             </div>
                             <div className="flex flex-col">
                                 <h4 className={`text-[10px] font-bold tracking-tight ${hasCard ? 'text-primary-600' : 'text-gray-500'}`}>Payment Instrument</h4>
@@ -602,7 +601,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                         <option value="">Select Network</option>
                                         {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                             </div>
                             <div>
@@ -632,7 +631,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 {type === 'Investment' && (
                   <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-primary-500">trending_up</span>
+                        <Icon name="trending_up" className="text-primary-500" />
                         <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Market Strategy</h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-black/20 p-6 rounded-2xl border border-black/5 dark:border-white/5">
@@ -642,7 +641,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={`${SELECT_STYLE} h-12 font-black`}>
                               {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                           </div>
                         </div>
                         {['Stock', 'ETF', 'Crypto'].includes(subType) && (
@@ -666,7 +665,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">category</span>
+                                <Icon name="category" className="text-lg" />
                                 Asset Specifications
                             </h4>
                         </div>
@@ -677,7 +676,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={`${SELECT_STYLE} h-14 font-black`}>
                                 {OTHER_ASSET_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                         </div>
                         <div>
@@ -703,7 +702,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                      <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-rose-500 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">money_off</span>
+                                <Icon name="money_off" className="text-lg" />
                                 Liability Metrics
                             </h4>
                         </div>
@@ -714,7 +713,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={`${SELECT_STYLE} h-14 font-black`}>
                                     {OTHER_LIABILITY_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                             </div>
                             <div>
@@ -739,7 +738,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">request_quote</span>
+                                <Icon name="request_quote" className="text-lg" />
                                 Financial Obligation
                             </h4>
                         </div>
@@ -775,7 +774,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
                         <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-6">
                             <div className="flex items-center gap-2">
-                                 <span className="material-symbols-outlined text-primary-500">event_repeat</span>
+                                 <Icon name="event_repeat" className="text-primary-500" />
                                  <h5 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Amortization Schedule</h5>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -806,7 +805,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                             );
                                         })}
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                             </div>
                             {type === 'Loan' && (
@@ -819,7 +818,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                 <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
                                             ))}
                                         </select>
-                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                     </div>
                                 </div>
                             )}
@@ -832,7 +831,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8 animate-fade-in-up">
                       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">directions_car</span>
+                                <Icon name="directions_car" className="text-lg" />
                                 Automotive Registry
                             </h4>
                         </div>
@@ -853,7 +852,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                               ) : (
                                   <div className="flex flex-col items-center gap-3 animate-glow">
                                       <div className="w-16 h-16 bg-white dark:bg-dark-card rounded-full flex items-center justify-center shadow-2xl">
-                                          <span className="material-symbols-outlined text-3xl text-primary-500">add_a_photo</span>
+                                          <Icon name="add_a_photo" className="text-3xl text-primary-500" />
                                       </div>
                                       <div className="text-center">
                                           <p className="text-[10px] font-black text-light-text dark:text-dark-text  tracking-widest">Asset Visualization</p>
@@ -884,7 +883,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={`${SELECT_STYLE} h-14 font-black`}>
                                     {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
                                 </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                          </div>
                          <div><label htmlFor="mileage" className={labelStyle}>Odometer Reading (KM)</label><input id="mileage" type="number" value={currentMileage} onChange={e=>setCurrentMileage(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
@@ -937,7 +936,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                     );
                                                 })}
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                         </div>
                                     </div>
                                 </div>
@@ -959,7 +958,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                     onClick={() => handleDeleteLog(index)} 
                                                     className="text-rose-500 hover:text-rose-600 p-1 flex items-center justify-center"
                                                 >
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                    <Icon name="delete" className="text-sm" />
                                                 </button>
                                             </div>
                                         </div>
@@ -996,7 +995,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                         onClick={handleAddLog} 
                                         className={`${BTN_PRIMARY_STYLE} h-12 w-12 flex items-center justify-center p-0`}
                                     >
-                                        <span className="material-symbols-outlined">add</span>
+                                        <Icon name="add" />
                                     </button>
                                 </div>
                             </div>
@@ -1009,7 +1008,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8 animate-fade-in-up">
                        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">home</span>
+                                <Icon name="home" className="text-lg" />
                                 Real Estate Specifications
                             </h4>
                         </div>
@@ -1021,7 +1020,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={`${SELECT_STYLE} h-14 font-black`}>
                                   {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                                 </select>
-                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                 <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                               </div>
                             </div>
                              <div><label htmlFor="purchasePrice" className={labelStyle}>Acquisition Capital</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} disabled={isLoanForPropertyLinked} /></div>
@@ -1045,7 +1044,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 onClick={() => setHasBasement(!hasBasement)}
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasBasement ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
-                                <span className="material-symbols-outlined">{hasBasement ? 'check_box' : 'check_box_outline_blank'}</span>
+                                <Icon name={hasBasement ? 'check_box' : 'check_box_outline_blank'} />
                                 <span className="text-[10px] font-black  tracking-widest leading-none">Basement</span>
                              </button>
                              <button 
@@ -1053,7 +1052,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 onClick={() => setHasAttic(!hasAttic)}
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasAttic ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
-                                <span className="material-symbols-outlined">{hasAttic ? 'check_box' : 'check_box_outline_blank'}</span>
+                                <Icon name={hasAttic ? 'check_box' : 'check_box_outline_blank'} />
                                 <span className="text-[10px] font-black  tracking-widest leading-none">Attic</span>
                              </button>
                           </div>
@@ -1069,7 +1068,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 onClick={() => setHasGarden(!hasGarden)}
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasGarden ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
-                                <span className="material-symbols-outlined">{hasGarden ? 'psychology' : 'check_box_outline_blank'}</span>
+                                <Icon name={hasGarden ? 'psychology' : 'check_box_outline_blank'} />
                                 <span className="text-[10px] font-black  tracking-widest leading-none">Garden Zone</span>
                              </button>
                              <div>
@@ -1084,7 +1083,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 onClick={() => setHasTerrace(!hasTerrace)}
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasTerrace ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
-                                <span className="material-symbols-outlined">{hasTerrace ? 'deck' : 'check_box_outline_blank'}</span>
+                                <Icon name={hasTerrace ? 'deck' : 'check_box_outline_blank'} />
                                 <span className="text-[10px] font-black  tracking-widest leading-none">Terrace / Balcony</span>
                              </button>
                              <div>
@@ -1109,7 +1108,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                             );
                                         })}
                                     </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                 </div>
                               </div>
                                <div>
@@ -1122,7 +1121,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                        {/* Recurring Expenses & Income Section */}
                        <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-8">
                             <div className="flex items-center gap-2">
-                                 <span className="material-symbols-outlined text-primary-500">sync_alt</span>
+                                 <Icon name="sync_alt" className="text-primary-500" />
                                  <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Recurring Obligations & Cashflow</h4>
                             </div>
                             
@@ -1151,7 +1150,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                 <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black`}>
                                                     {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                                 </select>
-                                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                             </div>
                                         </div>
                                         <div><label htmlFor="insDate" className={labelStyle}>Maturity Event</label><input id="insDate" type="date" value={insurancePaymentDate} onChange={e=>setInsurancePaymentDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
@@ -1169,7 +1168,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                 <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black`}>
                                                     {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                                 </select>
-                                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                             </div>
                                         </div>
                                     </div>
@@ -1180,7 +1179,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                     <div className="flex items-center justify-between mb-8">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isRental ? 'bg-emerald-500 text-white shadow-lg' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
-                                                <span className="material-symbols-outlined">real_estate_agent</span>
+                                                <Icon name="real_estate_agent" />
                                             </div>
                                             <div className="flex flex-col">
                                                 <h4 className={`text-[10px] font-bold tracking-tight ${isRental ? 'text-emerald-600' : 'text-gray-500'}`}>Rental Monetization</h4>
@@ -1201,7 +1200,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                     <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black text-emerald-600`}>
                                                         {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                                     </select>
-                                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1216,7 +1215,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                    <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
                              <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
-                                 <span className="material-symbols-outlined text-lg">credit_card</span>
+                                 <Icon name="credit_card" className="text-lg" />
                                  Credit Architecture
                              </h4>
                          </div>
@@ -1240,7 +1239,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                            );
                                        })}
                                    </select>
-                                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                   <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                </div>
                            </div>
                            <div><label htmlFor="credit-limit" className={labelStyle}>Authorized Credit Threshold</label><input id="credit-limit" type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-rose-500 tabular-nums`} /></div>
@@ -1269,7 +1268,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 >
                     <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isPrimary ? 'bg-primary-500 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-primary-500 group-hover:bg-primary-500/10'}`}>
-                            <span className="material-symbols-outlined text-lg">stars</span>
+                            <Icon name="stars" className="text-lg" />
                         </div>
                         <div className="text-left">
                             <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Master Nexus</p>
@@ -1288,7 +1287,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 >
                     <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${includeInAnalytics ? 'bg-emerald-500 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 group-hover:text-emerald-500 group-hover:bg-emerald-500/10'}`}>
-                            <span className="material-symbols-outlined text-lg">analytics</span>
+                            <Icon name="analytics" className="text-lg" />
                         </div>
                         <div className="text-left">
                             <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Analytics Sync</p>
@@ -1310,7 +1309,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     className="flex items-center justify-center w-12 h-12 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 group shadow-lg shadow-rose-500/5"
                     title="Terminate Integration"
                 >
-                    <span className="material-symbols-outlined group-hover:scale-110 transition-transform font-bold">delete_forever</span>
+                    <Icon name="delete_forever" className="group-hover:scale-110 transition-transform font-bold" />
                 </button>
                 <button 
                     type="button" 
@@ -1321,7 +1320,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         : 'bg-white dark:bg-dark-fill text-amber-600 hover:bg-amber-50'
                     }`}
                 >
-                    <span className="material-symbols-outlined text-lg">{account.status === 'closed' ? 'sync' : 'block'}</span>
+                    <Icon name={account.status === 'closed' ? 'sync' : 'block'} className="text-lg" />
                     {account.status === 'closed' ? 'Initialize Account' : 'Suspend Node'}
                 </button>
             </div>
@@ -1339,7 +1338,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}
                 >
                     Commit Changes
-                    <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">save</span>
+                    <Icon name="save" className="text-lg transition-transform group-hover:translate-x-1" />
                 </button>
             </div>
           </div>

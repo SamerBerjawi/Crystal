@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from './ui/Icon';
 
 export type HeaderButtonVariant =
   | 'primary'
@@ -82,23 +83,11 @@ const HeaderButton = React.forwardRef<HTMLButtonElement, HeaderButtonProps>(
         {...props}
       >
         {showIcon && iconPosition === 'left' && (
-          <span
-            className={`material-symbols-outlined text-base leading-none shrink-0 ${
-              isLoading ? 'animate-spin' : ''
-            }`}
-          >
-            {iconName}
-          </span>
+          <Icon name={iconName} className={`text-base leading-none shrink-0 ${ isLoading ? 'animate-spin' : '' }`} />
         )}
         {children && <span>{children}</span>}
         {showIcon && iconPosition === 'right' && (
-          <span
-            className={`material-symbols-outlined text-base leading-none shrink-0 ${
-              isLoading ? 'animate-spin' : ''
-            }`}
-          >
-            {iconName}
-          </span>
+          <Icon name={iconName} className={`text-base leading-none shrink-0 ${ isLoading ? 'animate-spin' : '' }`} />
         )}
       </button>
     );

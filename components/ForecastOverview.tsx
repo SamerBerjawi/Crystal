@@ -3,6 +3,7 @@ import React from 'react';
 import Card from './Card';
 import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
 import { Currency } from '../types';
+import Icon from './ui/Icon';
 
 interface ForecastItem {
     period: string;
@@ -57,7 +58,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                         >
                             <div className="flex justify-between items-start mb-1.5">
                                 <span className="text-xs font-bold  tracking-wider opacity-70">{item.period}</span>
-                                <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
+                                <Icon name={icon} className={`text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`} />
                             </div>
 
                             <p className={`text-xl font-black tracking-tight privacy-blur ${amountColor}`}>
@@ -65,7 +66,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                             </p>
                             
                             <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-[10px] opacity-70">
-                                <span className="material-symbols-outlined text-[14px]">event</span>
+                                <Icon name="event" className="text-[14px]" />
                                 <span>On {formattedDate}</span>
                             </div>
                         </div>
