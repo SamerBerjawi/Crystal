@@ -105,7 +105,20 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     return { currentActualValue: currentActual, finalProjectedValue: finalProjected };
   }, [chartData, lastActualIndex]);
 
-  const projectionColor = finalProjectedValue < currentActualValue ? '#F43F5E' : '#10B981';
+  const projectionColor = useMemo(() => {
+    const absToday = Math.abs(currentActualValue);
+    const margin = absToday * 0.10;
+    const minBound = currentActualValue - margin;
+    const maxBound = currentActualValue + margin;
+
+    if (finalProjectedValue >= minBound && finalProjectedValue <= maxBound) {
+      return '#10B981'; // Green (+/- 10% of today's value)
+    }
+    if (finalProjectedValue > maxBound) {
+      return '#3B82F6'; // Blue (higher than today's value)
+    }
+    return '#EF4444'; // Red (lower than today's value)
+  }, [currentActualValue, finalProjectedValue]);
 
   const markers = useMemo<ChartMarker[]>(() => {
     const items: ChartMarker[] = [];
@@ -174,7 +187,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         className="w-full h-full min-h-[250px]"
         margin={{ top: 25, right: 25, bottom: 30, left: 70 }}
       >
-        <Grid horizontal stroke="rgba(255, 255, 255, 0.08)" />
+        <Grid horizontal />
         <XAxis />
         <YAxis tickFormatter={yAxisTickFormatter} />
 
@@ -197,7 +210,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         />
 
         {isDashedProjection && (
-          <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} />
+          <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} fill={projectionColor} />
         )}
 
         {markers.length > 0 && <ChartMarkers items={markers} />}

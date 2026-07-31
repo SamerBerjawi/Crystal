@@ -162,7 +162,6 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Integrations & APIs"
                 description="Twelve Data, Brandfetch logos, Open Banking & AI"
                 colorClass="bg-indigo-500 text-white"
-                badge="API Hub"
                 onClick={handleNavigation}
               />
             </div>
@@ -213,7 +212,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               <SettingCard
                 page="Categories"
                 icon="grid_view"
-                title="Categories Schema"
+                title="Categories"
                 description="Parent & sub-node structure for expenses and income"
                 colorClass="bg-orange-500 text-white"
                 onClick={handleNavigation}
@@ -221,17 +220,9 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               <SettingCard
                 page="Tags"
                 icon="sell"
-                title="Semantic Tags"
+                title="Tags"
                 description="Custom labels, lifestyle markers, and project tagging"
                 colorClass="bg-pink-500 text-white"
-                onClick={handleNavigation}
-              />
-              <SettingCard
-                page="Tasks"
-                icon="fact_check"
-                title="Action Board"
-                description="Operational protocols, follow-ups, and recurring tasks"
-                colorClass="bg-blue-600 text-white"
                 onClick={handleNavigation}
               />
             </div>
@@ -257,7 +248,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               <SettingCard
                 page="Documentation"
                 icon="menu_book"
-                title="System Manual & Knowledge"
+                title="Knowledge Base"
                 description="Detailed user guide, system design, and API specs"
                 colorClass="bg-slate-500 text-white"
                 onClick={handleNavigation}

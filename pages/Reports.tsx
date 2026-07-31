@@ -1,16 +1,16 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  BarChart, 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
   Bar,
   Legend
 } from 'recharts';
@@ -109,38 +109,38 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 };
 
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
-    return (
-        <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
-             style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
-            {/* Inner Glow Effect */}
-            <div 
-                className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
-                style={{ 
-                    background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 50%)`,
-                    opacity: 0.6
-                }}
-            />
-            
-            <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
-                        <Icon name={icon} className="text-lg" />
-                    </div>
-                    <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
-                </div>
-                
-                <div className="flex flex-col">
-                    <p className={`text-2xl font-bold tracking-tight ${colorClass}`}>{value}</p>
-                    {subtitle && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1 font-bold opacity-60">{subtitle}</p>}
-                </div>
-            </div>
-            
-            {/* Background Icon Accent */}
-            <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
-                <Icon name={icon} className="text-8xl" />
-            </div>
+  return (
+    <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
+      style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
+      {/* Inner Glow Effect */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
+        style={{
+          background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 50%)`,
+          opacity: 0.6
+        }}
+      />
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
+            <Icon name={icon} className="text-lg" />
+          </div>
+          <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
         </div>
-    );
+
+        <div className="flex flex-col">
+          <p className={`text-2xl font-bold tracking-tight ${colorClass}`}>{value}</p>
+          {subtitle && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1 font-bold opacity-60">{subtitle}</p>}
+        </div>
+      </div>
+
+      {/* Background Icon Accent */}
+      <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
+        <Icon name={icon} className="text-8xl" />
+      </div>
+    </div>
+  );
 });
 
 const Reports: React.FC = () => {
@@ -260,8 +260,8 @@ const Reports: React.FC = () => {
 
     const totalSpendEur = transactions
       .filter(tx => {
-          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-          return tx.type === 'expense' && !tx.transferId;
+        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+        return tx.type === 'expense' && !tx.transferId;
       })
       .filter(tx => {
         if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
@@ -415,8 +415,8 @@ const Reports: React.FC = () => {
 
     const mtdSpendEur = transactions
       .filter(tx => {
-          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-          return tx.type === 'expense' && !tx.transferId;
+        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+        return tx.type === 'expense' && !tx.transferId;
       })
       .filter(tx => {
         if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
@@ -472,8 +472,8 @@ const Reports: React.FC = () => {
     const end = endDate ? parseLocalDate(endDate).getTime() : Number.POSITIVE_INFINITY;
     return transactions
       .filter(tx => {
-          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-          return tx.type === 'income' && !tx.transferId;
+        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+        return tx.type === 'income' && !tx.transferId;
       })
       .filter(tx => {
         if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
@@ -491,18 +491,18 @@ const Reports: React.FC = () => {
 
   const needsWantsData = useMemo(() => {
     const needsCategories = [
-      'Housing', 'Bills & Utilities', 'Utilities', 'Groceries', 'Supermarket', 
-      'Transportation', 'Public Transport', 'Transport', 'Insurance', 'Health', 
-      'Rent', 'Mortgage', 'Medical', 'Pharmacy', 'Childcare', 'School Fees', 
+      'Housing', 'Bills & Utilities', 'Utilities', 'Groceries', 'Supermarket',
+      'Transportation', 'Public Transport', 'Transport', 'Insurance', 'Health',
+      'Rent', 'Mortgage', 'Medical', 'Pharmacy', 'Childcare', 'School Fees',
       'Tuition', 'Taxes', 'Maintenance', 'Repair'
     ];
     const wantsCategories = [
-      'Dining', 'Cafes', 'Takeaway', 'Entertainment', 'Shopping', 'Lifestyle', 
-      'Travel', 'Flights', 'Accommodation', 'Hobbies', 'Gifts', 'Subscriptions', 
-      'Streaming', 'Fitness', 'Gym', 'Beauty', 'Electronics', 'Clothing', 
+      'Dining', 'Cafes', 'Takeaway', 'Entertainment', 'Shopping', 'Lifestyle',
+      'Travel', 'Flights', 'Accommodation', 'Hobbies', 'Gifts', 'Subscriptions',
+      'Streaming', 'Fitness', 'Gym', 'Beauty', 'Electronics', 'Clothing',
       'Concert', 'Sports', 'Activities'
     ];
-    
+
     let needs = 0;
     let wants = 0;
     let others = 0;
@@ -547,8 +547,8 @@ const Reports: React.FC = () => {
 
     transactions
       .filter(tx => {
-          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
-          return tx.type === 'expense' && !tx.transferId;
+        if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+        return tx.type === 'expense' && !tx.transferId;
       })
       .filter(tx => {
         const txTs = parseLocalDate(tx.date).getTime();
@@ -571,7 +571,8 @@ const Reports: React.FC = () => {
       const dateStr = toLocalISOString(date).split('T')[0];
       result.push({
         day: i + 1,
-        date: dateStr,
+        date: parseLocalDate(dateStr),
+        dateStr,
         current: dailyMap.get(dateStr) || 0,
         previous: prevDailyMap.get(`day-${i}`) || 0
       });
@@ -780,13 +781,13 @@ const Reports: React.FC = () => {
       <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-2xl rounded-[2rem]">
         <div className="bg-black/5 dark:bg-white/5 p-8 border-b border-black/5 dark:border-white/10 relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-          
+
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 relative z-10">
             <div>
               <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Configuration</h2>
               <p className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
             </div>
-            
+
             <div className="flex flex-wrap gap-2">
               {[
                 { label: 'Last 7 Days', value: 'last7' },
@@ -811,14 +812,14 @@ const Reports: React.FC = () => {
             <div className="flex flex-wrap gap-3 mb-4 relative z-10">
               {savedViews.map(view => (
                 <div key={view.id} className="group flex items-center gap-2 bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-xl pl-4 pr-2 py-2 shadow-sm transition-all hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/10">
-                  <button 
-                    onClick={() => applyView(view)} 
+                  <button
+                    onClick={() => applyView(view)}
                     className="text-[10px] font-bold tracking-[0.15em] text-light-text dark:text-dark-text hover:text-primary-500 transition-colors"
                   >
                     {view.name}
                   </button>
-                  <button 
-                    onClick={() => deleteView(view.id)} 
+                  <button
+                    onClick={() => deleteView(view.id)}
                     className="w-6 h-6 flex items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-rose-500 hover:text-white transition-all transform scale-90 group-hover:scale-100"
                   >
                     <Icon name="close" className="text-[16px]" />
@@ -881,12 +882,12 @@ const Reports: React.FC = () => {
             <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Save report settings</label>
             <div className="relative">
               <Icon name="bookmark" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary text-[18px]" />
-              <input 
-                type="text" 
-                value={reportName} 
-                onChange={(e) => setReportName(e.target.value)} 
-                className={`${INPUT_BASE_STYLE} !pl-12 !bg-black/5 dark:!bg-white/5 !border-none !rounded-xl !text-sm font-bold tracking-tight h-12`} 
-                placeholder="Name this report view to save it..." 
+              <input
+                type="text"
+                value={reportName}
+                onChange={(e) => setReportName(e.target.value)}
+                className={`${INPUT_BASE_STYLE} !pl-12 !bg-black/5 dark:!bg-white/5 !border-none !rounded-xl !text-sm font-bold tracking-tight h-12`}
+                placeholder="Name this report view to save it..."
               />
             </div>
           </div>
@@ -900,7 +901,7 @@ const Reports: React.FC = () => {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none group-hover:bg-primary-500/10 transition-colors duration-500"></div>
-          
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
             <div>
               <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spending Velocity</h2>
@@ -920,14 +921,14 @@ const Reports: React.FC = () => {
           <div className="flex-1 w-full relative z-10 flex flex-col min-h-[320px] h-full">
             <BklitLineChart
               data={velocityData}
-              xDataKey="day"
+              xDataKey="date"
               yDomainTween
               aspectRatio=""
               className="w-full h-full flex-1 min-h-[300px]"
               margin={{ top: 15, right: 15, bottom: 25, left: 55 }}
             >
               <BklitGrid horizontal stroke="rgba(255, 255, 255, 0.06)" />
-              <BklitXAxis tickFormatter={(val) => `D${val}`} />
+              <BklitXAxis />
               <BklitYAxis
                 tickFormatter={(val) => {
                   if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(1)}k`;
@@ -966,7 +967,7 @@ const Reports: React.FC = () => {
 
         <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -ml-32 -mt-32 pointer-events-none group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
-          
+
           <div className="mb-6 relative z-10">
             <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Allocation</h2>
             <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Top categories by volume</p>
@@ -1019,17 +1020,17 @@ const Reports: React.FC = () => {
       {/* Behavioral Insights & Merchant Loyalty */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <Card className="h-fit flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
-            
-            <div className="flex items-center justify-between mb-6 relative z-10">
-              <div>
-                <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Needs vs. wants</h2>
-                <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">50/30/20 Rule Analysis</p>
-              </div>
-              <div className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-[0.15em] border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
-                {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
-              </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
+
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <div>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Needs vs. wants</h2>
+              <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">50/30/20 Rule Analysis</p>
             </div>
+            <div className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-[0.15em] border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
+              {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
+            </div>
+          </div>
           <div className="space-y-6 relative z-10">
             {needsWantsData.map(item => {
               const share = totals.totalSpendEur > 0 ? (item.value / totals.totalSpendEur) * 100 : 0;
@@ -1054,9 +1055,9 @@ const Reports: React.FC = () => {
                     </div>
                   </div>
                   <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden flex shadow-inner">
-                    <div 
-                      className="h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]" 
-                      style={{ width: `${share}%`, backgroundColor: item.color }} 
+                    <div
+                      className="h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]"
+                      style={{ width: `${share}%`, backgroundColor: item.color }}
                     />
                   </div>
                 </div>
@@ -1093,12 +1094,12 @@ const Reports: React.FC = () => {
 
         <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl p-8 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
-          
+
           <div className="mb-10 relative z-10">
             <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant loyalty</h2>
             <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
           </div>
-          
+
           <div className="space-y-5 relative z-10">
             {merchantLoyalty.map((m, i) => {
               const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(m.label);
@@ -1221,16 +1222,16 @@ const Reports: React.FC = () => {
               <Icon name="lightbulb" className="text-[8rem]" />
             </div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -ml-24 -mb-24"></div>
-            
+
             <div className="mb-4 relative z-10">
               <h2 className="text-xs font-bold tracking-[0.2em] text-white/60 mb-1">Smart Engine</h2>
               <p className="text-base font-bold tracking-tight text-white">AI-powered insights</p>
             </div>
-            
+
             <div className="space-y-2 relative z-10">
               {insights.map((item, idx) => (
-                <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-3xl rounded-xl p-4 border border-white/10 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300" 
-                     style={{ animationDelay: `${idx * 150}ms` }}>
+                <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-3xl rounded-xl p-4 border border-white/10 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300"
+                  style={{ animationDelay: `${idx * 150}ms` }}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/10 ${item.tone === 'warning' ? 'bg-amber-500/20 text-amber-300' : item.tone === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/20 text-white'}`}>
                     <Icon name={item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'} className="text-base" />
                   </div>
@@ -1260,7 +1261,7 @@ const Reports: React.FC = () => {
                       <p className="text-xl font-bold tracking-tighter privacy-blur leading-none">€{forecast.dailyAverage.toFixed(0)}<span className="text-[10px] font-bold opacity-30 tracking-widest ml-1">/d</span></p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-[9px] font-bold tracking-[0.15em] opacity-60 privacy-blur">
                       <span>MTD: €{forecast.mtdSpendEur.toLocaleString()}</span>
@@ -1270,10 +1271,10 @@ const Reports: React.FC = () => {
                       <div className="h-full bg-primary-500 shadow-sm shadow-primary-500/40 transition-all duration-1000" style={{ width: `${(forecast.mtdSpendEur / forecast.projectedMonthEnd) * 100}%` }} />
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                       <Icon name="calendar_month" className="text-[12px] opacity-30" />
-                       <p className="text-[8px] text-light-text-secondary font-bold tracking-[0.2em] opacity-40">
-                         {forecast.remainingDays} Days remaining in cycle
-                       </p>
+                      <Icon name="calendar_month" className="text-[12px] opacity-30" />
+                      <p className="text-[8px] text-light-text-secondary font-bold tracking-[0.2em] opacity-40">
+                        {forecast.remainingDays} Days remaining in cycle
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1352,12 +1353,12 @@ const Reports: React.FC = () => {
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl relative group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
             <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
-               <div className="relative z-10">
+              <div className="relative z-10">
                 <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">Performance</p>
                 <h2 className="text-sm font-bold tracking-tight">Budget vs actual</h2>
               </div>
-              <button 
-                onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} 
+              <button
+                onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }}
                 className="relative z-10 text-[9px] font-bold tracking-[0.1em] text-primary-500 hover:text-primary-600 bg-primary-500/5 px-3 py-1.5 rounded-lg transition-all hover:bg-primary-500/10 active:scale-95"
               >
                 Reset

@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { LineChart, Line } from '../src/components/charts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
@@ -95,18 +95,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         });
 
         const runningDate = new Date(endDate);
-        const history: number[] = [];
+        const history: { date: Date; value: number }[] = [];
         let runningBal = currentBal;
 
         for (let i = 0; i < NUM_POINTS; i++) {
-            history.push(runningBal);
+            history.push({
+                date: new Date(runningDate),
+                value: runningBal,
+            });
             const dateStr = toLocalISOString(runningDate);
             const change = txsByDate[dateStr] || 0;
             runningBal -= change;
             runningDate.setDate(runningDate.getDate() - 1);
         }
         
-        const data = history.reverse().map(val => ({ value: Math.max(0, val) }));
+        const data = history.reverse().map(item => ({ date: item.date, value: Math.max(0, item.value) }));
 
         const trendVal = data[data.length - 1].value - data[0].value;
         const isPositive = trendVal >= 0;
@@ -287,12 +290,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
                 {/* Middle Section: Small Sparkline (Hidden on tiny screens/mobile to avoid masking name) */}
                 <div className="hidden sm:flex items-center gap-3 shrink-0">
-                    <div className="h-8 w-20 opacity-30 group-hover:opacity-85 transition-opacity">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={sparklineData}>
-                                <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={1.5} fill="transparent" isAnimationActive={false} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="h-8 w-20 opacity-30 group-hover:opacity-85 transition-opacity select-none">
+                         <LineChart
+                            data={sparklineData}
+                            xDataKey="date"
+                            margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+                            className="w-20 h-8"
+                        >
+                            <Line dataKey="value" stroke={chartColor} strokeWidth={1.5} fadeEdges={true} animate={false} showHighlight={true} />
+                        </LineChart>
                      </div>
                 </div>
 
@@ -468,18 +474,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                          {isLinkedToEnableBanking && (
                              <Icon name="sync" className="text-emerald-500 text-base sm:text-lg animate-pulse shrink-0" title="Live Sync Active" />
                          )}
-                         <div className={`h-8 sm:h-12 w-24 sm:w-48 opacity-40 group-hover:opacity-100 transition-opacity`}>
-                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={sparklineData}>
-                                    <defs>
-                                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={2} fill={`url(#${gradientId})`} isAnimationActive={false} />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                         <div className={`h-8 sm:h-12 w-24 sm:w-48 opacity-40 group-hover:opacity-100 transition-opacity select-none`}>
+                             <LineChart
+                                 data={sparklineData}
+                                 xDataKey="date"
+                                 margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+                                 className="w-24 sm:w-48 h-8 sm:h-12"
+                             >
+                                 <Line dataKey="value" stroke={chartColor} strokeWidth={2} fadeEdges={true} animate={false} showHighlight={true} />
+                             </LineChart>
                          </div>
                     </div>
                 </div>

@@ -53,16 +53,16 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
           <BarChart data={data.sorted} layout="vertical" margin={{ left: -10, right: 40 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.05} />
             <XAxis type="number" hide />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              axisLine={false} 
-              tickLine={false} 
-              fontSize={11} 
+            <YAxis
+              dataKey="name"
+              type="category"
+              axisLine={false}
+              tickLine={false}
+              fontSize={11}
               width={100}
               tick={{ fill: 'currentColor', opacity: 0.7 }}
             />
-            <Tooltip 
+            <Tooltip
               cursor={{ fill: 'rgba(0,0,0,0.02)' }}
               contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}
               formatter={(value: number) => [formatCurrency(value, 'EUR'), 'Total Spent']}
@@ -75,7 +75,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
           </BarChart>
         </ResponsiveContainer>
       </div>
-      
+
       <div className="bg-primary-500/5 dark:bg-primary-400/5 p-3 rounded-xl border border-primary-500/10 dark:border-primary-400/10">
         <div className="flex items-center gap-2 mb-1">
           <Icon name="info" className="text-primary-500 text-sm" />

@@ -1544,7 +1544,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               <div className="flex items-center gap-2">
                 <HeaderButton
                   variant={isEditMode ? 'primary' : 'ghost'}
-                  icon={isEditMode ? 'done' : 'dashboard_customize'}
+                  icon={isEditMode ? 'done' : 'brush-01'}
                   onClick={() => setIsEditMode(!isEditMode)}
                   title={isEditMode ? 'Finish Editing' : 'Edit Layout'}
                 >
