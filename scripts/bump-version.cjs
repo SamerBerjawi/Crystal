@@ -13,29 +13,41 @@ const todayDateStr = `${yy}${mm}${dd}`;
 let currentVersion = 'v2.260729.1';
 
 if (fs.existsSync(versionFilePath)) {
-  const content = fs.readFileSync(versionFilePath, 'utf8');
-  const match = content.match(/APP_VERSION\s*=\s*['"]v2\.(\d{6})\.(\d+)['"]/);
-  if (match) {
-    const prevDate = match[1];
-    const prevCounter = parseInt(match[2], 10);
-    if (prevDate === todayDateStr) {
-      currentVersion = `v2.${todayDateStr}.${prevCounter + 1}`;
+  try {
+    const content = fs.readFileSync(versionFilePath, 'utf8');
+    const match = content.match(/APP_VERSION\s*=\s*['"]v2\.(\d{6})\.(\d+)['"]/);
+    if (match) {
+      const prevDate = match[1];
+      const prevCounter = parseInt(match[2], 10);
+      if (prevDate === todayDateStr) {
+        currentVersion = `v2.${todayDateStr}.${prevCounter + 1}`;
+      } else {
+        currentVersion = `v2.${todayDateStr}.1`;
+      }
     } else {
       currentVersion = `v2.${todayDateStr}.1`;
     }
-  } else {
-    currentVersion = `v2.${todayDateStr}.1`;
+  } catch (err) {
+    console.warn('Could not read version.ts:', err.message);
   }
 }
 
-// Update version.ts
-fs.writeFileSync(versionFilePath, `export const APP_VERSION = '${currentVersion}';\n`, 'utf8');
+try {
+  // Update version.ts
+  fs.writeFileSync(versionFilePath, `export const APP_VERSION = '${currentVersion}';\n`, 'utf8');
+} catch (err) {
+  console.warn('Could not write version.ts:', err.message);
+}
 
-// Update package.json
-if (fs.existsSync(packageFilePath)) {
-  const pkg = JSON.parse(fs.readFileSync(packageFilePath, 'utf8'));
-  pkg.version = currentVersion.replace(/^v/, '');
-  fs.writeFileSync(packageFilePath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+try {
+  // Update package.json
+  if (fs.existsSync(packageFilePath)) {
+    const pkg = JSON.parse(fs.readFileSync(packageFilePath, 'utf8'));
+    pkg.version = currentVersion.replace(/^v/, '');
+    fs.writeFileSync(packageFilePath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  }
+} catch (err) {
+  console.warn('Could not write package.json:', err.message);
 }
 
 console.log(`Version updated to ${currentVersion}`);
