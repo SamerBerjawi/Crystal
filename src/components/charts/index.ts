@@ -19,3 +19,8 @@ export {
 } from "./line-series-terminal-marker";
 export { CandlestickChart, type CandlestickChartProps, type OHLCDataPoint } from "./candlestick-chart";
 export { Candlestick, type CandlestickProps } from "./candlestick";
+export { PieChart, type PieChartProps } from "./pie-chart";
+export { PieSlice, type PieSliceProps } from "./pie-slice";
+export { PieCenter, type PieCenterProps } from "./pie-center";
+export { PieCenterShell, type PieCenterShellProps } from "./pie-center-shell";
+export { type PieData } from "./pie-context";

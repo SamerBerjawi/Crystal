@@ -68,6 +68,18 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
   const markers = useMemo<ChartMarker[]>(() => {
     const items: ChartMarker[] = [];
 
+    if (chartDataWithTrend.length > 0) {
+      const todayPoint = chartDataWithTrend.find((d) => d.isHistory) || chartDataWithTrend[0];
+      if (todayPoint && todayPoint.date) {
+        items.push({
+          date: todayPoint.date instanceof Date ? todayPoint.date : parseLocalDate(todayPoint.date as unknown as string),
+          title: 'Today',
+          icon: '📍',
+          color: '#6366F1',
+        });
+      }
+    }
+
     if (showGoalLines && oneTimeGoals.length > 0) {
       oneTimeGoals.forEach((goal) => {
         if (!goal.date) return;

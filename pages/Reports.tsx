@@ -14,6 +14,7 @@ import {
   Bar,
   Legend
 } from 'recharts';
+import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE } from '../constants';
@@ -940,32 +941,34 @@ const Reports: React.FC = () => {
             <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Top categories by volume</p>
           </div>
 
-          <div className="h-[240px] w-full relative z-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryTotals.slice(0, 5)}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={95}
-                  paddingAngle={8}
-                  dataKey="totalEur"
-                  nameKey="category"
-                  stroke="none"
-                  animationDuration={1500}
-                >
-                  {categoryTotals.slice(0, 5).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'][index % 5]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<ChartTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[9px] font-bold tracking-[0.2em] opacity-40">Total</span>
-              <span className="text-2xl font-bold tracking-tighter">€{totals.totalSpendEur.toFixed(0)}</span>
-            </div>
+          <div className="h-[240px] w-full relative z-10 flex items-center justify-center">
+            <BklitPieChart
+              data={categoryTotals.slice(0, 5).map((cat, idx) => ({
+                label: cat.category,
+                value: cat.totalEur,
+                color: ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'][idx % 5],
+              }))}
+              innerRadius={70}
+              cornerRadius={6}
+              padAngle={0.06}
+              className="w-full h-[240px]"
+            >
+              {categoryTotals.slice(0, 5).map((_, index) => (
+                <PieSlice key={index} index={index} showGlow />
+              ))}
+              <PieCenter defaultLabel="Total">
+                {({ value, label, isHovered }) => (
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <span className="text-[9px] font-bold tracking-[0.2em] opacity-40 uppercase">
+                      {label}
+                    </span>
+                    <span className="text-xl font-bold tracking-tighter">
+                      €{isHovered ? value.toFixed(0) : totals.totalSpendEur.toFixed(0)}
+                    </span>
+                  </div>
+                )}
+              </PieCenter>
+            </BklitPieChart>
           </div>
 
           <div className="mt-8 space-y-3 relative z-10">

@@ -15,6 +15,8 @@ export interface DashTailStrokeProps {
   innerHeight: number;
   /** Stroke paint — solid color or gradient url. */
   stroke: string;
+  /** Stroke paint override for the dashed tail segment. */
+  dashStroke?: string;
   strokeWidth: number;
   dashArray: string;
 }
@@ -25,6 +27,7 @@ export function DashTailStroke({
   innerWidth,
   innerHeight,
   stroke,
+  dashStroke,
   strokeWidth,
   dashArray,
 }: DashTailStrokeProps) {
@@ -39,6 +42,7 @@ export function DashTailStroke({
   const pad = strokeWidth * 2;
   const headWidth = Math.max(0, dashStartX + strokeWidth);
   const tailWidth = Math.max(0, innerWidth - dashStartX + pad);
+  const effectiveDashStroke = dashStroke || stroke;
 
   return (
     <>
@@ -76,7 +80,7 @@ export function DashTailStroke({
         clipPath={`url(#${tailClipId})`}
         d={pathD}
         fill="none"
-        stroke={stroke}
+        stroke={effectiveDashStroke}
         strokeDasharray={dashArray}
         strokeLinecap="round"
         strokeWidth={strokeWidth}

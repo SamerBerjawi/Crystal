@@ -74,6 +74,8 @@ export interface LineProps {
   dashFromIndex?: number;
   /** Dash pattern for the tail segment when `dashFromIndex` is set. Default: "6,4" */
   dashArray?: string;
+  /** Stroke paint override for the dashed tail segment. */
+  dashStroke?: string;
   /** Stroke dash pattern for the whole line. e.g. "4,4" */
   strokeDasharray?: string;
   /**
@@ -222,6 +224,7 @@ export function Line({
   markers,
   dashFromIndex,
   dashArray = "6,4",
+  dashStroke,
   strokeDasharray,
   loading,
   loadingStroke = chartCssVars.foreground,
@@ -362,6 +365,7 @@ export function Line({
         <SeriesDashTailOverlay
           dashArray={dashArray}
           dashFromIndex={dashFromIndex}
+          dashStroke={dashStroke}
           data={data}
           innerHeight={innerHeight}
           innerWidth={innerWidth}

@@ -1,9 +1,7 @@
-
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import React, { useMemo } from 'react';
+import { PieChart, PieSlice, PieCenter, type PieData } from '../src/components/charts';
 import { formatCurrency } from '../utils';
 
-// FIX: Add an index signature to the ChartDataItem interface to make it compatible with the 'data' prop of recharts components, which expects a generic object.
 interface ChartDataItem {
   name: string;
   value: number;
@@ -17,68 +15,56 @@ interface PortfolioDistributionChartProps {
 }
 
 const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({ data, totalValue }) => {
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-neutral-900 p-4 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2  tracking-wider text-[10px]">{`${payload[0].name}`}</p>
-          <div className="flex items-center justify-between gap-6">
-            <span className="text-xs font-black" style={{ color: payload[0].payload.fill }}>{formatCurrency(payload[0].value, 'EUR')}</span>
-            <span className="text-[10px] font-black text-neutral-700 dark:text-neutral-300  tracking-widest">{`(${(payload[0].percent * 100).toFixed(1)}%)`}</span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // The legend is only needed for more than one data point.
-  // This also determines if we need to shift the chart to make space.
-  const showLegend = data && data.length > 1;
-  const chartCx = showLegend ? '35%' : '50%';
-  const textLeft = showLegend ? '35%' : '50%';
+  const pieData = useMemo<PieData[]>(() => {
+    return data.map((item) => ({
+      label: item.name,
+      value: item.value,
+      color: item.color,
+    }));
+  }, [data]);
 
   return (
-    <div className="h-full w-full relative" style={{ minHeight: 270 }}>
-        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-            <PieChart>
-                <Pie
-                    data={data}
-                    cx={chartCx}
-                    cy="50%"
-                    innerRadius="60%"
-                    outerRadius="80%"
-                    fill="#8884d8"
-                    animationDuration={800}
-                    paddingAngle={5}
-                    dataKey="value"
-                    startAngle={90}
-                    endAngle={-270}
-                >
-                    {data.map(entry => <Cell key={entry.name} fill={entry.color} stroke={entry.color} />)}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                {showLegend && (
-                    <Legend 
-                        iconType="circle" 
-                        iconSize={8} 
-                        layout="vertical" 
-                        verticalAlign="middle" 
-                        align="right" 
-                        formatter={(value: string) => (
-                            <span className="text-[10px] font-bold text-light-text-secondary dark:text-gray-300  tracking-widest">{value}</span>
-                        )}
-                    />
-                )}
-            </PieChart>
-        </ResponsiveContainer>
-        <div 
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none"
-            style={{ left: textLeft }}
+    <div className="h-full w-full flex flex-col md:flex-row items-center justify-between gap-4 py-2" style={{ minHeight: 270 }}>
+      <div className="flex-1 w-full relative flex items-center justify-center min-h-[220px]">
+        <PieChart
+          data={pieData}
+          innerRadius={65}
+          cornerRadius={6}
+          padAngle={pieData.length > 1 ? 0.04 : 0}
+          className="w-full h-full max-h-[240px]"
         >
-            <span className="text-light-text-secondary dark:text-gray-400 text-xs font-bold  tracking-widest leading-none mb-1">Total Value</span>
-            <span className="text-2xl font-black text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</span>
+          {pieData.map((_, index) => (
+            <PieSlice key={index} index={index} showGlow />
+          ))}
+          <PieCenter defaultLabel="Total Value">
+            {({ value, label, isHovered }) => (
+              <div className="flex flex-col items-center justify-center text-center">
+                <span className="text-light-text-secondary dark:text-gray-400 text-[10px] font-extrabold uppercase tracking-widest leading-none mb-1">
+                  {label}
+                </span>
+                <span className="text-xl font-black text-light-text dark:text-white tracking-tight">
+                  {formatCurrency(isHovered ? value : totalValue, 'EUR')}
+                </span>
+              </div>
+            )}
+          </PieCenter>
+        </PieChart>
+      </div>
+
+      {pieData.length > 1 && (
+        <div className="flex flex-wrap md:flex-col gap-2 max-h-[220px] overflow-y-auto pr-2">
+          {pieData.map((item) => {
+            const pct = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
+            return (
+              <div key={item.label} className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                <span className="font-bold text-light-text dark:text-white truncate max-w-[110px]">{item.label}</span>
+                <span className="text-[11px] font-mono text-light-text-secondary dark:text-gray-400">({pct.toFixed(1)}%)</span>
+              </div>
+            );
+          })}
         </div>
+      )}
     </div>
   );
 };

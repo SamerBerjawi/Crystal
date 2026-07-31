@@ -7,6 +7,7 @@ import { resolveDashStartX, resolveDashTailBounds } from "./path-stroke-utils";
 interface SeriesDashTailOverlayProps {
   dashFromIndex?: number;
   dashArray: string;
+  dashStroke?: string;
   data: Record<string, unknown>[];
   pathD: string | null;
   pathLength: number;
@@ -21,6 +22,7 @@ interface SeriesDashTailOverlayProps {
 function SeriesDashTailOverlayImpl({
   dashFromIndex,
   dashArray,
+  dashStroke,
   data,
   pathD,
   pathLength,

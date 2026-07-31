@@ -97,8 +97,27 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     };
   }, [data, showForecast]);
 
+  const { currentActualValue, finalProjectedValue } = useMemo(() => {
+    if (chartData.length === 0) return { currentActualValue: 0, finalProjectedValue: 0 };
+    const currentActual = chartData[lastActualIndex]?.netWorth ?? 0;
+    const finalProjected = chartData[chartData.length - 1]?.netWorth ?? 0;
+    return { currentActualValue: currentActual, finalProjectedValue: finalProjected };
+  }, [chartData, lastActualIndex]);
+
+  const projectionColor = finalProjectedValue < currentActualValue ? '#F43F5E' : '#10B981';
+
   const markers = useMemo<ChartMarker[]>(() => {
     const items: ChartMarker[] = [];
+
+    if (chartData.length > 0 && lastActualIndex >= 0 && lastActualIndex < chartData.length) {
+      const todayDate = chartData[lastActualIndex].date;
+      items.push({
+        date: todayDate,
+        title: 'Today',
+        icon: '📍',
+        color: '#6366F1',
+      });
+    }
 
     if (showGoals && goals.length > 0 && chartData.length > 0) {
       const start = chartData[0].date.getTime();
@@ -164,6 +183,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         <Line
           dataKey="netWorth"
           stroke="#10B981"
+          dashStroke={projectionColor}
           strokeWidth={3}
           dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
           dashArray="6,4"
@@ -178,7 +198,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         />
 
         {isDashedProjection && (
-          <LineSeriesTerminalMarker dataKey="netWorth" stroke="#10B981" />
+          <LineSeriesTerminalMarker dataKey="netWorth" stroke={projectionColor} />
         )}
 
         {markers.length > 0 && <ChartMarkers items={markers} />}
@@ -188,9 +208,10 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             const isProjected = Boolean(point.isProjected);
             const label = isProjected ? 'Projected Net Worth' : 'Actual Net Worth';
             const val = typeof point.netWorth === 'number' ? point.netWorth : 0;
+            const strokeColor = isProjected ? projectionColor : '#10B981';
             const rowsList = [
               {
-                color: '#10B981',
+                color: strokeColor,
                 label,
                 value: formatCurrency(val, 'EUR'),
               },

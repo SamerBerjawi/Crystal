@@ -4,7 +4,7 @@ import MultiAccountFilter from './MultiAccountFilter';
 import DurationFilter from './DurationFilter';
 import TransactionMatcherCard from './TransactionMatcherCard';
 import SyncedBillMatcherCard from './SyncedBillMatcherCard';
-import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { PieChart, PieSlice, PieCenter } from '../src/components/charts';
 import Card from './Card';
 
 export type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
@@ -485,32 +485,34 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">
               Asset Allocation
             </h3>
-            <div className="h-48 w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={assetAllocationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {assetAllocationData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] font-semibold text-light-text-secondary dark:text-gray-400">
-                  Net Worth
-                </span>
-                <span className="text-lg font-bold text-light-text dark:text-white privacy-blur">
-                  {netWorthFormatted}
-                </span>
-              </div>
+            <div className="h-48 w-full relative flex items-center justify-center">
+              <PieChart
+                data={assetAllocationData.map((item: any) => ({
+                  label: item.name,
+                  value: item.value,
+                  color: item.color,
+                }))}
+                innerRadius={60}
+                cornerRadius={6}
+                padAngle={assetAllocationData.length > 1 ? 0.04 : 0}
+                className="w-full h-48"
+              >
+                {assetAllocationData.map((_: any, index: number) => (
+                  <PieSlice key={index} index={index} showGlow />
+                ))}
+                <PieCenter defaultLabel="Net Worth">
+                  {({ value, label, isHovered }) => (
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <span className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 uppercase tracking-widest">
+                        {label}
+                      </span>
+                      <span className="text-lg font-bold text-light-text dark:text-white privacy-blur">
+                        {isHovered ? `$${value.toLocaleString()}` : netWorthFormatted}
+                      </span>
+                    </div>
+                  )}
+                </PieCenter>
+              </PieChart>
             </div>
           </Card>
         </div>
