@@ -74,6 +74,8 @@ export interface LineProps {
   dashFromIndex?: number;
   /** Dash pattern for the tail segment when `dashFromIndex` is set. Default: "6,4" */
   dashArray?: string;
+  /** Stroke dash pattern for the whole line. e.g. "4,4" */
+  strokeDasharray?: string;
   /**
    * Show the loading pulse overlay. Default: follows chart loading phase.
    * Set `false` to disable even during loading.
@@ -102,6 +104,7 @@ function LineSeriesStroke({
   pathRef,
   renderData,
   strokeWidth,
+  strokeDasharray,
   useDataTransitionPath,
   visibleStroke,
   xAccessor,
@@ -113,6 +116,7 @@ function LineSeriesStroke({
   pathRef: RefObject<SVGPathElement | null>;
   renderData: Record<string, unknown>[];
   strokeWidth: number;
+  strokeDasharray?: string;
   useDataTransitionPath: boolean;
   visibleStroke: string;
   xAccessor: (datum: Record<string, unknown>) => Date;
@@ -125,6 +129,7 @@ function LineSeriesStroke({
         fill="none"
         ref={pathRef}
         stroke={visibleStroke}
+        strokeDasharray={strokeDasharray}
         strokeLinecap="round"
         strokeWidth={strokeWidth}
       />
@@ -137,6 +142,7 @@ function LineSeriesStroke({
       data={renderData}
       innerRef={pathRef}
       stroke={visibleStroke}
+      strokeDasharray={strokeDasharray}
       strokeLinecap="round"
       strokeWidth={strokeWidth}
       x={(d) => xScale(xAccessor(d)) ?? 0}
@@ -216,6 +222,7 @@ export function Line({
   markers,
   dashFromIndex,
   dashArray = "6,4",
+  strokeDasharray,
   loading,
   loadingStroke = chartCssVars.foreground,
   loadingStrokeOpacity = 0.5,
@@ -345,6 +352,7 @@ export function Line({
           pathRef={pathRef}
           renderData={renderData}
           strokeWidth={strokeWidth}
+          strokeDasharray={strokeDasharray}
           useDataTransitionPath={useDataTransitionPath}
           visibleStroke={visibleStroke}
           xAccessor={xAccessor}

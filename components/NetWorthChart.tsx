@@ -1,9 +1,19 @@
-
 import React, { useMemo } from 'react';
-import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, Dot } from 'recharts';
+import {
+  LineChart,
+  Line,
+  Grid,
+  XAxis,
+  YAxis,
+  ChartTooltip,
+  ChartMarkers,
+  useActiveMarkers,
+  MarkerTooltipContent,
+  LineSeriesTerminalMarker,
+  type ChartMarker,
+} from '../src/components/charts';
 import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
 import { FinancialGoal } from '../types';
-import { motion } from 'motion/react';
 
 interface ChartData {
   name: string;
@@ -28,267 +38,176 @@ interface NetWorthChartProps {
 }
 
 const yAxisTickFormatter = (value: number) => {
-    if (Math.abs(value) >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
-    if (Math.abs(value) >= 1000) return `€${(value / 1000).toFixed(0)}K`;
-    return `€${value}`;
+  if (Math.abs(value) >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1000) return `€${(value / 1000).toFixed(0)}K`;
+  return `€${value}`;
 };
 
-const NetWorthChart: React.FC<NetWorthChartProps> = ({ 
-    data, 
-    lineColor = '#6366F1',
-    showForecast = true,
-    showGoals = true,
-    goals = [],
-    annotations = []
+const CustomTooltipContent: React.FC<{ markers: ChartMarker[] }> = ({ markers }) => {
+  const activeMarkers = useActiveMarkers(markers);
+
+  return (
+    <div className="space-y-2">
+      {activeMarkers.length > 0 && <MarkerTooltipContent markers={activeMarkers} />}
+    </div>
+  );
+};
+
+const NetWorthChart: React.FC<NetWorthChartProps> = ({
+  data,
+  lineColor = '#6366F1',
+  showForecast = true,
+  showGoals = true,
+  goals = [],
+  annotations = [],
 }) => {
-  const chartData = useMemo(() => {
-    const points = data.map(point => ({
-      ...point,
-      actual: point.value !== undefined ? point.value : point.actual,
-    }));
-    const trendValues = calculateTrendLine(points, (item) => item.actual ?? item.forecast ?? 0);
-    return points.map((p, idx) => ({
-      ...p,
-      trend: trendValues[idx]
-    }));
-  }, [data]);
+  const { chartData, lastActualIndex } = useMemo(() => {
+    if (!data || data.length === 0) {
+      return { chartData: [], lastActualIndex: -1 };
+    }
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-      if (active && payload && payload.length) {
-        const historyPayload = payload.find((p: any) => p.dataKey === 'actual');
-        const forecastPayload = payload.find((p: any) => p.dataKey === 'forecast');
-
-        return (
-          <div className="bg-white dark:bg-neutral-900 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800/80 min-w-[180px] animate-in fade-in zoom-in duration-200">
-            <div className="mb-3 pb-2 border-b border-neutral-200 dark:border-neutral-800/80">
-                <p className="font-bold text-neutral-800 dark:text-neutral-100 text-xs  tracking-wider">
-                    {parseLocalDate(label).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-            </div>
-            
-            <div className="space-y-3">
-                {historyPayload && (
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400  tracking-widest mb-1">Actual Net Worth</span>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                            <span className="text-lg font-black text-neutral-800 dark:text-neutral-100 font-mono tracking-tighter">
-                                {formatCurrency(historyPayload.value, 'EUR')}
-                            </span>
-                        </div>
-                    </div>
-                )}
-                
-                {forecastPayload && (
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-400  tracking-widest mb-1">Forecasted</span>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                            <span className="text-lg font-black text-primary-500 font-mono tracking-tighter">
-                                {formatCurrency(forecastPayload.value, 'EUR')}
-                            </span>
-                        </div>
-                    </div>
-                )}
-            </div>
-          </div>
-        );
+    let lastActualIdx = -1;
+    const rawPoints = data.map((point, idx) => {
+      const actualVal = point.actual !== undefined ? point.actual : point.value;
+      if (actualVal !== undefined) {
+        lastActualIdx = idx;
       }
-      return null;
-  };
+      const netWorthVal = actualVal !== undefined ? actualVal : point.forecast;
+      return {
+        ...point,
+        date: parseLocalDate(point.name),
+        netWorth: netWorthVal,
+        isProjected: actualVal === undefined && point.forecast !== undefined,
+      };
+    });
 
-  const tickFormatter = (dateStr: string) => {
-    const date = parseLocalDate(dateStr);
+    const filtered = showForecast
+      ? rawPoints
+      : rawPoints.filter((_, idx) => lastActualIdx === -1 || idx <= lastActualIdx);
 
-    if (chartData.length <= 1) return '';
+    const trendValues = calculateTrendLine(filtered, (item) => item.netWorth ?? 0);
+    const finalData = filtered.map((p, idx) => ({
+      ...p,
+      trend: trendValues[idx],
+    }));
 
-    const startDate = parseLocalDate(chartData[0].name);
-    const endDate = parseLocalDate(chartData[chartData.length - 1].name);
-    const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
+    return {
+      chartData: finalData,
+      lastActualIndex: lastActualIdx >= 0 && lastActualIdx < finalData.length ? lastActualIdx : finalData.length - 1,
+    };
+  }, [data, showForecast]);
 
-    if (rangeInDays <= 31) {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const markers = useMemo<ChartMarker[]>(() => {
+    const items: ChartMarker[] = [];
+
+    if (showGoals && goals.length > 0 && chartData.length > 0) {
+      const start = chartData[0].date.getTime();
+      const end = chartData[chartData.length - 1].date.getTime();
+
+      goals.forEach((goal) => {
+        if (!goal.date) return;
+        const gDate = parseLocalDate(goal.date);
+        const gTime = gDate.getTime();
+        if (gTime >= start && gTime <= end) {
+          items.push({
+            date: gDate,
+            title: goal.name,
+            description: `Target: ${formatCurrency(goal.amount, 'EUR')}`,
+            icon: '🎯',
+            color: '#F59E0B',
+          });
+        }
+      });
     }
-    
-    if (rangeInDays <= 365) {
-      // For ranges up to a year, show Month only, but ensure we don't repeat if ticks are too close
-      return date.toLocaleDateString('en-US', { month: 'short' });
+
+    if (annotations && annotations.length > 0) {
+      annotations.forEach((ann) => {
+        if (!ann.date) return;
+        items.push({
+          date: parseLocalDate(ann.date),
+          title: ann.label,
+          icon: '📍',
+          color: '#3B82F6',
+        });
+      });
     }
-    
-    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-  };
-  
-  const gradientId = `colorNetWorth-${lineColor.replace('#', '')}`;
-  const forecastGradientId = `colorForecast-${lineColor.replace('#', '')}`;
+
+    return items;
+  }, [showGoals, goals, annotations, chartData]);
+
+  if (!chartData || chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-40 p-8 text-center min-h-[250px]">
+        <span className="material-symbols-outlined text-3xl mb-2">show_chart</span>
+        <p className="text-xs font-bold tracking-widest">No Net Worth Data Available</p>
+      </div>
+    );
+  }
+
+  const isDashedProjection = showForecast && lastActualIndex >= 0 && lastActualIndex < chartData.length - 1;
 
   return (
     <div className="flex-grow relative h-full w-full min-h-[250px]">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 0, right: 10, left: -20, bottom: 0 }}
+      <LineChart
+        data={chartData}
+        xDataKey="date"
+        yDomainTween
+        aspectRatio=""
+        className="w-full h-full min-h-[250px]"
+        margin={{ top: 20, right: 20, bottom: 30, left: 55 }}
+      >
+        <Grid horizontal stroke="rgba(255, 255, 255, 0.08)" />
+        <XAxis />
+        <YAxis tickFormatter={yAxisTickFormatter} />
+
+        {/* Combined Historic & Projection Line */}
+        <Line
+          dataKey="netWorth"
+          stroke="#10B981"
+          strokeWidth={3}
+          dashFromIndex={isDashedProjection ? lastActualIndex : undefined}
+          dashArray="6,4"
+          fadeEdges
+        />
+
+        <Line
+          dataKey="trend"
+          stroke="#8B5CF6"
+          strokeWidth={2}
+          strokeDasharray="4,4"
+        />
+
+        {isDashedProjection && (
+          <LineSeriesTerminalMarker dataKey="netWorth" stroke="#10B981" />
+        )}
+
+        {markers.length > 0 && <ChartMarkers items={markers} />}
+
+        <ChartTooltip
+          rows={(point) => {
+            const isProjected = Boolean(point.isProjected);
+            const label = isProjected ? 'Projected Net Worth' : 'Actual Net Worth';
+            const val = typeof point.netWorth === 'number' ? point.netWorth : 0;
+            const rowsList = [
+              {
+                color: '#10B981',
+                label,
+                value: formatCurrency(val, 'EUR'),
+              },
+            ];
+            if (typeof point.trend === 'number') {
+              rowsList.push({
+                color: '#8B5CF6',
+                label: 'Trend Line',
+                value: formatCurrency(point.trend, 'EUR'),
+              });
+            }
+            return rowsList;
+          }}
         >
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
-              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id={forecastGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.2}/>
-              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
-            </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
-          <XAxis 
-            dataKey="name" 
-            stroke="currentColor" 
-            opacity={0.4} 
-            fontSize={11} 
-            tickFormatter={tickFormatter} 
-            minTickGap={60} 
-            interval="preserveStartEnd"
-            axisLine={false} 
-            tickLine={false} 
-            dy={10}
-          />
-          <YAxis 
-            stroke="currentColor" 
-            opacity={0.4} 
-            fontSize={11} 
-            tickFormatter={yAxisTickFormatter} 
-            axisLine={false} 
-            tickLine={false}
-          />
-          <Tooltip 
-            cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
-            content={<CustomTooltip />} 
-           />
-          <Legend 
-            verticalAlign="top" 
-            align="right"
-            height={20} 
-            iconType="circle" 
-            wrapperStyle={{ 
-                fontSize: '10px', 
-                fontWeight: '900', 
-                 
-                letterSpacing: '0.05em',
-                paddingBottom: '0px',
-                marginTop: '-15px'
-            }} 
-          />
-          
-          {/* Today Line */}
-          <ReferenceLine 
-            x={todayStr} 
-            stroke="#6366F1" 
-            strokeWidth={2} 
-            strokeDasharray="3 3"
-            label={{ 
-                value: 'TODAY', 
-                position: 'insideTopLeft', 
-                fill: '#6366F1', 
-                fontSize: 10, 
-                fontWeight: 900,
-                letterSpacing: '0.1em'
-            }} 
-          />
-
-          {/* Goal Markers */}
-          {showGoals && goals.map((goal) => {
-              if (!goal.date) return null;
-              if(chartData.length === 0) return null;
-              const start = chartData[0].name;
-              const end = chartData[chartData.length - 1].name;
-              if (goal.date < start || goal.date > end) return null;
-
-              return (
-                <ReferenceLine 
-                    key={goal.id} 
-                    x={goal.date} 
-                    stroke="#F59E0B" 
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.6}
-                >
-                    <Label 
-                        value={goal.name} 
-                        position="insideTop" 
-                        fill="#F59E0B" 
-                        fontSize={10} 
-                        fontWeight={700}
-                        angle={-90}
-                        dy={20}
-                        dx={-5}
-                    />
-                </ReferenceLine>
-              );
-          })}
-
-          {annotations && annotations.map((ann, idx) => (
-            <ReferenceLine
-              key={`ann-${idx}`}
-              x={ann.date}
-              stroke="#3B82F6"
-              strokeDasharray="2 2"
-              strokeOpacity={0.8}
-            >
-              <Label
-                value={ann.label}
-                position="insideTopLeft"
-                fill="#3B82F6"
-                fontSize={9}
-                fontWeight={800}
-                dy={10}
-              />
-            </ReferenceLine>
-          ))}
-
-          {showForecast && (
-              <Area 
-                type="monotone" 
-                dataKey="forecast" 
-                name="Forecast" 
-                stroke={lineColor} 
-                fill={`url(#${forecastGradientId})`}
-                strokeDasharray="6 5"
-                strokeWidth={2}
-                strokeOpacity={0.8}
-                dot={false}
-                connectNulls
-                activeDot={{ r: 4, fill: 'white', stroke: lineColor, strokeWidth: 2 }}
-              />
-          )}
-
-          <Area 
-            type="monotone" 
-            dataKey="actual" 
-            name="Actual Net Worth" 
-            stroke="#10B981" 
-            fill={`url(#${gradientId})`} 
-            strokeWidth={3}
-            filter="url(#glow)"
-            activeDot={{ r: 6, fill: 'white', stroke: '#10B981', strokeWidth: 3 }}
-          />
-
-          <Line 
-            type="monotone" 
-            dataKey="trend" 
-            name="Trend Line" 
-            stroke="#8B5CF6" 
-            strokeWidth={2} 
-            strokeDasharray="4 4" 
-            dot={false} 
-            activeDot={false}
-            connectNulls
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+          <CustomTooltipContent markers={markers} />
+        </ChartTooltip>
+      </LineChart>
     </div>
   );
 };

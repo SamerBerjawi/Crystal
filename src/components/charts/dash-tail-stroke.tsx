@@ -6,9 +6,9 @@ export interface DashTailStrokeProps {
   /** SVG path `d` for the full series (single curved path). */
   pathD: string | null;
   /** Total length of `pathD` in user units. */
-  pathLength: number;
+  pathLength?: number;
   /** Path length at which the dashed tail begins. */
-  dashStartLength: number;
+  dashStartLength?: number;
   /** X coordinate (chart inner space) where the tail clip begins. */
   dashStartX: number;
   innerWidth: number;
@@ -21,8 +21,6 @@ export interface DashTailStrokeProps {
 
 export function DashTailStroke({
   pathD,
-  pathLength,
-  dashStartLength,
   dashStartX,
   innerWidth,
   innerHeight,
@@ -30,19 +28,30 @@ export function DashTailStroke({
   strokeWidth,
   dashArray,
 }: DashTailStrokeProps) {
-  const clipPathId = useId().replace(/:/g, "");
+  const reactId = useId().replace(/:/g, "");
+  const headClipId = `clip-head-${reactId}`;
+  const tailClipId = `clip-tail-${reactId}`;
 
-  if (!pathD || pathLength <= 0 || dashStartLength >= pathLength) {
+  if (!pathD) {
     return null;
   }
 
   const pad = strokeWidth * 2;
+  const headWidth = Math.max(0, dashStartX + strokeWidth);
   const tailWidth = Math.max(0, innerWidth - dashStartX + pad);
 
   return (
     <>
       <defs>
-        <clipPath id={clipPathId}>
+        <clipPath id={headClipId}>
+          <rect
+            height={innerHeight + pad}
+            width={headWidth}
+            x={-pad}
+            y={-strokeWidth}
+          />
+        </clipPath>
+        <clipPath id={tailClipId}>
           <rect
             height={innerHeight + pad}
             width={tailWidth}
@@ -51,18 +60,20 @@ export function DashTailStroke({
           />
         </clipPath>
       </defs>
-      {/* Solid head — same curved path, gradient/fade preserved */}
+
+      {/* Solid head up to dashStartX */}
       <path
+        clipPath={`url(#${headClipId})`}
         d={pathD}
         fill="none"
         stroke={stroke}
-        strokeDasharray={`${dashStartLength} ${Math.max(1, pathLength - dashStartLength)}`}
         strokeLinecap="round"
         strokeWidth={strokeWidth}
       />
-      {/* Dashed tail — clipped to x ≥ dashStartX so dashes follow the curve */}
+
+      {/* Dashed tail from dashStartX onwards */}
       <path
-        clipPath={`url(#${clipPathId})`}
+        clipPath={`url(#${tailClipId})`}
         d={pathD}
         fill="none"
         stroke={stroke}

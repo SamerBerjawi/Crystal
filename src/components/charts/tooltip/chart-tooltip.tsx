@@ -51,6 +51,8 @@ export interface ChartTooltipProps {
   }) => React.ReactNode;
   /** Custom row renderer - return array of TooltipRow */
   rows?: (point: Record<string, unknown>) => TooltipRow[];
+  /** Custom formatter for numeric row values */
+  valueFormatter?: (value: number, dataKey: string) => string | number;
   /**
    * Override tooltip dot fill. When omitted and `rows` is set, dot colors match row colors.
    * When a function, receives the hovered point and line config.
@@ -107,6 +109,7 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
   indicatorColor: indicatorColorProp,
   content,
   rows: rowsRenderer,
+  valueFormatter,
   dotColor: dotColorProp,
   children,
   className = "",
@@ -202,12 +205,19 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
     }
 
     // Default: generate rows from registered lines
-    return lines.map((line) => ({
-      color: line.stroke,
-      label: line.dataKey,
-      value: (tooltipData.point[line.dataKey] as number) ?? 0,
-    }));
-  }, [tooltipData, lines, rowsRenderer]);
+    return lines.map((line) => {
+      const rawVal = tooltipData.point[line.dataKey];
+      const valNum = typeof rawVal === "number" ? rawVal : 0;
+      const formattedVal = valueFormatter
+        ? valueFormatter(valNum, line.dataKey)
+        : valNum;
+      return {
+        color: line.stroke,
+        label: line.dataKey,
+        value: formattedVal,
+      };
+    });
+  }, [tooltipData, lines, rowsRenderer, valueFormatter]);
 
   const resolveDotColor = useMemo(() => {
     return (line: LineConfig, index: number): string => {

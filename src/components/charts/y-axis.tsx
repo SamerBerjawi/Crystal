@@ -29,13 +29,19 @@ export interface YAxisProps {
   formatLargeNumbers?: boolean;
   /** Custom formatter for tick labels (e.g. USD). Overrides formatLargeNumbers when set. */
   formatValue?: (value: number) => string;
+  /** Custom tick formatter (alias for formatValue) */
+  tickFormatter?: (value: number) => string;
 }
 
 function formatLabel(
   value: number,
   formatLargeNumbers: boolean,
-  formatValue?: (value: number) => string
+  formatValue?: (value: number) => string,
+  tickFormatter?: (value: number) => string
 ): string {
+  if (tickFormatter) {
+    return tickFormatter(value);
+  }
   if (formatValue) {
     return formatValue(value);
   }
@@ -96,6 +102,7 @@ const YAxisInner = memo(function YAxisInner({
   numTicks = Y_AXIS_DEFAULT_TICK_COUNT,
   formatLargeNumbers = true,
   formatValue,
+  tickFormatter,
   container,
 }: YAxisProps & { container: HTMLDivElement }) {
   const { margin, referenceAreas } = useChartStable();
@@ -110,7 +117,7 @@ const YAxisInner = memo(function YAxisInner({
       return {
         value,
         y,
-        label: formatLabel(value, formatLargeNumbers, formatValue),
+        label: formatLabel(value, formatLargeNumbers, formatValue, tickFormatter),
         labelColor: resolveTickLabelColor(
           y - margin.top,
           axisId,
@@ -125,6 +132,7 @@ const YAxisInner = memo(function YAxisInner({
     numTicks,
     formatLargeNumbers,
     formatValue,
+    tickFormatter,
     axisId,
     referenceAreas,
   ]);

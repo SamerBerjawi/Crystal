@@ -1,105 +1,50 @@
-
 import React, { useMemo } from 'react';
-import { AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { PriceHistoryEntry } from '../types';
 import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
+import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '../src/components/charts';
 
 interface PriceHistoryChartProps {
   history: PriceHistoryEntry[];
 }
 
 const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
-    const sortedHistory = useMemo(() => {
-        const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        const trendVals = calculateTrendLine(sorted, 'price');
-        return sorted.map((item, idx) => ({
-            ...item,
-            trend: trendVals[idx]
-        }));
-    }, [history]);
+  const sortedHistory = useMemo(() => {
+    const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const trendVals = calculateTrendLine(sorted, 'price');
+    return sorted.map((item, idx) => ({
+      ...item,
+      date: parseLocalDate(item.date),
+      trend: trendVals[idx],
+    }));
+  }, [history]);
 
-    if (sortedHistory.length < 2) {
-        return (
-            <div className="flex items-center justify-center h-40 text-light-text-secondary dark:text-dark-text-secondary">
-                <p>Not enough history to display chart.</p>
-            </div>
-        );
-    }
-
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const date = parseLocalDate(label);
-            return (
-                <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-                    <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-2  tracking-widest text-[10px]">
-                        {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
-                    <p className="text-primary-500 font-mono font-black text-lg tracking-tighter">
-                        {formatCurrency(payload[0].value, 'EUR')}
-                    </p>
-                </div>
-            );
-        }
-        return null;
-    };
-
-    const tickFormatter = (dateStr: string) => {
-        const date = parseLocalDate(dateStr);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    };
-
+  if (sortedHistory.length < 2) {
     return (
-        <div className="flex-grow" style={{ width: '100%', height: '240px' }}>
-            <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-                <AreaChart data={sortedHistory} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
-                    <defs>
-                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
-                    <XAxis 
-                        dataKey="date" 
-                        axisLine={false} 
-                        tickLine={false}
-                        tickFormatter={tickFormatter}
-                        tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 11 }}
-                        minTickGap={40}
-                    />
-                    <YAxis 
-                        axisLine={false} 
-                        tickLine={false}
-                        tickFormatter={(value) => formatCurrency(value, 'EUR').replace(/[^0-9.,]/g, '')}
-                        tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 11 }}
-                        domain={['auto', 'auto']}
-                        width={50}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
-                    <Area 
-                        type="monotone" 
-                        dataKey="price" 
-                        stroke="#8B5CF6" 
-                        strokeWidth={2} 
-                        fillOpacity={1} 
-                        fill="url(#colorPrice)" 
-                        activeDot={{ r: 5, strokeWidth: 2, fill: '#fff', stroke: '#8B5CF6' }}
-                        name="Price"
-                    />
-                    <Line 
-                        type="monotone" 
-                        dataKey="trend" 
-                        stroke="#6366f1" 
-                        strokeWidth={2} 
-                        strokeDasharray="4 4" 
-                        dot={false} 
-                        activeDot={false}
-                        name="Trend Line"
-                    />
-                </AreaChart>
-            </ResponsiveContainer>
-        </div>
+      <div className="flex items-center justify-center h-40 text-light-text-secondary dark:text-dark-text-secondary">
+        <p>Not enough history to display chart.</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="flex-grow w-full h-[240px]">
+      <LineChart
+        data={sortedHistory}
+        xDataKey="date"
+        yDomainTween
+        aspectRatio=""
+        className="w-full h-[240px]"
+        margin={{ top: 20, right: 20, bottom: 20, left: 50 }}
+      >
+        <Grid horizontal stroke="rgba(255, 255, 255, 0.08)" />
+        <XAxis />
+        <YAxis tickFormatter={(value) => formatCurrency(value, 'EUR').replace(/[^0-9.,]/g, '')} />
+        <Line dataKey="price" stroke="#8B5CF6" strokeWidth={2.5} fadeEdges />
+        <Line dataKey="trend" stroke="#6366F1" strokeWidth={2} strokeDasharray="4,4" />
+        <ChartTooltip valueFormatter={(val) => formatCurrency(val, 'EUR')} />
+      </LineChart>
+    </div>
+  );
 };
 
 export default PriceHistoryChart;

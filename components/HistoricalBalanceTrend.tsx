@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
-import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { convertToEur, formatCurrency, generateAmortizationSchedule, parseLocalDate, toLocalISOString, calculateTrendLine } from '../utils';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
+import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '../src/components/charts';
 
 interface HistoricalBalanceTrendProps {
   account: Account;
@@ -17,15 +17,15 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
       if (account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined) {
         const overrides = loanPaymentOverrides[account.id] || {};
         const schedule = generateAmortizationSchedule(account, transactions, overrides);
-        
+
         const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
         const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
         const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
         const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
-        
+
         const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
         const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
-        
+
         const totalOutstanding = outstandingPrincipal + outstandingInterest;
         return account.type === 'Loan' ? -totalOutstanding : totalOutstanding;
       }
@@ -80,6 +80,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     const trendValues = calculateTrendLine(data, 'value');
     const dataWithTrend = data.map((item, index) => ({
       ...item,
+      date: parseLocalDate(item.date),
       trend: trendValues[index]
     }));
 
@@ -99,39 +100,6 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
   }, [account.id, transactions, displayBalance]);
 
   const chartColor = isPositiveTrend ? '#10B981' : '#F43F5E';
-  const gradientId = `trendGradient-${account.id}`;
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const date = parseLocalDate(label);
-      const val = payload.find((p: any) => p.dataKey === 'value')?.value;
-      const trendVal = payload.find((p: any) => p.dataKey === 'trend')?.value;
-      return (
-        <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800/80 backdrop-blur-md">
-          <p className="font-bold text-neutral-500 dark:text-neutral-400 mb-1.5 tracking-wider text-[10px]">
-            {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </p>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chartColor }} />
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">Balance:</span>
-            <span className="font-mono font-bold text-sm text-neutral-800 dark:text-neutral-100">
-              {formatCurrency(val, account.currency)}
-            </span>
-          </div>
-          {trendVal !== undefined && (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-indigo-500" />
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">Trendline:</span>
-              <span className="font-mono font-semibold text-xs text-indigo-600 dark:text-indigo-400">
-                {formatCurrency(trendVal, account.currency)}
-              </span>
-            </div>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-8 flex flex-col group relative overflow-hidden shadow-sm">
@@ -152,7 +120,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
 
         <div className="flex items-center gap-6 bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 px-5 py-3 rounded-2xl">
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50  tracking-widest">Net Change</p>
+            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 tracking-widest">Net Change</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`material-symbols-outlined text-sm font-bold ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {isPositiveTrend ? 'arrow_upward' : 'arrow_downward'}
@@ -167,7 +135,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
           </div>
           <div className="w-px h-8 bg-black/10 dark:bg-white/10" />
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50  tracking-widest">Start Balance</p>
+            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 tracking-widest">Start Balance</p>
             <p className="text-sm font-bold font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
               {formatCurrency(startBalance, account.currency)}
             </p>
@@ -176,61 +144,28 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
       </div>
 
       <div className="flex-grow w-full h-[220px] relative z-10">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={chartColor} stopOpacity={0.12} />
-                <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.06} />
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }}
-              tickFormatter={(val) => {
-                const d = parseLocalDate(val);
-                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-              }}
-              minTickGap={40}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }}
-              tickFormatter={(val) => {
-                if (Math.abs(val) >= 1000) {
-                  return `${(val / 1000).toFixed(0)}k`;
-                }
-                return String(val);
-              }}
-              width={40}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke={chartColor}
-              strokeWidth={3}
-              fill={`url(#${gradientId})`}
-              dot={false}
-              activeDot={{ r: 6, strokeWidth: 0, fill: chartColor }}
-              name="Balance"
-            />
-            <Line
-              type="monotone"
-              dataKey="trend"
-              stroke="#6366f1"
-              strokeWidth={2}
-              strokeDasharray="4 4"
-              dot={false}
-              activeDot={false}
-              name="Trend Line"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <LineChart
+          data={chartData}
+          xDataKey="date"
+          yDomainTween
+          aspectRatio=""
+          className="w-full h-[220px]"
+          margin={{ top: 10, right: 10, bottom: 20, left: 40 }}
+        >
+          <Grid horizontal stroke="rgba(255, 255, 255, 0.06)" />
+          <XAxis />
+          <YAxis
+            tickFormatter={(val) => {
+              if (Math.abs(val) >= 1000) {
+                return `${(val / 1000).toFixed(0)}k`;
+              }
+              return String(val);
+            }}
+          />
+          <Line dataKey="value" stroke={chartColor} strokeWidth={3} fadeEdges />
+          <Line dataKey="trend" stroke="#6366f1" strokeWidth={2} strokeDasharray="4,4" />
+          <ChartTooltip valueFormatter={(val) => formatCurrency(val, account.currency)} />
+        </LineChart>
       </div>
     </div>
   );
