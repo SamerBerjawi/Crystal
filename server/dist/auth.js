@@ -22,9 +22,9 @@ const loginRateLimiter = (0, rateLimit_1.createRateLimiter)({
         return `${req.ip}:${email}`;
     },
 });
-const dbNorm_1 = require("./dbNorm");
 async function performLogin(userId, email) {
-    const financialData = await (0, dbNorm_1.fetchFinancialDataFromRelational)(userId);
+    const dataSql = `SELECT data FROM financial_data WHERE user_id = $1`;
+    const dataResult = await database_1.db.query(dataSql, [userId]);
     const lastLogin = new Date().toISOString();
     const userUpdateRes = await database_1.db.query(`UPDATE users SET last_login = $1 WHERE id = $2 RETURNING *`, [lastLogin, userId]);
     const user = userUpdateRes.rows[0];
@@ -47,6 +47,7 @@ async function performLogin(userId, email) {
         status: user.status,
         lastLogin: lastLogin
     };
+    const financialData = dataResult.rows[0] ? dataResult.rows[0].data : {};
     return { token, sessionExpiresAt, user: mappedUser, financialData };
 }
 router.post('/register', async (req, res) => {
@@ -67,8 +68,9 @@ router.post('/register', async (req, res) => {
         const userSql = `INSERT INTO users (first_name, last_name, email, password, profile_picture_url, last_login) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, email`;
         const userResult = await client.query(userSql, [firstName, lastName, email.toLowerCase(), hashedPassword, profilePic]);
         const newUser = userResult.rows[0];
+        const dataSql = `INSERT INTO financial_data (user_id, data) VALUES ($1, $2)`;
+        await client.query(dataSql, [newUser.id, '{}']);
         await client.query('COMMIT');
-        await (0, dbNorm_1.syncFinancialDataToRelational)(newUser.id, {});
         const loginData = await performLogin(newUser.id, newUser.email);
         (0, authConfig_1.setAuthCookie)(res, loginData.token, loginData.sessionExpiresAt);
         res.status(201).json({ user: loginData.user, financialData: loginData.financialData });
@@ -110,16 +112,16 @@ router.post('/login', loginRateLimiter, async (req, res) => {
 });
 router.post('/logout', async (req, res) => {
     try {
-        const cookieHeader = req.headers.cookie || '';
-        const cookieParts = cookieHeader.split(';').reduce((acc, part) => {
-            const [name, ...val] = part.trim().split('=');
-            if (name)
-                acc[name] = decodeURIComponent(val.join('=') || '');
-            return acc;
-        }, {});
-        const sessionCookie = cookieParts[authConfig_1.AUTH_COOKIE_NAME];
+        const rawCookie = req.headers.cookie || '';
+        const sessionCookie = rawCookie
+            .split(';')
+            .map(part => part.trim())
+            .find(part => part.startsWith(`${authConfig_1.AUTH_COOKIE_NAME}=`))
+            ?.split('=')
+            .slice(1)
+            .join('=');
         if (sessionCookie) {
-            const payload = jsonwebtoken_1.default.verify(sessionCookie, authConfig_1.JWT_SECRET);
+            const payload = jsonwebtoken_1.default.verify(decodeURIComponent(sessionCookie), authConfig_1.JWT_SECRET);
             if (payload?.sid) {
                 await database_1.db.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE id = $1`, [payload.sid]);
             }

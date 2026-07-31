@@ -6,33 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const middleware_1 = require("./middleware");
-const crypto_1 = require("./crypto");
-const dbNorm_1 = require("./dbNorm");
+const database_1 = require("./database");
 const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enablebanking.com';
 const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:5173/enable-banking/callback';
-function getEnableBankingCredentials(body = {}) {
-    let envAppId = process.env.ENABLE_BANKING_APPLICATION_ID?.trim();
-    let envCert = (process.env.ENABLE_BANKING_CLIENT_CERTIFICATE || process.env.ENABLE_BANKING_PRIVATE_KEY)?.trim();
-    let applicationId = envAppId || body?.applicationId?.trim();
-    let certCandidate = body?.clientCertificate?.trim();
-    if (!certCandidate || certCandidate === '[SERVER_CONFIGURED_ENCRYPTED]') {
-        certCandidate = body?.encryptedClientCertificate?.trim();
-    }
-    let clientCertificate = envCert || certCandidate;
-    if (applicationId && ((applicationId.startsWith('"') && applicationId.endsWith('"')) || (applicationId.startsWith("'") && applicationId.endsWith("'")))) {
-        applicationId = applicationId.slice(1, -1).trim();
-    }
-    if (clientCertificate && ((clientCertificate.startsWith('"') && clientCertificate.endsWith('"')) || (clientCertificate.startsWith("'") && clientCertificate.endsWith("'")))) {
-        clientCertificate = clientCertificate.slice(1, -1).trim();
-    }
-    if (clientCertificate && clientCertificate.includes(':') && !clientCertificate.includes('BEGIN')) {
-        clientCertificate = (0, crypto_1.decryptSecret)(clientCertificate);
-    }
-    if (!applicationId || !clientCertificate || clientCertificate === '[SERVER_CONFIGURED_ENCRYPTED]') {
-        throw new Error('Missing Enable Banking application credentials. Please configure Application ID and Client Certificate in Credentials Setup or on the server.');
-    }
-    return { applicationId, clientCertificate };
-}
 class EnableBankingClient {
     constructor(applicationId, clientCertificate) {
         this.applicationId = applicationId;
@@ -40,19 +16,13 @@ class EnableBankingClient {
     }
     getFormattedKey() {
         let key = this.clientCertificate.trim();
-        if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
-            key = key.slice(1, -1).trim();
-        }
-        key = key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-        if (!key.includes('\n')) {
-            const match = key.match(/(-----BEGIN [A-Z0-9\s_-]+-----)(.*?)(-----END [A-Z0-9\s_-]+-----)/i);
-            if (match) {
-                const header = match[1].trim();
-                const body = match[2].replace(/\s+/g, '');
-                const footer = match[3].trim();
-                const lines = body.match(/.{1,64}/g) || [];
-                key = [header, ...lines, footer].join('\n');
-            }
+        // Simple heuristic to fix common copy-paste issues where newlines are lost or escaped
+        if (!key.includes('\n') && key.includes('BEGIN PRIVATE KEY')) {
+            // If it looks like a one-liner but has headers, try to split it
+            // This handles the case where \n literals might be present or just spaces
+            key = key.replace(/\\n/g, '\n')
+                .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+                .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
         }
         return key;
     }
@@ -83,6 +53,7 @@ class EnableBankingClient {
         });
         if (!response.ok) {
             const text = await response.text();
+            // Throw with status code info if possible to help upstream handling
             throw new Error(`Enable Banking request failed (${response.status}): ${text || response.statusText}`);
         }
         return (await response.json());
@@ -138,11 +109,10 @@ class EnableBankingClient {
 const router = express_1.default.Router();
 router.post('/aspsps', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { countryCode } = req.body;
-        if (!countryCode) {
-            return res.status(400).json({ message: 'countryCode is required' });
+        const { applicationId, clientCertificate, countryCode } = req.body;
+        if (!applicationId || !clientCertificate || !countryCode) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate and countryCode are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const data = await client.getAspsps(countryCode);
         res.json(data);
@@ -154,12 +124,11 @@ router.post('/aspsps', middleware_1.authenticateToken, async (req, res) => {
 });
 router.post('/accounts/:accountId/details', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { sessionId } = req.body;
+        const { applicationId, clientCertificate, sessionId } = req.body;
         const { accountId } = req.params;
-        if (!sessionId) {
-            return res.status(400).json({ message: 'sessionId is required' });
+        if (!applicationId || !clientCertificate || !sessionId) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const details = await client.getAccountDetails(accountId, sessionId);
         res.json(details);
@@ -171,11 +140,10 @@ router.post('/accounts/:accountId/details', middleware_1.authenticateToken, asyn
 });
 router.post('/authorize', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { countryCode, aspspName, aspspId, state } = req.body;
-        if (!countryCode || (!aspspName && !aspspId)) {
-            return res.status(400).json({ message: 'countryCode and aspspId/aspspName are required' });
+        const { applicationId, clientCertificate, countryCode, aspspName, aspspId, state } = req.body;
+        if (!applicationId || !clientCertificate || !countryCode || (!aspspName && !aspspId)) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate, countryCode and aspspId/aspspName are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const forwardedProto = (Array.isArray(req.headers['x-forwarded-proto']) ? req.headers['x-forwarded-proto'][0] : req.headers['x-forwarded-proto'])?.split(',')[0]?.trim();
         const protocol = forwardedProto || req.protocol;
@@ -196,11 +164,10 @@ router.post('/authorize', middleware_1.authenticateToken, async (req, res) => {
 });
 router.post('/session', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { code } = req.body;
-        if (!code) {
-            return res.status(400).json({ message: 'code is required' });
+        const { applicationId, clientCertificate, code } = req.body;
+        if (!applicationId || !clientCertificate || !code) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate and code are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const session = await client.createSession(code);
         res.json(session);
@@ -212,11 +179,10 @@ router.post('/session', middleware_1.authenticateToken, async (req, res) => {
 });
 router.post('/session/fetch', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { sessionId } = req.body;
-        if (!sessionId) {
-            return res.status(400).json({ message: 'sessionId is required' });
+        const { applicationId, clientCertificate, sessionId } = req.body;
+        if (!applicationId || !clientCertificate || !sessionId) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const session = await client.getSession(sessionId);
         res.json(session);
@@ -228,12 +194,11 @@ router.post('/session/fetch', middleware_1.authenticateToken, async (req, res) =
 });
 router.post('/accounts/:accountId/balances', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { sessionId } = req.body;
+        const { applicationId, clientCertificate, sessionId } = req.body;
         const { accountId } = req.params;
-        if (!sessionId) {
-            return res.status(400).json({ message: 'sessionId is required' });
+        if (!applicationId || !clientCertificate || !sessionId) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const balances = await client.getAccountBalances(accountId, sessionId);
         res.json(balances);
@@ -245,12 +210,11 @@ router.post('/accounts/:accountId/balances', middleware_1.authenticateToken, asy
 });
 router.post('/accounts/:accountId/transactions', middleware_1.authenticateToken, async (req, res) => {
     try {
-        const { dateFrom, continuationKey, sessionId } = req.body;
+        const { applicationId, clientCertificate, dateFrom, continuationKey, sessionId } = req.body;
         const { accountId } = req.params;
-        if (!sessionId) {
-            return res.status(400).json({ message: 'sessionId is required' });
+        if (!applicationId || !clientCertificate || !sessionId) {
+            return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
         }
-        const { applicationId, clientCertificate } = getEnableBankingCredentials(req.body);
         const client = new EnableBankingClient(applicationId, clientCertificate);
         const transactions = await client.getAccountTransactions({ accountId, dateFrom, continuationKey, sessionId });
         res.json(transactions);
@@ -267,13 +231,21 @@ router.post('/pending', middleware_1.authenticateToken, async (req, res) => {
         if (!userId || !connection?.id) {
             return res.status(400).json({ message: 'connection with id is required' });
         }
-        const sanitizedConn = (0, crypto_1.sanitizeConnection)(connection);
-        const currentData = await (0, dbNorm_1.fetchFinancialDataFromRelational)(userId);
+        const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
+        const upsertSql = `
+        INSERT INTO financial_data (user_id, data)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id)
+        DO UPDATE SET data = EXCLUDED.data;
+    `;
+        const existing = await database_1.db.query(selectSql, [userId]);
+        const currentData = existing.rows?.[0]?.data || {};
         const pendingConnections = {
             ...(currentData.enableBankingPendingConnections || {}),
-            [connection.id]: sanitizedConn,
+            [connection.id]: connection,
         };
-        await (0, dbNorm_1.syncFinancialDataToRelational)(userId, { enableBankingPendingConnections: pendingConnections }, true);
+        const mergedData = { ...currentData, enableBankingPendingConnections: pendingConnections };
+        await database_1.db.query(upsertSql, [userId, mergedData]);
         res.json({ message: 'Pending connection stored' });
     }
     catch (error) {
@@ -288,13 +260,15 @@ router.get('/pending/:connectionId', middleware_1.authenticateToken, async (req,
         if (!userId || !connectionId) {
             return res.status(400).json({ message: 'connectionId is required' });
         }
-        const currentData = await (0, dbNorm_1.fetchFinancialDataFromRelational)(userId);
+        const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
+        const existing = await database_1.db.query(selectSql, [userId]);
+        const currentData = existing.rows?.[0]?.data || {};
         const pendingConnections = currentData.enableBankingPendingConnections || {};
         const connection = pendingConnections[connectionId];
         if (!connection) {
             return res.status(404).json({ message: 'Pending connection not found' });
         }
-        res.json({ connection: (0, crypto_1.sanitizeConnection)(connection) });
+        res.json({ connection });
     }
     catch (error) {
         console.error('Failed to fetch pending Enable Banking connection', error);
@@ -308,11 +282,20 @@ router.delete('/pending/:connectionId', middleware_1.authenticateToken, async (r
         if (!userId || !connectionId) {
             return res.status(400).json({ message: 'connectionId is required' });
         }
-        const currentData = await (0, dbNorm_1.fetchFinancialDataFromRelational)(userId);
+        const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
+        const upsertSql = `
+        INSERT INTO financial_data (user_id, data)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id)
+        DO UPDATE SET data = EXCLUDED.data;
+    `;
+        const existing = await database_1.db.query(selectSql, [userId]);
+        const currentData = existing.rows?.[0]?.data || {};
         const pendingConnections = { ...(currentData.enableBankingPendingConnections || {}) };
         if (pendingConnections[connectionId]) {
             delete pendingConnections[connectionId];
-            await (0, dbNorm_1.syncFinancialDataToRelational)(userId, { enableBankingPendingConnections: pendingConnections }, true);
+            const mergedData = { ...currentData, enableBankingPendingConnections: pendingConnections };
+            await database_1.db.query(upsertSql, [userId, mergedData]);
         }
         res.json({ message: 'Pending connection removed' });
     }
