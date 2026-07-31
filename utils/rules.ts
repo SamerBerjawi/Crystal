@@ -52,7 +52,7 @@ export function applyTransactionRulesToFields(
       return {
         merchant: tx.merchant,
         category: mRule.category,
-        description: mRule.defaultDescription || tx.description,
+        description: (tx.description && tx.description.trim()) ? tx.description : (mRule.defaultDescription || ''),
         isFromMerchantRule: true
       };
     }
