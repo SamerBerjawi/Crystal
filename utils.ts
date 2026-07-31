@@ -11,43 +11,79 @@ Big.PE = 20;
 
 export function safeAdd(a: number, b: number): number {
     try {
-        return Number(new Big(a).plus(new Big(b)).toFixed(8));
+        return Number(new Big(a || 0).plus(new Big(b || 0)).toFixed(8));
     } catch (e) {
-        return a + b;
+        return (a || 0) + (b || 0);
     }
 }
 
 export function safeSubtract(a: number, b: number): number {
     try {
-        return Number(new Big(a).minus(new Big(b)).toFixed(8));
+        return Number(new Big(a || 0).minus(new Big(b || 0)).toFixed(8));
     } catch (e) {
-        return a - b;
+        return (a || 0) - (b || 0);
     }
 }
 
 export function safeMultiply(a: number, b: number): number {
     try {
-        return Number(new Big(a).times(new Big(b)).toFixed(8));
+        return Number(new Big(a || 0).times(new Big(b || 0)).toFixed(8));
     } catch (e) {
-        return a * b;
+        return (a || 0) * (b || 0);
     }
 }
 
 export function safeDivide(a: number, b: number): number {
-    if (b === 0) return 0;
+    if (!b) return 0;
     try {
-        return Number(new Big(a).div(new Big(b)).toFixed(8));
+        return Number(new Big(a || 0).div(new Big(b)).toFixed(8));
     } catch (e) {
-        return a / b;
+        return (a || 0) / b;
     }
 }
 
 export function safeRound(a: number, decimals: number = 2): number {
     try {
-        return Number(new Big(a).toFixed(decimals));
+        return Number(new Big(a || 0).round(decimals, 1).toFixed(decimals)); // Round half-up
     } catch (e) {
-        return Math.round(a * Math.pow(10, decimals)) / Math.pow(10, decimals);
+        return Math.round((a || 0) * Math.pow(10, decimals)) / Math.pow(10, decimals);
     }
+}
+
+export function toCents(amount: number): number {
+    try {
+        return Math.round(Number(new Big(amount || 0).times(100).toFixed(4)));
+    } catch (e) {
+        return Math.round((amount || 0) * 100);
+    }
+}
+
+export function fromCents(cents: number): number {
+    try {
+        return Number(new Big(cents || 0).div(100).toFixed(2));
+    } catch (e) {
+        return (cents || 0) / 100;
+    }
+}
+
+export function escapeHtml(str: string): string {
+    if (typeof str !== 'string') return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+export function sanitizeInput(str: string): string {
+    if (typeof str !== 'string') return '';
+    return escapeHtml(str.trim());
+}
+
+export function sanitizeString(str: string): string {
+    if (typeof str !== 'string') return '';
+    return escapeHtml(str);
 }
 
 const symbolMap: { [key in Currency]: string } = {
@@ -899,7 +935,7 @@ export function generateBalanceForecast(
         if (!dailyEvents.has(date)) {
             dailyEvents.set(date, []);
         }
-        dailyEvents.get(date)!.push({ date, ...event });
+        dailyEvents.get(date)!.push({ date, ...event, description: escapeHtml(event.description) });
     };
 
     recurringTransactions.forEach(rt => {
