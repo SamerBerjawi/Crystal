@@ -20,6 +20,8 @@ export interface XAxisProps {
    * `"domain"` — evenly spaced ticks across the time domain (may not align with hover).
    */
   tickMode?: "domain" | "data";
+  /** Optional custom tick formatter function */
+  tickFormatter?: (value: any) => string;
 }
 
 interface AxisTick {

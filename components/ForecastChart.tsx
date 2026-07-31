@@ -74,7 +74,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
         items.push({
           date: todayPoint.date instanceof Date ? todayPoint.date : parseLocalDate(todayPoint.date as unknown as string),
           title: 'Today',
-          icon: '📍',
           color: '#6366F1',
         });
       }
@@ -87,7 +86,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
           date: parseLocalDate(goal.date),
           title: goal.name,
           description: `Target: ${formatCurrency(goal.amount, 'EUR')}`,
-          icon: '🎯',
           color: '#F59E0B',
         });
       });
@@ -97,7 +95,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
       items.push({
         date: parseLocalDate(lowestPoint.date),
         title: `Low Balance: ${formatCurrency(lowestPoint.value, 'EUR')}`,
-        icon: '⚠️',
         color: '#EF4444',
       });
     }

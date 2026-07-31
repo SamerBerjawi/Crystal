@@ -51,7 +51,6 @@ export function MarkerTooltipContent({ markers }: { markers: ChartMarker[] }) {
           key={idx}
           className="flex items-start gap-2 text-xs p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700/50"
         >
-          {marker.icon && <span className="text-base leading-none">{marker.icon}</span>}
           <div>
             <div className="font-bold text-neutral-800 dark:text-neutral-100">{marker.title}</div>
             {marker.description && (
@@ -119,7 +118,7 @@ export function ChartMarkers({
               onClick={marker.onClick}
             >
               <title>{`${marker.title}${marker.description ? ` - ${marker.description}` : ""}`}</title>
-              {typeof marker.icon === "string" ? `${marker.icon} ${marker.title}` : marker.title}
+              {marker.title}
             </text>
           </g>
         );

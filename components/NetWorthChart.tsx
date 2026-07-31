@@ -114,7 +114,6 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
       items.push({
         date: todayDate,
         title: 'Today',
-        icon: '📍',
         color: '#6366F1',
       });
     }
@@ -132,7 +131,6 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             date: gDate,
             title: goal.name,
             description: `Target: ${formatCurrency(goal.amount, 'EUR')}`,
-            icon: '🎯',
             color: '#F59E0B',
           });
         }
@@ -145,7 +143,6 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         items.push({
           date: parseLocalDate(ann.date),
           title: ann.label,
-          icon: '📍',
           color: '#3B82F6',
         });
       });

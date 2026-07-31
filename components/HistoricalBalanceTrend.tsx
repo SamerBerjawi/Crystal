@@ -219,7 +219,6 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
       items.push({
         date: combinedData[lastActualIndex].date,
         title: 'Today',
-        icon: '📍',
         color: '#6366F1',
       });
     }

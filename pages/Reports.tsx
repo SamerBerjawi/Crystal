@@ -14,7 +14,17 @@ import {
   Bar,
   Legend
 } from 'recharts';
-import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
+import {
+  PieChart as BklitPieChart,
+  PieSlice,
+  PieCenter,
+  LineChart as BklitLineChart,
+  Line as BklitLine,
+  Grid as BklitGrid,
+  XAxis as BklitXAxis,
+  YAxis as BklitYAxis,
+  ChartTooltip as BklitChartTooltip,
+} from '../src/components/charts';
 import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE } from '../constants';
@@ -907,29 +917,49 @@ const Reports: React.FC = () => {
             </div>
           </div>
           <div className="h-[300px] w-full flex-1 relative z-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={velocityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  fontSize={10} 
-                  tickFormatter={(val) => `D${val}`}
-                  tick={{ fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }}
-                />
-                <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }} tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(1) + 'k' : val}`} />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(var(--primary-500-rgb), 0.2)', strokeWidth: 2 }} />
-                <Area type="monotone" dataKey="previous" name="Previous Period" stroke="currentColor" fill="transparent" strokeDasharray="6 4" strokeWidth={1.5} opacity={0.2} />
-                <Area type="monotone" dataKey="current" name="Current Period" stroke="#6366F1" fillOpacity={1} fill="url(#colorCurrent)" strokeWidth={3} animationDuration={1500} />
-              </AreaChart>
-            </ResponsiveContainer>
+            <BklitLineChart
+              data={velocityData}
+              xDataKey="day"
+              yDomainTween
+              aspectRatio=""
+              className="w-full h-[300px]"
+              margin={{ top: 15, right: 15, bottom: 25, left: 55 }}
+            >
+              <BklitGrid horizontal stroke="rgba(255, 255, 255, 0.06)" />
+              <BklitXAxis tickFormatter={(val) => `D${val}`} />
+              <BklitYAxis
+                tickFormatter={(val) => {
+                  if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(1)}k`;
+                  return String(val);
+                }}
+              />
+              <BklitLine
+                dataKey="previous"
+                stroke="rgba(156, 163, 175, 0.5)"
+                strokeWidth={1.5}
+                strokeDasharray="6,4"
+              />
+              <BklitLine
+                dataKey="current"
+                stroke="#6366F1"
+                strokeWidth={3}
+                fadeEdges
+              />
+              <BklitChartTooltip
+                rows={(point) => [
+                  {
+                    color: '#6366F1',
+                    label: 'Current Period',
+                    value: `€${typeof point.current === 'number' ? point.current.toLocaleString() : 0}`,
+                  },
+                  {
+                    color: 'rgba(156, 163, 175, 0.5)',
+                    label: 'Previous Period',
+                    value: `€${typeof point.previous === 'number' ? point.previous.toLocaleString() : 0}`,
+                  },
+                ]}
+              />
+            </BklitLineChart>
           </div>
         </Card>
 
