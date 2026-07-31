@@ -10,7 +10,9 @@ import EditAccountModal from '../components/EditAccountModal';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
+import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { buildHoldingsOverview } from '../utils/investments';
+import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import AccountsListSection from '../components/AccountsListSection';
@@ -134,6 +136,20 @@ const Investments: React.FC<InvestmentsProps> = ({
         },
         [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings, activeSegment]
     );
+
+    const segmentPriceHistory = useMemo(() => {
+        const matchingAccounts = activeSegment === 'all' 
+            ? investmentAccounts 
+            : investmentAccounts.filter(a => a.subType === (activeSegment as any));
+
+        const entries: { date: string; price: number }[] = [];
+        matchingAccounts.forEach(acc => {
+            if (acc.priceHistory && acc.priceHistory.length > 0) {
+                entries.push(...acc.priceHistory);
+            }
+        });
+        return entries;
+    }, [investmentAccounts, activeSegment]);
 
     const accountBySymbol = useMemo(() => {
         const map = new Map<string, Account>();
@@ -837,6 +853,19 @@ const Investments: React.FC<InvestmentsProps> = ({
                     </div>
                 </div>
 
+                {/* Investment Candlestick Performance Trend Chart */}
+                <InvestmentCandlestickChart
+                    title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
+                    subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
+                    currentValue={segmentMetrics.totalValue}
+                    costBasis={activeSegment === 'all' ? totalCostBasis : undefined}
+                    isNegativeTrend={segmentMetrics.totalValue < (totalCostBasis || 0)}
+                    priceHistory={segmentPriceHistory}
+                    transactions={investmentTransactions}
+                    currency="EUR"
+                    height={320}
+                />
+
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                     {/* Main Table Column */}
                     <div className="xl:col-span-8 space-y-8">
@@ -1102,40 +1131,34 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
                             <button className="text-[10px] font-bold text-primary-500  tracking-widest hover:underline">Analysis</button>
                         </div>
-                        <div className="h-48 relative mb-6">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={distributionData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={70}
-                                        paddingAngle={4}
-                                        dataKey="value"
-                                        stroke="none"
-                                    >
-                                        {distributionData.map(entry => (
-                                            <Cell key={entry.name} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip 
-                                        contentStyle={{ 
-                                            backgroundColor: 'var(--tooltip-bg, rgba(0,0,0,0.8))', 
-                                            borderColor: 'transparent', 
-                                            borderRadius: '12px', 
-                                            border: 'none', 
-                                            color: 'var(--tooltip-text, #fff)',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)'
-                                        }}
-                                        itemStyle={{ fontSize: '12px' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary  font-bold tracking-widest">Total</span>
-                                <span className="text-lg font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(totalValue, 'EUR')}</span>
-                            </div>
+                        <div className="h-48 relative mb-6 flex items-center justify-center">
+                            <BklitPieChart
+                                data={distributionData.map((item) => ({
+                                    label: item.name,
+                                    value: item.value,
+                                    color: item.color,
+                                }))}
+                                innerRadius={55}
+                                cornerRadius={6}
+                                padAngle={distributionData.length > 1 ? 0.04 : 0}
+                                className="w-full h-48"
+                            >
+                                {distributionData.map((_, index) => (
+                                    <PieSlice key={index} index={index} showGlow />
+                                ))}
+                                <PieCenter defaultLabel="Total">
+                                    {({ value, label, isHovered }) => (
+                                        <div className="flex flex-col items-center justify-center text-center">
+                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold tracking-widest uppercase">
+                                                {label}
+                                            </span>
+                                            <span className="text-base font-bold text-light-text dark:text-dark-text privacy-blur">
+                                                {formatCurrency(isHovered ? value : totalValue, 'EUR')}
+                                            </span>
+                                        </div>
+                                    )}
+                                </PieCenter>
+                            </BklitPieChart>
                         </div>
                         <div className="space-y-3">
                             {distributionData.slice(0, 4).map(item => (

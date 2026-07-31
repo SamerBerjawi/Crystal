@@ -296,7 +296,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
           const mRule = merchantRules[key];
           if (mRule && mRule.category) {
               setCategory(mRule.category);
-              if (mRule.defaultDescription) {
+              if (mRule.defaultDescription && (!descText || !descText.trim())) {
                   setDescription(mRule.defaultDescription);
               }
               if (merchantName && merchantName !== merchant) {

@@ -31,7 +31,8 @@ import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, Cell } from 'recharts';
+import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
@@ -1785,28 +1786,37 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               <div className="flex flex-col lg:flex-row gap-8">
                 <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
                   <h3 className="text-[10px] font-semibold tracking-tight text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset allocation</h3>
-                  <div className="h-64 w-full relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={assetAllocationData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={70}
-                          outerRadius={95}
-                          paddingAngle={4}
-                          dataKey="value"
-                        >
-                          {assetAllocationData.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-[10px] font-bold  tracking-widest text-light-text-secondary dark:text-gray-400 opacity-60">Net worth</span>
-                      <span className="text-2xl font-black text-light-text dark:text-white tracking-tight privacy-blur leading-tight">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
-                    </div>
+                  <div className="h-64 w-full relative flex items-center justify-center">
+                    <BklitPieChart
+                      data={assetAllocationData.map((item: any) => ({
+                        label: item.name,
+                        value: item.value,
+                        color: item.color,
+                      }))}
+                      innerRadius={70}
+                      cornerRadius={6}
+                      padAngle={assetAllocationData.length > 1 ? 0.04 : 0}
+                      className="w-full h-64"
+                    >
+                      {assetAllocationData.map((_: any, index: number) => (
+                        <PieSlice key={index} index={index} showGlow />
+                      ))}
+                      <PieCenter defaultLabel="Net worth">
+                        {({ value, label, isHovered }) => (
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <span className="text-[10px] font-bold tracking-widest text-light-text-secondary dark:text-gray-400 opacity-60 uppercase">
+                              {label}
+                            </span>
+                            <span className="text-xl lg:text-2xl font-black text-light-text dark:text-white tracking-tight privacy-blur leading-tight">
+                              {formatCurrency(
+                                convertCurrency(isHovered ? value : globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates),
+                                preferredCurrency
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </PieCenter>
+                    </BklitPieChart>
                   </div>
                   <div className="w-full mt-10 grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">

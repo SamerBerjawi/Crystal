@@ -9,6 +9,7 @@ import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { useConfirm } from '../components/ConfirmationModal';
 
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
@@ -427,33 +428,34 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     <span className="material-symbols-outlined opacity-20 group-hover:rotate-45 transition-transform text-lg">pie_chart</span>
                   </div>
 
-                  <div className="flex-grow min-h-[160px] relative z-10">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <PieChart>
-                            <Pie
-                                data={allocationData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={55}
-                                outerRadius={75}
-                                paddingAngle={6}
-                                dataKey="value"
-                            >
-                                {allocationData.map(entry => (
-                                    <Cell key={entry.name} fill={entry.color} stroke="none" className="transition-all hover:opacity-80" />
-                                ))}
-                            </Pie>
-                            <RechartsTooltip 
-                                formatter={(value: number) => formatCurrency(value, 'EUR')}
-                                contentStyle={{ backgroundColor: 'black', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '10px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
-                                itemStyle={{ color: 'white' }}
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                         <p className="text-[8px] font-black  tracking-[0.2em] opacity-30 leading-none mb-1">Total</p>
-                         <p className="text-lg font-black tracking-tighter leading-none">€{(totalBudgeted/1000).toFixed(1)}k</p>
-                    </div>
+                  <div className="flex-grow min-h-[160px] relative z-10 flex items-center justify-center">
+                    <BklitPieChart
+                      data={allocationData.map((item) => ({
+                        label: item.name,
+                        value: item.value,
+                        color: item.color,
+                      }))}
+                      innerRadius={55}
+                      cornerRadius={6}
+                      padAngle={allocationData.length > 1 ? 0.05 : 0}
+                      className="w-full h-44"
+                    >
+                      {allocationData.map((_, index) => (
+                        <PieSlice key={index} index={index} showGlow />
+                      ))}
+                      <PieCenter defaultLabel="Total">
+                        {({ value, label, isHovered }) => (
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <span className="text-[8px] font-black tracking-[0.2em] opacity-40 uppercase leading-none mb-1">
+                              {label}
+                            </span>
+                            <span className="text-sm font-black tracking-tighter leading-none">
+                              {formatCurrency(isHovered ? value : totalBudgeted, 'EUR')}
+                            </span>
+                          </div>
+                        )}
+                      </PieCenter>
+                    </BklitPieChart>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2 mt-4 relative z-10">
