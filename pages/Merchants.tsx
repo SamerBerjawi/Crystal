@@ -6,7 +6,7 @@ import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import MerchantDetailModal from '../components/MerchantDetailModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
@@ -167,6 +167,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list'); // Default to list for better management view
   const [showHidden, setShowHidden] = useState(false);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
+  const [logoRefreshTimestamps, setLogoRefreshTimestamps] = useState<Record<string, number>>({});
   
   const [editingEntity, setEditingEntity] = useState<EntityItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -470,9 +471,29 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   };
 
   const getPreviewUrl = (merchantName: string, rule?: MerchantRule) => {
-      // Prioritize rule logo, fallback to legacy override logic inside getMerchantLogoUrl if needed, but here we pass specific override
-      const overrides = rule?.logo ? { [normalizeMerchantKey(merchantName)!]: rule.logo } : {};
-      return getMerchantLogoUrl(merchantName, brandfetchClientId, overrides, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
+      const key = normalizeMerchantKey(merchantName);
+      const overrides = rule?.logo ? { [key!]: rule.logo } : {};
+      const refreshTimestamp = key ? logoRefreshTimestamps[key] : undefined;
+      return getMerchantLogoUrl(merchantName, brandfetchClientId, overrides, { fallback: 'lettermark', type: 'icon', width: 128, height: 128, refreshTimestamp });
+  };
+
+  const handleRefreshSingleLogo = (entityName: string, logoKey: string, logoValue?: string, e?: React.MouseEvent) => {
+      if (e) e.stopPropagation();
+      if (!isBrandfetchLogoRefreshable(entityName, logoValue)) {
+          return;
+      }
+      const now = Date.now();
+      setLogoRefreshTimestamps(prev => ({ ...prev, [logoKey]: now }));
+      setLogoLoadErrors(prev => {
+          const next = { ...prev };
+          Object.keys(next).forEach(url => {
+              if (url.includes(encodeURIComponent(entityName)) || url.includes(logoKey)) {
+                  delete next[url];
+              }
+          });
+          return next;
+      });
+      toast.success(`Refreshed latest logo from Brandfetch for "${entityName}"!`);
   };
 
   const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
@@ -721,9 +742,21 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                             )}
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                            <span className={`text-[9px] font-black  tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
-                                {entity.type === 'Institution' ? 'Core' : 'Merch'}
-                            </span>
+                            <div className="flex items-center gap-1">
+                                {isBrandfetchLogoRefreshable(entity.name, entity.rule?.logo) && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleRefreshSingleLogo(entity.name, entity.logoKey, entity.rule?.logo, e)}
+                                        className="p-1 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                        title="Fetch latest logo from Brandfetch"
+                                    >
+                                        <Icon name="refresh" className="text-xs" />
+                                    </button>
+                                )}
+                                <span className={`text-[9px] font-black  tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
+                                    {entity.type === 'Institution' ? 'Core' : 'Merch'}
+                                </span>
+                            </div>
                             {entity.rule?.category && (
                                 <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-tighter truncate max-w-[100px]">
                                     {entity.rule.category}
@@ -820,6 +853,15 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                   </td>
                                   <td className="px-8 py-5 text-right">
                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                           {isBrandfetchLogoRefreshable(entity.name, entity.rule?.logo) && (
+                                                <button 
+                                                     onClick={(e) => handleRefreshSingleLogo(entity.name, entity.logoKey, entity.rule?.logo, e)}
+                                                     className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
+                                                     title="Fetch latest logo from Brandfetch"
+                                                >
+                                                     <Icon name="refresh" className="text-lg" />
+                                                </button>
+                                           )}
                                            <button 
                                                 onClick={(e) => handleToggleHidden(entity, e)}
                                                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 transition-all shadow-sm"

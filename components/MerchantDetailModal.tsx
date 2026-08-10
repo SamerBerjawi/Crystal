@@ -5,7 +5,7 @@ import { Category, MerchantRule } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
-import { getMerchantLogoUrl } from '../utils/brandfetch';
+import { getMerchantLogoUrl, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
 
@@ -57,11 +57,13 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     const [isHidden, setIsHidden] = useState(initialRule?.isHidden || false);
     const [defaultDescription, setDefaultDescription] = useState(initialRule?.defaultDescription || '');
     const [notes, setNotes] = useState(initialRule?.notes || '');
+    const [refreshTimestamp, setRefreshTimestamp] = useState<number | undefined>(undefined);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
 
     const isCustomUpload = logo.startsWith('data:image/') || logo.startsWith('http://') || logo.startsWith('https://');
+    const canRefreshFromBrandfetch = isBrandfetchLogoRefreshable(merchantName, logo);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -154,7 +156,13 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     }, [transactions, merchantName]);
 
     const allCategories = [...expenseCategories, ...incomeCategories];
-    const previewLogoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, { [logoKey]: logo || logoKey }, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 });
+    const previewLogoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, { [logoKey]: logo || logoKey }, { fallback: 'lettermark', type: 'icon', width: 80, height: 80, refreshTimestamp });
+
+    const handleRefreshBrandfetchLogo = () => {
+        if (!canRefreshFromBrandfetch) return;
+        setRefreshTimestamp(Date.now());
+        toast.success(`Fetched latest logo from Brandfetch for "${merchantName}"!`);
+    };
 
     const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
 
@@ -172,7 +180,19 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                         )}
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{merchantName}</h2>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{merchantName}</h2>
+                            {canRefreshFromBrandfetch && (
+                                <button
+                                    type="button"
+                                    onClick={handleRefreshBrandfetchLogo}
+                                    className="p-1 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                    title="Fetch latest logo from Brandfetch"
+                                >
+                                    <Icon name="refresh" className="text-sm" />
+                                </button>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2 mt-1">
                             {website && (
                                 <a href={website} target="_blank" rel="noreferrer" className="text-xs text-primary-500 hover:underline flex items-center gap-1">
@@ -236,7 +256,20 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                         </div>
 
                         <div className="space-y-4 pt-2 border-t border-black/5 dark:border-white/5">
-                            <h4 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">Brand Identity</h4>
+                            <div className="flex justify-between items-center">
+                                <h4 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">Brand Identity</h4>
+                                {canRefreshFromBrandfetch && (
+                                    <button
+                                        type="button"
+                                        onClick={handleRefreshBrandfetchLogo}
+                                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 bg-primary-500/10 px-2.5 py-1 rounded-lg transition-colors"
+                                        title="Fetch latest logo from Brandfetch"
+                                    >
+                                        <Icon name="refresh" className="text-xs" />
+                                        <span>Refresh from Brandfetch</span>
+                                    </button>
+                                )}
+                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {isCustomUpload ? (

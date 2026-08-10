@@ -56,11 +56,26 @@ export const buildMerchantIdentifier = (
   return null;
 };
 
+export const isBrandfetchLogoRefreshable = (
+  merchant?: string,
+  logoOverride?: string,
+): boolean => {
+  if (logoOverride) {
+    const trimmed = logoOverride.trim();
+    if (trimmed.startsWith('data:image/') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return false; // Manual upload or custom URL -> do nothing
+    }
+  }
+  const overrides = logoOverride && merchant ? { [normalizeMerchantKey(merchant) || '']: logoOverride } : undefined;
+  const identifier = buildMerchantIdentifier(merchant, overrides);
+  return Boolean(identifier);
+};
+
 export const getMerchantLogoUrl = (
   merchant: string | undefined,
   clientId: string | undefined,
   overrides?: Record<string, string>,
-  options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback },
+  options?: { width?: number; height?: number; type?: LogoType; fallback?: LogoFallback; refreshTimestamp?: number },
 ): string | null => {
   const normalizedKey = normalizeMerchantKey(merchant);
   if (normalizedKey) {
@@ -79,14 +94,14 @@ export const getMerchantLogoUrl = (
   const type = options?.type ?? 'icon';
   const fallback = options?.fallback ?? 'lettermark';
 
-  const today = new Date().toISOString().split('T')[0];
+  const version = options?.refreshTimestamp ? String(options.refreshTimestamp) : new Date().toISOString().split('T')[0];
   const params = new URLSearchParams({
     c: clientId,
     type,
     fallback,
     h: String(height),
     w: String(width),
-    v: today,
+    v: version,
   });
 
   return `https://cdn.brandfetch.io/${encodeURIComponent(identifier)}?${params.toString()}`;
