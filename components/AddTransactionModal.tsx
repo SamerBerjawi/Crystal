@@ -5,8 +5,9 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE,
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
-import { normalizeMerchantKey } from '../utils/brandfetch';
+import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
+import { detectLocationFromText } from '../utils/locationDetector';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
 
@@ -90,6 +91,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const isEditing = !!transactionToEdit;
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
+  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
 
   const defaultAccountId = useMemo(() => {
     const primary = accounts.find(a => a.isPrimary);
@@ -134,43 +137,86 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const merchantListId = useId();
 
   const merchantSuggestions = useMemo(() => {
-    if (!transactions) return [] as string[];
+    if (!transactions) return [] as { name: string; count: number; category?: string }[];
 
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { count: number; category?: string }>();
     transactions.forEach(tx => {
       if (!tx.merchant) return;
       const name = tx.merchant.trim();
       if (!name) return;
-      counts.set(name, (counts.get(name) || 0) + 1);
+      const existing = counts.get(name);
+      if (existing) {
+        existing.count += 1;
+        if (!existing.category && tx.category) existing.category = tx.category;
+      } else {
+        counts.set(name, { count: 1, category: tx.category || undefined });
+      }
     });
 
     return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([name]) => name);
-  }, [transactions]);
+      .map(([name, data]) => {
+        const rule = merchantRules[normalizeMerchantKey(name)];
+        return {
+          name,
+          count: data.count,
+          category: rule?.category || data.category,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [transactions, merchantRules]);
 
   const filteredSuggestions = useMemo(() => {
-    if (!merchant.trim() || !showMerchantSuggestions) return [];
+    if (!showMerchantSuggestions) return [];
     const normalized = merchant.toLowerCase().trim();
     
+    // Quick suggestions when input is empty or focused
+    if (!normalized) {
+      return merchantSuggestions.slice(0, 6);
+    }
+    
     // 1. Prioritize exact matches (case insensitive)
-    const exactMatches = merchantSuggestions.filter(name => name.toLowerCase() === normalized);
+    const exactMatches = merchantSuggestions.filter(item => item.name.toLowerCase() === normalized);
     
     // 2. Prefix matches
-    const prefixMatches = merchantSuggestions.filter(name => 
-        name.toLowerCase().startsWith(normalized) && 
-        !exactMatches.includes(name)
+    const prefixMatches = merchantSuggestions.filter(item => 
+        item.name.toLowerCase().startsWith(normalized) && 
+        !exactMatches.some(e => e.name === item.name)
     );
     
-    // 3. Fuzzy matches
-    const otherMatches = merchantSuggestions.filter(name => 
-        (name.toLowerCase().includes(normalized) || fuzzySearch(normalized, name)) &&
-        !exactMatches.includes(name) &&
-        !prefixMatches.includes(name)
+    // 3. Fuzzy & Substring matches
+    const otherMatches = merchantSuggestions.filter(item => 
+        (item.name.toLowerCase().includes(normalized) || fuzzySearch(normalized, item.name)) &&
+        !exactMatches.some(e => e.name === item.name) &&
+        !prefixMatches.some(p => p.name === item.name)
     );
     
     return [...exactMatches, ...prefixMatches, ...otherMatches].slice(0, 8);
   }, [merchant, merchantSuggestions, showMerchantSuggestions]);
+
+  const handleMerchantKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showMerchantSuggestions || filteredSuggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev < filteredSuggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSuggestionIndex(prev => (prev > 0 ? prev - 1 : filteredSuggestions.length - 1));
+    } else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      const selected = filteredSuggestions[activeSuggestionIndex];
+      if (selected) {
+        setMerchant(selected.name);
+        setIsDescriptionUserModified(false);
+        applyRules(selected.name, description, amount, { forceAutofillDesc: true });
+        setShowMerchantSuggestions(false);
+        setActiveSuggestionIndex(-1);
+      }
+    } else if (e.key === 'Escape') {
+      setShowMerchantSuggestions(false);
+      setActiveSuggestionIndex(-1);
+    }
+  };
 
   const activeAccount = useMemo(() => {
     const accId = type === 'income' ? toAccountId : fromAccountId;
@@ -473,6 +519,20 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       setEnableRoundUp(true);
     }
   }, [linkedSpareChangeAccount, isEditing]);
+
+  // Fast offline location detection from transaction description or merchant
+  useEffect(() => {
+    if (!locationString && (description || merchant)) {
+      const textToTest = `${merchant || ''} ${description || ''}`.trim();
+      const detected = detectLocationFromText(textToTest);
+      if (detected) {
+        const locStr = `${detected.city}, ${detected.country}`;
+        setLocationString(locStr);
+        setLocationData({ city: detected.city, country: detected.country });
+        setShowDetails(true);
+      }
+    }
+  }, [description, merchant, locationString]);
   
   const availableAccounts = useMemo(() => {
     return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);
@@ -807,32 +867,70 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                 type="text"
                                                 value={merchant}
                                                 onChange={handleMerchantChange}
-                                                onFocus={() => setShowMerchantSuggestions(true)}
+                                                onFocus={() => {
+                                                    setShowMerchantSuggestions(true);
+                                                    setActiveSuggestionIndex(-1);
+                                                }}
+                                                onKeyDown={handleMerchantKeyDown}
                                                 className={`${INPUT_BASE_STYLE} pl-9 h-10 font-bold text-sm`}
                                                 placeholder="Who or where?"
                                                 autoComplete="off"
                                             />
                                             {showMerchantSuggestions && filteredSuggestions.length > 0 && (
-                                                <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl z-[60] max-h-40 overflow-y-auto py-1">
-                                                    {filteredSuggestions.map((name) => (
-                                                        <button
-                                                            key={name}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setMerchant(name);
-                                                                setIsDescriptionUserModified(false);
-                                                                applyRules(name, description, amount, { forceAutofillDesc: true });
-                                                                setShowMerchantSuggestions(false);
-                                                            }}
-                                                            className="w-full text-left px-3.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text flex items-center justify-between transition-colors group"
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <Icon name="history" className="text-gray-400 text-sm group-hover:text-primary-500 transition-colors" />
-                                                                <span className="font-bold tracking-tight">{name}</span>
-                                                            </div>
-                                                            <span className="text-[11px] font-black  tracking-widest text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
-                                                        </button>
-                                                    ))}
+                                                <div className="absolute left-0 right-0 top-full mt-2 bg-white/95 dark:bg-dark-card/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl z-[60] max-h-56 overflow-y-auto py-1.5 custom-scrollbar">
+                                                    <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50 flex justify-between items-center border-b border-black/5 dark:border-white/5 mb-1">
+                                                        <span>{!merchant.trim() ? 'Popular Merchants' : 'Matching Merchants'}</span>
+                                                        <span>{filteredSuggestions.length} found</span>
+                                                    </div>
+                                                    {filteredSuggestions.map((item, index) => {
+                                                        const logoUrl = getMerchantLogoUrl(item.name, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 48, height: 48 });
+                                                        const isSelected = index === activeSuggestionIndex;
+
+                                                        return (
+                                                            <button
+                                                                key={item.name}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setMerchant(item.name);
+                                                                    setIsDescriptionUserModified(false);
+                                                                    applyRules(item.name, description, amount, { forceAutofillDesc: true });
+                                                                    setShowMerchantSuggestions(false);
+                                                                    setActiveSuggestionIndex(-1);
+                                                                }}
+                                                                onMouseEnter={() => setActiveSuggestionIndex(index)}
+                                                                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-all duration-150 ${
+                                                                    isSelected 
+                                                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-bold' 
+                                                                        : 'hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                                    {logoUrl ? (
+                                                                        <img
+                                                                            src={logoUrl}
+                                                                            alt={item.name}
+                                                                            className="w-5 h-5 rounded-md object-cover bg-gray-100 dark:bg-gray-800 shrink-0"
+                                                                            onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                                                                        />
+                                                                    ) : (
+                                                                        <Icon name="store" className="text-gray-400 text-sm shrink-0" />
+                                                                    )}
+                                                                    <span className="font-bold tracking-tight truncate">{item.name}</span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                                    {item.category && (
+                                                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                                                                            {item.category}
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-[10px] text-gray-400 font-mono">
+                                                                        {item.count} {item.count === 1 ? 'txn' : 'txns'}
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>

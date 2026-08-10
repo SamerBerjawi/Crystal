@@ -51,6 +51,7 @@ export function DottedMap<M extends Marker = Marker>({
   renderMarkerOverlay,
   className,
   style,
+  viewBox,
   ...svgProps
 }: DottedMapProps<M>) {
   const { points, addMarkers } = createMap({
@@ -87,7 +88,8 @@ export function DottedMap<M extends Marker = Marker>({
 
   return (
     <svg
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={viewBox || `0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
       className={cn("text-gray-500 dark:text-gray-500", className)}
       style={{ width: "100%", height: "100%", ...style }}
       {...svgProps}

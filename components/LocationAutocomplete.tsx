@@ -27,7 +27,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({ value, onCh
 
   useEffect(() => {
     const query = inputValue.trim();
-    if (query.length < 3) {
+    if (query.length < 2) {
       setIsOpen(false);
       return;
     }

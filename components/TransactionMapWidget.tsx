@@ -85,16 +85,38 @@ interface TransactionMapWidgetProps {
   transactions: Transaction[];
 }
 
-// Component to auto-fit Leaflet map bounds
-const BoundsFitter: React.FC<{ coords: [number, number][] }> = ({ coords }) => {
+// Component to auto-fit Leaflet map bounds around transaction coordinates
+const BoundsFitter: React.FC<{ coords: [number, number][]; center: [number, number] }> = ({ coords, center }) => {
   const map = useMap();
   useEffect(() => {
     if (coords.length > 0) {
-      const bounds = L.latLngBounds(coords);
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
-      map.invalidateSize();
+      if (coords.length === 1) {
+        map.setView(coords[0], 12);
+      } else {
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+      }
+      setTimeout(() => map.invalidateSize(), 100);
+    } else {
+      map.setView(center, 4);
     }
-  }, [coords, map]);
+  }, [coords, center, map]);
+  return null;
+};
+
+// Component to dynamically sync zoom controls with Leaflet interactive map
+const LeafletZoomController: React.FC<{ zoomLevel: number }> = ({ zoomLevel }) => {
+  const map = useMap();
+  const isFirstRun = React.useRef(true);
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    const currentCenter = map.getCenter();
+    const targetZoom = Math.max(1, Math.min(18, Math.round(zoomLevel)));
+    map.setZoomAround(currentCenter, targetZoom);
+  }, [zoomLevel, map]);
   return null;
 };
 
@@ -107,7 +129,6 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [mapMode, setMapMode] = useState<'dotted' | 'globe' | 'tile'>('dotted');
   const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
@@ -117,19 +138,9 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
-
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(Number((prev + 0.25).toFixed(2)), 3.0));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(Number((prev - 0.25).toFixed(2)), 0.7));
-  const handleZoomReset = () => setZoomLevel(1);
-
-  const handleWheelZoom = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    setZoomLevel(prev => Math.min(Math.max(Number((prev + delta).toFixed(2)), 0.7), 3.0));
-  };
-
   const locations = useMemo(() => {
     type GroupedLocation = {
+      key: string;
       lat: number;
       lon: number;
       count: number;
@@ -139,7 +150,11 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
     const grouped = transactions
       .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
       .reduce((map: Map<string, GroupedLocation>, tx) => {
-        const key = `${tx.latitude},${tx.longitude}`;
+        // Group by City+Country if present, otherwise round coordinates to ~1.1km (~0.01 deg)
+        const key = tx.city && tx.country
+          ? `${tx.city.trim().toLowerCase()}|${tx.country.trim().toLowerCase()}`
+          : `${Number(tx.latitude!.toFixed(2))},${Number(tx.longitude!.toFixed(2))}`;
+
         const current = map.get(key);
 
         if (current) {
@@ -148,8 +163,9 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
           current.transactions.push(tx);
         } else {
           map.set(key, {
-            lat: tx.latitude!,
-            lon: tx.longitude!,
+            key,
+            lat: Number(tx.latitude!.toFixed(4)),
+            lon: Number(tx.longitude!.toFixed(4)),
             count: 1,
             amountTotal: tx.amount,
             transactions: [tx],
@@ -163,7 +179,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
       const representative = group.transactions[0];
 
       return {
-        id: `${group.lat}-${group.lon}`,
+        id: group.key,
         lat: group.lat,
         lon: group.lon,
         count: group.count,
@@ -177,6 +193,161 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
       };
     });
   }, [transactions]);
+
+  // Calculate focal center and optimal SVG viewBox & Leaflet center
+  const { dottedDefaultZoom, globeDefaultZoom, tileDefaultZoom, defaultDottedViewBox, focalCenter, globeFocusAngles } = useMemo(() => {
+    if (locations.length === 0) {
+      return {
+        dottedDefaultZoom: 1,
+        globeDefaultZoom: 1,
+        tileDefaultZoom: 2,
+        defaultDottedViewBox: '0 0 150 75',
+        focalCenter: [20, 0] as [number, number],
+        globeFocusAngles: [0, 0] as [number, number],
+      };
+    }
+
+    // Convert lat/lon to Equirectangular SVG coordinates (x: 0..150, y: 0..75)
+    const projected = locations.map(l => ({
+      x: ((l.lon + 180) / 360) * 150,
+      y: ((90 - l.lat) / 180) * 75,
+      lat: l.lat,
+      lon: l.lon,
+    }));
+
+    let minX = projected[0].x, maxX = projected[0].x;
+    let minY = projected[0].y, maxY = projected[0].y;
+    let minLat = locations[0].lat, maxLat = locations[0].lat;
+    let minLon = locations[0].lon, maxLon = locations[0].lon;
+
+    projected.forEach(p => {
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y);
+      maxY = Math.max(maxY, p.y);
+      minLat = Math.min(minLat, p.lat);
+      maxLat = Math.max(maxLat, p.lat);
+      minLon = Math.min(minLon, p.lon);
+      maxLon = Math.max(maxLon, p.lon);
+    });
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const spanX = Math.max(maxX - minX, 2);
+    const spanY = Math.max(maxY - minY, 2);
+
+    // Target SVG view width with padding around markers
+    const targetW = Math.min(150, Math.max(24, Math.max(spanX * 2.8, spanY * 2.8 * 2)));
+    const targetH = targetW / 2;
+
+    let vx = cx - targetW / 2;
+    let vy = cy - targetH / 2;
+    vx = Math.max(0, Math.min(150 - targetW, vx));
+    vy = Math.max(0, Math.min(75 - targetH, vy));
+
+    const initialViewBox = `${vx.toFixed(2)} ${vy.toFixed(2)} ${targetW.toFixed(2)} ${targetH.toFixed(2)}`;
+    const calcDottedZoom = Number((150 / targetW).toFixed(2));
+
+    const latSpan = Math.abs(maxLat - minLat);
+    const lonSpan = Math.abs(maxLon - minLon);
+    const maxSpan = Math.max(latSpan, lonSpan);
+
+    let calcGlobeZoom = 1.8;
+    if (maxSpan < 3) calcGlobeZoom = 2.4;
+    else if (maxSpan < 15) calcGlobeZoom = 2.0;
+    else if (maxSpan < 45) calcGlobeZoom = 1.7;
+
+    let calcTileZoom = 6;
+    if (maxSpan < 1) calcTileZoom = 13;
+    else if (maxSpan < 5) calcTileZoom = 10;
+    else if (maxSpan < 20) calcTileZoom = 7;
+    else if (maxSpan < 60) calcTileZoom = 5;
+
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLon = (minLon + maxLon) / 2;
+
+    // COBE spherical angles: phi (longitude), theta (subtle tilt near 0.17 for north hemisphere, centered)
+    const phi = Math.PI - ((centerLon * Math.PI) / 180 - Math.PI / 2);
+    const theta = Math.sin((centerLat * Math.PI) / 180) * 0.22;
+
+    return {
+      dottedDefaultZoom: calcDottedZoom,
+      globeDefaultZoom: calcGlobeZoom,
+      tileDefaultZoom: calcTileZoom,
+      defaultDottedViewBox: initialViewBox,
+      focalCenter: [centerLat, centerLon] as [number, number],
+      globeFocusAngles: [phi, theta] as [number, number],
+    };
+  }, [locations]);
+
+  // Independent zoom state for each map view
+  const [dottedZoom, setDottedZoom] = useState<number>(1);
+  const [globeZoom, setGlobeZoom] = useState<number>(1);
+  const [tileZoom, setTileZoom] = useState<number>(2);
+
+  useEffect(() => {
+    setDottedZoom(dottedDefaultZoom);
+    setGlobeZoom(globeDefaultZoom);
+    setTileZoom(tileDefaultZoom);
+  }, [dottedDefaultZoom, globeDefaultZoom, tileDefaultZoom]);
+
+  const currentZoom = mapMode === 'dotted' ? dottedZoom : mapMode === 'globe' ? globeZoom : tileZoom;
+  const currentDefaultZoom = mapMode === 'dotted' ? dottedDefaultZoom : mapMode === 'globe' ? globeDefaultZoom : tileDefaultZoom;
+
+  const setCurrentZoom = (valOrFn: number | ((prev: number) => number)) => {
+    if (mapMode === 'dotted') setDottedZoom(valOrFn);
+    else if (mapMode === 'globe') setGlobeZoom(valOrFn);
+    else setTileZoom(valOrFn);
+  };
+
+  const handleZoomIn = () => {
+    const maxZoom = mapMode === 'tile' ? 18 : 12;
+    const step = mapMode === 'tile' ? 1 : 0.25;
+    setCurrentZoom(prev => Math.min(Number((prev + step).toFixed(2)), maxZoom));
+  };
+
+  const handleZoomOut = () => {
+    const minZoom = mapMode === 'tile' ? 1 : 0.7;
+    const step = mapMode === 'tile' ? 1 : 0.25;
+    setCurrentZoom(prev => Math.max(Number((prev - step).toFixed(2)), minZoom));
+  };
+
+  // Toggle between 100% and location framing zoom level
+  const handleToggleZoom = () => {
+    const base100 = mapMode === 'tile' ? 2 : 1;
+    const isAt100 = mapMode === 'tile' ? currentZoom <= 3 : Math.abs(currentZoom - 1) < 0.1;
+    if (isAt100) {
+      setCurrentZoom(currentDefaultZoom);
+    } else {
+      setCurrentZoom(base100);
+    }
+  };
+
+  const handleWheelZoom = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const step = mapMode === 'tile' ? 0.5 : 0.2;
+    const minZoom = mapMode === 'tile' ? 1 : 0.7;
+    const maxZoom = mapMode === 'tile' ? 18 : 12;
+    const delta = e.deltaY < 0 ? step : -step;
+    setCurrentZoom(prev => Math.min(Math.max(Number((prev + delta).toFixed(2)), minZoom), maxZoom));
+  };
+
+  // Dynamically compute SVG viewBox based on dottedZoom
+  const currentDottedViewBox = useMemo(() => {
+    const w = Math.min(150, 150 / dottedZoom);
+    const h = w / 2;
+
+    const parts = defaultDottedViewBox.split(' ').map(Number);
+    const cx = parts[0] + parts[2] / 2;
+    const cy = parts[1] + parts[3] / 2;
+
+    let x = cx - w / 2;
+    let y = cy - h / 2;
+    x = Math.max(0, Math.min(150 - w, x));
+    y = Math.max(0, Math.min(75 - h, y));
+
+    return `${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}`;
+  }, [dottedZoom, defaultDottedViewBox]);
 
   const maxCount = useMemo(() => {
     return locations.reduce((max, loc) => Math.max(max, loc.count), 0) || 1;
@@ -214,21 +385,6 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
     });
   }, [locations, maxCount]);
 
-function locationToAngles(lat: number, lng: number): [number, number] {
-  return [
-    Math.PI - ((lng * Math.PI) / 180 - Math.PI / 2),
-    0,
-  ];
-}
-
-  // Calculate starting focus angles for 3D Globe based on the most recent transaction location (equator centered)
-  const initialGlobeAngles = useMemo(() => {
-    if (locations.length > 0) {
-      return locationToAngles(locations[0].lat, locations[0].lon);
-    }
-    return [0, 0] as [number, number];
-  }, [locations]);
-
   // Simple COBE Configuration for MagicUI Globe
   const globeConfig = useMemo(() => {
     return {
@@ -236,8 +392,8 @@ function locationToAngles(lat: number, lng: number): [number, number] {
       height: 800,
       onRender: () => {},
       devicePixelRatio: 2,
-      phi: initialGlobeAngles[0],
-      theta: initialGlobeAngles[1],
+      phi: globeFocusAngles[0],
+      theta: globeFocusAngles[1],
       dark: isDarkMode ? 1 : 0,
       diffuse: 1.2,
       mapSamples: 16000,
@@ -250,7 +406,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
         size: Number((0.03 + Math.min(loc.count / maxCount, 1) * 0.05).toFixed(3)),
       })),
     };
-  }, [isDarkMode, locations, maxCount, initialGlobeAngles]);
+  }, [isDarkMode, locations, maxCount, globeFocusAngles]);
 
   const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
 
@@ -288,39 +444,42 @@ function locationToAngles(lat: number, lng: number): [number, number] {
     <div className="h-full w-full overflow-hidden relative z-0 rounded-xl border border-black/5 dark:border-white/10 group min-h-[350px] bg-slate-50/50 dark:bg-gray-950/40">
 
       {/* Map View Switcher */}
-      <div className="absolute top-4 right-4 z-[1000] flex items-center p-1 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-xs font-semibold">
+      <div className="absolute top-4 right-4 z-[1000] flex items-center p-1 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-xs font-semibold gap-1">
         <button
           type="button"
           onClick={() => setMapMode('dotted')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${mapMode === 'dotted'
-              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20 font-bold'
-              : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+          title="Dotted Map"
+          aria-label="Dotted Map"
+          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${mapMode === 'dotted'
+              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
+              : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/10'
             }`}
         >
-          <Icon name="grid_view" className="text-base" />
-          <span>Dotted Map</span>
+          <Icon name="grid_view" className="text-lg" />
         </button>
         <button
           type="button"
           onClick={() => setMapMode('globe')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${mapMode === 'globe'
-              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20 font-bold'
-              : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+          title="3D Globe"
+          aria-label="3D Globe"
+          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${mapMode === 'globe'
+              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
+              : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/10'
             }`}
         >
-          <Icon name="public" className="text-base" />
-          <span>3D Globe</span>
+          <Icon name="public" className="text-lg" />
         </button>
         <button
           type="button"
           onClick={() => setMapMode('tile')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${mapMode === 'tile'
-              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20 font-bold'
-              : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+          title="Interactive Map"
+          aria-label="Interactive Map"
+          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${mapMode === 'tile'
+              ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
+              : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/10'
             }`}
         >
-          <Icon name="map" className="text-base" />
-          <span>Interactive Map</span>
+          <Icon name="map" className="text-lg" />
         </button>
       </div>
 
@@ -329,11 +488,9 @@ function locationToAngles(lat: number, lng: number): [number, number] {
           className="relative h-full w-full overflow-hidden rounded-xl flex items-center justify-center p-2"
           onWheel={handleWheelZoom}
         >
-          <div
-            style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
-            className="w-full h-full flex items-center justify-center transition-transform duration-150 ease-out"
-          >
+          <div className="w-full h-full flex items-center justify-center">
             <DottedMap<MyMarker>
+              viewBox={currentDottedViewBox}
               markers={dottedMarkers}
               dotColor={isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.14)'}
               markerColor="#3b82f6"
@@ -434,19 +591,20 @@ function locationToAngles(lat: number, lng: number): [number, number] {
           onWheel={handleWheelZoom}
         >
           <div
-            style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center' }}
-            className="w-full h-full max-w-[440px] flex items-center justify-center transition-transform duration-150 ease-out"
+            style={{ transform: `scale(${Number(globeZoom.toFixed(2))})`, transformOrigin: 'center center' }}
+            className="w-full h-full max-w-[340px] max-h-[340px] aspect-square flex items-center justify-center transition-transform duration-150 ease-out shrink-0"
           >
             <Globe config={globeConfig} className="w-full h-full" />
           </div>
         </div>
       ) : (
-        <MapContainerAny center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
+        <MapContainerAny center={focalCenter} zoom={tileZoom} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
           <TileLayerAny
             attribution={attribution}
             url={tileLayerUrl}
           />
-          <BoundsFitter coords={coords} />
+          <BoundsFitter coords={coords} center={focalCenter} />
+          <LeafletZoomController zoomLevel={tileZoom} />
           {locations.map(loc => {
             const color = getDensityColor(loc.count);
             const radius = Math.min(Math.max(6 + Math.log1p(loc.count) * 2, 6), 16);
@@ -479,8 +637,7 @@ function locationToAngles(lat: number, lng: number): [number, number] {
       )}
 
       {/* Zoom Controls Overlay */}
-      {(mapMode === 'dotted' || mapMode === 'globe') && (
-        <div className="absolute bottom-4 right-4 z-[1000] flex items-center gap-1 p-1 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-xs font-semibold">
+      <div className="absolute bottom-4 right-4 z-[1000] flex items-center gap-1 p-1 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg text-xs font-semibold">
           <button
             type="button"
             onClick={handleZoomIn}
@@ -500,14 +657,13 @@ function locationToAngles(lat: number, lng: number): [number, number] {
           <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700 mx-0.5" />
           <button
             type="button"
-            onClick={handleZoomReset}
+            onClick={handleToggleZoom}
             className="px-2 h-7 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[10px] font-mono text-light-text-secondary dark:text-dark-text-secondary transition-colors"
-            title="Reset Zoom"
+            title={(mapMode === 'tile' ? currentZoom <= 3 : Math.abs(currentZoom - 1) < 0.1) ? "Zoom to locations" : "Toggle 100% view"}
           >
-            {Math.round(zoomLevel * 100)}%
+            {mapMode === 'tile' ? `${Math.round((tileZoom / 2) * 100)}%` : `${Math.round(currentZoom * 100)}%`}
           </button>
         </div>
-      )}
     </div>
   );
 };
