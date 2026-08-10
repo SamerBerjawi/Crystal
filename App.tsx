@@ -1748,8 +1748,50 @@ const App: React.FC = () => {
     if (Number.isNaN(finalAmount)) return null;
 
     const resolveTransactionDate = () => {
-      const candidate = pickFirstText(
-        // Best: explicit transaction / authorization / purchase dates
+      const todayStr = toLocalISOString(new Date());
+
+      // Helper to format ISO timestamps or YYYY-MM-DD strings into a clean YYYY-MM-DD string in local time
+      const normalizeDateStr = (val: any): string | undefined => {
+        if (!val || typeof val !== 'string') return undefined;
+        const trimmed = val.trim();
+        if (!trimmed) return undefined;
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+          return trimmed;
+        }
+
+        if (trimmed.includes('T') || trimmed.includes(':')) {
+          try {
+            const parsed = new Date(trimmed);
+            if (!isNaN(parsed.getTime())) {
+              return toLocalISOString(parsed);
+            }
+          } catch (e) {}
+          const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+          if (match) return match[1];
+        }
+
+        return undefined;
+      };
+
+      // 1. Gather reference booking date (bank's ledger posting date)
+      const rawBookingDate = pickFirstText(
+        providerTx?.booking_date,
+        providerTx?.bookingDate,
+        providerTx?.booking_date_time,
+        providerTx?.bookingDateTime,
+        providerTx?.book_date,
+        providerTx?.bookDate,
+        providerTx?.entry_date,
+        providerTx?.entryDate,
+        providerTx?.entry_date_time,
+        providerTx?.entryDateTime,
+      );
+      const bookingDateStr = normalizeDateStr(rawBookingDate);
+      const maxAllowedDateStr = bookingDateStr && bookingDateStr <= todayStr ? bookingDateStr : todayStr;
+
+      // 2. Priority candidate 1: Direct transaction/authorization/purchase date fields
+      const rawExplicitDate = pickFirstText(
         providerTx?.transaction_date,
         providerTx?.transactionDate,
         providerTx?.transaction_date_time,
@@ -1766,22 +1808,115 @@ const App: React.FC = () => {
         providerTx?.originationDate,
         providerTx?.origination_date_time,
         providerTx?.originationDateTime,
-        // Good: value_date reflects when funds actually moved — closer to the
-        // real transaction date than booking_date (which is when the bank
-        // posted the entry and can lag by days).
+        providerTx?.user_transaction_date,
+        providerTx?.userTransactionDate,
+        providerTx?.card_transaction?.transaction_date,
+        providerTx?.card_transaction?.transaction_date_time,
+        providerTx?.card_transaction?.authorized_date,
+        providerTx?.card_transaction?.authorized_date_time,
+        providerTx?.card_transaction_details?.transaction_date,
+        providerTx?.card_transaction_details?.transaction_date_time,
+        providerTx?.card_acceptor?.transaction_date,
+      );
+
+      const explicitDateStr = normalizeDateStr(rawExplicitDate);
+      if (explicitDateStr && explicitDateStr <= maxAllowedDateStr) {
+        return explicitDateStr;
+      }
+
+      // 3. Priority candidate 2: Embedded transaction date in remittance info / booking text / description
+      // European banks (e.g. KBC Brussels) embed the real purchase date in payment text (e.g. "08/08/2026", "08.08.2026", "08-08-2026")
+      const combinedText = [
+        providerTx?.remittance_information_unstructured,
+        providerTx?.remittanceInformationUnstructured,
+        providerTx?.remittance_information,
+        providerTx?.remittanceInformation,
+        providerTx?.booking_text,
+        providerTx?.bookingText,
+        providerTx?.additional_information,
+        providerTx?.additionalInformation,
+        providerTx?.description,
+      ]
+        .flatMap(item => (Array.isArray(item) ? item : [item]))
+        .filter(Boolean)
+        .join(' ');
+
+      if (combinedText) {
+        // Try DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY (European standard)
+        const dmyMatch = combinedText.match(/\b(0[1-9]|[12]\d|3[01])[/.-](0[1-9]|1[0-2])[/.-](20\d{2})\b/);
+        if (dmyMatch) {
+          const day = dmyMatch[1];
+          const month = dmyMatch[2];
+          const year = dmyMatch[3];
+          const extractedStr = `${year}-${month}-${day}`;
+          if (extractedStr <= maxAllowedDateStr) {
+            try {
+              const candMs = parseLocalDate(extractedStr).getTime();
+              const maxMs = parseLocalDate(maxAllowedDateStr).getTime();
+              const diffDays = (maxMs - candMs) / (1000 * 60 * 60 * 24);
+              if (diffDays >= 0 && diffDays <= 90) {
+                return extractedStr;
+              }
+            } catch (e) {}
+          }
+        }
+
+        // Try YYYY-MM-DD
+        const ymdMatch = combinedText.match(/\b(20\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/);
+        if (ymdMatch) {
+          const extractedStr = `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
+          if (extractedStr <= maxAllowedDateStr) {
+            try {
+              const candMs = parseLocalDate(extractedStr).getTime();
+              const maxMs = parseLocalDate(maxAllowedDateStr).getTime();
+              const diffDays = (maxMs - candMs) / (1000 * 60 * 60 * 24);
+              if (diffDays >= 0 && diffDays <= 90) {
+                return extractedStr;
+              }
+            } catch (e) {}
+          }
+        }
+
+        // Try DD/MM/YY or DD.MM.YY or DD-MM-YY
+        const dmyShortMatch = combinedText.match(/\b(0[1-9]|[12]\d|3[01])[/.-](0[1-9]|1[0-2])[/.-](2[0-9])\b/);
+        if (dmyShortMatch) {
+          const day = dmyShortMatch[1];
+          const month = dmyShortMatch[2];
+          const year = `20${dmyShortMatch[3]}`;
+          const extractedStr = `${year}-${month}-${day}`;
+          if (extractedStr <= maxAllowedDateStr) {
+            try {
+              const candMs = parseLocalDate(extractedStr).getTime();
+              const maxMs = parseLocalDate(maxAllowedDateStr).getTime();
+              const diffDays = (maxMs - candMs) / (1000 * 60 * 60 * 24);
+              if (diffDays >= 0 && diffDays <= 90) {
+                return extractedStr;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+
+      // 4. Priority candidate 3: Booking date (bank's ledger posting date)
+      if (bookingDateStr && bookingDateStr <= todayStr) {
+        return bookingDateStr;
+      }
+
+      // 5. Priority candidate 4: Value date (ONLY if <= todayStr, preventing future settlement dates from showing as tomorrow)
+      const rawValueDate = pickFirstText(
         providerTx?.value_date,
         providerTx?.valueDate,
         providerTx?.value_date_time,
         providerTx?.valueDateTime,
-        // Fallback: booking_date is the bank's posting date
-        providerTx?.booking_date,
-        providerTx?.bookingDate,
-        providerTx?.booking_date_time,
-        providerTx?.bookingDateTime,
-        providerTx?.date,
       );
-      if (!candidate) return toLocalISOString(new Date());
-      return candidate.includes('T') ? candidate.slice(0, 10) : candidate;
+      const valueDateStr = normalizeDateStr(rawValueDate);
+      if (valueDateStr && valueDateStr <= todayStr) {
+        return valueDateStr;
+      }
+
+      // 6. Last resort fallback
+      const fallback = normalizeDateStr(providerTx?.date) || todayStr;
+      return fallback > todayStr ? todayStr : fallback;
     };
 
     const stableIdFromFallback = (...parts: (string | number | undefined)[]) => {
