@@ -10,6 +10,7 @@ import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import SplitTransactionModal from '../components/SplitTransactionModal';
+import CombineTransactionsModal from '../components/CombineTransactionsModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
@@ -214,6 +215,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
   const [transactionToSplit, setTransactionToSplit] = useState<Transaction | null>(null);
+  const [isCombineModalOpen, setIsCombineModalOpen] = useState(false);
+  const [transactionsToCombine, setTransactionsToCombine] = useState<Transaction[]>([]);
+  const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set());
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
@@ -548,30 +552,69 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
   }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, showBalanceAdjustments]);
   
+  const toggleExpandParent = useCallback((parentId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpandedParentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) next.delete(parentId);
+      else next.add(parentId);
+      return next;
+    });
+  }, []);
+
   type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 
   const virtualRows: VirtualRow[] = useMemo(() => {
     const rows: VirtualRow[] = [];
     
-    // Group by date if sorted by date
+    const subTxMap = new Map<string, DisplayTransaction[]>();
+    const topLevelList: DisplayTransaction[] = [];
+
+    filteredTransactions.forEach(tx => {
+      if (tx.parentTransactionId) {
+        const list = subTxMap.get(tx.parentTransactionId) || [];
+        list.push({ ...tx, isSubTransaction: true });
+        subTxMap.set(tx.parentTransactionId, list);
+      } else {
+        topLevelList.push(tx);
+      }
+    });
+
+    const addTxWithSub = (tx: DisplayTransaction) => {
+      const subTxs = subTxMap.get(tx.id) || [];
+      const txWithCount: DisplayTransaction = {
+        ...tx,
+        subItemCount: subTxs.length,
+        isExpanded: expandedParentIds.has(tx.id),
+      };
+      rows.push({ type: 'transaction', transaction: txWithCount });
+
+      const isFilterActive = Boolean(debouncedSearchTerm || merchantFilter || minAmount || maxAmount);
+      const shouldExpand = expandedParentIds.has(tx.id) || isFilterActive;
+      if (shouldExpand && subTxs.length > 0) {
+        subTxs.forEach(subTx => {
+          rows.push({ type: 'transaction', transaction: subTx });
+        });
+      }
+    };
+
     if (sortBy === 'date-desc' || sortBy === 'date-asc') {
         let lastDate = '';
-        filteredTransactions.forEach(tx => {
-            const dateStr = tx.date; // ISO string YYYY-MM-DD
+        topLevelList.forEach(tx => {
+            const dateStr = tx.date;
             if (dateStr !== lastDate) {
-                rows.push({ type: 'header', date: dateStr, total: 0 }); // Total calculated later if needed or skipped
+                rows.push({ type: 'header', date: dateStr, total: 0 });
                 lastDate = dateStr;
             }
-            rows.push({ type: 'transaction', transaction: tx });
+            addTxWithSub(tx);
         });
     } else {
-        // Flat list for other sorts
-        filteredTransactions.forEach(tx => {
-            rows.push({ type: 'transaction', transaction: tx });
+        topLevelList.forEach(tx => {
+            addTxWithSub(tx);
         });
     }
     return rows;
-  }, [filteredTransactions, sortBy]);
+  }, [filteredTransactions, sortBy, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount]);
 
   const getRowSize = useCallback(
     (index: number) => {
@@ -597,7 +640,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     let income = 0;
     let expense = 0;
     filteredTransactions.forEach(tx => {
-        if (tx.isTransfer) return; // Exclude transfers from totals for cleaner flow view
+        if (tx.isTransfer) return;
+        if (tx.isSplitParent || tx.isCombinedParent) return; // Exclude parent containers from totals to prevent double-counting
         const amount = convertToEur(tx.amount, tx.currency);
         if (tx.type === 'income') income += amount;
         else expense += Math.abs(amount);
@@ -610,20 +654,51 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       return filteredTransactions.every(tx => selectedIds.has(tx.id));
   }, [filteredTransactions, selectedIds]);
   
-    const selectedTransactions = useMemo(() => {
-        const resolvedIds = new Set<string>();
-        selectedIds.forEach(id => {
-            if (id.startsWith('transfer-')) {
-                 const transferId = id.replace('transfer-', '');
-                 // Find the expense side transaction for this transfer (typically what is displayed)
-                 const tx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
-                 if (tx) resolvedIds.add(tx.id);
-            } else {
-                 resolvedIds.add(id);
-            }
-        });
-        return transactions.filter(t => resolvedIds.has(t.id));
-    }, [selectedIds, transactions]);
+  const selectedTransactions = useMemo(() => {
+      const resolvedIds = new Set<string>();
+      selectedIds.forEach(id => {
+          if (id.startsWith('transfer-')) {
+               const transferId = id.replace('transfer-', '');
+               const tx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+               if (tx) resolvedIds.add(tx.id);
+          } else {
+               resolvedIds.add(id);
+          }
+      });
+      return transactions.filter(t => resolvedIds.has(t.id));
+  }, [selectedIds, transactions]);
+
+  const canCombine = useMemo(() => {
+    return selectedTransactions.length >= 2 && !selectedTransactions.some(t => t.transferId);
+  }, [selectedTransactions]);
+
+  const canSplit = useMemo(() => {
+    if (selectedTransactions.length !== 1) return false;
+    const tx = selectedTransactions[0];
+    return !tx.transferId && !tx.isSplitParent && !tx.isCombinedParent && !tx.parentTransactionId;
+  }, [selectedTransactions]);
+
+  const canUnsplit = useMemo(() => {
+    if (selectedTransactions.length !== 1) return false;
+    const tx = selectedTransactions[0];
+    if (tx.isSplitParent) return true;
+    if (tx.parentTransactionId) {
+      const parent = transactions.find(t => t.id === tx.parentTransactionId);
+      return Boolean(parent?.isSplitParent);
+    }
+    return false;
+  }, [selectedTransactions, transactions]);
+
+  const canUncombine = useMemo(() => {
+    if (selectedTransactions.length !== 1) return false;
+    const tx = selectedTransactions[0];
+    if (tx.isCombinedParent) return true;
+    if (tx.parentTransactionId) {
+      const parent = transactions.find(t => t.id === tx.parentTransactionId);
+      return Boolean(parent?.isCombinedParent);
+    }
+    return false;
+  }, [selectedTransactions, transactions]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -647,6 +722,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const handleOpenCategorizeModal = () => {
     setIsCategorizeModalOpen(true);
   };
+
+  const handleOpenCombineModal = () => {
+    if (!canCombine) return;
+    setTransactionsToCombine(selectedTransactions);
+    setIsCombineModalOpen(true);
+  };
   
   const handleOpenSplitModal = () => {
     if (selectedIds.size !== 1) return;
@@ -661,14 +742,67 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     }
   };
 
-  const handleSaveSplits = (splits: Partial<Transaction>[]) => {
-    if (!transactionToSplit) return;
-    
-    // We want to delete the original and add the new ones
-    saveTransaction(splits as any, [transactionToSplit.id]);
-    
+  const handleSaveSplits = (updatedParent: Transaction, subTransactions: Transaction[]) => {
+    saveTransaction([updatedParent, ...subTransactions], []);
+    setExpandedParentIds(prev => new Set(prev).add(updatedParent.id));
     setIsSplitModalOpen(false);
     setTransactionToSplit(null);
+    setSelectedIds(new Set());
+  };
+
+  const handleSaveCombine = (combinedParent: Transaction, updatedSubTransactions: Transaction[]) => {
+    saveTransaction([combinedParent, ...updatedSubTransactions], []);
+    setExpandedParentIds(prev => new Set(prev).add(combinedParent.id));
+    setIsCombineModalOpen(false);
+    setTransactionsToCombine([]);
+    setSelectedIds(new Set());
+  };
+
+  const handleUnsplit = (targetTx?: DisplayTransaction) => {
+    let tx = targetTx;
+    if (!tx) {
+      if (selectedIds.size !== 1) return;
+      const selectedId = Array.from(selectedIds)[0];
+      tx = displayTransactions.find(t => t.id === selectedId);
+    }
+    if (!tx) return;
+
+    const parentId = tx.parentTransactionId || tx.id;
+    const parentObj = transactions.find(t => t.id === parentId);
+    if (!parentObj || !parentObj.isSplitParent) return;
+
+    const childSubTxs = transactions.filter(t => t.parentTransactionId === parentId);
+    const childIds = childSubTxs.map(t => t.id);
+
+    const updatedParent: Transaction = {
+      ...parentObj,
+      isSplitParent: false,
+    };
+
+    saveTransaction([updatedParent], childIds);
+    setSelectedIds(new Set());
+  };
+
+  const handleUncombine = (targetTx?: DisplayTransaction) => {
+    let tx = targetTx;
+    if (!tx) {
+      if (selectedIds.size !== 1) return;
+      const selectedId = Array.from(selectedIds)[0];
+      tx = displayTransactions.find(t => t.id === selectedId);
+    }
+    if (!tx) return;
+
+    const parentId = tx.parentTransactionId || tx.id;
+    const parentObj = transactions.find(t => t.id === parentId);
+    if (!parentObj || !parentObj.isCombinedParent) return;
+
+    const childSubTxs = transactions.filter(t => t.parentTransactionId === parentId);
+    const updatedChildren: Transaction[] = childSubTxs.map(c => ({
+      ...c,
+      parentTransactionId: undefined,
+    }));
+
+    saveTransaction(updatedChildren, [parentId]);
     setSelectedIds(new Set());
   };
 
@@ -1180,6 +1314,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
               expenseCategories={expenseCategories}
           />
       )}
+      {isCombineModalOpen && (
+          <CombineTransactionsModal
+              onClose={() => { setIsCombineModalOpen(false); setTransactionsToCombine([]); }}
+              onSave={handleSaveCombine}
+              transactionsToCombine={transactionsToCombine}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+              accounts={accounts}
+          />
+      )}
        {isBulkEditModalOpen && (
           <BulkEditTransactionsModal
             isOpen={isBulkEditModalOpen}
@@ -1211,6 +1355,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     <Icon name="edit" className="text-lg text-primary-500" />
                     <span>Edit Transaction</span>
                 </button>
+                {(contextMenu.transaction.isSplitParent || contextMenu.transaction.parentTransactionId) && (
+                    <button onClick={() => { handleUnsplit(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                        <Icon name="call_merge" className="text-lg text-amber-500" />
+                        <span>Unsplit Transaction</span>
+                    </button>
+                )}
+                {(contextMenu.transaction.isCombinedParent || (contextMenu.transaction.parentTransactionId && transactions.find(t => t.id === contextMenu.transaction.parentTransactionId)?.isCombinedParent)) && (
+                    <button onClick={() => { handleUncombine(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                        <Icon name="call_split" className="text-lg text-indigo-500" />
+                        <span>Uncombine Transaction</span>
+                    </button>
+                )}
+                {!contextMenu.transaction.isSplitParent && !contextMenu.transaction.isCombinedParent && !contextMenu.transaction.parentTransactionId && !contextMenu.transaction.isTransfer && (
+                    <button onClick={() => { setTransactionToSplit(transactions.find(t => t.id === contextMenu.transaction.id) || null); setIsSplitModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                        <Icon name="splitscreen" className="text-lg text-amber-500" />
+                        <span>Split Transaction</span>
+                    </button>
+                )}
                 <button onClick={() => { handleDuplicate(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                     <Icon name="content_copy" className="text-lg text-green-500" />
                     <span>Duplicate</span>
@@ -1453,11 +1615,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                              </button>
                          )}
                      </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         {[
                             { label: 'Edit', icon: 'edit', onClick: () => setBulkEditModalOpen(true), disabled: selectedIds.size === 0 },
                             { label: 'Categorize', icon: 'category', onClick: handleOpenCategorizeModal, disabled: selectedIds.size === 0 },
-                            { label: 'Split', icon: 'splitscreen', onClick: handleOpenSplitModal, disabled: selectedIds.size !== 1 },
+                            { label: 'Combine', icon: 'merge_type', onClick: handleOpenCombineModal, disabled: !canCombine },
+                            { label: 'Split', icon: 'splitscreen', onClick: handleOpenSplitModal, disabled: !canSplit },
+                            { label: 'Unsplit', icon: 'call_merge', onClick: () => handleUnsplit(), disabled: !canUnsplit },
+                            { label: 'Uncombine', icon: 'call_split', onClick: () => handleUncombine(), disabled: !canUncombine },
                             { label: 'Recurring', icon: 'repeat', onClick: () => handleMakeRecurring(), disabled: selectedIds.size !== 1 },
                             { label: 'Delete', icon: 'delete', onClick: handleOpenDeleteModal, disabled: selectedIds.size === 0, danger: true }
                         ].map((btn) => (
@@ -1467,7 +1632,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 onClick={btn.onClick} 
                                 disabled={btn.disabled}
                                 className={`
-                                    h-10 px-4 rounded-2xl flex items-center gap-2 text-[11px] font-semibold tracking-wider transition-all
+                                    h-10 px-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-semibold tracking-wider transition-all
                                     ${btn.disabled 
                                         ? 'opacity-40 cursor-not-allowed grayscale' 
                                         : btn.danger
@@ -1657,20 +1822,33 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 />
                             </div>
 
-                            <div className="flex items-center justify-center w-6 z-10 shrink-0">
-                                <input 
-                                    type="checkbox" 
-                                    className={`${CHECKBOX_STYLE} !rounded-lg border-black/10 dark:border-white/10`} 
-                                    checked={selectedIds.has(tx.id)} 
-                                    onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} 
-                                    onClick={e => e.stopPropagation()} 
-                                    aria-label={`Select transaction ${tx.description}`} 
-                                />
-                            </div>
+                             <div className="flex items-center justify-center w-6 z-10 shrink-0">
+                                 <input 
+                                     type="checkbox" 
+                                     className={`${CHECKBOX_STYLE} !rounded-lg border-black/10 dark:border-white/10`} 
+                                     checked={selectedIds.has(tx.id)} 
+                                     onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} 
+                                     onClick={e => e.stopPropagation()} 
+                                     aria-label={`Select transaction ${tx.description}`} 
+                                 />
+                             </div>
 
-                            <div className="flex-1 flex lg:grid lg:grid-cols-12 gap-4 items-center min-w-0 z-10">
+                             <div className={`flex-1 flex lg:grid lg:grid-cols-12 gap-4 items-center min-w-0 z-10 ${tx.parentTransactionId ? 'pl-6 sm:pl-8 md:pl-10 border-l-2 border-primary-500/40 ml-1' : ''}`}>
                                 {/* Column 1: Description */}
-                                <div className="flex-1 lg:col-span-4 flex items-center gap-3.5 min-w-0">
+                                <div className="flex-1 lg:col-span-4 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                                    {tx.parentTransactionId && (
+                                        <Icon name="subdirectory_arrow_right" className="text-sm text-primary-500 shrink-0 opacity-70" />
+                                    )}
+                                    {(tx.isSplitParent || tx.isCombinedParent) && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => toggleExpandParent(tx.id, e)}
+                                            className="w-6 h-6 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary transition-all shrink-0"
+                                            title={tx.isExpanded ? "Collapse sub-transactions" : "Expand sub-transactions"}
+                                        >
+                                            <Icon name={tx.isExpanded ? "expand_more" : "chevron_right"} className="text-base" />
+                                        </button>
+                                    )}
                                     <div className="shrink-0">
                                         <div
                                             className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white overflow-hidden shrink-0 ${showMerchantLogo ? 'bg-white dark:bg-white/10' : ''}`}
@@ -1692,8 +1870,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                         </div>
                                     </div>
                                     <div className="min-w-0 flex-grow">
-                                        <div className="flex items-center gap-2 mb-0.5">
+                                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                                             <p className="font-semibold text-[14px] sm:text-[15px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
+                                            {tx.isSplitParent && (
+                                              <span className="text-[8px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
+                                                Split ({tx.subItemCount || 0})
+                                              </span>
+                                            )}
+                                            {tx.isCombinedParent && (
+                                              <span className="text-[8px] font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md shrink-0 border border-indigo-500/20">
+                                                Combined ({tx.subItemCount || 0})
+                                              </span>
+                                            )}
                                             {tx.recurringSourceId && <Icon name="repeat" className="text-[13px] text-primary-500 shrink-0" />}
                                             {tx.notes && <Icon name="notes" className="text-[13px] text-primary-500/40 shrink-0" />}
                                         </div>

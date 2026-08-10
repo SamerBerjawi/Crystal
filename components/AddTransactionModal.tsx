@@ -101,6 +101,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [fromAccountId, setFromAccountId] = useState(initialFromAccountId || defaultAccountId);
   const [toAccountId, setToAccountId] = useState(initialToAccountId || defaultAccountId);
   const [description, setDescription] = useState('');
+  const [isDescriptionUserModified, setIsDescriptionUserModified] = useState(false);
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -290,20 +291,26 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     setPrincipalPayment(newPrincipal.toFixed(2));
   };
 
-  const applyRules = (merchantName: string, descText: string, amountText: string) => {
-      // 1. Merchant rule - if merchant already exists/keys and has category configured, it takes absolute precedence!
+  const applyRules = (merchantName: string, descText: string, amountText: string, options?: { forceAutofillDesc?: boolean }) => {
+      // 1. Merchant rule - if merchant already exists/keys and has category/defaultDescription configured
       const key = normalizeMerchantKey(merchantName || descText);
       if (key) {
           const mRule = merchantRules[key];
-          if (mRule && mRule.category) {
-              setCategory(mRule.category);
-              if (mRule.defaultDescription && (!descText || !descText.trim())) {
-                  setDescription(mRule.defaultDescription);
+          if (mRule) {
+              if (mRule.category) {
+                  setCategory(mRule.category);
+              }
+              if (mRule.defaultDescription) {
+                  const shouldAutofill = options?.forceAutofillDesc || !isDescriptionUserModified || !descText || !descText.trim() || descText.toLowerCase() === merchantName.toLowerCase();
+                  if (shouldAutofill) {
+                      setDescription(mRule.defaultDescription);
+                      setIsDescriptionUserModified(false);
+                  }
               }
               if (merchantName && merchantName !== merchant) {
                   setMerchant(merchantName);
               }
-              return;
+              if (mRule.category || mRule.defaultDescription) return;
           }
       }
 
@@ -324,8 +331,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       if (result.merchant && result.merchant !== merchantName) {
           setMerchant(result.merchant);
       }
-      if (result.description && result.description !== descText) {
+      if (result.description && (options?.forceAutofillDesc || !isDescriptionUserModified || !descText || !descText.trim())) {
           setDescription(result.description);
+          setIsDescriptionUserModified(false);
       }
   };
 
@@ -341,8 +349,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const handleMerchantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setMerchant(val);
-      if (val.length > 2) {
-          applyRules(val, description, amount);
+      if (val.length >= 2) {
+          applyRules(val, description, amount, { forceAutofillDesc: !isDescriptionUserModified });
       }
   };
 
@@ -431,12 +439,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             }
         }
 
+        if (transactionToEdit.description) {
+            setIsDescriptionUserModified(true);
+        }
     } else {
         setType(initialType || 'expense');
         setDate(initialDetails?.date || toLocalISOString(new Date()));
         setFromAccountId(initialFromAccountId || defaultAccountId);
         setToAccountId(initialToAccountId || defaultAccountId);
         setDescription(initialDetails?.description || '');
+        setIsDescriptionUserModified(Boolean(initialDetails?.description));
         setMerchant(initialDetails?.merchant || '');
         setAmount(initialDetails?.amount || '');
         setCategory(initialCategory || '');
@@ -808,7 +820,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                             type="button"
                                                             onClick={() => {
                                                                 setMerchant(name);
-                                                                applyRules(name, description, amount);
+                                                                setIsDescriptionUserModified(false);
+                                                                applyRules(name, description, amount, { forceAutofillDesc: true });
                                                                 setShowMerchantSuggestions(false);
                                                             }}
                                                             className="w-full text-left px-3.5 py-2 text-xs hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text flex items-center justify-between transition-colors group"
@@ -892,7 +905,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                         id="tx-description" 
                                         type="text" 
                                         value={description} 
-                                        onChange={e => setDescription(e.target.value)} 
+                                        onChange={e => {
+                                            setDescription(e.target.value);
+                                            setIsDescriptionUserModified(true);
+                                        }} 
                                         onBlur={handleDescriptionBlur} 
                                         className={`${INPUT_BASE_STYLE} pl-9 h-10 font-medium text-sm`} 
                                         placeholder={type === 'transfer' ? 'Purpose of transfer' : 'What was this for?'} 

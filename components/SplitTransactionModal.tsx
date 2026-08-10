@@ -8,7 +8,7 @@ import Icon from './ui/Icon';
 
 interface SplitTransactionModalProps {
   onClose: () => void;
-  onSave: (splits: Partial<Transaction>[]) => void;
+  onSave: (updatedParent: Transaction, subTransactions: Transaction[]) => void;
   transaction: Transaction;
   incomeCategories: Category[];
   expenseCategories: Category[];
@@ -29,8 +29,8 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
   expenseCategories,
 }) => {
   const [splits, setSplits] = useState<SplitItem[]>([
-    { id: '1', amount: String(Math.abs(transaction.amount)), category: transaction.category, description: transaction.description },
-    { id: '2', amount: '0', category: '', description: '' },
+    { id: '1', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 1)` },
+    { id: '2', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 2)` },
   ]);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
@@ -69,15 +69,23 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
       return;
     }
 
-    const newTransactions: Partial<Transaction>[] = splits.map(s => ({
+    const updatedParent: Transaction = {
       ...transaction,
-      amount: transaction.amount > 0 ? parseFloat(s.amount) : -parseFloat(s.amount),
+      isSplitParent: true,
+    };
+
+    const subTransactions: Transaction[] = splits.map((s, index) => ({
+      ...transaction,
+      id: `split-${transaction.id}-${index}-${Date.now()}`,
+      parentTransactionId: transaction.id,
+      isSplitParent: false,
+      isCombinedParent: false,
+      amount: transaction.amount >= 0 ? parseFloat(s.amount) || 0 : -(parseFloat(s.amount) || 0),
       category: s.category || transaction.category,
-      description: s.description || transaction.description,
-      id: undefined, // Let the saveTransaction handle ID generation or replacement
+      description: s.description?.trim() || `${transaction.description} (Part ${index + 1})`,
     }));
 
-    onSave(newTransactions);
+    onSave(updatedParent, subTransactions);
   };
 
   return (

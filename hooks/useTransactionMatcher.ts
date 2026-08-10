@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Transaction, Account } from '../types';
-import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
+import { convertToEur, parseLocalDate } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 import { MatcherConfig, DEFAULT_MATCHER_CONFIG } from './useMatcherConfig';
 
@@ -13,6 +13,35 @@ export type Suggestion = {
   amountDiff: number;
   amountDiffPercent: number;
 };
+
+// Transfer-related keywords in common banking languages
+const TRANSFER_KEYWORDS = [
+  'transfer', 'transfers', 'transferred',
+  'overboeken', 'overboeking', 'overschrijving',
+  'virement', 'virer',
+  'überweisung', 'überwiesen',
+  'traspaso', 'transferencia',
+  'bonifico',
+  'internal', 'between accounts',
+  'own account', 'my account',
+  'naar eigen', 'to own',
+];
+
+/**
+ * Returns 0-20 based on how many transfer keywords appear in either description.
+ * Caps at 20 pts.
+ */
+function descriptionTransferScore(desc1: string, desc2: string): number {
+  const combined = `${desc1} ${desc2}`.toLowerCase();
+  let hits = 0;
+  for (const kw of TRANSFER_KEYWORDS) {
+    if (combined.includes(kw)) {
+      hits++;
+      if (hits >= 2) break; // cap contribution
+    }
+  }
+  return Math.min(20, hits * 12);
+}
 
 export const useTransactionMatcher = (
   transactions: Transaction[],
@@ -31,6 +60,8 @@ export const useTransactionMatcher = (
 
     const lookbackLimit = config.lookbackDays || 7;
     const maxDaysDiff = config.dateVarianceDays ?? 3;
+    const maxAmountPercent = config.amountVariancePercent ?? 10;
+    const minScore = config.minMatchScore ?? 50;
 
     let latestTxTime = 0;
     for (const tx of transactions) {
@@ -39,6 +70,7 @@ export const useTransactionMatcher = (
     }
     const refTime = Math.max(today.getTime(), latestTxTime);
 
+    // Filter candidates: non-transfer, within lookback window
     const candidates = transactions.filter(tx => {
       if (tx.transferId) return false;
 
@@ -50,76 +82,74 @@ export const useTransactionMatcher = (
     const expenses = candidates.filter(tx => tx.type === 'expense');
     const incomes = candidates.filter(tx => tx.type === 'income');
 
-    // Create a lookup map for incomes for faster searching
-    const incomeMap = new Map<string, Transaction[]>();
-    for (const income of incomes) {
-      const amountKey = convertToEur(income.amount, income.currency).toFixed(2);
-      const dateKey = income.date;
-      const key = `${amountKey}|${dateKey}`;
-      if (!incomeMap.has(key)) {
-        incomeMap.set(key, []);
-      }
-      incomeMap.get(key)!.push(income);
-    }
+    // Track incomes that have already been matched to prevent double-matching
+    const matchedIncomeIds = new Set<string>();
 
     for (const expense of expenses) {
-      const expenseAmountKey = Math.abs(convertToEur(expense.amount, expense.currency)).toFixed(2);
+      const expenseAmountEur = Math.abs(convertToEur(expense.amount, expense.currency));
       const expenseDate = parseLocalDate(expense.date);
+      const expenseDesc = expense.merchant || expense.description || '';
 
-      // Generate dates to check within maxDaysDiff
-      const datesToCheck: { date: Date; offsetDays: number }[] = [];
-      for (let offset = 0; offset <= maxDaysDiff; offset++) {
-        if (offset === 0) {
-          datesToCheck.push({ date: expenseDate, offsetDays: 0 });
-        } else {
-          datesToCheck.push({ date: new Date(expenseDate.getTime() - offset * ONE_DAY_MS), offsetDays: offset });
-          datesToCheck.push({ date: new Date(expenseDate.getTime() + offset * ONE_DAY_MS), offsetDays: offset });
+      let bestScore = -1;
+      let bestIncome: Transaction | null = null;
+      let bestDaysDiff = 0;
+      let bestAmountDiffPct = 0;
+      let bestAmountDiff = 0;
+
+      for (const income of incomes) {
+        // Skip already matched incomes
+        if (matchedIncomeIds.has(income.id)) continue;
+
+        // Must be from a different account
+        if (expense.accountId === income.accountId) continue;
+
+        // Date gate
+        const incomeDate = parseLocalDate(income.date);
+        const daysDiff = Math.abs((expenseDate.getTime() - incomeDate.getTime()) / ONE_DAY_MS);
+        if (daysDiff > maxDaysDiff + 0.5) continue;
+
+        // Amount gate — fuzzy tolerance
+        const incomeAmountEur = Math.abs(convertToEur(income.amount, income.currency));
+        const amountDiff = Math.abs(expenseAmountEur - incomeAmountEur);
+        const amountDiffPct = incomeAmountEur > 0 ? (amountDiff / incomeAmountEur) * 100 : 100;
+        if (amountDiffPct > maxAmountPercent + 0.5 && amountDiff > 2.0) continue;
+
+        // Compute suggestion ID first so we can check if already ignored
+        const suggestionId = [expense.id, income.id].sort().join('|');
+        if (ignoredSuggestionIds.includes(suggestionId)) continue;
+
+        // 3-factor score
+        // Date: 0–40 pts (exact = 40, maxDaysDiff = 0)
+        const dateScore = Math.max(0, 40 * (1 - daysDiff / (maxDaysDiff + 1)));
+        // Amount: 0–40 pts (exact = 40, maxAmountPercent = 0)
+        const amountScore = Math.max(0, 40 * (1 - amountDiffPct / (maxAmountPercent + 1)));
+        // Description keywords: 0–20 pts
+        const incomeDesc = income.merchant || income.description || '';
+        const descScore = descriptionTransferScore(expenseDesc, incomeDesc);
+
+        const score = Math.round(dateScore + amountScore + descScore);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestIncome = income;
+          bestDaysDiff = Math.round(daysDiff);
+          bestAmountDiffPct = amountDiffPct;
+          bestAmountDiff = expenseAmountEur - incomeAmountEur;
         }
       }
 
-      let foundMatchForExpense = false;
-
-      for (const { date, offsetDays } of datesToCheck) {
-        if (foundMatchForExpense) break;
-
-        const dateKey = toLocalISOString(date);
-        const key = `${expenseAmountKey}|${dateKey}`;
-
-        if (incomeMap.has(key)) {
-          const potentialIncomes = incomeMap.get(key)!;
-
-          for (let i = potentialIncomes.length - 1; i >= 0; i--) {
-            const income = potentialIncomes[i];
-
-            if (expense.accountId === income.accountId) continue;
-
-            const suggestionId = [expense.id, income.id].sort().join('|');
-            if (ignoredSuggestionIds.includes(suggestionId)) continue;
-
-            // Calculate confidence score for transfer match (0-100)
-            // Same date = 100%, 1 day diff = 85%, 2 days = 70%, 3+ days = 60%
-            const dateScore = Math.max(50, 100 - offsetDays * 15);
-            const score = Math.round(dateScore);
-
-            potentialMatches.push({
-              expenseTx: expense,
-              incomeTx: income,
-              id: suggestionId,
-              matchScore: score,
-              daysDiff: offsetDays,
-              amountDiff: 0,
-              amountDiffPercent: 0,
-            });
-
-            potentialIncomes.splice(i, 1);
-            if (potentialIncomes.length === 0) {
-              incomeMap.delete(key);
-            }
-
-            foundMatchForExpense = true;
-            break;
-          }
-        }
+      if (bestIncome && bestScore >= minScore) {
+        const suggestionId = [expense.id, bestIncome.id].sort().join('|');
+        potentialMatches.push({
+          expenseTx: expense,
+          incomeTx: bestIncome,
+          id: suggestionId,
+          matchScore: bestScore,
+          daysDiff: bestDaysDiff,
+          amountDiff: Math.round(bestAmountDiff * 100) / 100,
+          amountDiffPercent: Math.round(bestAmountDiffPct * 10) / 10,
+        });
+        matchedIncomeIds.add(bestIncome.id);
       }
     }
 
@@ -239,3 +269,4 @@ export const useTransactionMatcher = (
     dismissAllSuggestions,
   };
 };
+

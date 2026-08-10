@@ -51,7 +51,7 @@ const SuggestionItem: React.FC<{
 
         <div className="flex-1 space-y-3">
           <ConfidenceScoreBar
-            score={suggestion.matchScore || 85}
+            score={suggestion.matchScore}
             varianceText={
               suggestion.daysDiff === 0
                 ? 'Same date match'

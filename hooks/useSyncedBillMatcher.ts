@@ -29,7 +29,7 @@ export const calculateNameSimilarity = (str1: string, str2: string): number => {
       .toLowerCase()
       .replace(/[\d\-_.,/\\#@!$%^&*()+=~`[\]{}|:;<>?]/g, ' ')
       .replace(
-        /\b(inc|llc|ltd|gmb|gmbh|sepa|pos|card|payment|direct|debit|transfer|subscription|membership|fee|recurring|corp|corporation|nv|bv|co|company|org)\b/gi,
+        /\b(inc|llc|ltd|gmb|gmbh|sepa|pos|card|payment|direct|debit|transfer|subscription|membership|fee|recurring|corp|corporation|nv|bv|co|company|org|bank|via|ref|xx|xxx|xxxx)\b/gi,
         ''
       )
       .replace(/\s+/g, ' ')
@@ -42,23 +42,55 @@ export const calculateNameSimilarity = (str1: string, str2: string): number => {
     const r1 = str1.toLowerCase().trim();
     const r2 = str2.toLowerCase().trim();
     if (r1 === r2) return 1.0;
-    if (r1.includes(r2) || r2.includes(r1)) return 0.8;
+    // Only substring-boost if the shorter side is meaningful (>=4 chars)
+    if (r1.length >= 4 && r2.length >= 4 && (r1.includes(r2) || r2.includes(r1))) return 0.8;
     return 0;
   }
 
   if (norm1 === norm2) return 1.0;
-  if (norm1.includes(norm2) || norm2.includes(norm1)) return 0.85;
+
+  // Substring boost: only apply if the shorter string is >= 4 characters
+  const shorter = norm1.length <= norm2.length ? norm1 : norm2;
+  const longer  = norm1.length <= norm2.length ? norm2 : norm1;
+  if (shorter.length >= 4 && longer.includes(shorter)) return 0.85;
 
   const tokens1 = norm1.split(' ').filter(t => t.length >= 2);
   const tokens2 = norm2.split(' ').filter(t => t.length >= 2);
 
-  if (tokens1.length === 0 || tokens2.length === 0) return 0;
+  if (tokens1.length === 0 || tokens2.length === 0) {
+    // Fallback to character-bigram Sørensen–Dice on raw normalized strings
+    return bigramSimilarity(norm1, norm2);
+  }
 
   const common = tokens1.filter(t => tokens2.some(t2 => t2.includes(t) || t.includes(t2)));
-  if (common.length === 0) return 0;
+  if (common.length === 0) {
+    // Fallback: bigram similarity on normalized strings
+    return bigramSimilarity(norm1, norm2);
+  }
 
   return Math.min(1.0, (2 * common.length) / (tokens1.length + tokens2.length));
 };
+
+/** Sørensen–Dice coefficient using character bigrams. Returns 0–1. */
+function bigramSimilarity(a: string, b: string): number {
+  if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
+  const getBigrams = (s: string): Map<string, number> => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < s.length - 1; i++) {
+      const bg = s.slice(i, i + 2);
+      map.set(bg, (map.get(bg) ?? 0) + 1);
+    }
+    return map;
+  };
+  const bg1 = getBigrams(a);
+  const bg2 = getBigrams(b);
+  let intersection = 0;
+  for (const [bg, count] of bg1) {
+    const c2 = bg2.get(bg) ?? 0;
+    intersection += Math.min(count, c2);
+  }
+  return (2 * intersection) / (a.length - 1 + (b.length - 1));
+}
 
 // Helper to get the closest target due date for a recurring transaction relative to txDate
 function getClosestRecurringDueDate(rt: RecurringTransaction, txDate: Date): { targetDate: Date; daysDiff: number } {
@@ -204,23 +236,33 @@ export const useSyncedBillMatcher = (
         const amountDiffPercent = billAmountAbs > 0 ? (amountDiff / billAmountAbs) * 100 : 0;
         if (amountDiffPercent > maxAmountPercent + 0.5 && amountDiff > 2.0) continue;
 
+        // Hard gate: wildly different amounts should never match
+        if (amountDiffPercent > 20 && amountDiff > 5) continue;
+
         // String similarity check
         const nameSim = calculateNameSimilarity(txMerchantOrDesc, bill.description);
         const rawTx = txMerchantOrDesc.toLowerCase();
         const rawBill = bill.description.toLowerCase();
-        const isSubstring = rawTx.includes(rawBill) || rawBill.includes(rawTx);
+        // isSubstring only counts if shorter side is >= 4 chars (avoids noise like "fee")
+        const minSubLen = Math.min(rawTx.length, rawBill.length);
+        const isSubstring = minSubLen >= 4 && (rawTx.includes(rawBill) || rawBill.includes(rawTx));
 
-        if (nameSim < 0.2 && !isSubstring) continue;
+        if (nameSim < 0.15 && !isSubstring) continue;
 
         // Calculate confidence score (0 - 100)
-        const dateScore = Math.max(0, 35 * (1 - daysDiff / (maxDaysDiff + 1)));
+        // Rebalanced: date 30 + amount 35 + name 35 = 100
+        const dateScore = Math.max(0, 30 * (1 - daysDiff / (maxDaysDiff + 1)));
         const amountScore = Math.max(0, 35 * (1 - amountDiffPercent / (maxAmountPercent + 1)));
-        const nameScore = isSubstring ? Math.max(25, 30 * nameSim) : Math.min(30, 30 * nameSim);
+        const nameScore = isSubstring ? Math.max(20, 35 * nameSim) : Math.min(35, 35 * nameSim);
         const score = Math.round(dateScore + amountScore + nameScore);
 
-        if (score >= 35 && score > highestScore) {
+        const minScore = config.minMatchScore ?? 50;
+        if (score >= minScore && score > highestScore) {
           const matchId = `bill-${tx.id}-${bill.id}`;
           if (ignoredMatchIds.includes(matchId)) continue;
+
+          // Apply requireNameMatch gate
+          if (config.requireNameMatch && nameSim < 0.3 && !isSubstring) continue;
 
           highestScore = score;
           bestMatch = {
@@ -260,22 +302,32 @@ export const useSyncedBillMatcher = (
         const amountDiffPercent = rtAmountAbs > 0 ? (amountDiff / rtAmountAbs) * 100 : 0;
         if (amountDiffPercent > maxAmountPercent + 0.5 && amountDiff > 2.0) continue;
 
+        // Hard gate: wildly different amounts should never match
+        if (amountDiffPercent > 20 && amountDiff > 5) continue;
+
         // String similarity check
         const nameSim = calculateNameSimilarity(txMerchantOrDesc, rtMerchantOrDesc);
         const rawTx = txMerchantOrDesc.toLowerCase();
         const rawRt = rtMerchantOrDesc.toLowerCase();
-        const isSubstring = rawTx.includes(rawRt) || rawRt.includes(rawTx);
+        // isSubstring only counts if shorter side is >= 4 chars
+        const minSubLen = Math.min(rawTx.length, rawRt.length);
+        const isSubstring = minSubLen >= 4 && (rawTx.includes(rawRt) || rawRt.includes(rawTx));
 
-        if (nameSim < 0.2 && !isSubstring) continue;
+        if (nameSim < 0.15 && !isSubstring) continue;
 
-        const dateScore = Math.max(0, 35 * (1 - daysDiff / (maxDaysDiff + 1)));
+        // Rebalanced: date 30 + amount 35 + name 35 = 100
+        const dateScore = Math.max(0, 30 * (1 - daysDiff / (maxDaysDiff + 1)));
         const amountScore = Math.max(0, 35 * (1 - amountDiffPercent / (maxAmountPercent + 1)));
-        const nameScore = isSubstring ? Math.max(25, 30 * nameSim) : Math.min(30, 30 * nameSim);
+        const nameScore = isSubstring ? Math.max(20, 35 * nameSim) : Math.min(35, 35 * nameSim);
         const score = Math.round(dateScore + amountScore + nameScore);
 
-        if (score >= 35 && score > highestScore) {
+        const minScore = config.minMatchScore ?? 50;
+        if (score >= minScore && score > highestScore) {
           const matchId = `recurring-${tx.id}-${rt.id}`;
           if (ignoredMatchIds.includes(matchId)) continue;
+
+          // Apply requireNameMatch gate
+          if (config.requireNameMatch && nameSim < 0.3 && !isSubstring) continue;
 
           highestScore = score;
           bestMatch = {
