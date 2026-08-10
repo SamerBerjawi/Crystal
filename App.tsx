@@ -1963,48 +1963,93 @@ const App: React.FC = () => {
         }
       }
 
-      // Clean the Name: Remove junk strings like "BE-", "PURCHASE", "WWW.", transaction IDs, or date stamps
       let cleaned = trimmed;
 
-      // Clean prefix clutter iteratively (e.g. "CARD PAYMENT - SEPA DIRECT DEBIT GOOGLE AI PRO")
+      // Clean prefix clutter iteratively
       let prev = '';
       while (cleaned !== prev) {
         prev = cleaned;
         cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|AANKOOP\s*|PAIEMENT\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
-        cleaned = cleaned.replace(/^(CARD\s+PAYMENT|CARD\s+PURCHASE|CARD|POS|DIRECT\s+DEBIT|SEPA\s+DIRECT\s+DEBIT|SEPA|SOFORT|RECURRING\s+PAYMENT|RECURRING|SUBSCRIPTION|BILL\s+PAYMENT|PAYMENT\s+TO|PAYMENT|STATEMENT)\s*[-:\/]?\s*/i, '');
+        cleaned = cleaned.replace(/^(CARD\s+PAYMENT|CARD\s+PURCHASE|CARD\s+POS|CARD|POS-AANKOOP|POS\s+AANKOOP|POS-PAIEMENT|POS\s+PAIEMENT|POS|DIRECT\s+DEBIT|SEPA\s+DIRECT\s+DEBIT|SEPA\s+OVERSCHRIJVING|SEPA\s+VIREMENT|SEPA|DOMICILIATIE|DOMICILIATION|SOFORT|BANCONTACT|CONTACTLESS|RECURRING\s+PAYMENT|RECURRING|SUBSCRIPTION|BILL\s+PAYMENT|PAYMENT\s+TO|PAYMENT\s+FROM|PAYMENT|STATEMENT|TRANSFER\s+TO|TRANSFER\s+FROM|TRANSFER|VIR\/|VIREMENT|OVERSCHRIJVING)\s*[-:\/]?\s*/i, '');
         cleaned = cleaned.replace(/^(PAYPAL\s*\*?|SQ\s*\*|TST\s*\*|APPLE\s+BILL|GOOGLE\s*\*|AMZN\s*\*|AMAZON\s*\*|G\.CO\/HELPPAY#?)\s*/i, '');
       }
 
       // Remove specific bank routing text like "RETAIL BRUSSELS BE "
       cleaned = cleaned.replace(/RETAIL\s+[a-zA-Z\s]+\s+[A-Z]{2}\s+/i, '');
-      // Remove trailing helpline/web URLs like "G.CO/HELPPAY" or "G.CO/PAYHELP"
+      // Remove trailing helpline/web URLs
       cleaned = cleaned.replace(/\s+G\.CO\/(HELPPAY|PAYHELP|BILL).*/i, '');
       cleaned = cleaned.replace(/\s+AMZN\.COM\/(BILL|PAY).*/i, '');
       // Remove trailing info separated by * (e.g., AMZN MKTP*29384 -> AMZN MKTP)
       cleaned = cleaned.replace(/\*[A-Z0-9_\-\s]+$/i, '');
       // Remove generic TLDs at the end
       cleaned = cleaned.replace(/\.(COM|NET|ORG|BE|EU|CO\.UK|FR|DE|IT|ES)$/i, '');
-      // Remove generic dates and times
-      cleaned = cleaned.replace(/\b\d{4}-\d{2}-\d{2}\b/g, '');
-      cleaned = cleaned.replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, '');
-      cleaned = cleaned.replace(/\b\d{2}\.\d{2}\.\d{4}\b/g, '');
-      // Remove obvious reference IDs or hashes (e.g. #123456 or 10+ character alphanumerics)
+      
+      // Remove dates and timestamps (YYYY-MM-DD, DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY, DD/MM/YY, etc.)
+      cleaned = cleaned.replace(/\b\d{4}[-/. ]\d{2}[-/. ]\d{2}\b/g, '');
+      cleaned = cleaned.replace(/\b\d{2}[-/. ]\d{2}[-/. ]\d{4}\b/g, '');
+      cleaned = cleaned.replace(/\b\d{2}[-/. ]\d{2}[-/. ]\d{2}\b/g, '');
+      cleaned = cleaned.replace(/\b\d{1,2}[:.]\d{2}(?:[:.]\d{2})?\b/g, '');
+      cleaned = cleaned.replace(/\b(?:OM|A|AT|LE|VAL\.?|DATE:?)\s*\d{1,2}[:.]\d{2}\b/gi, '');
+
+      // Remove European/Belgian city/location suffixes & country codes
+      cleaned = cleaned.replace(/\b(BRUSSELS|BRUSSEL|BRUXELLES|ANTWERPEN|ANTWERP|GENT|GHENT|LEUVEN|LOUVAIN|CHARLEROI|LIÈGE|LIEGE|NAMUR|MECHELEN|HASSELT|MONS|KORTRIJK|BRUGGE|BRUGES|PARIS|AMSTERDAM|LONDON|LUXEMBOURG)\b/gi, '');
+      cleaned = cleaned.replace(/\b[A-Z]{2}$/i, '');
+
+      // Remove reference IDs, terminal codes, hashes
+      cleaned = cleaned.replace(/\b(?:BEA|TERM|TERMINAL|STORE|REF|NR|ID)\s*#?\d+\b/gi, '');
       cleaned = cleaned.replace(/#\d+/g, '');
-      cleaned = cleaned.replace(/\b(?:[A-Z0-9]{10,})\b/g, '');
+      cleaned = cleaned.replace(/\b(?:[A-Z0-9]{8,})\b/g, '');
 
       // Normalize whitespace, hyphens, underscores
       cleaned = cleaned.replace(/[_]/g, ' ').replace(/\s+/g, ' ').trim();
 
-      // Special merchant normalizations & enhancements
-      if (/^AMZN\s*MKTP/i.test(cleaned) || /^AMAZON/i.test(cleaned)) {
-        cleaned = 'Amazon';
-      } else if (/^GOOGLE\s*AI\s*PRO/i.test(cleaned) || /^GOOGLE\s*\*?\s*AI\s*PRO/i.test(cleaned)) {
-        cleaned = 'Google AI Pro';
-      } else if (/^FITLIFE\s*GYM/i.test(cleaned) || /^GYM\s*SUBSCRIPTION/i.test(cleaned) || /^FITNESS\s*GYM/i.test(cleaned)) {
-        cleaned = cleaned.match(/^FITLIFE/i) ? 'FitLife Gym' : 'Gym Subscription';
+      if (!cleaned) return undefined;
+
+      // Known merchant normalizations
+      if (/^ALDI/i.test(cleaned)) return 'Aldi';
+      if (/^DELHAIZE/i.test(cleaned)) return 'Delhaize';
+      if (/^COLRUYT/i.test(cleaned)) return 'Colruyt';
+      if (/^CARREFOUR/i.test(cleaned)) return 'Carrefour';
+      if (/^(ALBERT\s*HEIJN|AH\b)/i.test(cleaned)) return 'Albert Heijn';
+      if (/^LIDL/i.test(cleaned)) return 'Lidl';
+      if (/^ACTION/i.test(cleaned)) return 'Action';
+      if (/^DECATHLON/i.test(cleaned)) return 'Decathlon';
+      if (/^IKEA/i.test(cleaned)) return 'IKEA';
+      if (/^ZARA/i.test(cleaned)) return 'Zara';
+      if (/^(H&M|H\s*M)/i.test(cleaned)) return 'H&M';
+      if (/^MCDONALD/i.test(cleaned)) return "McDonald's";
+      if (/^BURGER\s*KING/i.test(cleaned)) return 'Burger King';
+      if (/^STARBUCKS/i.test(cleaned)) return 'Starbucks';
+      if (/^UBER\s*EATS/i.test(cleaned)) return 'Uber Eats';
+      if (/^UBER/i.test(cleaned)) return 'Uber';
+      if (/^BOL\.COM|^BOL\b/i.test(cleaned)) return 'Bol.com';
+      if (/^AMZN|^AMAZON/i.test(cleaned)) return 'Amazon';
+      if (/^NETFLIX/i.test(cleaned)) return 'Netflix';
+      if (/^SPOTIFY/i.test(cleaned)) return 'Spotify';
+      if (/^APPLE|^ITUNES/i.test(cleaned)) return 'Apple';
+      if (/^GOOGLE\s*AI\s*PRO/i.test(cleaned)) return 'Google AI Pro';
+      if (/^GOOGLE/i.test(cleaned)) return 'Google';
+      if (/^STEAM/i.test(cleaned)) return 'Steam';
+      if (/^DISNEY/i.test(cleaned)) return 'Disney+';
+      if (/^SHELL/i.test(cleaned)) return 'Shell';
+      if (/^TOTAL|^TOTALENERGIES/i.test(cleaned)) return 'TotalEnergies';
+      if (/^Q8/i.test(cleaned)) return 'Q8';
+      if (/^NMBS|^SNCB/i.test(cleaned)) return 'NMBS / SNCB';
+      if (/^STIB|^MIVB/i.test(cleaned)) return 'STIB / MIVB';
+      if (/^DE\s*LIJN/i.test(cleaned)) return 'De Lijn';
+      if (/^BASIC\s*-?\s*FIT/i.test(cleaned)) return 'Basic-Fit';
+      if (/^FITLIFE\s*GYM/i.test(cleaned)) return 'FitLife Gym';
+      if (/^KBC/i.test(cleaned)) return 'KBC';
+      if (/^BELFIUS/i.test(cleaned)) return 'Belfius';
+      if (/^ING/i.test(cleaned)) return 'ING';
+      if (/^BNP/i.test(cleaned)) return 'BNP Paribas Fortis';
+
+      // Title case fallback if all uppercase or lowercase
+      if (cleaned === cleaned.toUpperCase() || cleaned === cleaned.toLowerCase()) {
+        cleaned = cleaned.toLowerCase().replace(/(?:^|\s|-)\S/g, char => char.toUpperCase());
       }
 
-      return cleaned || undefined;
+      return cleaned;
     };
 
     const pickJoinedText = (...values: any[]): string | undefined => {
@@ -2045,24 +2090,15 @@ const App: React.FC = () => {
       return undefined;
     };
 
-    // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
-    // for incoming payments (income/refunds) prefer debtor-side fields.
-
-    // Try to extract a clean merchant from unstructured remittance first
-    const extractMerchantFromRemittance = (remStr: any): string | undefined => {
-      if (!remStr) return undefined;
-      const actualStr = Array.isArray(remStr) ? remStr[0] : remStr;
-      if (typeof actualStr !== 'string') return undefined;
-      return sanitizeMerchant(actualStr);
-    };
-
+    // Extract merchant by prioritizing clean structured fields over raw unstructured remittance
     const unstructuredMerchant =
-      extractMerchantFromRemittance(providerTx?.remittance_information_unstructured) ||
-      extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured) ||
-      extractMerchantFromRemittance(providerTx?.remittance_information);
+      pickFirstValidMerchant(
+        providerTx?.remittance_information_unstructured,
+        providerTx?.remittanceInformationUnstructured,
+        providerTx?.remittance_information,
+      );
 
     const merchant = pickFirstValidMerchant(
-      unstructuredMerchant,
       providerTx?.merchant_name,
       providerTx?.merchantName,
       providerTx?.merchant?.name,
@@ -2082,7 +2118,6 @@ const App: React.FC = () => {
           providerTx?.debtorAccount?.name,
           providerTx?.ultimate_debtor,
           providerTx?.ultimateDebtor,
-          // Fallbacks in case debtor is empty
           providerTx?.creditor_name,
           providerTx?.creditorName,
           providerTx?.creditor?.name,
@@ -2095,21 +2130,22 @@ const App: React.FC = () => {
           providerTx?.creditorAccount?.name,
           providerTx?.ultimate_creditor,
           providerTx?.ultimateCreditor,
-          // Fallbacks in case creditor is empty
           providerTx?.debtor_name,
           providerTx?.debtorName,
           providerTx?.debtor?.name,
         ]),
-      providerTx?.remittance_information_unstructured,
-      providerTx?.remittanceInformationUnstructured,
-      providerTx?.remittance_information,
+      unstructuredMerchant,
       providerTx?.remittance_information_unstructured_array,
       providerTx?.remittanceInformationUnstructuredArray,
       providerTx?.remittance_information_structured,
       providerTx?.remittanceInformationStructured,
+      providerTx?.booking_text,
+      providerTx?.bookingText,
+      providerTx?.additional_information,
+      providerTx?.additionalInformation,
     );
 
-    const desc = pickFirstText(
+    const rawDescText = pickFirstText(
       pickJoinedText(
         providerTx?.remittance_information_unstructured,
         providerTx?.remittanceInformationUnstructured,
@@ -2130,8 +2166,41 @@ const App: React.FC = () => {
       providerTx?.description,
       providerTx?.proprietary_bank_transaction_code?.description,
       providerTx?.proprietaryBankTransactionCode?.description,
-      merchant,
-    ) || 'Transaction';
+    );
+
+    const sanitizeDescription = (rawText?: string, detectedMerchant?: string): string => {
+      if (!rawText) return detectedMerchant || 'Transaction';
+      let clean = rawText.trim();
+      if (!clean) return detectedMerchant || 'Transaction';
+
+      let descClean = clean
+        .replace(/^(CARD\s+PAYMENT|CARD\s+PURCHASE|CARD\s+POS|CARD|POS-AANKOOP|POS\s+AANKOOP|POS-PAIEMENT|POS\s+PAIEMENT|POS|DIRECT\s+DEBIT|SEPA\s+DIRECT\s+DEBIT|SEPA\s+OVERSCHRIJVING|SEPA\s+VIREMENT|SEPA|DOMICILIATIE|DOMICILIATION|SOFORT|BANCONTACT|CONTACTLESS)\s*[-:\/]?\s*/gi, '')
+        .replace(/\b\d{4}[-/. ]\d{2}[-/. ]\d{2}\b/g, '')
+        .replace(/\b\d{2}[-/. ]\d{2}[-/. ]\d{4}\b/g, '')
+        .replace(/\b\d{2}[-/. ]\d{2}[-/. ]\d{2}\b/g, '')
+        .replace(/\b\d{1,2}[:.]\d{2}(?:[:.]\d{2})?\b/g, '')
+        .replace(/\b(?:OM|A|AT|LE|VAL\.?|DATE:?)\s*\d{1,2}[:.]\d{2}\b/gi, '')
+        .replace(/\b(BRUSSELS|BRUSSEL|BRUXELLES|ANTWERPEN|ANTWERP|GENT|GHENT|LEUVEN|LOUVAIN|CHARLEROI|LIÈGE|LIEGE|NAMUR|MECHELEN|HASSELT|MONS|KORTRIJK|BRUGGE|BRUGES|PARIS|AMSTERDAM|LONDON|LUXEMBOURG)\b/gi, '')
+        .replace(/\b[A-Z]{2}$/i, '')
+        .replace(/\b(?:BEA|TERM|TERMINAL|STORE|REF|NR|ID)\s*#?\d+\b/gi, '')
+        .replace(/#\d+/g, '')
+        .replace(/\b(?:[A-Z0-9]{8,})\b/g, '')
+        .replace(/[_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!descClean || (detectedMerchant && descClean.toLowerCase() === detectedMerchant.toLowerCase())) {
+        return detectedMerchant || 'Transaction';
+      }
+
+      if (descClean === descClean.toUpperCase() || descClean === descClean.toLowerCase()) {
+        descClean = descClean.toLowerCase().replace(/(?:^|\s|-)\S/g, char => char.toUpperCase());
+      }
+
+      return descClean;
+    };
+
+    const desc = sanitizeDescription(rawDescText, merchant);
 
     const date = resolveTransactionDate();
     const providerTransactionId = pickFirstText(
