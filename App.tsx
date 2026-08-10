@@ -1749,6 +1749,7 @@ const App: React.FC = () => {
 
     const resolveTransactionDate = () => {
       const candidate = pickFirstText(
+        // Best: explicit transaction / authorization / purchase dates
         providerTx?.transaction_date,
         providerTx?.transactionDate,
         providerTx?.transaction_date_time,
@@ -1765,12 +1766,18 @@ const App: React.FC = () => {
         providerTx?.originationDate,
         providerTx?.origination_date_time,
         providerTx?.originationDateTime,
+        // Good: value_date reflects when funds actually moved — closer to the
+        // real transaction date than booking_date (which is when the bank
+        // posted the entry and can lag by days).
+        providerTx?.value_date,
+        providerTx?.valueDate,
+        providerTx?.value_date_time,
+        providerTx?.valueDateTime,
+        // Fallback: booking_date is the bank's posting date
         providerTx?.booking_date,
         providerTx?.bookingDate,
         providerTx?.booking_date_time,
         providerTx?.bookingDateTime,
-        providerTx?.value_date,
-        providerTx?.valueDate,
         providerTx?.date,
       );
       if (!candidate) return toLocalISOString(new Date());
