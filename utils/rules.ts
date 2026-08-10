@@ -47,15 +47,15 @@ export function applyTransactionRulesToFields(
   merchantRules: Record<string, MerchantRule>,
   transactionRules: TransactionRule[]
 ): { description: string; merchant: string; category: string; appliedRuleId?: string; isFromMerchantRule?: boolean } {
-  // 1. Merchant rule - if merchant already exists and has category configured, it takes absolute precedence!
+  // 1. Merchant rule - if merchant already exists and has category or defaultDescription configured, it takes absolute precedence!
   const merchantKey = normalizeMerchantKey(tx.merchant);
   if (merchantKey) {
     const mRule = merchantRules[merchantKey];
-    if (mRule && mRule.category) {
+    if (mRule && (mRule.category || mRule.defaultDescription)) {
       return {
         merchant: tx.merchant,
-        category: mRule.category,
-        description: (tx.description && tx.description.trim()) ? tx.description : (mRule.defaultDescription || ''),
+        category: mRule.category || tx.category,
+        description: mRule.defaultDescription || tx.description,
         isFromMerchantRule: true
       };
     }
