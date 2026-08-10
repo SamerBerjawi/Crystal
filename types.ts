@@ -483,7 +483,7 @@ export interface RegexCategorizationRule {
   description?: string;
 }
 
-export type RuleFieldCondition = 'description' | 'merchant' | 'amount' | 'type';
+export type RuleFieldCondition = 'description' | 'merchant' | 'amount' | 'type' | 'category';
 export type RuleOperator = 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with';
 export type RuleFieldAction = 'merchant' | 'description' | 'category';
 
@@ -505,6 +505,7 @@ export interface TransactionRule {
   conditions: TransactionRuleCondition[];
   actions: TransactionRuleAction[];
   priority?: number; // Order/priority of evaluation (higher numbers executed first)
+  conditionLogic?: 'AND' | 'OR'; // Defaults to 'AND' for backward compatibility
 }
 
 export interface RuleExecutionLog {

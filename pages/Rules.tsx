@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { AppPreferences, TransactionRule, Page, Category, RuleRunBackup, RuleExecutionLog } from '../types';
+import { AppPreferences, TransactionRule, TransactionRuleCondition, Page, Category, RuleRunBackup, RuleExecutionLog } from '../types';
 import Card from '../components/Card';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
@@ -53,9 +53,20 @@ const Rules: React.FC<RulesProps> = ({
   const [sandboxType, setSandboxType] = useState<'expense' | 'income'>('expense');
   const [sandboxMerchant, setSandboxMerchant] = useState('Netflix, Inc.');
 
+  // Ledger Picker Modal (for sandbox)
+  const [ledgerPickerOpen, setLedgerPickerOpen] = useState(false);
+  const [ledgerPickerSearch, setLedgerPickerSearch] = useState('');
+
   // Priority and Suggestion State
   const [rulePriority, setRulePriority] = useState<number>(0);
+  const [conditionLogic, setConditionLogic] = useState<'AND' | 'OR'>('AND');
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+
+  // Historical Scan — per-row selection
+  const [selectedScanRows, setSelectedScanRows] = useState<Set<string>>(new Set());
+
+  // Per-rule "Test on Ledger" panel
+  const [testingRuleId, setTestingRuleId] = useState<string | null>(null);
 
   // Simulation and Drag & Drop State
   const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
@@ -99,7 +110,7 @@ const Rules: React.FC<RulesProps> = ({
 
   // Form State
   const [ruleName, setRuleName] = useState('');
-  const [conditions, setConditions] = useState<{ field: 'description' | 'merchant' | 'amount' | 'type'; operator: 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with'; value: string }[]>([
+  const [conditions, setConditions] = useState<TransactionRuleCondition[]>([
     { field: 'description', operator: 'contains', value: '' }
   ]);
   const [actions, setActions] = useState<{ field: 'merchant' | 'description' | 'category'; value: string }[]>([
@@ -387,7 +398,8 @@ const Rules: React.FC<RulesProps> = ({
           isActive: nextRules[idx].isActive,
           conditions: conditions.map(c => ({ ...c, value: c.value.trim() })),
           actions: actions.map(a => ({ ...a, value: a.value.trim() })),
-          priority: rulePriority
+          priority: rulePriority,
+          conditionLogic,
         };
         toast.success(`Successfully updated rule "${ruleName}"`);
       }
@@ -402,7 +414,8 @@ const Rules: React.FC<RulesProps> = ({
         isActive: true,
         conditions: conditions.map(c => ({ ...c, value: c.value.trim() })),
         actions: actions.map(a => ({ ...a, value: a.value.trim() })),
-        priority: nextMaxPriority
+        priority: nextMaxPriority,
+        conditionLogic,
       });
       toast.success(`Rule "${ruleName}" successfully created! Drag to reorder its priority.`);
     }
@@ -421,6 +434,7 @@ const Rules: React.FC<RulesProps> = ({
     setConditions(rule.conditions);
     setActions(rule.actions);
     setRulePriority(rule.priority ?? 0);
+    setConditionLogic(rule.conditionLogic ?? 'AND');
     setIsAddingRule(true);
   };
 
@@ -453,6 +467,7 @@ const Rules: React.FC<RulesProps> = ({
     setConditions([{ field: 'description', operator: 'contains', value: '' }]);
     setActions([{ field: 'category', value: flatCategories[0] || '' }]);
     setRulePriority(0);
+    setConditionLogic('AND');
     setIsAddingRule(false);
     setEditingRuleId(null);
   };
@@ -464,9 +479,10 @@ const Rules: React.FC<RulesProps> = ({
     if (validConds.length === 0) return [];
 
     return transactions.filter(tx => {
-      return validConds.every(cond => evaluateRuleCondition(tx, cond));
+      const results = validConds.map(cond => evaluateRuleCondition(tx, cond));
+      return conditionLogic === 'OR' ? results.some(Boolean) : results.every(Boolean);
     });
-  }, [isAddingRule, conditions, transactions]);
+  }, [isAddingRule, conditions, conditionLogic, transactions]);
 
   // Run Rule scan on existing, original transaction record data
   const historicalRuleCalculations = useMemo(() => {
@@ -518,13 +534,36 @@ const Rules: React.FC<RulesProps> = ({
     return changes;
   }, [transactions, merchantRules, existingRules]);
 
+
+  // ── Historical Scan: per-row selection helpers ────────────────────────────
+  const toggleScanRow = (txId: string) => {
+    setSelectedScanRows(prev => {
+      const next = new Set(prev);
+      if (next.has(txId)) next.delete(txId); else next.add(txId);
+      return next;
+    });
+  };
+
+  const toggleAllScanRows = (all: boolean) => {
+    if (all) {
+      setSelectedScanRows(new Set(historicalRuleCalculations.map(c => c.transaction.id)));
+    } else {
+      setSelectedScanRows(new Set());
+    }
+  };
+
+  // Commit only the selected rows (if none selected → commit all)
   const handleApplyHistoricalChanges = () => {
-    if (historicalRuleCalculations.length === 0) {
+    const subset = selectedScanRows.size > 0
+      ? historicalRuleCalculations.filter(c => selectedScanRows.has(c.transaction.id))
+      : historicalRuleCalculations;
+
+    if (subset.length === 0) {
       toast.error('No matching transactions would be modified.');
       return;
     }
 
-    const payload = historicalRuleCalculations.map(change => ({
+    const payload = subset.map(change => ({
       ...change.transaction,
       ...change.updates
     }));
@@ -536,7 +575,7 @@ const Rules: React.FC<RulesProps> = ({
       batchId,
       timestamp: nowStr,
       ruleName: 'Database Scan Optimization',
-      transactions: historicalRuleCalculations.map(change2 => ({
+      transactions: subset.map(change2 => ({
         id: change2.transaction.id,
         originalCategory: change2.transaction.category || '',
         originalMerchant: change2.transaction.merchant || '',
@@ -544,7 +583,7 @@ const Rules: React.FC<RulesProps> = ({
       }))
     };
 
-    const newLogs: RuleExecutionLog[] = historicalRuleCalculations.map(change3 => {
+    const newLogs: RuleExecutionLog[] = subset.map(change3 => {
       const ruleId = change3.appliedRuleId || 'merchant-override';
       const ruleName = change3.appliedRuleId
         ? (existingRules.find(r => r.id === change3.appliedRuleId)?.name || 'Custom Rule')
@@ -579,9 +618,11 @@ const Rules: React.FC<RulesProps> = ({
     }));
 
     saveTransaction(payload);
-    toast.success(`Successfully applied Rule Engine updates to ${payload.length} existing transactions in your database!`);
+    setSelectedScanRows(new Set());
+    toast.success(`Successfully applied Rule Engine updates to ${payload.length} transactions!`);
     setActiveTab('rules-list');
   };
+
 
   const handleApplyToExisting = () => {
     if (historicalRuleCalculations.length === 0) {
@@ -752,7 +793,7 @@ const Rules: React.FC<RulesProps> = ({
     const proposals: {
       id: string;
       name: string;
-      conditions: { field: 'description' | 'merchant' | 'amount' | 'type'; operator: 'contains' | 'equals' | 'greater_than' | 'less_than' | 'starts_with' | 'ends_with'; value: string }[];
+      conditions: TransactionRuleCondition[];
       actions: { field: 'merchant' | 'description' | 'category'; value: string }[];
       priority: number;
       reason: string;
@@ -1078,16 +1119,6 @@ const Rules: React.FC<RulesProps> = ({
               Simulate Impact
             </HeaderButton>
 
-            {historicalRuleCalculations.length > 0 && (
-              <HeaderButton
-                variant="amber"
-                icon="settings_backup_restore"
-                id="btn-apply-past-txs"
-                onClick={handleApplyToExisting}
-              >
-                Apply to existing ({historicalRuleCalculations.length})
-              </HeaderButton>
-            )}
 
             <HeaderButton
               variant="primary"
@@ -1260,10 +1291,31 @@ const Rules: React.FC<RulesProps> = ({
                   {/* Conditions - WHEN Block */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-black text-amber-500  tracking-widest flex items-center gap-1">
-                        <Icon name="filter_alt" className="text-base" />
-                        <span>WHEN: Conditions (Match all)</span>
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-amber-500 tracking-widest flex items-center gap-1">
+                          <Icon name="filter_alt" className="text-base" />
+                          <span>WHEN: Conditions</span>
+                        </span>
+                        {/* AND / OR logic toggle — only shown when >1 condition */}
+                        {conditions.length > 1 && (
+                          <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-lg p-0.5 text-[9px] font-black gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setConditionLogic('AND')}
+                              className={`px-2 py-0.5 rounded transition-colors ${conditionLogic === 'AND' ? 'bg-amber-500 text-white' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            >
+                              AND
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConditionLogic('OR')}
+                              className={`px-2 py-0.5 rounded transition-colors ${conditionLogic === 'OR' ? 'bg-amber-500 text-white' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                            >
+                              OR
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={addConditionField}
@@ -1290,6 +1342,7 @@ const Rules: React.FC<RulesProps> = ({
                                 <option value="merchant">Merchant</option>
                                 <option value="amount">Amount</option>
                                 <option value="type">Transaction Type</option>
+                                <option value="category">Current Category</option>
                               </select>
                               <div className={SELECT_ARROW_STYLE} />
                             </div>
@@ -1326,15 +1379,31 @@ const Rules: React.FC<RulesProps> = ({
                           {/* Value */}
                           <div className="flex-1 w-full">
                             <span className="block text-[8px] text-gray-400 font-black tracking-widest  mb-1">Value</span>
-                            <input
-                              type={cond.field === 'amount' ? 'number' : 'text'}
-                              step="any"
-                              value={cond.value}
-                              onChange={e => updateCondition(idx, 'value', e.target.value)}
-                              placeholder={cond.field === 'type' ? 'e.g. expense, income' : 'keyword or amount...'}
-                              className={INPUT_BASE_STYLE}
-                              required
-                            />
+                            {cond.field === 'category' ? (
+                              <div className={SELECT_WRAPPER_STYLE}>
+                                <select
+                                  value={cond.value}
+                                  onChange={e => updateCondition(idx, 'value', e.target.value)}
+                                  className={SELECT_STYLE}
+                                >
+                                  <option value="">Select category...</option>
+                                  {flatCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                  ))}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE} />
+                              </div>
+                            ) : (
+                              <input
+                                type={cond.field === 'amount' ? 'number' : 'text'}
+                                step="any"
+                                value={cond.value}
+                                onChange={e => updateCondition(idx, 'value', e.target.value)}
+                                placeholder={cond.field === 'type' ? 'e.g. expense, income' : 'keyword or amount...'}
+                                className={INPUT_BASE_STYLE}
+                                required
+                              />
+                            )}
                           </div>
 
                           {/* Delete condition */}
@@ -1614,17 +1683,17 @@ const Rules: React.FC<RulesProps> = ({
                       const isDragged = draggedRuleId === rule.id;
                       const isDragOver = dragOverRuleId === rule.id;
                       return (
-                        <motion.div
-                          layout
-                          key={rule.id}
-                          draggable={true}
-                          onDragStart={(e: any) => {
-                            setDraggedRuleId(rule.id);
-                            if (e.dataTransfer) {
-                              e.dataTransfer.effectAllowed = 'move';
-                              e.dataTransfer.setData('text/plain', rule.id);
-                            }
-                          }}
+                        <React.Fragment key={rule.id}>
+                          <motion.div
+                            layout
+                            draggable={true}
+                            onDragStart={(e: any) => {
+                              setDraggedRuleId(rule.id);
+                              if (e.dataTransfer) {
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', rule.id);
+                              }
+                            }}
                           onDragEnd={() => {
                             setDraggedRuleId(null);
                             setDragOverRuleId(null);
@@ -1722,6 +1791,20 @@ const Rules: React.FC<RulesProps> = ({
 
                           {/* Management buttons */}
                           <div className="flex items-center gap-2 self-end md:self-auto shrink-0 select-none">
+                            {/* Logic badge */}
+                            {rule.conditionLogic === 'OR' && (
+                              <span className="px-1.5 py-0.5 text-[8px] font-black rounded bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">OR</span>
+                            )}
+
+                            {/* Test on Ledger button */}
+                            <button
+                              title="Test this rule against your real transactions"
+                              onClick={() => setTestingRuleId(testingRuleId === rule.id ? null : rule.id)}
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${testingRuleId === rule.id ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400' : 'bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300'}`}
+                            >
+                              <Icon name="science" className="text-lg leading-none" />
+                            </button>
+
                             <button
                               onClick={() => handleToggleRuleActive(rule.id, !rule.isActive)}
                               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${rule.isActive ? 'bg-green-50 hover:bg-green-100 text-green-600 dark:bg-green-950/20 dark:hover:bg-green-900/40 dark:text-green-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-500 dark:bg-white/5 dark:hover:bg-white/10 dark:text-gray-400'}`}
@@ -1744,8 +1827,52 @@ const Rules: React.FC<RulesProps> = ({
                             </button>
                           </div>
                         </motion.div>
-                      );
-                    })}
+
+                        {/* Inline "Test on Ledger" panel */}
+                        {testingRuleId === rule.id && (() => {
+                          const logic = rule.conditionLogic ?? 'AND';
+                          const ledgerMatches = transactions.filter(tx => {
+                            if (rule.conditions.length === 0) return false;
+                            const results = rule.conditions.map(cond => evaluateRuleCondition({
+                              description: tx.description || '',
+                              merchant: tx.merchant || '',
+                              amount: Math.abs(Number(tx.amount) || 0),
+                              type: tx.type || 'expense',
+                              category: tx.category || '',
+                            }, cond));
+                            return logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
+                          });
+                          return (
+                            <div className="mx-1 mb-2 bg-indigo-500/[0.04] border border-indigo-500/20 rounded-2xl p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                  <Icon name="science" className="text-sm" />
+                                  <span>Live Ledger Test — <strong>{ledgerMatches.length}</strong> matching transaction{ledgerMatches.length !== 1 ? 's' : ''}</span>
+                                </span>
+                                <span className="font-mono text-[9px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded font-black">{logic} logic</span>
+                              </div>
+                              {ledgerMatches.length === 0 ? (
+                                <p className="text-[11px] text-gray-400 italic">No real transactions currently match this rule's conditions.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
+                                  {ledgerMatches.slice(0, 8).map(tx => (
+                                    <span key={tx.id} className="text-[10px] bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 px-2.5 py-1 rounded-lg text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2 shadow-xs">
+                                      <span className="truncate max-w-[130px]">{tx.description || tx.merchant || 'Transaction'}</span>
+                                      <span className="font-mono text-indigo-500 font-bold shrink-0">{Number(tx.amount).toFixed(2)} {tx.currency || 'EUR'}</span>
+                                    </span>
+                                  ))}
+                                  {ledgerMatches.length > 8 && (
+                                    <span className="text-[10px] text-gray-400 self-center font-bold px-1">+{ledgerMatches.length - 8} more</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </React.Fragment>
+                    );
+                  })}
+
                   </div>
                 </div>
 
@@ -2336,13 +2463,22 @@ const Rules: React.FC<RulesProps> = ({
               {/* Input Simulator Panel */}
               <div className="lg:col-span-1 space-y-4">
                 <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
-                  <div className="border-b border-black/5 dark:border-white/5 pb-2">
-                    <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
-                      Simulation Input
-                    </h4>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      Configure your mockup transactional values.
-                    </p>
+                  <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-2">
+                    <div>
+                      <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
+                        Simulation Input
+                      </h4>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        Configure your mockup transactional values.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setLedgerPickerOpen(true)}
+                      className="px-2.5 py-1 text-[10px] font-bold bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg flex items-center gap-1 transition-colors shrink-0"
+                    >
+                      <Icon name="receipt_long" className="text-xs" />
+                      <span>Pick from Ledger</span>
+                    </button>
                   </div>
 
                   {/* Quick Load Test Presets */}
@@ -2633,16 +2769,29 @@ const Rules: React.FC<RulesProps> = ({
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-between items-center bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5">
-                  <span className="text-xs font-mono text-gray-500">
-                    Discovered <strong className="text-light-text dark:text-dark-text font-black font-sans">{historicalRuleCalculations.length} items</strong> with mismatched fields in total.
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={historicalRuleCalculations.length > 0 && selectedScanRows.size === historicalRuleCalculations.length}
+                      onChange={(e) => toggleAllScanRows(e.target.checked)}
+                      className={CHECKBOX_STYLE}
+                      title="Select / deselect all items"
+                    />
+                    <span className="text-xs font-mono text-gray-500">
+                      Discovered <strong className="text-light-text dark:text-dark-text font-black font-sans">{historicalRuleCalculations.length} items</strong> with mismatched fields ({selectedScanRows.size} selected).
+                    </span>
+                  </div>
                   <button
                     onClick={handleApplyHistoricalChanges}
                     className={`${BTN_PRIMARY_STYLE} flex items-center gap-1 leading-none text-xs`}
                     id="btn-apply-database-changes"
                   >
                     <Icon name="check_circle" className="text-base" />
-                    <span>Commit {historicalRuleCalculations.length} Updates</span>
+                    <span>
+                      {selectedScanRows.size > 0
+                        ? `Commit ${selectedScanRows.size} Selected Updates`
+                        : `Commit All ${historicalRuleCalculations.length} Updates`}
+                    </span>
                   </button>
                 </div>
 
@@ -2650,6 +2799,14 @@ const Rules: React.FC<RulesProps> = ({
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                        <th className="p-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={historicalRuleCalculations.length > 0 && selectedScanRows.size === historicalRuleCalculations.length}
+                            onChange={(e) => toggleAllScanRows(e.target.checked)}
+                            className={CHECKBOX_STYLE}
+                          />
+                        </th>
                         <th className="p-3 font-bold tracking-wider text-[10px] text-gray-400">Date / Original Description</th>
                         <th className="p-3 font-bold tracking-wider text-[10px] text-gray-400">Current Field Mapping</th>
                         <th className="p-3 w-8 text-center text-gray-300">→</th>
@@ -2660,8 +2817,17 @@ const Rules: React.FC<RulesProps> = ({
                     <tbody className="divide-y divide-black/[0.03] dark:divide-white/[0.02]">
                       {historicalRuleCalculations.map((change, idx) => {
                         const originalTx = change.transaction;
+                        const isChecked = selectedScanRows.has(originalTx.id);
                         return (
-                          <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-white/[0.01]">
+                          <tr key={idx} className={`hover:bg-gray-50/50 dark:hover:bg-white/[0.01] ${isChecked ? 'bg-primary-500/[0.03]' : ''}`}>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleScanRow(originalTx.id)}
+                                className={CHECKBOX_STYLE}
+                              />
+                            </td>
                             <td className="p-3">
                               <p className="font-bold text-light-text dark:text-dark-text truncate max-w-[200px]" title={originalTx.description}>{originalTx.description || 'Unspecified transaction'}</p>
                               <p className="text-[10px] text-gray-400 font-mono mt-0.5">{originalTx.date} • {originalTx.amount} EUR</p>
@@ -2936,6 +3102,116 @@ const Rules: React.FC<RulesProps> = ({
                       </button>
                     )}
                   </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* LEDGER TRANSACTION PICKER MODAL (FOR SANDBOX) */}
+      <AnimatePresence>
+        {ledgerPickerOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" id="modal-ledger-picker">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLedgerPickerOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+            />
+
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ transform: 'scale(0.95)', opacity: 0 }}
+                animate={{ transform: 'scale(1)', opacity: 1 }}
+                exit={{ transform: 'scale(0.95)', opacity: 0 }}
+                transition={{ type: 'spring', duration: 0.3 }}
+                className="relative bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl max-w-xl w-full shadow-2xl p-6 space-y-4 max-h-[80vh] flex flex-col font-sans"
+              >
+                <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-3 shrink-0">
+                  <div>
+                    <h3 className="text-base font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
+                      <Icon name="receipt_long" className="text-primary-500" />
+                      <span>Select Real Transaction from Ledger</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Choose a real transaction record to load into the sandbox simulator.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setLedgerPickerOpen(false)}
+                    className="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 flex items-center justify-center text-gray-400 hover:text-light-text dark:hover:text-dark-text transition-colors"
+                  >
+                    <Icon name="close" className="text-xl leading-none" />
+                  </button>
+                </div>
+
+                <div className="relative shrink-0">
+                  <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                  <input
+                    type="text"
+                    value={ledgerPickerSearch}
+                    onChange={(e) => setLedgerPickerSearch(e.target.value)}
+                    placeholder="Search by merchant, description, or amount..."
+                    className={`${INPUT_BASE_STYLE} pl-9`}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[30vh]">
+                  {(() => {
+                    const filtered = transactions.filter(tx => {
+                      if (!ledgerPickerSearch.trim()) return true;
+                      const q = ledgerPickerSearch.toLowerCase();
+                      return (
+                        (tx.description || '').toLowerCase().includes(q) ||
+                        (tx.merchant || '').toLowerCase().includes(q) ||
+                        (tx.category || '').toLowerCase().includes(q) ||
+                        String(tx.amount || '').includes(q)
+                      );
+                    }).slice(0, 50);
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="py-12 text-center text-xs text-gray-400">
+                          No transactions found matching "{ledgerPickerSearch}"
+                        </div>
+                      );
+                    }
+
+                    return filtered.map(tx => (
+                      <div
+                        key={tx.id}
+                        onClick={() => {
+                          setSandboxDesc(tx.description || '');
+                          setSandboxMerchant(tx.merchant || '');
+                          setSandboxAmount(String(Math.abs(Number(tx.amount) || 0)));
+                          setSandboxType((tx.type as any) || 'expense');
+                          setLedgerPickerOpen(false);
+                          toast.success(`Loaded "${tx.description || tx.merchant}" into Sandbox simulator.`);
+                        }}
+                        className="p-3 rounded-xl border border-black/5 dark:border-white/5 bg-gray-50/50 hover:bg-primary-500/[0.04] hover:border-primary-500/30 dark:bg-white/[0.01] dark:hover:bg-primary-500/[0.04] transition-all cursor-pointer flex justify-between items-center gap-3 text-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-light-text dark:text-dark-text truncate">
+                            {tx.description || tx.merchant || 'Unnamed Transaction'}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                            {tx.date} {tx.merchant ? `• ${tx.merchant}` : ''} {tx.category ? `• ${tx.category}` : ''}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-light-text dark:text-dark-text block">
+                            {Number(tx.amount).toFixed(2)} {tx.currency || 'EUR'}
+                          </span>
+                          <span className="text-[9px] font-black uppercase text-gray-400 font-mono">
+                            {tx.type || 'expense'}
+                          </span>
+                        </div>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </motion.div>
             </div>

@@ -2,16 +2,19 @@ import { TransactionRule, TransactionRuleCondition, MerchantRule } from '../type
 import { normalizeMerchantKey } from './brandfetch';
 
 export function evaluateRuleCondition(
-  tx: { description?: string; merchant?: string; amount?: number; type?: string },
+  tx: { description?: string; merchant?: string; amount?: number; type?: string; category?: string },
   condition: TransactionRuleCondition
 ): boolean {
   let valToMatch = '';
+
   if (condition.field === 'description') {
     valToMatch = tx.description || '';
   } else if (condition.field === 'merchant') {
     valToMatch = tx.merchant || '';
   } else if (condition.field === 'type') {
     valToMatch = tx.type || '';
+  } else if (condition.field === 'category') {
+    valToMatch = tx.category || '';
   } else if (condition.field === 'amount') {
     const txAmount = Math.abs(tx.amount || 0);
     const condAmount = parseFloat(condition.value);
@@ -63,10 +66,18 @@ export function applyTransactionRulesToFields(
     .filter(r => r.isActive)
     .slice()
     .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+
   for (const rule of activeRules) {
-    // Check if ALL conditions match (AND logic)
-    const allMatch = rule.conditions.every(cond => evaluateRuleCondition(tx, cond));
-    if (allMatch && rule.conditions.length > 0) {
+    if (rule.conditions.length === 0) continue;
+
+    // Evaluate using AND (default) or OR logic depending on rule.conditionLogic
+    const logic = rule.conditionLogic ?? 'AND';
+    const conditionResults = rule.conditions.map(cond => evaluateRuleCondition(tx, cond));
+    const allMatch = logic === 'OR'
+      ? conditionResults.some(Boolean)
+      : conditionResults.every(Boolean);
+
+    if (allMatch) {
       let nextMerchant = tx.merchant;
       let nextDescription = tx.description;
       let nextCategory = tx.category;

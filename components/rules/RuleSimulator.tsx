@@ -1,6 +1,7 @@
 import React from 'react';
 import { TransactionRule, Transaction } from '../../types';
 import { formatCurrency } from '../../utils';
+import { evaluateRuleCondition } from '../../utils/rules';
 
 interface RuleSimulatorProps {
   rule: TransactionRule;
@@ -9,16 +10,23 @@ interface RuleSimulatorProps {
 }
 
 export const RuleSimulator: React.FC<RuleSimulatorProps> = ({ rule, sampleTransactions, onClose }) => {
+  const logic = rule.conditionLogic ?? 'AND';
+
   const matches = sampleTransactions.filter((tx) => {
-    const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').toLowerCase();
-    return rule.conditions.some((cond) => {
-      if (cond.field === 'description' || cond.field === 'merchant') {
-        const val = cond.value.toLowerCase();
-        if (cond.operator === 'contains') return textToMatch.includes(val);
-        if (cond.operator === 'equals') return textToMatch === val;
-      }
-      return false;
-    });
+    if (rule.conditions.length === 0) return false;
+    const results = rule.conditions.map(cond =>
+      evaluateRuleCondition(
+        {
+          description: tx.description || '',
+          merchant: tx.merchant || '',
+          amount: Math.abs(Number(tx.amount) || 0),
+          type: tx.type || 'expense',
+          category: tx.category || '',
+        },
+        cond
+      )
+    );
+    return logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
   });
 
   return (
@@ -36,7 +44,8 @@ export const RuleSimulator: React.FC<RuleSimulatorProps> = ({ rule, sampleTransa
       </div>
 
       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-        Matched <span className="font-bold text-primary-500">{matches.length}</span> transaction(s) out of {sampleTransactions.length} sample records.
+        Matched <span className="font-bold text-primary-500">{matches.length}</span> transaction(s) out of {sampleTransactions.length} sample records.{' '}
+        <span className="font-mono text-[10px] bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500">{logic} logic</span>
       </p>
 
       {matches.length > 0 && (
