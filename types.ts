@@ -292,6 +292,10 @@ export interface Transaction {
   // Investment helpers
   isMarketAdjustment?: boolean;
   isBalanceAdjustment?: boolean;
+  // Hierarchy helpers for Split & Combine transactions
+  parentTransactionId?: string;
+  isSplitParent?: boolean;
+  isCombinedParent?: boolean;
 }
 
 export interface DisplayTransaction extends Transaction {
@@ -305,6 +309,9 @@ export interface DisplayTransaction extends Transaction {
   transferExpenseCurrency?: Currency;
   transferIncomeAmount?: number;
   transferIncomeCurrency?: Currency;
+  isSubTransaction?: boolean;
+  subItemCount?: number;
+  isExpanded?: boolean;
 }
 
 export interface InvestmentTransaction {

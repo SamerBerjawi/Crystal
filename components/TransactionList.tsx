@@ -216,7 +216,10 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     />
                 </div>
 
-                <div className="flex items-center min-w-0 flex-1 relative z-10">
+                <div className={`flex items-center min-w-0 flex-1 relative z-10 ${tx.parentTransactionId ? 'pl-4 border-l-2 border-primary-500/40 ml-1' : ''}`}>
+                  {tx.parentTransactionId && (
+                    <Icon name="subdirectory_arrow_right" className="text-sm text-primary-500 mr-2 shrink-0 opacity-70" />
+                  )}
                   <div 
                     className={`shrink-0 ${density === 'high' ? 'h-9 w-9 sm:h-9 sm:w-9' : 'h-10 w-10 sm:h-11 sm:w-11'} rounded-2xl flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-white/10' : ''}`}
                     style={showMerchantLogo ? undefined : { backgroundColor: isTransfer ? '#64748B' : categoryColor }}
@@ -234,10 +237,20 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     )}
                   </div>
                   <div className="ml-3 sm:ml-3.5 min-w-0 overflow-hidden flex-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                         <p className={`${density === 'high' ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'} font-bold text-light-text dark:text-dark-text truncate tracking-tight`}>
                             {description}
                         </p>
+                        {tx.isSplitParent && (
+                          <span className="text-[8px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
+                            SPLIT
+                          </span>
+                        )}
+                        {tx.isCombinedParent && (
+                          <span className="text-[8px] font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md shrink-0 border border-indigo-500/20">
+                            COMBINED
+                          </span>
+                        )}
                         {tx.isMarketAdjustment && (
                           <span className="text-[8px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md shrink-0 border border-blue-500/20">
                             MARKET
