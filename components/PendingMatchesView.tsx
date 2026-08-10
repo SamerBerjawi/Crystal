@@ -82,7 +82,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
       items.push({
         id: `transfer-${s.id}`,
         type: 'transfer',
-        score: s.matchScore || 85,
+        score: s.matchScore,
         date: s.expenseTx.date,
         rawItem: s,
       });
@@ -527,7 +527,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
 
                     <div className="flex-1 space-y-3">
                       <ConfidenceScoreBar
-                        score={raw.matchScore || 85}
+                        score={raw.matchScore}
                         varianceText={
                           raw.daysDiff === 0
                             ? 'Exact date match'

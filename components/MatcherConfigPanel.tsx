@@ -52,7 +52,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Slider 1: Amount Variance % */}
         <div className="space-y-2 bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
           <div className="flex justify-between items-center text-xs font-bold">
@@ -121,6 +121,52 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
             <span>30 Days</span>
           </div>
         </div>
+
+        {/* Slider 4: Minimum Confidence Score */}
+        <div className="space-y-2 bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
+          <div className="flex justify-between items-center text-xs font-bold">
+            <span className="text-light-text dark:text-dark-text">Min Confidence Score</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
+              ≥{config.minMatchScore}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="30"
+            max="90"
+            step="5"
+            value={config.minMatchScore}
+            onChange={e => onChange({ minMatchScore: Number(e.target.value) })}
+            className="w-full accent-emerald-600 cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+            <span>30% (Show More)</span>
+            <span>90% (Very Strict)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Toggle: Require Name Match */}
+      <div className="flex items-center justify-between bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
+        <div className="space-y-0.5">
+          <p className="text-xs font-bold text-light-text dark:text-dark-text">Require Name Similarity</p>
+          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary max-w-xs">
+            When enabled, bill/recurring matches with low name similarity are suppressed even if amount and date match well.
+          </p>
+        </div>
+        <button
+          onClick={() => onChange({ requireNameMatch: !config.requireNameMatch })}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-4 ${
+            config.requireNameMatch ? 'bg-emerald-600' : 'bg-black/20 dark:bg-white/20'
+          }`}
+          aria-label="Toggle require name match"
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              config.requireNameMatch ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
       </div>
     </div>
   );
