@@ -1104,7 +1104,7 @@ const Rules: React.FC<RulesProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             <HeaderButton
               variant="secondary"
-              icon="emoji_objects"
+              icon="zap"
               onClick={() => setShowSuggestions(!showSuggestions)}
             >
               {showSuggestions ? 'Hide Suggestions' : 'Suggest Rules'}
@@ -1112,7 +1112,7 @@ const Rules: React.FC<RulesProps> = ({
 
             <HeaderButton
               variant="indigo"
-              icon="science"
+              icon="sliders"
               id="btn-simulate-rules"
               onClick={() => setIsSimulateModalOpen(true)}
             >
@@ -1122,7 +1122,7 @@ const Rules: React.FC<RulesProps> = ({
 
             <HeaderButton
               variant="primary"
-              icon={isAddingRule ? 'close' : 'add'}
+              icon={isAddingRule ? 'XClose' : 'PlusCircle'}
               id="btn-add-rule"
               onClick={() => {
                 if (isAddingRule) {
@@ -1143,7 +1143,7 @@ const Rules: React.FC<RulesProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-              <Icon name="settings_suggest" className="text-2xl" />
+              <Icon name="sliders" className="text-2xl" />
             </div>
             <div>
               <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 tracking-wider uppercase">Engine Capacity</span>
@@ -1163,7 +1163,7 @@ const Rules: React.FC<RulesProps> = ({
 
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center">
-              <Icon name="storefront" className="text-2xl" />
+              <Icon name="building" className="text-2xl" />
             </div>
             <div>
               <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 tracking-wider uppercase">Merchant Priority</span>
@@ -1181,7 +1181,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
-            <Icon name="settings_suggest" className="text-base" />
+            <Icon name="sliders" className="text-base" />
             <span>Rules Workspace</span>
           </button>
 
@@ -1192,7 +1192,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
-            <Icon name="storefront" className="text-base" />
+            <Icon name="building" className="text-base" />
             <span>Merchant Overrides</span>
           </button>
 
@@ -1203,7 +1203,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
-            <Icon name="science" className="text-base" />
+            <Icon name="sliders" className="text-base" />
             <span>Interactive Sandbox</span>
           </button>
 
@@ -1214,7 +1214,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
-            <Icon name="receipt_long" className="text-base" />
+            <Icon name="receipt" className="text-base" />
             <span>Execution History & Logs</span>
           </button>
 
@@ -1225,7 +1225,7 @@ const Rules: React.FC<RulesProps> = ({
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
-            <Icon name="search" className="text-base" />
+            <Icon name="Search01" className="text-base" />
             <span>Scan Database</span>
             {historicalRuleCalculations.length > 0 && (
               <span className="px-1.5 py-0.5 text-[9px] bg-amber-500 text-white rounded-full font-black font-mono">

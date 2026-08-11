@@ -61,7 +61,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
       
       {/* Navigation & Header */}
       <SettingsSubpageHeader
-        markerIcon="fingerprint"
+        markerIcon="sliders"
         markerLabel="Identity Vault"
         title="Personal Profile"
         subtitle="Manage your secure identity, contact details, and account security settings."
@@ -89,11 +89,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                     className="w-full h-full rounded-xl object-cover"
                                 />
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white z-20 backdrop-blur-sm">
-                                  <Icon name="photo_camera" className="text-3xl" />
+                                  <Icon name="Edit02" className="text-3xl" />
                                 </div>
                             </div>
                             <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white w-8 h-8 flex items-center justify-center rounded-lg border-4 border-white dark:border-dark-card shadow-lg z-30">
-                                <Icon name="sync" className="text-base" />
+                                <Icon name="refresh" className="text-base" />
                             </div>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                         </div>

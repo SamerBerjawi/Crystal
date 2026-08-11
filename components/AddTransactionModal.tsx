@@ -464,7 +464,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         // Detect Round Up
         if (transactions) {
             // Find a transaction that looks like a round-up for this one
-            const targetId = transactionToEdit.originalId || transactionToEdit.id;
+            const targetId = (transactionToEdit as any).originalId || transactionToEdit.id;
 
             let roundUpTx: Transaction | undefined = undefined;
 
@@ -481,7 +481,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                     transactions
                         .filter(t => t.transferId?.startsWith('spare-'))
                         .map(t => t.transferId!)
-                        .filter(tId => transactions.some(other => (other.id || (other.isTransfer && other.transferId)) && tId.includes(other.id || other.transferId!)))
+                        .filter(tId => transactions.some(other => (other.id || other.transferId) && tId.includes(other.id || other.transferId!)))
                 );
 
                 const currentAccountId = transactionToEdit.type === 'income' ? transactionToEdit.accountId : (transactionToEdit.transferId ? (transactionToEdit.type === 'expense' ? transactionToEdit.accountId : (transactions.find(t => t.transferId === transactionToEdit.transferId && t.type === 'expense')?.accountId)) : transactionToEdit.accountId);

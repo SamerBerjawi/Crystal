@@ -156,7 +156,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                 formattedBalance={formatCurrency(account.balance, account.currency)}
                 badgeText="Liability Account"
                 subText={`${account.currency} Credit Line`}
-                primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
+                primaryAction={{ label: 'Log Tx', icon: 'PlusCircle', onClick: onAddTransaction }}
                 syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
             />
 
@@ -167,7 +167,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                         onClick={onBack}
                         className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
                     >
-                        <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                        <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -180,7 +180,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                 {logoUrl ? (
                                     <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
                                 ) : (
-                                    <Icon name="credit_card" className="text-primary-500 text-2xl" />
+                                    <Icon name="CreditCard01" className="text-primary-500 text-2xl" />
                                 )}
                             </div>
                             {account.name}
@@ -196,7 +196,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                         </button>
                     )}
                     <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                        <Icon name="add" className="text-lg mr-2" />
+                        <Icon name="PlusCircle" className="text-lg mr-2" />
                         Transaction
                     </button>
                 </div>
@@ -281,14 +281,14 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                         <MetricTile
                             label="Repayments"
                             value={formatCurrency(totalPayments, account.currency)}
-                            icon="check_circle"
+                            icon="CheckCircle"
                             colorClass="emerald"
                             subValue="Statement credit applied"
                         />
                         <MetricTile
                             label="Unused Credit"
                             value={formatCurrency(availableCredit, account.currency)}
-                            icon="shield"
+                            icon="Shield01"
                             colorClass="blue"
                             subValue="Total liquidity buffer"
                         />
@@ -297,7 +297,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                     {/* Spending Velocity Chart */}
                     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Icon name="insights" className="text-8xl" />
+                            <Icon name="candlestick_chart" className="text-8xl" />
                         </div>
                         <div className="flex justify-between items-center mb-10 relative z-10">
                             <div>

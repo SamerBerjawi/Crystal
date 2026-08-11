@@ -221,7 +221,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
             <div className="flex flex-col gap-6">
                 <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 flex items-center gap-2 transition-colors self-start group">
                      <div className="p-1 rounded-full group-hover:bg-black/5 dark:group-hover:bg-white/10 transition-colors">
-                        <Icon name="arrow_back" className="text-lg" />
+                        <Icon name="ArrowLeft" className="text-lg" />
                      </div>
                      <span className="text-sm font-medium">Investments Portfolio</span>
                 </button>
@@ -250,7 +250,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                         </div>
                     </div>
                     <div className="flex gap-3 w-full lg:w-auto">
-                        <HeaderButton variant="primary" icon="edit_note" onClick={handleAddPrice}>
+                        <HeaderButton variant="primary" icon="Edit02" onClick={handleAddPrice}>
                             Log Price
                         </HeaderButton>
                     </div>

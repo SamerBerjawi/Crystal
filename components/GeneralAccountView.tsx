@@ -272,8 +272,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         formattedBalance={formatCurrency(account.balance, account.currency)}
         badgeText={`${account.type} Asset`}
         subText={account.financialInstitution || 'Vault'}
-        primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
-        secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+        primaryAction={{ label: 'Log Tx', icon: 'PlusCircle', onClick: onAddTransaction }}
+        secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'sliders', onClick: onAdjustBalance } : undefined}
         syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
       />
 
@@ -284,7 +284,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   onClick={onBack}
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <Icon name="arrow_back" className="text-xl sm:text-2xl transition-transform group-hover:-translate-x-1" />
+                  <Icon name="ArrowLeft" className="text-xl sm:text-2xl transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -307,7 +307,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   </button>
               )}
               <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-4 sm:!px-6 h-10 sm:h-12 shadow-lg shadow-primary-500/20 flex-1 sm:flex-none text-xs sm:text-sm`}>
-                  <Icon name="add" className="text-base sm:text-lg mr-1 sm:mr-2" />
+                  <Icon name="PlusCircle" className="text-base sm:text-lg mr-1 sm:mr-2" />
                   Transaction
               </button>
           </div>

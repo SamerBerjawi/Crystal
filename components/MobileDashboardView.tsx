@@ -180,7 +180,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             }`}
             aria-label="Customize Layout"
           >
-            <Icon name={isEditMode ? 'done' : 'dashboard_customize'} className="text-xl" />
+            <Icon name={isEditMode ? 'CheckCircle' : 'Grid01'} className="text-xl" />
           </button>
         </div>
       </div>
@@ -224,7 +224,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               onClick={handleOpenTransactionModal}
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white text-gray-900 font-bold active:scale-95 transition-all min-h-[50px] shadow-sm"
             >
-              <Icon name="add" className="text-lg" />
+              <Icon name="PlusCircle" className="text-lg" />
               <span className="text-[10px] mt-0.5 font-bold">Transact</span>
             </button>
 
@@ -257,7 +257,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               }}
               className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold active:scale-95 transition-all min-h-[50px] border border-white/10"
             >
-              <Icon name={isEditMode ? 'add_circle' : 'widgets'} className="text-lg" />
+              <Icon name={isEditMode ? 'PlusSquare' : 'Grid01'} className="text-lg" />
               <span className="text-[10px] mt-0.5">{isEditMode ? 'Add' : 'Widgets'}</span>
             </button>
           </div>
@@ -327,7 +327,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                         : 'bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary'
                     }`}
                   >
-                    <Icon name="show_chart" className="text-lg" />
+                    <Icon name="candlestick_chart" className="text-lg" />
                   </button>
 
                   <button
@@ -338,7 +338,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                         : 'bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary'
                     }`}
                   >
-                    <Icon name="flag" className="text-lg" />
+                    <Icon name="target" className="text-lg" />
                   </button>
                 </div>
               </div>
@@ -368,10 +368,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
       <div className="bg-black/5 dark:bg-white/10 p-1 rounded-2xl flex items-center min-h-[48px]">
         {tabs.map((tab) => {
           const tabConfig = {
-            overview: { icon: 'dashboard', label: 'Overview' },
-            analysis: { icon: 'insights', label: 'Analysis' },
-            activity: { icon: 'history', label: 'Activity' },
-            pending_matches: { icon: 'auto_awesome', label: 'Matches' }
+            overview: { icon: 'layout_alt', label: 'Overview' },
+            analysis: { icon: 'bar_chart', label: 'Analysis' },
+            activity: { icon: 'receipt', label: 'Activity' },
+            pending_matches: { icon: 'file_check', label: 'Matches' }
           }[tab] || { icon: 'circle', label: tab };
 
           const isActive = activeTab === tab;
@@ -498,7 +498,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                         {label}
                       </span>
                       <span className="text-lg font-bold text-light-text dark:text-white privacy-blur">
-                        {isHovered ? `$${value.toLocaleString()}` : netWorthFormatted}
+                        {isHovered ? formatCurrency(convertCurrency(value, 'EUR', preferredCurrency, conversionRates), preferredCurrency) : netWorthFormatted}
                       </span>
                     </div>
                   )}

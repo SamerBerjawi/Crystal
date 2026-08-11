@@ -104,7 +104,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 {/* 1. Asset Identity Section */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <Icon name="fingerprint" className="text-primary-500 text-lg" />
+                        <Icon name="target" className="text-primary-500 text-lg" />
                         Security Identification
                     </h4>
                     
@@ -140,7 +140,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 {/* 2. Grant Specifications */}
                 <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <Icon name="contract" className="text-primary-500 text-lg" />
+                        <Icon name="file_text" className="text-primary-500 text-lg" />
                         Exercise Parameters
                     </h4>
 
@@ -168,7 +168,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                     <div className="flex items-center justify-between">
                         <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                            <Icon name="receipt_long" className="text-amber-500 text-lg" />
+                            <Icon name="receipt" className="text-amber-500 text-lg" />
                             Tax Liability Strategy
                         </h4>
                         <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-xl border border-black/5 dark:border-white/5 space-x-1">
@@ -204,7 +204,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                                 onClick={handleAddPayment}
                                 className="flex items-center gap-2 text-[10px] font-black  tracking-[0.2em] text-primary-500 hover:text-primary-600 group transition-all"
                             >
-                                <Icon name="add_circle" className="text-lg group-active:scale-90" />
+                                <Icon name="PlusCircle" className="text-lg group-active:scale-90" />
                                 Add Milestone
                             </button>
                         </div>
@@ -253,7 +253,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                             }`}>
                                 <div className="flex items-center gap-4">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isBalanceZero ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white animate-pulse'}`}>
-                                        <Icon name={isBalanceZero ? 'check_circle' : 'pending_actions'} className="text-xl" />
+                                        <Icon name={isBalanceZero ? 'check_circle' : 'clock'} className="text-xl" />
                                     </div>
                                     <div className="space-y-0.5">
                                         <span className={`text-[10px] font-black  tracking-[0.25em] ${isBalanceZero ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
@@ -278,7 +278,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                         className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black ${!isBalanceZero ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     >
                         {isEditing ? 'Commit Changes' : 'Confirm Execution'}
-                        <Icon name="verified" className="text-lg transition-transform group-hover:translate-x-1" />
+                        <Icon name="check_circle" className="text-lg transition-transform group-hover:translate-x-1" />
                     </button>
                 </div>
             </form>

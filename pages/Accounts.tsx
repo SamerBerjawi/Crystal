@@ -149,9 +149,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       if (activeSegment === 'all') {
           totalValue = globalMetrics.netWorth;
           details = [
-              { label: 'Total Assets', value: formatCurrency(convertCurrency(globalMetrics.totalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'account_balance' },
-              { label: 'Total Liabilities', value: formatCurrency(convertCurrency(globalMetrics.totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'money_off' },
-              { label: 'Liquid Cash', value: formatCurrency(convertCurrency(globalMetrics.liquidCash, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'savings' },
+              { label: 'Total Assets', value: formatCurrency(convertCurrency(globalMetrics.totalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'Bank' },
+              { label: 'Total Liabilities', value: formatCurrency(convertCurrency(globalMetrics.totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'receipt' },
+              { label: 'Liquid Cash', value: formatCurrency(convertCurrency(globalMetrics.liquidCash, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'wallet' },
           ];
       } else if (activeSegment === 'cash') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -169,9 +169,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
 
           details = [
-              { label: 'Checking', value: formatCurrency(convertCurrency(checking, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'payments' },
-              { label: 'Savings', value: formatCurrency(convertCurrency(savings, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'savings' },
-              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(convertCurrency(netFlow, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'show_chart' },
+              { label: 'Checking', value: formatCurrency(convertCurrency(checking, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'Bank' },
+              { label: 'Savings', value: formatCurrency(convertCurrency(savings, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'piggy_bank' },
+              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(convertCurrency(netFlow, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'candlestick_chart' },
           ];
       } else if (activeSegment === 'invested') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -183,8 +183,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
           details = [
                { label: 'Stocks & ETFs', value: formatCurrency(convertCurrency(stocks, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'candlestick_chart' },
-               { label: 'Crypto', value: formatCurrency(convertCurrency(crypto, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'currency_bitcoin' },
-               { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
+               { label: 'Crypto', value: formatCurrency(convertCurrency(crypto, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'zap' },
+               { label: 'Count', value: accountsToSum.length.toString(), icon: 'rows' },
           ];
       } else if (activeSegment === 'property') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -198,7 +198,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const equity = totalValue - totalDebt;
 
           details = [
-              { label: 'Total Equity', value: formatCurrency(convertCurrency(equity, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'pie_chart' },
+              { label: 'Total Equity', value: formatCurrency(convertCurrency(equity, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'scale' },
               { label: 'Linked Debt', value: formatCurrency(convertCurrency(totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'link' },
               { label: 'Assets', value: accountsToSum.length.toString(), icon: 'home' },
           ];
@@ -213,8 +213,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
            details = [
                { label: 'Credit Cards', value: formatCurrency(convertCurrency(ccDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'credit_card' },
-               { label: 'Loans', value: formatCurrency(convertCurrency(loanDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'real_estate_agent' },
-               { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
+               { label: 'Loans', value: formatCurrency(convertCurrency(loanDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'receipt_check' },
+               { label: 'Count', value: accountsToSum.length.toString(), icon: 'rows' },
            ];
       }
       
@@ -298,9 +298,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   
   // Segment Pills config
   const segments: { id: AccountSegment; label: string; icon: string }[] = [
-      { id: 'all', label: 'Overview', icon: 'dashboard' },
-      { id: 'cash', label: 'Cash', icon: 'payments' },
-      { id: 'invested', label: 'Invested', icon: 'trending_up' },
+      { id: 'all', label: 'Overview', icon: 'layout_alt' },
+      { id: 'cash', label: 'Cash', icon: 'wallet' },
+      { id: 'invested', label: 'Invested', icon: 'candlestick_chart' },
       { id: 'property', label: 'Assets', icon: 'home' },
       { id: 'debt', label: 'Liabilities', icon: 'credit_card' },
   ];
@@ -365,7 +365,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         {/* Desktop View */}
         <div className="hidden md:block space-y-6">
           <PageHeader 
-              markerIcon="account_balance_wallet"
+              markerIcon="wallet"
               markerLabel="Portfolio Overview"
               title="Accounts & Portfolio"
               subtitle="Track your liquid capital, property valuations, debt obligations and investments in a single place to calculate real-time net worth."
@@ -388,7 +388,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                   </HeaderButton>
                   <HeaderButton
                     variant="primary"
-                    icon="add"
+                    icon="PlusCircle"
                     onClick={() => setAddModalOpen(true)}
                   >
                     Add Account
@@ -411,7 +411,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             className="cursor-pointer group/nw min-w-0"
                         >
                             <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                                <Icon name="account_balance_wallet" className="text-primary-500 text-sm" />
+                                <Icon name="wallet" className="text-primary-500 text-sm" />
                                 <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
                             </div>
                             <div className="flex items-baseline gap-2">
@@ -430,7 +430,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                 onClick={() => setAddModalOpen(true)} 
                                 className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3 !text-xs !rounded-xl flex items-center gap-1`}
                             >
-                                <Icon name="add" className="text-sm" />
+                                <Icon name="PlusCircle" className="text-sm" />
                                 <span>Add Account</span>
                             </button>
                         </div>
@@ -489,7 +489,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         onClick={() => setAddModalOpen(true)} 
                         className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add`}
                     >
-                        <Icon name="add" className="text-xl transition-transform group-hover/add:rotate-90" />
+                        <Icon name="PlusCircle" className="text-xl transition-transform group-hover/add:rotate-90" />
                         <span className="hidden sm:inline">Add Account</span>
                     </button>
                 </div>
@@ -570,7 +570,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Assets"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0"><Icon name="account_balance" className="text-primary-500" /></div>}
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0"><Icon name="Bank" className="text-primary-500" /></div>}
                         headerSubtitle="Wealth & Resources"
                         accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 
@@ -595,7 +595,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Liabilities"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0"><Icon name="money_off" className="text-rose-500" /></div>}
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0"><Icon name="receipt" className="text-rose-500" /></div>}
                         headerSubtitle="Debts & Obligations"
                         accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 

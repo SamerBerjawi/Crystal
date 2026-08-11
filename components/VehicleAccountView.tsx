@@ -257,8 +257,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
         formattedBalance={formatCurrency(account.balance, account.currency)}
         badgeText={account.ownership || 'Vehicle Asset'}
         subText={`${account.year || ''} ${account.make || ''} ${account.model || ''}`}
-        valuationAction={!isClosed ? { label: 'Value Update', icon: 'add', onClick: () => { if (onUpdateValuation) onUpdateValuation(); else if (onAddTransaction) onAddTransaction(); } } : undefined}
-        secondaryAction={{ label: 'Add Log', icon: 'speed', onClick: () => onAddLog() }}
+        valuationAction={!isClosed ? { label: 'Value Update', icon: 'PlusCircle', onClick: () => { if (onUpdateValuation) onUpdateValuation(); else if (onAddTransaction) onAddTransaction(); } } : undefined}
+        secondaryAction={{ label: 'Add Log', icon: 'Activity', onClick: () => onAddLog() }}
       />
 
       {/* Dynamic Desktop Header */}
@@ -268,7 +268,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                  <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -286,7 +286,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {!isClosed && (
                 <button onClick={() => { if (onUpdateValuation) { onUpdateValuation(); } else if (onAddTransaction) { onAddTransaction(); } }} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                    <Icon name="add" className="text-lg mr-2" />
+                    <Icon name="PlusCircle" className="text-lg mr-2" />
                     Value Update
                 </button>
               )}
@@ -300,7 +300,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                   onClick={() => onAddLog()} 
                   className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card flex items-center gap-2 hover:bg-primary-500 hover:text-white transition-all`}
               >
-                  <Icon name="speed" className="text-lg" />
+                  <Icon name="Activity" className="text-lg" />
                   Add Log
               </button>
               {!isClosed && onCloseAsset && (

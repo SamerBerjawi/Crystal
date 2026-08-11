@@ -76,7 +76,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
     <div className="w-full space-y-8 animate-fade-in-up pb-12 px-4">
       {/* Header */}
       <PageHeader
-        markerIcon="settings"
+        markerIcon="sliders"
         markerLabel="Control Center"
         title="Settings & Governance"
         subtitle="Configure system preferences, security parameters, taxonomy blueprints, and telemetry integrations."
@@ -103,7 +103,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 />
               )}
               <div className="absolute -bottom-1 -right-1 bg-primary-500 text-white w-6 h-6 flex items-center justify-center rounded-lg border-2 border-white dark:border-dark-card shadow-xs">
-                <Icon name="edit" className="text-xs" />
+                <Icon name="Edit02" className="text-xs" />
               </div>
             </div>
             <div className="min-w-0">
@@ -118,7 +118,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                   {user.role}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 flex items-center gap-1">
-                  <Icon name="verified" className="text-[12px]" />
+                  <Icon name="check_circle" className="text-[12px]" />
                   Verified Account
                 </span>
               </div>
@@ -127,7 +127,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
 
           <HeaderButton
             variant="secondary"
-            icon="fingerprint"
+            icon="sliders"
             onClick={() => handleNavigation('Personal Info')}
           >
             Manage Profile
@@ -142,7 +142,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Experience & Preferences */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Icon name="tune" className="text-primary-500 text-base" />
+              <Icon name="sliders" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Experience & Preferences
               </h3>
@@ -150,7 +150,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             <div className="space-y-3">
               <SettingCard
                 page="Preferences"
-                icon="palette"
+                icon="sliders"
                 title="Preferences"
                 description="Theme modes, primary currency, date formats & privacy blur"
                 colorClass="bg-blue-500 text-white"
@@ -158,7 +158,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               />
               <SettingCard
                 page="Integrations"
-                icon="extension"
+                icon="zap"
                 title="Integrations & APIs"
                 description="Twelve Data, Brandfetch logos, Open Banking & AI"
                 colorClass="bg-indigo-500 text-white"
@@ -170,7 +170,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Automation & Telemetry */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Icon name="smart_toy" className="text-primary-500 text-base" />
+              <Icon name="zap" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Automation & Intelligence
               </h3>
@@ -178,7 +178,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             <div className="space-y-3">
               <SettingCard
                 page="Rules"
-                icon="settings_suggest"
+                icon="sliders"
                 title="Rule Engine"
                 description="Custom IF-WHEN-THEN rules for auto-categorization"
                 colorClass="bg-teal-500 text-white"
@@ -188,7 +188,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               />
               <SettingCard
                 page="Merchants"
-                icon="storefront"
+                icon="building"
                 title="Merchants & Institutions"
                 description="Metadata enrichment, logos, and regex routing rules"
                 colorClass="bg-emerald-500 text-white"
@@ -203,7 +203,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Workspace Taxonomy */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Icon name="category" className="text-primary-500 text-base" />
+              <Icon name="folder" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Workspace & Taxonomy
               </h3>
@@ -211,7 +211,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             <div className="space-y-3">
               <SettingCard
                 page="Categories"
-                icon="grid_view"
+                icon="folder"
                 title="Categories"
                 description="Parent & sub-node structure for expenses and income"
                 colorClass="bg-orange-500 text-white"
@@ -219,7 +219,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               />
               <SettingCard
                 page="Tags"
-                icon="sell"
+                icon="tag"
                 title="Tags"
                 description="Custom labels, lifestyle markers, and project tagging"
                 colorClass="bg-pink-500 text-white"
@@ -231,7 +231,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           {/* Section: Infrastructure & Ledger */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <Icon name="storage" className="text-primary-500 text-base" />
+              <Icon name="download" className="text-primary-500 text-base" />
               <h3 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-80">
                 Infrastructure & Ledger
               </h3>
@@ -239,7 +239,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             <div className="space-y-3">
               <SettingCard
                 page="Data Management"
-                icon="database"
+                icon="download"
                 title="Data Management"
                 description="Atomic CSV/JSON imports, export ledgers, backups"
                 colorClass="bg-cyan-500 text-white"
@@ -247,7 +247,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               />
               <SettingCard
                 page="Documentation"
-                icon="menu_book"
+                icon="file_text"
                 title="Knowledge Base"
                 description="Detailed user guide, system design, and API specs"
                 colorClass="bg-slate-500 text-white"

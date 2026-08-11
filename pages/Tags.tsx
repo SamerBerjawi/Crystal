@@ -163,7 +163,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
-         markerIcon="sell"
+         markerIcon="tag"
          markerLabel="Semantic Overlays"
          title="Tags"
          subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
@@ -171,7 +171,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
          actions={
            <HeaderButton
              variant="primary"
-             icon="add_circle"
+             icon="PlusCircle"
              onClick={() => handleOpenModal()}
            >
              Register New Tag
@@ -181,15 +181,15 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
 
       {/* Metrics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard title="Total Inventory" value={metrics.totalTags} icon="sell" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Semantic Density" value={`${metrics.utilization.toFixed(0)}%`} icon="analytics" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
-          <StatCard title="Primary Vector" value={metrics.topTag ? metrics.topTag.name : 'None'} icon="stars" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
+          <StatCard title="Total Inventory" value={metrics.totalTags} icon="tag" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
+          <StatCard title="Semantic Density" value={`${metrics.utilization.toFixed(0)}%`} icon="bar_chart" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
+          <StatCard title="Primary Vector" value={metrics.topTag ? metrics.topTag.name : 'None'} icon="award" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
       </div>
 
       {/* Controls Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">
           <div className="relative flex-1 max-w-md group">
-              <Icon name="search_activity" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors" />
+              <Icon name="Search01" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Query semantic labels..." 
@@ -217,13 +217,13 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                       onClick={() => setViewMode('grid')}
                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-xl text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                    >
-                       <Icon name="grid_view" className="text-sm" />
+                       <Icon name="layout_alt" className="text-sm" />
                    </button>
                    <button 
                       onClick={() => setViewMode('list')}
                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-xl text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                    >
-                       <Icon name="view_headline" className="text-sm" />
+                       <Icon name="list" className="text-sm" />
                    </button>
                </div>
           </div>

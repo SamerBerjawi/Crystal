@@ -11,10 +11,10 @@ interface MobileNavbarProps {
 }
 
 const PRIMARY_TABS = [
-  { label: 'Dashboard', icon: 'space_dashboard', id: 'Dashboard' as Page, color: 'indigo' },
+  { label: 'Dashboard', icon: 'layout_alt', id: 'Dashboard' as Page, color: 'indigo' },
   { label: 'Accounts', icon: 'wallet', id: 'Accounts' as Page, color: 'emerald' },
-  { label: 'Transactions', icon: 'receipt_long', id: 'Transactions' as Page, color: 'amber' },
-  { label: 'Forecast', icon: 'show_chart', id: 'Forecasting' as Page, color: 'purple' },
+  { label: 'Transactions', icon: 'receipt', id: 'Transactions' as Page, color: 'amber' },
+  { label: 'Forecast', icon: 'PresentationChart01', id: 'Forecasting' as Page, color: 'purple' },
 ];
 
 const NAV_CATEGORIES = [

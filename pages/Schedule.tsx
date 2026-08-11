@@ -36,17 +36,17 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
         colorClass = 'text-emerald-600 dark:text-emerald-400';
         bgClass = 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30';
         accentBg = 'bg-emerald-500';
-        icon = 'arrow_downward';
+        icon = 'ArrowDownLeft';
     } else if (isNet) {
         colorClass = value >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400';
         bgClass = value >= 0 ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30';
         accentBg = value >= 0 ? 'bg-blue-500' : 'bg-orange-500';
-        icon = 'account_balance_wallet';
+        icon = 'wallet';
     } else {
         colorClass = 'text-rose-600 dark:text-rose-400';
         bgClass = 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30';
         accentBg = 'bg-rose-500';
-        icon = 'arrow_upward';
+        icon = 'ArrowUpRight';
     }
 
     return (
@@ -858,10 +858,10 @@ const SchedulePage: React.FC = () => {
 
     const PIE_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
     const segments: { id: ScheduleSegment; label: string; icon: string; color: string }[] = [
-        { id: 'calendar', label: 'Calendar', icon: 'calendar_month', color: 'primary' },
-        { id: 'timeline', label: 'Timeline', icon: 'view_timeline', color: 'rose' },
-        { id: 'rules', label: 'Rules', icon: 'repeat', color: 'amber' },
-        { id: 'expired', label: 'Expired Archive', icon: 'inventory_2', color: 'slate' },
+        { id: 'calendar', label: 'Calendar', icon: 'calendar', color: 'primary' },
+        { id: 'timeline', label: 'Timeline', icon: 'sliders', color: 'rose' },
+        { id: 'rules', label: 'Rules', icon: 'refresh', color: 'amber' },
+        { id: 'expired', label: 'Expired Archive', icon: 'archive', color: 'slate' },
     ];
 
     const heroGradient = activeSegment === 'timeline'
@@ -905,7 +905,7 @@ const SchedulePage: React.FC = () => {
                 />
 
                 <PageHeader 
-                    markerIcon="event_repeat"
+                    markerIcon="clock"
                     markerLabel="Future Outflows"
                     title="Recurring & Bilateral Obligations"
                     subtitle="Track and forecast subscriptions, insurance schedules, salary contracts, loan payments, and billing cycles."
@@ -913,14 +913,14 @@ const SchedulePage: React.FC = () => {
                         <div className="flex items-center gap-2">
                             <HeaderButton
                                 variant="secondary"
-                                icon="receipt_long"
+                                icon="receipt"
                                 onClick={() => handleOpenBillModal()}
                             >
                                 Add One-time
                             </HeaderButton>
                             <HeaderButton
                                 variant="primary"
-                                icon="update"
+                                icon="refresh"
                                 onClick={() => handleOpenRecurringModal()}
                             >
                                 New Recurring
@@ -944,7 +944,7 @@ const SchedulePage: React.FC = () => {
                         <div className="flex flex-col lg:flex-row lg:items-center gap-10 flex-1">
                             <div className="group/val cursor-pointer">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Icon name="payments" className="text-primary-500 text-sm" />
+                                    <Icon name="credit_card" className="text-primary-500 text-sm" />
                                     <span className="text-[10px] font-black tracking-[0.2em]  text-light-text-secondary dark:text-dark-text-secondary">Next 30 Days Outflow</span>
                                 </div>
                                 <div className="flex items-baseline gap-3">

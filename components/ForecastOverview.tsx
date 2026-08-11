@@ -38,11 +38,11 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                     if (isLow) {
                         statusColor = 'bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800';
                         amountColor = 'text-red-600 dark:text-red-400';
-                        icon = 'warning';
+                        icon = 'alert_triangle';
                     } else if (item.lowestBalance < 1000) { // Warning threshold example
                         statusColor = 'bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50';
                         amountColor = 'text-amber-600 dark:text-amber-400';
-                        icon = 'priority_high';
+                        icon = 'alert_circle';
                     } else {
                          statusColor = 'bg-white dark:bg-white/5 border border-black/5 dark:border-white/5';
                          amountColor = 'text-emerald-600 dark:text-emerald-400';
@@ -66,7 +66,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                             </p>
                             
                             <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-[10px] opacity-70">
-                                <Icon name="event" className="text-[14px]" />
+                                <Icon name="calendar" className="text-[14px]" />
                                 <span>On {formattedDate}</span>
                             </div>
                         </div>

@@ -199,7 +199,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
-                                        <Icon name="check_circle" className="text-[10px]" /> Task
+                                        <Icon name="task_alt" className="text-[10px]" /> Task
                                     </p>
                                 </div>
                             </div>
@@ -216,7 +216,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         return (
                             <div key={`${item.type}-${data.id}`} className="flex items-center p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 shrink-0 ${isBill ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                                    <Icon name={isBill ? 'receipt' : 'update'} className="text-lg" />
+                                    <Icon name={isBill ? 'receipt' : 'sync'} className="text-lg" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         return (
                             <div key={`goal-${item.data.id}`} className="flex items-center p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/50">
                                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3 shrink-0 bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                    <Icon name="flag" className="text-lg" />
+                                    <Icon name="target" className="text-lg" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">

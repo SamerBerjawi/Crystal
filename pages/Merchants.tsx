@@ -527,7 +527,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
-         markerIcon="store"
+         markerIcon="building"
          markerLabel="Entity Intelligence"
          title="Merchants & Institutions"
          subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."
@@ -536,14 +536,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
            <div className="flex items-center gap-2">
              <HeaderButton
                variant="secondary"
-               icon="assignment_turned_in"
+               icon="sliders"
                onClick={() => setIsRegexModalOpen(true)}
              >
                Regex Routing Rules
              </HeaderButton>
              <HeaderButton
                variant="primary"
-               icon="sync_saved_locally"
+               icon="refresh"
                isLoading={isRefreshing}
                onClick={handleRefreshLogos}
              >
@@ -555,7 +555,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {!brandfetchClientId && (
           <div className="bg-amber-100/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl px-5 py-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-               <Icon name="brand_awareness" className="text-xl" />
+               <Icon name="building" className="text-xl" />
             </div>
             <p className="text-xs font-bold text-amber-800/80 dark:text-amber-200/80 leading-relaxed">
               Automatic branding enrichment is offline. Add a Brandfetch Access Key in Preferences to restore merchant telemetry.
@@ -567,7 +567,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         <div className="relative overflow-hidden bg-gradient-to-r from-primary-500/[0.08] via-indigo-500/[0.05] to-emerald-500/[0.05] p-5 rounded-3xl border border-primary-500/20 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
-                    <Icon name="psychology" className="text-xl" />
+                    <Icon name="zap" className="text-xl" />
                 </div>
                 <div>
                     <div className="flex items-center gap-2">

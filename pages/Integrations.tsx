@@ -88,7 +88,7 @@ const ApiKeyCard = ({
                     onClick={() => setIsVisible(!isVisible)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-light-text-secondary hover:text-primary-500 transition-colors cursor-pointer"
                 >
-                    <Icon name={isVisible ? 'visibility_off' : 'visibility'} className="text-lg" />
+                    <Icon name={isVisible ? 'eye_off' : 'eye'} className="text-lg" />
                 </button>
             </div>
         </Card>
@@ -134,7 +134,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
     <div className="w-full pb-12 space-y-12 animate-fade-in-up px-4">
        {/* Navigation & Header */}
        <SettingsSubpageHeader
-         markerIcon="extension"
+         markerIcon="zap"
          markerLabel="External Protocols"
          title="Integrations & APIs"
          subtitle="Augment your financial stack with real-time market data, telemetry, and secure vault synchronization."
@@ -151,7 +151,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <ApiKeyCard
                   title="Twelve Data"
                   description="High-frequency engine for market rates, ETF valuations, and global currency arbitrage calculations."
-                  icon="monitoring"
+                  icon="line_chart_up"
                   name="twelveDataApiKey"
                   value={localApiKeys.twelveDataApiKey}
                   onChange={(value) => handleLocalChange('twelveDataApiKey', value)}
@@ -162,7 +162,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <ApiKeyCard
                   title="Brandfetch"
                   description="Metadata enrichment service for merchant identification and high-fidelity branding assets."
-                  icon="auto_awesome"
+                  icon="zap"
                   name="brandfetchClientId"
                   value={localApiKeys.brandfetchClientId}
                   onChange={(value) => handleLocalChange('brandfetchClientId', value)}

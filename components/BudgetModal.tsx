@@ -95,7 +95,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
 
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                        <Icon name="category" className="text-primary-500 text-lg" />
+                        <Icon name="layout_alt" className="text-primary-500 text-lg" />
                         Allocation Parameter
                     </h4>
                     
@@ -132,7 +132,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                     <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
                     <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}>
                         {isEditing ? 'Commit Changes' : 'Deploy Budget'}
-                        <Icon name="rocket_launch" className="text-lg transition-transform group-hover:translate-x-1" />
+                        <Icon name="zap" className="text-lg transition-transform group-hover:translate-x-1" />
                     </button>
                 </div>
             </form>

@@ -207,8 +207,8 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 formattedBalance={formatCurrency(account.balance, account.currency)}
                 badgeText="Savings Account"
                 subText={account.financialInstitution || 'Vault'}
-                primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
-                secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+                primaryAction={{ label: 'Log Tx', icon: 'PlusCircle', onClick: onAddTransaction }}
+                secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'sliders', onClick: onAdjustBalance } : undefined}
                 syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
             />
 
@@ -219,7 +219,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         onClick={onBack}
                         className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
                     >
-                        <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                        <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -229,7 +229,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         </div>
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                             {account.name}
-                            <Icon name={account.icon || 'savings'} className="text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light" />
+                            <Icon name={account.icon || 'piggy_bank'} className="text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light" />
                         </h1>
                     </div>
                 </div>
@@ -242,7 +242,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         </button>
                     )}
                     <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                        <Icon name="add" className="text-lg mr-2" />
+                        <Icon name="PlusCircle" className="text-lg mr-2" />
                         Transaction
                     </button>
                 </div>

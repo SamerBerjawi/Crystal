@@ -132,7 +132,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
         formattedBalance={formatCurrency(account.balance, account.currency)}
         badgeText="Real Estate Asset"
         subText={account.address || 'Global Portfolio'}
-        valuationAction={{ label: 'Valuation', icon: 'edit', onClick: onUpdateValuation }}
+        valuationAction={{ label: 'Valuation', icon: 'Edit02', onClick: onUpdateValuation }}
         syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
       />
 
@@ -143,7 +143,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                  <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -161,7 +161,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
           <div className="flex gap-3 w-full md:w-auto">
               {!isClosed && (
                 <button onClick={onUpdateValuation || onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                    <Icon name="add" className="text-lg mr-2" />
+                    <Icon name="PlusCircle" className="text-lg mr-2" />
                     Value Update
                 </button>
               )}

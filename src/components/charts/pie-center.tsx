@@ -77,7 +77,14 @@ export function PieCenter({
   }
 
   // If custom render function is provided, use it
-  if (children && hoveredData) {
+  if (children) {
+    const fallbackData = hoveredData ?? {
+      label: displayLabel,
+      value: displayValue,
+      color: "",
+      fill: "",
+    };
+
     return (
       <div
         className={cn(
@@ -91,7 +98,7 @@ export function PieCenter({
           value: displayValue,
           label: displayLabel,
           isHovered: effectiveHoveredIndex !== null,
-          data: hoveredData,
+          data: fallbackData,
         })}
       </div>
     );

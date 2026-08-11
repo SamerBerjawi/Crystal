@@ -570,22 +570,22 @@ const Investments: React.FC<InvestmentsProps> = ({
         const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
         
         let details = [
-            { label: 'Invested Capital', value: formatCurrency(investedCapital, 'EUR'), icon: 'payments' },
-            { label: 'Gain/Loss', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'show_chart' },
+            { label: 'Invested Capital', value: formatCurrency(investedCapital, 'EUR'), icon: 'credit_card' },
+            { label: 'Gain/Loss', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'candlestick_chart' },
             { label: 'Performance', value: `${totalGainLossPercent >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(1)}%`, icon: 'trending_up' },
         ];
 
         if (activeSegment === 'Warrant') {
             details = [
-                { label: 'Granted Value', value: formatCurrency(grantedCapital, 'EUR'), icon: 'card_membership' },
-                { label: 'Active Grants', value: activeHoldings.length.toString(), icon: 'list_alt' },
-                { label: 'Unrealized PnL', value: formatCurrency(totalGainLoss, 'EUR'), icon: 'show_chart' },
+                { label: 'Granted Value', value: formatCurrency(grantedCapital, 'EUR'), icon: 'award' },
+                { label: 'Active Grants', value: activeHoldings.length.toString(), icon: 'list' },
+                { label: 'Unrealized PnL', value: formatCurrency(totalGainLoss, 'EUR'), icon: 'candlestick_chart' },
             ];
         } else if (activeSegment === 'Spare Change') {
             const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
             const spareAccountIds = new Set(spareAccounts.map(a => a.id));
             details = [
-                { label: 'Total Saved', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'savings' },
+                { label: 'Total Saved', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'piggy_bank' },
                 { label: 'Round-ups Count', value: transactions.filter(t => spareAccountIds.has(t.accountId) && t.amount > 0).length.toString(), icon: 'tag' },
                 { label: 'Active Portfolios', value: spareAccounts.length.toString(), icon: 'folder' },
             ];
@@ -594,12 +594,12 @@ const Investments: React.FC<InvestmentsProps> = ({
             details = [
                 { label: 'Total Pension Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'assured_workload' },
                 { label: 'Active Funds', value: pensionAccounts.length.toString(), icon: 'folder' },
-                { label: 'Avg Retirement Target', value: pensionAccounts.some(a => a.expectedRetirementYear) ? Math.round(pensionAccounts.filter(a => a.expectedRetirementYear).reduce((sum, a) => sum + (a.expectedRetirementYear || 0), 0) / pensionAccounts.filter(a => a.expectedRetirementYear).length).toString() : 'N/A', icon: 'calendar_today' },
+                { label: 'Avg Retirement Target', value: pensionAccounts.some(a => a.expectedRetirementYear) ? Math.round(pensionAccounts.filter(a => a.expectedRetirementYear).reduce((sum, a) => sum + (a.expectedRetirementYear || 0), 0) / pensionAccounts.filter(a => a.expectedRetirementYear).length).toString() : 'N/A', icon: 'calendar' },
             ];
         } else if (activeSegment === 'Other') {
             const otherAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Other');
             details = [
-                { label: 'Other Asset Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'folder_shared' },
+                { label: 'Other Asset Value', value: formatCurrency(currentSegmentValue, 'EUR'), icon: 'folder' },
                 { label: 'Active Portfolios', value: otherAccounts.length.toString(), icon: 'folder' },
             ];
         }
@@ -623,21 +623,21 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     const segments = useMemo(() => {
         const base: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
-            { id: 'all', label: 'All Assets', icon: 'dashboard', color: 'indigo' },
-            { id: 'Stock', label: 'Stocks', icon: 'show_chart', color: 'blue' },
-            { id: 'ETF', label: 'ETFs', icon: 'account_tree', color: 'teal' },
-            { id: 'Crypto', label: 'Crypto', icon: 'currency_bitcoin', color: 'amber' },
-            { id: 'Warrant', label: 'Warrants', icon: 'card_membership', color: 'rose' },
+            { id: 'all', label: 'All Assets', icon: 'layout_alt', color: 'indigo' },
+            { id: 'Stock', label: 'Stocks', icon: 'candlestick_chart', color: 'blue' },
+            { id: 'ETF', label: 'ETFs', icon: 'bar_chart', color: 'teal' },
+            { id: 'Crypto', label: 'Crypto', icon: 'zap', color: 'amber' },
+            { id: 'Warrant', label: 'Warrants', icon: 'award', color: 'rose' },
         ];
 
         if (activeInvestmentAccounts.some(a => a.subType === 'Spare Change')) {
-            base.push({ id: 'Spare Change', label: 'Spare Change', icon: 'savings', color: 'emerald' });
+            base.push({ id: 'Spare Change', label: 'Spare Change', icon: 'coins_stacked', color: 'emerald' });
         }
         if (activeInvestmentAccounts.some(a => a.subType === 'Pension Fund')) {
             base.push({ id: 'Pension Fund', label: 'Pension', icon: 'assured_workload', color: 'purple' });
         }
         if (activeInvestmentAccounts.some(a => a.subType === 'Other')) {
-            base.push({ id: 'Other', label: 'Other', icon: 'folder_shared', color: 'gray' });
+            base.push({ id: 'Other', label: 'Other', icon: 'folder', color: 'gray' });
         }
 
         return base;
@@ -737,7 +737,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 />
 
                 <PageHeader 
-                    markerIcon="show_chart"
+                    markerIcon="candlestick_chart"
                     markerLabel="Investment Center"
                     title="Investments & Holdings"
                     subtitle="Track public equities, Exchange Traded Funds, cryptocurrencies, warrants, active basis, and yield metrics in real-time."
@@ -754,7 +754,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </HeaderButton>
                             <HeaderButton
                                 variant="secondary"
-                                icon="card_membership"
+                                icon="award"
                                 onClick={() => handleOpenWarrantModal()}
                                 title="Add Equity Grant"
                             >
@@ -762,7 +762,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </HeaderButton>
                             <HeaderButton
                                 variant="primary"
-                                icon="add"
+                                icon="PlusCircle"
                                 onClick={() => handleOpenModal()}
                             >
                                 Trade

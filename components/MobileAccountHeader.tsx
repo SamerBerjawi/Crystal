@@ -27,7 +27,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
   valuationAction,
 }) => {
   const typeConfig = ACCOUNT_TYPE_STYLES[account.type] || {
-    icon: 'account_balance_wallet',
+    icon: 'wallet',
     color: 'bg-primary-500/10 text-primary-500',
   };
 

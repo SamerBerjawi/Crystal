@@ -359,7 +359,7 @@ const Subscriptions: React.FC = () => {
             message: 'This card will be permanently removed from your wallet.',
             confirmLabel: 'Delete',
             variant: 'danger',
-            icon: 'loyalty',
+            icon: 'refresh',
         });
         if (confirmed) deleteMembership(id);
     };
@@ -367,8 +367,8 @@ const Subscriptions: React.FC = () => {
     const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
     const segments: { id: SubscriptionSegment; label: string; icon: string; count: number }[] = [
-        { id: 'all', label: 'Overview', icon: 'dashboard', count: totalCount + memberships.length },
-        { id: 'recurring', label: 'Payments', icon: 'calendar_today', count: totalCount },
+        { id: 'all', label: 'Overview', icon: 'layout_alt', count: totalCount + memberships.length },
+        { id: 'recurring', label: 'Payments', icon: 'calendar', count: totalCount },
         { id: 'loyalty', label: 'Wallet', icon: 'wallet', count: memberships.length },
     ];
 
@@ -407,7 +407,7 @@ const Subscriptions: React.FC = () => {
                 )}
 
                 <PageHeader 
-                    markerIcon="autorenew"
+                    markerIcon="refresh"
                     markerLabel="Subscriptions & Memberships"
                     title="Active Commitments"
                     subtitle="Track active digital products, recurring user contracts, gym memberships, and loyalty cards in a unified panel."
@@ -416,7 +416,7 @@ const Subscriptions: React.FC = () => {
                             {activeSegment === 'loyalty' ? (
                                 <HeaderButton
                                     variant="primary"
-                                    icon="add"
+                                    icon="PlusCircle"
                                     onClick={handleAddMembership}
                                 >
                                     Add Card
@@ -424,7 +424,7 @@ const Subscriptions: React.FC = () => {
                             ) : (
                                 <HeaderButton
                                     variant="primary"
-                                    icon="add"
+                                    icon="PlusCircle"
                                     onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
                                 >
                                     New Service

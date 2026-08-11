@@ -379,7 +379,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         const match = tx.transferId.match(/^spare-(.+)$/);
         const embeddedId = match ? match[1] : null;
 
-        const isBoundToTx = embeddedId && sortedTransactions.some(t => t.id === embeddedId || (t.isTransfer && t.transferId === embeddedId));
+        const isBoundToTx = embeddedId && sortedTransactions.some(t => t.id === embeddedId || (t.transferId && t.transferId === embeddedId));
 
         if (isBoundToTx && embeddedId) {
             spareChangeByParentId.set(embeddedId, Math.abs(tx.amount));
@@ -1412,7 +1412,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         )}
 
       <PageHeader
-        markerIcon="receipt_long"
+        markerIcon="receipt"
         markerLabel="Activity Feed"
         title="Transactions"
         subtitle="Every inflow and outflow with filters, splits, and tagging to keep your history audit-ready."
@@ -1444,7 +1444,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
             <HeaderButton
               variant="primary"
-              icon="add"
+              icon="PlusCircle"
               onClick={handleOpenAddModal}
             >
               Add Transaction
@@ -1474,7 +1474,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             <div className="relative z-10">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
-                        <Icon name="receipt_long" className="text-base sm:text-lg" />
+                        <Icon name="receipt" className="text-base sm:text-lg" />
                     </div>
                     <p className="text-[9px] sm:text-[10px] font-semibold text-white/80">Total transactions</p>
                 </div>
@@ -1486,7 +1486,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             </div>
             
             <div className="absolute -right-4 -bottom-4 text-white opacity-10 transition-transform group-hover:scale-110 duration-500 hidden sm:block">
-                <Icon name="receipt_long" className="text-8xl" />
+                <Icon name="receipt" className="text-8xl" />
             </div>
         </div>
         <MetricCard 
@@ -1509,7 +1509,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             label="Net Cash Flow" 
             value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} 
             colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} 
-            icon="account_balance_wallet" 
+            icon="wallet" 
             subtitle="Net difference"
             glowColor={netFlow >= 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)"}
         />

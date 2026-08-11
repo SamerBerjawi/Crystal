@@ -41,7 +41,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex-1">
                              <div className="flex items-center gap-2 mb-1">
-                                <Icon name="account_balance" className="text-primary-500 text-sm" />
+                                <Icon name="Bank" className="text-primary-500 text-sm" />
                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Net worth</span>
                             </div>
                             <h2 className="text-3xl sm:text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">

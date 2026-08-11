@@ -110,26 +110,26 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { name: 'Dashboard', icon: 'space_dashboard' },
+  { name: 'Dashboard', icon: 'layout_alt' },
   { name: 'Accounts', icon: 'wallet' },
-  { name: 'Transactions', icon: 'receipt_long' },
-  { name: 'Reports', icon: 'analytics' },
+  { name: 'Transactions', icon: 'receipt' },
+  { name: 'Reports', icon: 'bar_chart' },
   { name: 'Budget', icon: 'pie_chart' },
-  { name: 'Forecasting', icon: 'show_chart' },
-  { name: 'Investments', icon: 'candlestick_chart' },
-  { name: 'Schedule & Bills', icon: 'calendar_month' },
-  { name: 'Subscriptions', icon: 'loyalty' },
-  { name: 'Quotes & Invoices', icon: 'description' },
-  { name: 'Tasks', icon: 'task_alt' },
-  { name: 'Challenges', icon: 'emoji_events' },
-  { name: 'Categories', icon: 'category' },
-  { name: 'Tags', icon: 'sell' },
-  { name: 'Merchants', icon: 'storefront' },
-  { name: 'Rules', icon: 'settings_suggest' },
-  { name: 'Integrations', icon: 'api' },
-  { name: 'Data Management', icon: 'database' },
-  { name: 'Documentation', icon: 'auto_stories' },
-  { name: 'Settings', icon: 'settings' },
+  { name: 'Forecasting', icon: 'PresentationChart01' },
+  { name: 'Investments', icon: 'LineChartUp01' },
+  { name: 'Schedule & Bills', icon: 'clock' },
+  { name: 'Subscriptions', icon: 'refresh' },
+  { name: 'Quotes & Invoices', icon: 'ReceiptCheck' },
+  { name: 'Tasks', icon: 'check_circle' },
+  { name: 'Challenges', icon: 'Trophy01' },
+  { name: 'Categories', icon: 'folder' },
+  { name: 'Tags', icon: 'tag' },
+  { name: 'Merchants', icon: 'Building02' },
+  { name: 'Rules', icon: 'sliders' },
+  { name: 'Integrations', icon: 'zap' },
+  { name: 'Data Management', icon: 'download' },
+  { name: 'Documentation', icon: 'BookOpen01' },
+  { name: 'Settings', icon: 'sliders' },
 ];
 
 export const ITEM_COLORS: Record<string, string> = {
@@ -229,15 +229,15 @@ export const QUICK_CREATE_BUDGET_OPTIONS: { value: number, label: string, shortL
 
 
 export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color: string } } = {
-  'Checking': { icon: 'account_balance', color: 'text-blue-500' },
-  'Savings': { icon: 'savings', color: 'text-green-500' },
+  'Checking': { icon: 'Bank', color: 'text-blue-500' },
+  'Savings': { icon: 'piggy_bank', color: 'text-green-500' },
   'Credit Card': { icon: 'credit_card', color: 'text-rose-500' },
-  'Investment': { icon: 'show_chart', color: 'text-purple-500' },
-  'Loan': { icon: 'request_quote', color: 'text-red-500' },
-  'Lending': { icon: 'real_estate_agent', color: 'text-teal-500' },
+  'Investment': { icon: 'candlestick_chart', color: 'text-purple-500' },
+  'Loan': { icon: 'receipt_check', color: 'text-red-500' },
+  'Lending': { icon: 'coins_stacked', color: 'text-teal-500' },
   'Property': { icon: 'home', color: 'text-sky-500' },
   'Vehicle': { icon: 'directions_car', color: 'text-slate-500' },
-  'Other Assets': { icon: 'category', color: 'text-lime-500' },
+  'Other Assets': { icon: 'Box', color: 'text-lime-500' },
   'Other Liabilities': { icon: 'receipt', color: 'text-pink-500' },
 };
 
@@ -255,31 +255,31 @@ export const ACCOUNT_TYPE_ACCENT_STYLES: { [key in AccountType]: { bar: string; 
 };
 
 export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: string; color: string } } = {
-  'Stock': { icon: 'show_chart', color: 'text-purple-500' },
-  'ETF': { icon: 'account_tree', color: 'text-teal-500' },
-  'Crypto': { icon: 'currency_bitcoin', color: 'text-amber-500' },
+  'Stock': { icon: 'candlestick_chart', color: 'text-purple-500' },
+  'ETF': { icon: 'bar_chart', color: 'text-teal-500' },
+  'Crypto': { icon: 'zap', color: 'text-amber-500' },
   'Pension Fund': { icon: 'assured_workload', color: 'text-indigo-500' },
-  'Spare Change': { icon: 'savings', color: 'text-cyan-500' },
-  'Other': { icon: 'category', color: 'text-slate-500' },
+  'Spare Change': { icon: 'coins_stacked', color: 'text-cyan-500' },
+  'Other': { icon: 'Box', color: 'text-slate-500' },
 };
 
 export const OTHER_ASSET_SUB_TYPE_STYLES: { [key in OtherAssetSubType]: { icon: string; color: string } } = {
-  'Cash': { icon: 'payments', color: 'text-green-500' },
+  'Cash': { icon: 'wallet', color: 'text-green-500' },
   'Precious Metals': { icon: 'diamond', color: 'text-yellow-500' },
-  'Collectibles': { icon: 'local_mall', color: 'text-purple-500' },
+  'Collectibles': { icon: 'shopping_bag', color: 'text-purple-500' },
   'Art': { icon: 'palette', color: 'text-pink-500' },
-  'Business Equity': { icon: 'store', color: 'text-blue-500' },
-  'Private Loan': { icon: 'handshake', color: 'text-teal-500' },
+  'Business Equity': { icon: 'storefront', color: 'text-blue-500' },
+  'Private Loan': { icon: 'receipt_check', color: 'text-teal-500' },
   'Electronics': { icon: 'devices', color: 'text-gray-500' },
-  'Furniture': { icon: 'chair', color: 'text-orange-500' },
-  'Other': { icon: 'category', color: 'text-slate-500' },
+  'Furniture': { icon: 'home', color: 'text-orange-500' },
+  'Other': { icon: 'Box', color: 'text-slate-500' },
 };
 
 export const OTHER_LIABILITY_SUB_TYPE_STYLES: { [key in OtherLiabilitySubType]: { icon: string; color: string } } = {
-  'Tax': { icon: 'receipt_long', color: 'text-red-500' },
-  'Private Debt': { icon: 'handshake', color: 'text-orange-500' },
+  'Tax': { icon: 'file_check', color: 'text-red-500' },
+  'Private Debt': { icon: 'receipt_check', color: 'text-orange-500' },
   'Legal Settlement': { icon: 'gavel', color: 'text-purple-500' },
-  'Business Debt': { icon: 'store', color: 'text-blue-500' },
+  'Business Debt': { icon: 'storefront', color: 'text-blue-500' },
   'Other': { icon: 'receipt', color: 'text-slate-500' },
 };
 

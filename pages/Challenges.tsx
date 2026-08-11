@@ -893,13 +893,13 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   };
 
   const navItems = [
-      { id: 'score', label: 'Score', icon: 'health_and_safety' },
-      { id: 'battles', label: 'Battles', icon: 'swords' },
-      { id: 'badges', label: 'Badges', icon: 'stars' },
-      { id: 'mastery', label: 'Mastery', icon: 'workspace_premium' },
-      { id: 'sprints', label: 'Sprints', icon: 'timer' },
-      { id: 'prediction', label: 'Predictions', icon: 'psychology' },
-      { id: 'personal-best', label: 'Records', icon: 'podium' },
+      { id: 'score', label: 'Score', icon: 'award' },
+      { id: 'battles', label: 'Battles', icon: 'target' },
+      { id: 'badges', label: 'Badges', icon: 'award' },
+      { id: 'mastery', label: 'Mastery', icon: 'award' },
+      { id: 'sprints', label: 'Sprints', icon: 'clock' },
+      { id: 'prediction', label: 'Predictions', icon: 'zap' },
+      { id: 'personal-best', label: 'Records', icon: 'bar_chart' },
   ];
 
   return (
@@ -907,7 +907,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       {isPredictionModalOpen && <PredictionModal onClose={() => setPredictionModalOpen(false)} onSave={savePrediction} accounts={accounts} expenseCategories={expenseCategories} investmentTransactions={investmentTransactions} warrants={warrants} />}
       
       <PageHeader
-        markerIcon="stadia_controller"
+        markerIcon="award"
         markerLabel="Gamification"
         title="Financial Health"
         subtitle="Level up your finances by completing challenges, unlocking badges, and beating your personal bests."
@@ -915,7 +915,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           activeSection === 'prediction' ? (
             <HeaderButton
               variant="primary"
-              icon="add"
+              icon="PlusCircle"
               onClick={() => setPredictionModalOpen(true)}
             >
               Create Prediction

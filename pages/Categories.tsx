@@ -235,7 +235,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
-         markerIcon="schema"
+         markerIcon="folder"
          markerLabel="Taxonomy Blueprint"
          title="Categories"
          subtitle="Define the logical structure of your ledger. Map telemetry objects into specific spending and earning protocols."
@@ -243,7 +243,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
          actions={
            <HeaderButton
              variant="primary"
-             icon="add_circle"
+             icon="PlusCircle"
              onClick={() => openModal('add', activeTab)}
            >
              New Category
@@ -253,10 +253,10 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Major Nodes" value={stats.parents} icon="data_object" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
-          <StatCard title="Sub-Nodes" value={stats.subs} icon="mediation" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Total Schema" value={stats.total} icon="account_tree" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-          <StatCard title="Search" value={searchTerm ? '1' : '0'} icon="filter_list" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
+          <StatCard title="Major Nodes" value={stats.parents} icon="folder" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
+          <StatCard title="Sub-Nodes" value={stats.subs} icon="folder" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
+          <StatCard title="Total Schema" value={stats.total} icon="folder" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
+          <StatCard title="Search" value={searchTerm ? '1' : '0'} icon="sliders" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
       </div>
 
       {/* Controls Section */}
@@ -279,7 +279,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
         {/* Search */}
         <div className="relative flex-grow max-w-md group">
-             <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
+             <Icon name="Search01" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
              <input 
                 type="text" 
                 placeholder="Query taxonomy structure..." 
@@ -316,7 +316,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         ) : (
           <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
               <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
-                <Icon name="category" className="text-4xl opacity-20" />
+                <Icon name="folder" className="text-4xl opacity-20" />
               </div>
               <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Schema Nullified</p>
               {!searchTerm && (

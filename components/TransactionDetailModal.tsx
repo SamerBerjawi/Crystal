@@ -109,7 +109,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                   <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
                     tx.type === 'income' ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'
                   }`}>
-                    <Icon name={tx.transferId ? 'swap_horiz' : (tx.type === 'income' ? 'add' : 'remove')} className={`${ tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }`} />
+                    <Icon name={tx.transferId ? 'SwitchHorizontal01' : (tx.type === 'income' ? 'PlusCircle' : 'Minus')} className={`${ tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }`} />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-light-text dark:text-dark-text">{tx.description}</p>

@@ -88,7 +88,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
           : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');
         
         const catDetails = categoryDetailsMap.get(tx.category) || {};
-        const icon = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'swap_horiz' : (catDetails.icon || catDetails.parentIcon || 'sell');
+        const icon = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'SwitchHorizontal01' : (catDetails.icon || catDetails.parentIcon || 'Tag01');
         const categoryColor = (isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (catDetails.color || '#3B82F6');
         
         const accentColor = isTransfer 
@@ -161,7 +161,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     return (
       <div className={`flex flex-col items-center justify-center p-8 text-center bg-black/[0.01] dark:bg-white/[0.01] rounded-3xl border border-dashed border-black/10 dark:border-white/10 my-2 ${className}`}>
         <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary mb-2">
-          <Icon name="receipt_long" className="text-2xl opacity-60" />
+          <Icon name="receipt" className="text-2xl opacity-60" />
         </div>
         <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">No activity recorded</p>
         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 max-w-xs">
@@ -218,7 +218,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 
                 <div className={`flex items-center min-w-0 flex-1 relative z-10 ${tx.parentTransactionId ? 'pl-4 border-l-2 border-primary-500/40 ml-1' : ''}`}>
                   {tx.parentTransactionId && (
-                    <Icon name="subdirectory_arrow_right" className="text-sm text-primary-500 mr-2 shrink-0 opacity-70" />
+                    <Icon name="CornerDownRight" className="text-sm text-primary-500 mr-2 shrink-0 opacity-70" />
                   )}
                   <div 
                     className={`shrink-0 ${density === 'high' ? 'h-9 w-9 sm:h-9 sm:w-9' : 'h-10 w-10 sm:h-11 sm:w-11'} rounded-2xl flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-white/10' : ''}`}
@@ -257,7 +257,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           </span>
                         )}
                         {tx.recurringSourceId && (
-                          <Icon name="repeat" className="text-[13px] text-purple-500 shrink-0" title="Recurring Transaction" />
+                          <Icon name="clock" className="text-[13px] text-purple-500 shrink-0" title="Recurring Transaction" />
                         )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden flex-wrap">
@@ -291,7 +291,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           </div>
                         )}
                         {tx.notes && (
-                          <Icon name="description" className="text-[12px] text-primary-500/60 shrink-0" title={tx.notes} />
+                          <Icon name="FileText01" className="text-[12px] text-primary-500/60 shrink-0" title={tx.notes} />
                         )}
                     </div>
                   </div>
@@ -309,7 +309,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     </p>
                     {spareAmountEur && (
                       <div className="flex items-center gap-0.5 mt-0.5">
-                        <Icon name="savings" className="text-[10px] text-emerald-500" />
+                        <Icon name="coins_stacked" className="text-[10px] text-emerald-500" />
                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
                       </div>
                     )}

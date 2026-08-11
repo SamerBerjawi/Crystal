@@ -183,7 +183,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
 
             {/* Header */}
             <SettingsSubpageHeader
-                markerIcon="fact_check"
+                markerIcon="check_circle"
                 markerLabel="Operational Protocols"
                 title="Action Board"
                 subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
@@ -191,7 +191,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                 actions={
                     <HeaderButton
                         variant="primary"
-                        icon="add_circle"
+                        icon="PlusCircle"
                         onClick={() => handleOpenModal()}
                     >
                         New Task
@@ -205,28 +205,28 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     title="Completion Matrix" 
                     value={`${stats.rate}%`} 
                     subtext={`${stats.completed} nodes verified`} 
-                    icon="verified" 
+                    icon="check_circle" 
                     colorClass="bg-blue-500 text-white shadow-blue-500/20" 
                 />
                 <StatCard 
                     title="Priority Signals" 
                     value={stats.pendingHigh} 
                     subtext="Critical latency items" 
-                    icon="priority_high" 
+                    icon="alert_circle" 
                     colorClass={stats.pendingHigh > 0 ? "bg-red-500 text-white shadow-red-500/20" : "bg-emerald-500 text-white shadow-emerald-500/20"} 
                 />
                 <StatCard 
                     title="Temporal Window" 
                     value={stats.dueSoon} 
                     subtext="Due in 7-day cycle" 
-                    icon="event_upcoming" 
+                    icon="calendar" 
                     colorClass="bg-amber-500 text-white shadow-amber-500/20" 
                 />
                 <StatCard 
                     title="Active Workload" 
                     value={stats.total - stats.completed} 
                     subtext="Unreconciled nodes" 
-                    icon="analytics" 
+                    icon="bar_chart" 
                     colorClass="bg-indigo-500 text-white shadow-indigo-500/20" 
                 />
             </div>
@@ -250,7 +250,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                             <option value="dueDate-asc">Temporal Sort</option>
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                            <Icon name="swap_vert" className="text-lg" />
+                            <Icon name="sliders" className="text-lg" />
                         </div>
                     </div>
                 </div>

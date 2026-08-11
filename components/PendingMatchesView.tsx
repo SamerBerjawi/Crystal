@@ -214,7 +214,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Icon name="checklist_rtl" className="text-2xl text-emerald-600 dark:text-emerald-400" />
+              <Icon name="file_check" className="text-2xl text-emerald-600 dark:text-emerald-400" />
               <h2 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">
                 Pending Transaction Matches
               </h2>
@@ -228,7 +228,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
             onClick={() => setShowConfigPanel(prev => !prev)}
             className={`${BTN_SECONDARY_STYLE} !py-2 !px-3.5 !text-xs flex items-center gap-1.5 shrink-0`}
           >
-            <Icon name="tune" className="text-base text-emerald-600 dark:text-emerald-400" />
+            <Icon name="sliders" className="text-base text-emerald-600 dark:text-emerald-400" />
             <span>Configure Matching Thresholds</span>
             <Icon name={showConfigPanel ? 'expand_less' : 'expand_more'} className="text-sm opacity-60" />
           </button>

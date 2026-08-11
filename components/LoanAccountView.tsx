@@ -130,7 +130,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         formattedBalance={formatCurrency(account.balance, account.currency)}
         badgeText={isLending ? 'Lending Asset' : 'Liability Engine'}
         subText={`${account.interestRate}% APR`}
-        primaryAction={{ label: 'Add Payment', icon: 'add', onClick: onAddTransaction }}
+        primaryAction={{ label: 'Add Payment', icon: 'PlusCircle', onClick: onAddTransaction }}
         syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
       />
 
@@ -141,7 +141,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                   onClick={onBack}
                   className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
               >
-                  <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                  <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
               </button>
                <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -153,7 +153,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <Icon name={isLending ? 'real_estate_agent' : 'contract'} className={`font-light ${isLending ? 'text-emerald-500/60 dark:text-emerald-400/80' : 'text-rose-500/60 dark:text-rose-400/80'}`} />
+                      <Icon name={isLending ? 'coins_stacked' : 'receipt_check'} className={`font-light ${isLending ? 'text-emerald-500/60 dark:text-emerald-400/80' : 'text-rose-500/60 dark:text-rose-400/80'}`} />
                   </h1>
               </div>
           </div>

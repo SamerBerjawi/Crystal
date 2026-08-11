@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, Warrant, AccountType } from '../types';
 import AccountRow from './AccountRow';
 import { convertToEur, formatCurrency } from '../utils';
-import { ACCOUNT_TYPE_ACCENT_STYLES } from '../constants';
+import { ACCOUNT_TYPE_ACCENT_STYLES, DEBT_TYPES } from '../constants';
 import Icon from './ui/Icon';
 
 interface AccountsListSectionProps {
@@ -184,9 +184,13 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                 <div className="space-y-6 flex-1">
                     {groupOrder.length > 0 ? groupOrder.map(groupName => {
                         const accountsInGroup = groupedAccounts[groupName as AccountType];
+                        const isDebt = DEBT_TYPES.includes(groupName as AccountType);
                         const groupTotal = accountsInGroup
                             .filter(acc => acc.includeInAnalytics ?? true)
-                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+                            .reduce((sum, acc) => {
+                                const eur = convertToEur(acc.balance, acc.currency);
+                                return sum + (isDebt ? Math.abs(eur) : eur);
+                            }, 0);
                         return (
                             <div key={groupName} className="space-y-4">
                                 <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-2 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">

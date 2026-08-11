@@ -33,7 +33,7 @@ const sections: Section[] = [
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                     <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                            <Icon name="security" className="text-xl" />
+                            <Icon name="lock" className="text-xl" />
                         </div>
                         <h4 className="font-bold text-[10px] tracking-tight opacity-40">Security Protocol</h4>
                         <p className="text-xs font-bold leading-relaxed">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
@@ -52,7 +52,7 @@ const sections: Section[] = [
     {
         id: 'dashboard',
         title: 'Command Center',
-        icon: 'monitoring',
+        icon: 'line_chart_up',
         iconColor: 'text-purple-500',
         content: (
             <div className="space-y-6">
@@ -80,7 +80,7 @@ const sections: Section[] = [
     {
         id: 'taxonomy',
         title: 'Taxonomy & Semantics',
-        icon: 'schema',
+        icon: 'folder',
         iconColor: 'text-orange-500',
         content: (
             <div className="space-y-6">
@@ -103,7 +103,7 @@ const sections: Section[] = [
     {
         id: 'merchants',
         title: 'Merchant Intelligence',
-        icon: 'storefront',
+        icon: 'building',
         iconColor: 'text-indigo-500',
         content: (
             <div className="space-y-6">
@@ -113,10 +113,10 @@ const sections: Section[] = [
                 <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl">
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {[
-                            { icon: 'sell', text: 'Auto-Category Mapping' },
-                            { icon: 'history', text: 'Temporal Distribution Analysis' },
-                            { icon: 'pattern', text: 'Recurring Pattern Signal' },
-                            { icon: 'rule', text: 'Custom Aggregation Rules' }
+                            { icon: 'tag', text: 'Auto-Category Mapping' },
+                            { icon: 'clock', text: 'Temporal Distribution Analysis' },
+                            { icon: 'zap', text: 'Recurring Pattern Signal' },
+                            { icon: 'sliders', text: 'Custom Aggregation Rules' }
                         ].map((item, i) => (
                             <li key={i} className="flex items-center gap-3 text-xs font-bold  tracking-widest opacity-80">
                                 <Icon name={item.icon} className="text-[18px] opacity-40" />
@@ -131,7 +131,7 @@ const sections: Section[] = [
     {
         id: 'data-management',
         title: 'Data Sovereignty',
-        icon: 'settings_ethernet',
+        icon: 'sliders',
         iconColor: 'text-emerald-500',
         content: (
             <div className="space-y-6">
@@ -154,7 +154,7 @@ const sections: Section[] = [
     {
         id: 'action-board',
         title: 'Action Board (Tasks)',
-        icon: 'fact_check',
+        icon: 'check_circle',
         iconColor: 'text-blue-600',
         content: (
             <div className="space-y-6">
@@ -225,7 +225,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
         <div className="w-full animate-fade-in-up pb-24 px-4">
              {/* Navigation & Header */}
              <SettingsSubpageHeader
-               markerIcon="auto_stories"
+               markerIcon="file_text"
                markerLabel="Operational Manual"
                title="Documentation"
                subtitle="Detailed technical guidance on operating the Crystal system. From taxonomy definition to advanced data synchronization."

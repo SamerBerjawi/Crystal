@@ -13,12 +13,12 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Icon from '../components/ui/Icon';
 
 const STATUS_COLORS: Record<InvoiceStatus, { bg: string, text: string, icon: string }> = {
-    draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'edit_note' },
+    draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'Edit02' },
     sent: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400', icon: 'send' },
     paid: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-600 dark:text-green-400', icon: 'check_circle' },
-    overdue: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400', icon: 'warning' },
-    accepted: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400', icon: 'thumb_up' },
-    rejected: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-600 dark:text-rose-400', icon: 'thumb_down' },
+    overdue: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400', icon: 'alert_triangle' },
+    accepted: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400', icon: 'check_circle' },
+    rejected: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-600 dark:text-rose-400', icon: 'x_circle' },
 };
 
 const InvoicesPage: React.FC = () => {
@@ -118,7 +118,7 @@ const InvoicesPage: React.FC = () => {
             />
 
             <PageHeader
-                markerIcon="account_balance_wallet"
+                markerIcon="wallet"
                 markerLabel="Ledger & Receivables"
                 title="Invoices & Quotes"
                 subtitle="Financial Document Lifecycle Management"
@@ -126,14 +126,14 @@ const InvoicesPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <HeaderButton
                             variant="secondary"
-                            icon="add"
+                            icon="PlusCircle"
                             onClick={() => handleOpenEditor('quote')}
                         >
                             Draft Quote
                         </HeaderButton>
                         <HeaderButton
                             variant="primary"
-                            icon="add_circle"
+                            icon="PlusCircle"
                             onClick={() => handleOpenEditor('invoice')}
                         >
                             New Invoice
@@ -145,10 +145,10 @@ const InvoicesPage: React.FC = () => {
             {/* Financial Intelligence Hub */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Aggregate Billing', value: metrics.paidMonth, icon: 'receipt_long', color: 'text-primary-500', bg: 'bg-primary-500/5', desc: 'Total invoices paid (Mo)' },
-                    { label: 'Risk exposure', value: metrics.overdue, icon: 'warning', color: 'text-rose-500', bg: 'bg-rose-500/5', desc: 'Active overdue receivables' },
-                    { label: 'Liquid Pipeline', value: metrics.outstanding, icon: 'schedule', color: 'text-blue-500', bg: 'bg-blue-500/5', desc: 'Outstanding receivables' },
-                    { label: 'Quote Velocity', value: metrics.pendingQuotes, icon: 'request_quote', color: 'text-amber-500', bg: 'bg-amber-500/5', desc: 'Active proposals pipeline' },
+                    { label: 'Aggregate Billing', value: metrics.paidMonth, icon: 'receipt', color: 'text-primary-500', bg: 'bg-primary-500/5', desc: 'Total invoices paid (Mo)' },
+                    { label: 'Risk exposure', value: metrics.overdue, icon: 'alert_triangle', color: 'text-rose-500', bg: 'bg-rose-500/5', desc: 'Active overdue receivables' },
+                    { label: 'Liquid Pipeline', value: metrics.outstanding, icon: 'clock', color: 'text-blue-500', bg: 'bg-blue-500/5', desc: 'Outstanding receivables' },
+                    { label: 'Quote Velocity', value: metrics.pendingQuotes, icon: 'file_text', color: 'text-amber-500', bg: 'bg-amber-500/5', desc: 'Active proposals pipeline' },
                 ].map((stat, idx) => (
                     <div key={idx} className="bg-white dark:bg-dark-card p-8 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
                         <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-3xl rounded-full -translate-y-8 translate-x-8 opacity-0 group-hover:opacity-100 transition-opacity`} />

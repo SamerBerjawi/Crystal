@@ -155,8 +155,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                 formattedBalance={formatCurrency(account.balance, account.currency)}
                 badgeText="Cash Asset"
                 subText={`${account.currency} Physical Reserve`}
-                primaryAction={{ label: 'Log Tx', icon: 'add', onClick: onAddTransaction }}
-                secondaryAction={{ label: 'Adjust', icon: 'balance', onClick: onAdjustBalance }}
+                primaryAction={{ label: 'Log Tx', icon: 'PlusCircle', onClick: onAddTransaction }}
+                secondaryAction={{ label: 'Adjust', icon: 'sliders', onClick: onAdjustBalance }}
                 syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
             />
 
@@ -167,7 +167,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                         onClick={onBack}
                         className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
                     >
-                        <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                        <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -177,18 +177,18 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                         </div>
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                             {account.name}
-                            <Icon name="payments" className="text-light-text-secondary/20 dark:text-dark-text-secondary/20" />
+                            <Icon name="wallet" className="text-light-text-secondary/20 dark:text-dark-text-secondary/20" />
                         </h1>
                     </div>
                 </div>
 
                 <div className="flex gap-3 w-full md:w-auto">
                     <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                        <Icon name="balance" className="text-lg mr-2" />
+                        <Icon name="sliders" className="text-lg mr-2" />
                         Adjust Balance
                     </button>
                     <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                        <Icon name="add" className="text-lg mr-2" />
+                        <Icon name="PlusCircle" className="text-lg mr-2" />
                         Log Transaction
                     </button>
                 </div>
@@ -210,7 +210,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-12">
                                 <div className="w-16 h-16 rounded-2xl ios-regular !bg-white/5 dark:!bg-white/[0.02] border border-white/10 flex items-center justify-center shadow-lg">
-                                    <Icon name="lock" className="text-3xl text-emerald-400 font-light" />
+                                    <Icon name="Lock01" className="text-3xl text-emerald-400 font-light" />
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Status</p>
@@ -252,21 +252,21 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                         <MetricTile
                             label="Replenished"
                             value={formatCurrency(totalInflow, account.currency)}
-                            icon="input"
+                            icon="Download01"
                             colorClass="emerald"
                             subValue="New capital (30d)"
                         />
                         <MetricTile
                             label="Expended"
                             value={formatCurrency(totalOutflow, account.currency)}
-                            icon="output"
+                            icon="Upload01"
                             colorClass="rose"
                             subValue="Withdrawals (30d)"
                         />
                         <MetricTile
                             label="Reserve Index"
                             value={burnRateMessage.split(' ')[0]}
-                            icon="analytics"
+                            icon="hourglass"
                             colorClass="blue"
                             subValue="Stability forecast"
                         />
@@ -275,7 +275,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                     {/* Flow Velocity Chart */}
                     <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Icon name="compare_arrows" className="text-8xl" />
+                            <Icon name="SwitchHorizontal01" className="text-8xl" />
                         </div>
                         <div className="flex justify-between items-center mb-10 relative z-10">
                             <div>

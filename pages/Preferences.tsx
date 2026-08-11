@@ -107,7 +107,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
     <div className="w-full pb-12 animate-fade-in-up px-4">
       {/* Navigation & Header */}
       <SettingsSubpageHeader
-        markerIcon="tune"
+        markerIcon="sliders"
         markerLabel="Personalization"
         title="Preferences"
         subtitle="Configure your workspace environment, regional standards, and algorithmic behaviors."
@@ -122,7 +122,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Icon name="palette" className="text-xl" />
+                  <Icon name="sliders" className="text-xl" />
                 </div>
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Interface Theme</h3>
               </div>
@@ -131,9 +131,9 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             
             <div className="p-8">
               <div className="grid grid-cols-3 gap-4">
-                <ThemeCard label="High Light" theme="light" currentTheme={theme} setTheme={setTheme} icon="light_mode" />
-                <ThemeCard label="Deep Dark" theme="dark" currentTheme={theme} setTheme={setTheme} icon="dark_mode" />
-                <ThemeCard label="Sync System" theme="system" currentTheme={theme} setTheme={setTheme} icon="settings_brightness" />
+                <ThemeCard label="High Light" theme="light" currentTheme={theme} setTheme={setTheme} icon="sun" />
+                <ThemeCard label="Deep Dark" theme="dark" currentTheme={theme} setTheme={setTheme} icon="moon" />
+                <ThemeCard label="Sync System" theme="system" currentTheme={theme} setTheme={setTheme} icon="sliders" />
               </div>
             </div>
           </section>
@@ -142,7 +142,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Icon name="payments" className="text-xl" />
+                  <Icon name="coins_stacked" className="text-xl" />
                 </div>
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Financial Context</h3>
               </div>
@@ -154,7 +154,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <label className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] ml-1">Base Denomination</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary z-10">
-                    <Icon name="monetization_on" className="text-lg" />
+                    <Icon name="coins_stacked" className="text-lg" />
                   </div>
                   <select 
                     name="currency" 
@@ -165,14 +165,14 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                     {CURRENCY_OPTIONS.map(c => <option key={c} value={c} className="bg-white dark:bg-dark-card">{c}</option>)}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
-                    <Icon name="expand_more" />
+                    <Icon name="chevron_down" />
                   </div>
                 </div>
               </div>
 
               <div className="p-5 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl border border-primary-500/10 flex items-start gap-4">
                   <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
-                    <Icon name="auto_awesome" className="text-sm" />
+                    <Icon name="zap" className="text-sm" />
                   </div>
                   <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 leading-normal">
                       Crystal automatically synchronizes language, date-strings, and temporal offsets via your browser environment for atomic precision.
@@ -188,7 +188,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <Icon name="bolt" className="text-xl" />
+                  <Icon name="zap" className="text-xl" />
                 </div>
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Operational Defaults</h3>
               </div>

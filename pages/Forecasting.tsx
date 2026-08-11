@@ -908,7 +908,7 @@ const Forecasting: React.FC = () => {
                         <Card className="bg-primary-500/5 border-primary-500/20 mb-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center">
-                                    <Icon name="science" />
+                                    <Icon name="sliders" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Scenario Playground</h3>
@@ -975,7 +975,7 @@ const Forecasting: React.FC = () => {
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-500">
-                                    <Icon name="insights" className="text-lg" />
+                                    <Icon name="line_chart_up" className="text-lg" />
                                 </div>
                                 <div className="space-y-0.5">
                                     <p className="text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Wealth Projection</p>
@@ -1052,7 +1052,7 @@ const Forecasting: React.FC = () => {
                             </h2>
                         </div>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/10 text-primary-500 border border-primary-500/20">
-                            <Icon name="donut_large" className="text-lg" />
+                            <Icon name="pie_chart" className="text-lg" />
                         </div>
                     </div>
                     

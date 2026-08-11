@@ -246,7 +246,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300"
                   title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                 >
-                  <Icon name={isSidebarCollapsed ? 'last_page' : 'first_page'} className="text-[19px]" />
+                  <Icon name={isSidebarCollapsed ? 'ChevronRight' : 'ChevronLeft'} className="text-[19px]" />
                 </button>
               )}
             </div>

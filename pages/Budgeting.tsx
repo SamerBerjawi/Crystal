@@ -132,7 +132,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
             message: `This will create or update budgets based on your spending from the last ${defaultQuickCreateOption.value} month(s), overwriting existing budgets for those categories.`,
             confirmLabel: 'Generate Budgets',
             variant: 'warning',
-            icon: 'auto_awesome',
+            icon: 'zap',
         });
         if (confirmed) {
             handleApplyQuickBudget(defaultQuickCreateOption.value);
@@ -241,7 +241,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           <div className="flex items-center gap-2">
             <HeaderButton
               variant="accent"
-              icon="bolt"
+              icon="zap"
               onClick={handleQuickCreateDefault}
               title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
             >
@@ -249,7 +249,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
             </HeaderButton>
             <HeaderButton
               variant="primary"
-              icon="add"
+              icon="PlusCircle"
               onClick={() => handleOpenModal()}
             >
               Create Budget
@@ -279,7 +279,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         className="flex items-center gap-3 px-6 py-3 hover:bg-primary-500/10 transition-colors group/btn"
                         title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
                     >
-                        <Icon name="bolt" className="text-lg text-primary-500 group-hover/btn:scale-125 transition-transform" />
+                        <Icon name="zap" className="text-lg text-primary-500 group-hover/btn:scale-125 transition-transform" />
                         <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap">Quick budget</span>
                     </button>
                     <div className="w-[1px] bg-black/5 dark:bg-white/10"></div>
@@ -313,7 +313,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         </div>
                         <div className="flex flex-col items-end">
                             <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform">
-                                <Icon name="account_balance_wallet" className="text-2xl opacity-40" />
+                                <Icon name="wallet" className="text-2xl opacity-40" />
                             </div>
                         </div>
                     </div>
@@ -358,7 +358,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
               <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover:opacity-40 transition-opacity"></div>
               <div className="relative z-10 text-center flex flex-col items-center">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
-                        <Icon name="local_atm" className="text-2xl" />
+                        <Icon name="coins_stacked" className="text-2xl" />
                   </div>
                   <p className="text-[10px] font-bold tracking-[0.2em] opacity-40 mb-1">Daily safe spend</p>
                   <h3 className="text-3xl font-bold tracking-tighter text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
@@ -375,7 +375,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           <div className="xl:col-span-2 space-y-6">
               <div className="flex items-center gap-4 pb-4 border-b border-black/5 dark:border-white/5">
                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                    <Icon name="category" className="text-xl" />
+                    <Icon name="layout_alt" className="text-xl" />
                  </div>
                  <div>
                     <h3 className="text-base font-bold tracking-tight text-light-text dark:text-dark-text">Control Center</h3>

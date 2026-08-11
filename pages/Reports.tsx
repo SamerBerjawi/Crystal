@@ -737,7 +737,7 @@ const Reports: React.FC = () => {
         <MetricCard
           label="Total Spend"
           value={`€${totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon="payments"
+          icon="credit_card"
           subtitle={`vs last period`}
           colorClass="text-light-text dark:text-dark-text"
           glowColor="rgba(99, 102, 241, 0.15)"
@@ -746,7 +746,7 @@ const Reports: React.FC = () => {
         <MetricCard
           label="Savings Rate"
           value={`${savingsRate.toFixed(1)}%`}
-          icon="savings"
+          icon="piggy_bank"
           subtitle={savingsRate >= 20 ? 'Excellent saving' : 'Aim for 20% target'}
           colorClass={savingsRate >= 20 ? 'text-emerald-500' : savingsRate > 0 ? 'text-primary-500' : 'text-rose-500'}
           glowColor={savingsRate >= 20 ? "rgba(16, 185, 129, 0.15)" : "rgba(var(--primary-500-rgb), 0.15)"}
@@ -755,7 +755,7 @@ const Reports: React.FC = () => {
         <MetricCard
           label="Transactions"
           value={totals.transactionCount.toString()}
-          icon="receipt_long"
+          icon="receipt"
           subtitle="Processed in range"
           glowColor="rgba(99, 102, 241, 0.15)"
         />
@@ -763,7 +763,7 @@ const Reports: React.FC = () => {
         <MetricCard
           label="Avg. Transaction"
           value={`€${totals.averageEur.toFixed(2)}`}
-          icon="calculate"
+          icon="calculator"
           subtitle="Per expense item"
           glowColor="rgba(99, 102, 241, 0.15)"
         />
@@ -771,7 +771,7 @@ const Reports: React.FC = () => {
         <MetricCard
           label="Recurring Impact"
           value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
-          icon="event_repeat"
+          icon="clock"
           subtitle="Est. Monthly Total"
           glowColor="rgba(244, 63, 94, 0.15)"
         />
@@ -822,7 +822,7 @@ const Reports: React.FC = () => {
                     onClick={() => deleteView(view.id)}
                     className="w-6 h-6 flex items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-rose-500 hover:text-white transition-all transform scale-90 group-hover:scale-100"
                   >
-                    <Icon name="close" className="text-[16px]" />
+                    <Icon name="XClose" className="text-[16px]" />
                   </button>
                 </div>
               ))}

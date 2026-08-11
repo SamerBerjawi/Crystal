@@ -869,15 +869,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
     // Group accounts for the detailed breakdown
     const assetGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
-      'Liquid Cash': { types: ['Checking', 'Savings'], value: 0, color: '#3B82F6', icon: 'savings' }, // Blue
-      'Investments': { types: ['Investment'], value: 0, color: '#8B5CF6', icon: 'show_chart' }, // Purple
+      'Liquid Cash': { types: ['Checking', 'Savings'], value: 0, color: '#3B82F6', icon: 'wallet' }, // Blue
+      'Investments': { types: ['Investment'], value: 0, color: '#8B5CF6', icon: 'candlestick_chart' }, // Purple
       'Properties': { types: ['Property'], value: 0, color: '#10B981', icon: 'home' }, // Emerald
       'Vehicles': { types: ['Vehicle'], value: 0, color: '#F59E0B', icon: 'directions_car' }, // Amber
-      'Other Assets': { types: ['Other Assets', 'Lending'], value: 0, color: '#64748B', icon: 'category' }, // Slate
+      'Other Assets': { types: ['Other Assets', 'Lending'], value: 0, color: '#64748B', icon: 'Box' }, // Slate
     };
 
     const liabilityGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
-      'Loans': { types: ['Loan'], value: 0, color: '#EF4444', icon: 'request_quote' }, // Red
+      'Loans': { types: ['Loan'], value: 0, color: '#EF4444', icon: 'receipt_check' }, // Red
       'Credit Cards': { types: ['Credit Card'], value: 0, color: '#F43F5E', icon: 'credit_card' }, // Rose
       'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
     };
@@ -1110,7 +1110,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     {
       id: 'financialOverview',
       name: 'Financial Overview',
-      icon: 'insights',
+      icon: 'Activity',
       description: 'Key performance indicators',
       defaultW: 6,
       defaultH: 2,
@@ -1129,7 +1129,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     {
       id: 'todayWidget',
       name: 'Today\'s Agenda',
-      icon: 'today',
+      icon: 'calendar_check',
       description: 'Upcoming tasks and payments',
       defaultW: 6,
       defaultH: 2,
@@ -1147,7 +1147,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     {
       id: 'forecastHorizon',
       name: 'Forecast Horizon',
-      icon: 'timeline',
+      icon: 'fast_forward',
       description: 'Projected liquidity trends',
       defaultW: 6,
       defaultH: 2,
@@ -1168,7 +1168,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     {
       id: 'netWorthOverTime',
       name: 'Net Worth Over Time',
-      icon: 'show_chart',
+      icon: 'trending_up',
       description: 'Historical wealth progression',
       defaultW: 12,
       defaultH: 2,
@@ -1184,18 +1184,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     },
     // Removed forecastChart
     { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie_chart', description: 'Spending distribution', defaultW: 6, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'donut_large', description: 'Assets vs Liabilities', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', icon: 'list_alt', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'circle_cut', description: 'Assets vs Liabilities', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', icon: 'rows', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick, maxItems: 15 } },
     { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'account_balance', description: 'Categorized asset values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'payments', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', icon: 'ad_group', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', icon: 'map', description: 'Geographic spend patterns', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'account_tree', description: 'Money movement visualizer', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'bank_note', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', icon: 'sliders', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', icon: 'marker_pin', description: 'Geographic spend patterns', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'git_branch', description: 'Money movement visualizer', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
 
     // ANALYSIS WIDGETS
-    { id: 'financialRunway', name: 'Financial Runway', icon: 'flight_takeoff', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'bar_chart', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'speed', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+    { id: 'financialRunway', name: 'Financial Runway', icon: 'hourglass', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'shopping_bag', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'zap', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
   ], [netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const initialLayouts = useMemo(() => {
@@ -1536,7 +1536,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         {/* Header Section */}
         <div className="mb-6 mt-2 md:mt-0">
           <PageHeader
-            markerIcon="analytics"
+            markerIcon="Command"
             markerLabel="Command Center"
             title="Dashboard"
             subtitle="Real-time financial pulse across accounts, investments, and commitments."
@@ -1544,7 +1544,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               <div className="flex items-center gap-2">
                 <HeaderButton
                   variant={isEditMode ? 'primary' : 'ghost'}
-                  icon={isEditMode ? 'done' : 'brush-01'}
+                  icon={isEditMode ? 'CheckCircle' : 'Grid01'}
                   onClick={() => setIsEditMode(!isEditMode)}
                   title={isEditMode ? 'Finish Editing' : 'Edit Layout'}
                 >
@@ -1554,7 +1554,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 {isEditMode && (
                   <HeaderButton
                     variant="secondary"
-                    icon="add_circle"
+                    icon="PlusSquare"
                     onClick={() => setIsAddWidgetModalOpen(true)}
                   >
                     Add Widget
@@ -1580,7 +1580,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                 <HeaderButton
                   variant="primary"
-                  icon="add"
+                  icon="PlusCircle"
                   onClick={() => handleOpenTransactionModal()}
                 >
                   Add Transaction
@@ -1612,11 +1612,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-1 rounded-2xl sm:rounded-[1.5rem] w-full lg:w-auto overflow-x-auto no-scrollbar min-h-[48px] sm:h-12">
               {tabs.map((tab) => {
                 const tabConfig = {
-                  overview: { icon: 'dashboard', label: 'Overview', badge: null },
-                  analysis: { icon: 'insights', label: 'Analysis', badge: null },
-                  activity: { icon: 'history', label: 'Activity', badge: null },
+                  overview: { icon: 'layout_alt', label: 'Overview', badge: null },
+                  analysis: { icon: 'bar_chart', label: 'Analysis', badge: null },
+                  activity: { icon: 'receipt', label: 'Activity', badge: null },
                   pending_matches: {
-                    icon: 'checklist_rtl',
+                    icon: 'file_check',
                     label: 'Pending Matches',
                     badge: totalPendingMatchesCount > 0 ? totalPendingMatchesCount : null
                   }
@@ -1670,7 +1670,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       title={showForecast ? "Hide Forecast" : "Show Forecast"}
                       aria-label="Toggle Forecast"
                     >
-                      <Icon name="show_chart" className={`text-lg sm:text-xl ${showForecast ? '' : ''}`} />
+                      <Icon name="candlestick_chart" className={`text-lg sm:text-xl ${showForecast ? '' : ''}`} />
                     </button>
 
                     <button
@@ -1679,7 +1679,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       title={showGoals ? "Hide Goals" : "Show Goals"}
                       aria-label="Toggle Goals"
                     >
-                      <Icon name="flag" className={`text-lg sm:text-xl ${showGoals ? '' : ''}`} />
+                      <Icon name="target" className={`text-lg sm:text-xl ${showGoals ? '' : ''}`} />
                     </button>
                   </div>
 
@@ -1702,28 +1702,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 title="Liquidity Ratio"
                 value={`${liquidityRatio.toFixed(1)} months`}
                 subtext="Runway based on avg. spend"
-                icon="savings"
+                icon="clock"
                 colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
               />
               <AnalysisStatCard
                 title="Savings Rate"
                 value={`${savingsRate.toFixed(0)}%`}
                 subtext={`of total income (${duration})`}
-                icon="trending_up"
+                icon="piggy_bank"
                 colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
               />
               <AnalysisStatCard
                 title="Debt Ratio"
                 value={`${(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth > 0 ? (Math.abs(calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalDebt) / calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalAssets) * 100 : 0).toFixed(1)}%`}
                 subtext="Liabilities / Assets"
-                icon="pie_chart"
+                icon="scale"
                 colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
               />
               <AnalysisStatCard
                 title="Net Flow"
                 value={formatCurrency(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth - calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth, 'EUR')}
                 subtext="Period change"
-                icon="payments"
+                icon="coins_stacked"
                 colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
               />
             </div>

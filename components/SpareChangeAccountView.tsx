@@ -144,8 +144,8 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                 formattedBalance={formatCurrency(account.balance, account.currency)}
                 badgeText="Auto-Savings"
                 subText={`Linked: ${sourceAccount?.name || 'External'}`}
-                primaryAction={{ label: 'Manual Link', icon: 'add', onClick: onAddTransaction }}
-                secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'tune', onClick: onAdjustBalance } : undefined}
+                primaryAction={{ label: 'Manual Link', icon: 'PlusCircle', onClick: onAddTransaction }}
+                secondaryAction={onAdjustBalance ? { label: 'Adjust', icon: 'sliders', onClick: onAdjustBalance } : undefined}
                 syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
             />
 
@@ -156,7 +156,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                         onClick={onBack}
                         className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
                     >
-                        <Icon name="arrow_back" className="transition-transform group-hover:-translate-x-1" />
+                        <Icon name="ArrowLeft" className="transition-transform group-hover:-translate-x-1" />
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -166,7 +166,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                         </div>
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                             {account.name}
-                            <Icon name={account.icon || 'savings'} className="text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light" />
+                            <Icon name={account.icon || 'coins_stacked'} className="text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light" />
                         </h1>
                     </div>
                 </div>
@@ -180,12 +180,12 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                     )}
                     {onAdjustBalance && (
                         <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
-                            <Icon name="tune" className="text-lg mr-2" />
+                            <Icon name="sliders" className="text-lg mr-2" />
                             Adjust
                         </button>
                     )}
                     <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
-                        <Icon name="add" className="text-lg mr-2" />
+                        <Icon name="PlusCircle" className="text-lg mr-2" />
                         Manual Link
                     </button>
                 </div>
