@@ -1363,6 +1363,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const totalPendingMatchesCount = suggestions.length + billSuggestions.length;
   const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
 
+  const filteredBillSuggestions = useMemo(() => {
+    if (selectedAccountIds.length === 0) return billSuggestions;
+    return billSuggestions.filter(s => selectedAccountIds.includes(s.transaction.accountId));
+  }, [billSuggestions, selectedAccountIds]);
+
+  const filteredTransferSuggestions = useMemo(() => {
+    if (selectedAccountIds.length === 0) return suggestions;
+    return suggestions.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId));
+  }, [suggestions, selectedAccountIds]);
+
   return (
     <div
       onTouchStart={handleTouchStart}
@@ -1645,52 +1655,54 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-0.5 lg:px-0">
-              {/* Forecast Controls (Only visible in overview) */}
-              {activeTab === 'overview' && (
-                <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-2xl sm:rounded-[1.5rem] shadow-inner w-full sm:w-auto min-h-[48px] sm:h-12">
-                  <div className={`${SELECT_WRAPPER_STYLE} !w-auto flex-1 sm:flex-initial !h-10`}>
-                    <select
-                      value={forecastDuration}
-                      onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
-                      className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs sm:text-[12px] font-semibold tracking-wide`}
-                    >
-                      {FORECAST_DURATION_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
-                      ))}
-                    </select>
-                    <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-base" /></div>
-                  </div>
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-2xl sm:rounded-[1.5rem] shadow-inner w-full sm:w-auto min-h-[48px] sm:h-12">
+                {/* Forecast Controls (Only visible in overview) */}
+                {activeTab === 'overview' && (
+                  <>
+                    <div className={`${SELECT_WRAPPER_STYLE} !w-auto flex-1 sm:flex-initial !h-10`}>
+                      <select
+                        value={forecastDuration}
+                        onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
+                        className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs sm:text-[12px] font-semibold tracking-wide`}
+                      >
+                        {FORECAST_DURATION_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
+                        ))}
+                      </select>
+                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-base" /></div>
+                    </div>
 
-                  <div className="w-[1px] h-5 bg-black/10 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
+                    <div className="w-[1px] h-5 bg-black/10 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => setShowForecast(!showForecast)}
-                      className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
-                      title={showForecast ? "Hide Forecast" : "Show Forecast"}
-                      aria-label="Toggle Forecast"
-                    >
-                      <Icon name="candlestick_chart" className={`text-lg sm:text-xl ${showForecast ? '' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setShowForecast(!showForecast)}
+                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        title={showForecast ? "Hide Forecast" : "Show Forecast"}
+                        aria-label="Toggle Forecast"
+                      >
+                        <Icon name="candlestick_chart" className={`text-lg sm:text-xl ${showForecast ? '' : ''}`} />
+                      </button>
 
-                    <button
-                      onClick={() => setShowGoals(!showGoals)}
-                      className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
-                      title={showGoals ? "Hide Goals" : "Show Goals"}
-                      aria-label="Toggle Goals"
-                    >
-                      <Icon name="target" className={`text-lg sm:text-xl ${showGoals ? '' : ''}`} />
-                    </button>
-                  </div>
+                      <button
+                        onClick={() => setShowGoals(!showGoals)}
+                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        title={showGoals ? "Hide Goals" : "Show Goals"}
+                        aria-label="Toggle Goals"
+                      >
+                        <Icon name="target" className={`text-lg sm:text-xl ${showGoals ? '' : ''}`} />
+                      </button>
+                    </div>
 
-                  <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
+                    <div className="h-6 sm:h-8 w-px bg-black/5 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
+                  </>
+                )}
 
-                  <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0 relative z-50 shrink-0">
-                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                    <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                  </div>
+                <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0 relative z-50 shrink-0">
+                  <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                  <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -1905,9 +1917,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
         {activeTab === 'pending_matches' && (
           <PendingMatchesView
-            billSuggestions={billSuggestions}
-            transferSuggestions={suggestions}
-            accounts={accounts}
+            billSuggestions={filteredBillSuggestions}
+            transferSuggestions={filteredTransferSuggestions}
+            accounts={analyticsAccounts}
             config={matcherConfig}
             onUpdateConfig={updateMatcherConfig}
             onResetConfig={resetMatcherConfig}
