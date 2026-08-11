@@ -370,18 +370,27 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     const getSpareChangeKey = (accountId: string, date: string, description?: string, isTransfer?: boolean) =>
       `${accountId}|${date}|${normalizeDescription(description, isTransfer)}`;
 
-    // Store array of amounts for each key to handle multiple transactions with same description/date
-    const spareChangeLookup = sortedTransactions.reduce((map, tx) => {
-        if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return map;
+    const spareChangeByParentId = new Map<string, number>();
+    const legacySpareChangeLookup = new Map<string, number[]>();
 
-        const baseDescription = tx.description?.replace(/^Spare change (for|from)\s*/i, '').trim();
-        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, false);
-        
-        const currentAmounts = map.get(key) || [];
-        currentAmounts.push(Math.abs(tx.amount));
-        map.set(key, currentAmounts);
-        return map;
-    }, new Map<string, number[]>());
+    sortedTransactions.forEach(tx => {
+        if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return;
+
+        const match = tx.transferId.match(/^spare-(.+)$/);
+        const embeddedId = match ? match[1] : null;
+
+        const isBoundToTx = embeddedId && sortedTransactions.some(t => t.id === embeddedId || (t.isTransfer && t.transferId === embeddedId));
+
+        if (isBoundToTx && embeddedId) {
+            spareChangeByParentId.set(embeddedId, Math.abs(tx.amount));
+        } else {
+            const baseDescription = tx.description?.replace(/^Spare change (for|from)\s*/i, '').trim();
+            const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, false);
+            const currentAmounts = legacySpareChangeLookup.get(key) || [];
+            currentAmounts.push(Math.abs(tx.amount));
+            legacySpareChangeLookup.set(key, currentAmounts);
+        }
+    });
 
     const transferLookup = sortedTransactions.reduce((map, tx) => {
         if (!tx.transferId || tx.transferId.startsWith('spare-')) return map;
@@ -395,9 +404,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         return map;
     }, new Map<string, { income?: Transaction; expense?: Transaction }>());
 
-    const consumeSpareChange = (accountId: string, date: string, description?: string, isTransfer?: boolean, txAmount?: number) => {
+    const getSpareChangeForTx = (txId?: string, accountId?: string, date?: string, description?: string, isTransfer?: boolean, txAmount?: number) => {
+         if (txId && spareChangeByParentId.has(txId)) {
+             return spareChangeByParentId.get(txId);
+         }
+         if (!accountId || !date) return undefined;
+
          const key = getSpareChangeKey(accountId, date, description, isTransfer);
-         const amounts = spareChangeLookup.get(key);
+         const amounts = legacySpareChangeLookup.get(key);
          
          if (!amounts || amounts.length === 0) return undefined;
          
@@ -416,7 +430,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
          
          const amount = amounts[bestIndex];
          amounts.splice(bestIndex, 1);
-         if (amounts.length === 0) spareChangeLookup.delete(key);
+         if (amounts.length === 0) legacySpareChangeLookup.delete(key);
          return amount;
     };
 
@@ -430,7 +444,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             processedTransferIds.add(tx.transferId);
 
             if (pair?.expense && pair?.income) {
-                const spareChangeAmount = consumeSpareChange(pair.expense.accountId, pair.expense.date, pair.expense.description, true, pair.expense.amount);
+                const spareChangeAmount = getSpareChangeForTx(pair.expense.id || pair.expense.transferId, pair.expense.accountId, pair.expense.date, pair.expense.description, true, pair.expense.amount);
 
                 result.push({
                     ...pair.expense,
@@ -450,11 +464,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     transferIncomeCurrency: pair.income.currency,
                 });
             } else {
-                const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, false, tx.amount);
+                const spareChangeAmount = getSpareChangeForTx(tx.id, tx.accountId, tx.date, tx.description, false, tx.amount);
                 result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
             }
         } else {
-            const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, false, tx.amount);
+            const spareChangeAmount = getSpareChangeForTx(tx.id, tx.accountId, tx.date, tx.description, false, tx.amount);
             result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
         }
     }

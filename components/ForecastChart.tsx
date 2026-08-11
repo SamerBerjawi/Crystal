@@ -155,14 +155,15 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
             <Line
               key={acc.id}
               dataKey={acc.id}
+              label={acc.name}
               stroke={getColorForAccount(acc, idx)}
               strokeWidth={2}
             />
           ))
         ) : (
           <>
-            <Line dataKey="value" stroke="#6366F1" strokeWidth={3} fadeEdges />
-            <Line dataKey="trend" stroke="#10B981" strokeWidth={2} strokeDasharray="4,4" />
+            <Line dataKey="value" label="Total Value" stroke="#6366F1" strokeWidth={3} fadeEdges />
+            <Line dataKey="trend" label="Trend" stroke="#10B981" strokeWidth={2} strokeDasharray="4,4" />
           </>
         )}
 

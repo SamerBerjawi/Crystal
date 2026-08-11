@@ -9,6 +9,7 @@ import {
   type ReactElement,
   type ReactNode,
   useCallback,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -119,6 +120,7 @@ function extractLineConfigs(children: ReactNode): LineConfig[] {
       if (registersLineDomain(child, props) && props?.dataKey) {
         configs.push({
           dataKey: props.dataKey,
+          label: props.label,
           stroke: props.stroke || "var(--chart-line-primary)",
           strokeWidth: props.strokeWidth || 2.5,
           yAxisId: props.yAxisId,
@@ -181,13 +183,15 @@ function ChartInner({
   onPhaseChange,
 }: ChartInnerProps) {
   const lines = useMemo(() => extractLineConfigs(children), [children]);
+  const reactId = useId();
+  const clipPathId = `chart-grow-clip-${reactId.replace(/:/g, "")}`;
 
   return (
     <TimeSeriesChartInner
       animationDuration={animationDuration}
       animationEasing={animationEasing}
       chartStatus={chartStatus}
-      clipPathId="chart-grow-clip"
+      clipPathId={clipPathId}
       containerRef={containerRef}
       data={data}
       enterTransition={enterTransition}
@@ -214,7 +218,7 @@ export function LineChart({
   data,
   xDataKey = "date",
   margin: marginProp,
-  animationDuration = 1100,
+  animationDuration = 0,
   animationEasing,
   enterTransition,
   revealSignature,
@@ -252,6 +256,12 @@ export function LineChart({
         chartPhase === "revealingLoading")
   );
 
+  const autoRevealSignature = useMemo(
+    () => `${data.length}-${extractLineConfigs(children).map((l) => l.dataKey).join(",")}`,
+    [data.length, children]
+  );
+  const effectiveRevealSignature = revealSignature ?? autoRevealSignature;
+
   return (
     <div
       className={cn("relative w-full", className)}
@@ -275,7 +285,7 @@ export function LineChart({
             loadingLabel={loadingLabel}
             margin={margin}
             onPhaseChange={handlePhaseChange}
-            revealSignature={revealSignature}
+            revealSignature={effectiveRevealSignature}
             tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
             width={width}
             xDataKey={xDataKey}

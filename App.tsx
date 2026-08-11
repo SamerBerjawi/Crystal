@@ -1239,7 +1239,9 @@ const App: React.FC = () => {
           const spareAmount = cleanRemainder === 0 ? 0 : parseFloat((1.00 - cleanRemainder).toFixed(2));
 
           if (spareAmount > 0) {
-            const spareTransferId = `spare-${uuidv4()}`;
+            const newTxId = uuidv4();
+            tx.id = newTxId;
+            const spareTransferId = `spare-${newTxId}`;
             const sourceAcc = accounts.find(a => a.id === tx.accountId);
             if (sourceAcc) {
               finalTxArray.push({

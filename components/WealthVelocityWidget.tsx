@@ -1,15 +1,14 @@
-
 import React, { useMemo } from 'react';
 import { Transaction, Account } from '../types';
 import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ComposedChart, CartesianGrid } from 'recharts';
+import { LineChart, Line, Grid, XAxis, YAxis, ChartTooltip } from '@/src/components/charts';
 
 interface WealthVelocityWidgetProps {
   transactions: Transaction[];
   accounts: Account[];
 }
 
-const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transactions, accounts }) => {
+const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transactions }) => {
   const chartData = useMemo(() => {
     const months = 6;
     const today = new Date();
@@ -25,7 +24,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
         .filter(t => !t.transferId && parseLocalDate(t.date) >= start && parseLocalDate(t.date) <= end)
         .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
 
-      data.push({ month: monthKey, delta: monthlyDelta });
+      data.push({ date: d, month: monthKey, delta: monthlyDelta });
     }
 
     // Calculate 3-month moving average for the line
@@ -56,29 +55,22 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
         </div>
       </div>
 
-      <div className="flex-grow">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ left: -30, right: 0, top: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
-            <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
-            <YAxis axisLine={false} tickLine={false} hide />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'var(--light-card)', 
-                backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
-                WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                border: 'none', 
-                borderRadius: '24px', 
-                boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
-              }}
-              formatter={(value: number) => [formatCurrency(value, 'EUR'), 'Net Change']}
-            />
-            {/* Using 'natural' type for extreme curves */}
-            <Area type="natural" dataKey="delta" fill="#6366F1" stroke="none" fillOpacity={0.1} />
-            <Line type="natural" dataKey="avg" stroke="#94A3B8" strokeWidth={2} dot={false} strokeDasharray="5 5" name="Moving Average" />
-            <Line type="natural" dataKey="delta" stroke="#6366F1" strokeWidth={3} dot={{ r: 4, fill: '#6366F1', strokeWidth: 0 }} activeDot={{ r: 6 }} name="Actual Delta" />
-          </ComposedChart>
-        </ResponsiveContainer>
+      <div className="flex-grow w-full h-[180px] min-h-[160px]">
+        <LineChart
+          data={chartData}
+          xDataKey="date"
+          yDomainTween
+          aspectRatio=""
+          className="w-full h-full min-h-[160px]"
+          margin={{ top: 15, right: 15, bottom: 20, left: 15 }}
+        >
+          <Grid horizontal stroke="rgba(255, 255, 255, 0.06)" />
+          <XAxis />
+          <YAxis />
+          <Line dataKey="avg" stroke="#94A3B8" strokeWidth={2} strokeDasharray="4,4" />
+          <Line dataKey="delta" stroke="#6366F1" strokeWidth={3} fadeEdges />
+          <ChartTooltip valueFormatter={(value) => formatCurrency(Number(value), 'EUR')} />
+        </LineChart>
       </div>
       
       <p className="text-[10px] italic text-light-text-secondary/60 dark:text-dark-text-secondary/80 text-center font-medium">

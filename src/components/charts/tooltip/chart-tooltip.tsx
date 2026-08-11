@@ -208,9 +208,11 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
     return lines.map((line) => {
       const rawVal = tooltipData.point[line.dataKey];
       const val = typeof rawVal === "number" ? rawVal : (rawVal as any) ?? 0;
+      const rawKey = String(line.label || line.dataKey || "");
+      const label = rawKey ? rawKey.charAt(0).toUpperCase() + rawKey.slice(1) : rawKey;
       return {
         color: line.stroke,
-        label: line.dataKey,
+        label,
         value: valueFormatter ? valueFormatter(val, line.dataKey) : val,
       };
     });

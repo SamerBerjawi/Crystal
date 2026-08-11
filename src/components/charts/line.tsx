@@ -44,6 +44,8 @@ import { useAnimatedSeriesPath } from "./use-animated-series-path";
 export interface LineProps {
   /** Key in data to use for y values */
   dataKey: string;
+  /** Display label for tooltips and legends. If omitted, `dataKey` is used. */
+  label?: string;
   /** Y-scale group id (Recharts `yAxisId`). Default: `"left"`. */
   yAxisId?: string | number;
   /** Stroke color. Default: var(--chart-line-primary) */
@@ -300,13 +302,19 @@ export function Line({
     useDataTransitionPath ? animatedPathD : null,
   ]);
 
-  const reactId = useId();
+  const reactId = useId().replace(/:/g, "");
   const gradientId = `line-gradient-${dataKey}-${reactId}`;
 
   const getY = useCallback(
     (d: Record<string, unknown>) => {
       const value = d[dataKey];
-      return typeof value === "number" ? (yScale(value) ?? 0) : 0;
+      if (typeof value === "number" && Number.isFinite(value)) {
+        const y = yScale(value);
+        if (y != null && Number.isFinite(y)) {
+          return y;
+        }
+      }
+      return 0;
     },
     [dataKey, yScale]
   );

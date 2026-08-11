@@ -81,7 +81,7 @@ function collectNumericExtents(
   for (const d of data) {
     for (const key of dataKeys) {
       const value = d[key];
-      if (typeof value === "number") {
+      if (typeof value === "number" && Number.isFinite(value)) {
         if (value < minValue) {
           minValue = value;
         }
@@ -92,7 +92,11 @@ function collectNumericExtents(
     }
   }
 
-  if (minValue === Number.POSITIVE_INFINITY) {
+  if (
+    minValue === Number.POSITIVE_INFINITY ||
+    !Number.isFinite(minValue) ||
+    !Number.isFinite(maxValue)
+  ) {
     return { minValue: 0, maxValue: 100 };
   }
 
@@ -109,6 +113,22 @@ function resolveTimeSeriesYDomain(
   }
 
   const { minValue, maxValue } = collectNumericExtents(data, dataKeys);
+
+  if (minValue === maxValue) {
+    const min =
+      minValue === 0
+        ? -10
+        : minValue > 0
+        ? minValue * 0.9
+        : minValue * 1.1;
+    const max =
+      maxValue === 0
+        ? 10
+        : maxValue > 0
+        ? maxValue * 1.1
+        : maxValue * 0.9;
+    return [min, max];
+  }
 
   if (minValue >= 0) {
     const top = maxValue <= 0 ? 100 : maxValue * 1.1;

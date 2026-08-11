@@ -464,23 +464,43 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         // Detect Round Up
         if (transactions) {
             // Find a transaction that looks like a round-up for this one
-            // Match: same date, same source account, merchant "Round Up", description "Spare change for..."
-            const currentAccountId = transactionToEdit.type === 'income' ? transactionToEdit.accountId : (transactionToEdit.transferId ? (transactionToEdit.type === 'expense' ? transactionToEdit.accountId : (transactions.find(t => t.transferId === transactionToEdit.transferId && t.type === 'expense')?.accountId)) : transactionToEdit.accountId);
+            const targetId = transactionToEdit.originalId || transactionToEdit.id;
 
-            const roundUpTx = transactions.find(t => 
-                t.accountId === currentAccountId &&
-                t.date === transactionToEdit.date &&
-                t.merchant === 'Round Up' &&
-                t.transferId?.startsWith('spare-') &&
-                // Check description match loosely
-                t.description.includes(transactionToEdit.description || '')
-            );
+            let roundUpTx: Transaction | undefined = undefined;
+
+            if (targetId) {
+                roundUpTx = transactions.find(t => 
+                    t.transferId === `spare-${targetId}` ||
+                    (t.transferId?.startsWith('spare-') && t.transferId.includes(targetId))
+                );
+            }
+
+            if (!roundUpTx) {
+                // Collect all transferIds of spare change transactions that ARE already bound to a known transaction ID
+                const boundSpareTransferIds = new Set(
+                    transactions
+                        .filter(t => t.transferId?.startsWith('spare-'))
+                        .map(t => t.transferId!)
+                        .filter(tId => transactions.some(other => (other.id || (other.isTransfer && other.transferId)) && tId.includes(other.id || other.transferId!)))
+                );
+
+                const currentAccountId = transactionToEdit.type === 'income' ? transactionToEdit.accountId : (transactionToEdit.transferId ? (transactionToEdit.type === 'expense' ? transactionToEdit.accountId : (transactions.find(t => t.transferId === transactionToEdit.transferId && t.type === 'expense')?.accountId)) : transactionToEdit.accountId);
+
+                roundUpTx = transactions.find(t => 
+                    t.accountId === currentAccountId &&
+                    t.date === transactionToEdit.date &&
+                    t.merchant === 'Round Up' &&
+                    t.transferId?.startsWith('spare-') &&
+                    !boundSpareTransferIds.has(t.transferId!) &&
+                    t.description.includes(transactionToEdit.description || '')
+                );
+            }
 
             if (roundUpTx) {
                 setEnableRoundUp(true);
                 setExistingRoundUpTransaction(roundUpTx);
             } else {
-                setEnableRoundUp(false);
+                setEnableRoundUp(Boolean(linkedSpareChangeAccount));
                 setExistingRoundUpTransaction(null);
             }
         }
@@ -505,20 +525,20 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setTagIds(initialDetails?.tagIds || []);
         setLocationString(initialDetails?.locationString || '');
         setLocationData(initialDetails?.locationData || {});
-        setEnableRoundUp(false);
+        setEnableRoundUp(Boolean(linkedSpareChangeAccount));
         setExistingRoundUpTransaction(null);
         setRoundUpBehavior('skip');
         setRoundUpMultiplier('1');
         setShowDetails(!!(initialDetails?.tagIds?.length || initialDetails?.locationString));
     }
-  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory]);
+  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory, linkedSpareChangeAccount]);
 
   // Auto-enable round up when a linked spare change account is detected
   useEffect(() => {
-    if (linkedSpareChangeAccount && !isEditing) {
+    if (linkedSpareChangeAccount) {
       setEnableRoundUp(true);
     }
-  }, [linkedSpareChangeAccount, isEditing]);
+  }, [linkedSpareChangeAccount]);
 
   // Fast offline location detection from transaction description or merchant
   useEffect(() => {
@@ -659,6 +679,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             const originalIncome = transactions!.find(t => t.transferId === transferId && t.type === 'income');
             expenseTx.id = originalExpense?.id;
             incomeTx.id = originalIncome?.id;
+        } else {
+            if (!expenseTx.id) expenseTx.id = uuidv4();
+            if (!incomeTx.id) incomeTx.id = uuidv4();
         }
 
         toSave.push(expenseTx, incomeTx);
@@ -692,6 +715,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
         if (isEditing && !wasTransfer) {
             transactionData.id = transactionToEdit.id;
+        } else if (!transactionData.id) {
+            transactionData.id = uuidv4();
         }
 
         toSave.push(transactionData);
@@ -718,7 +743,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         if (pair) toDelete.push(pair.id);
     } else if (shouldSaveRoundUp && linkedSpareChangeAccount) {
          // Create or Update
-         const spareTransferId = existingRoundUpTransaction?.transferId || `spare-${uuidv4()}`;
+         const targetTxId = type === 'transfer' ? (toSave[0] as any).id : (toSave[0] as any).id;
+         const spareTransferId = existingRoundUpTransaction?.transferId || `spare-${targetTxId || uuidv4()}`;
          const expenseId = existingRoundUpTransaction?.id; // undefined if creating new
          
          // Find existing pair ID if updating
