@@ -100,28 +100,28 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   }, [accounts]);
   
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(isEditing ? (transactionToEdit.transferId ? 'transfer' : transactionToEdit.type) : (initialType || 'expense'));
-  const [date, setDate] = useState(toLocalISOString(new Date()));
+  const [date, setDate] = useState(initialDetails?.date || toLocalISOString(new Date()));
   const [fromAccountId, setFromAccountId] = useState(initialFromAccountId || defaultAccountId);
   const [toAccountId, setToAccountId] = useState(initialToAccountId || defaultAccountId);
-  const [description, setDescription] = useState('');
-  const [isDescriptionUserModified, setIsDescriptionUserModified] = useState(false);
-  const [merchant, setMerchant] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
-  const [notes, setNotes] = useState('');
-  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [description, setDescription] = useState(initialDetails?.description || '');
+  const [isDescriptionUserModified, setIsDescriptionUserModified] = useState(Boolean(initialDetails?.description));
+  const [merchant, setMerchant] = useState(initialDetails?.merchant || '');
+  const [amount, setAmount] = useState(initialDetails?.amount || '');
+  const [category, setCategory] = useState(initialCategory || '');
+  const [notes, setNotes] = useState(initialDetails?.notes || '');
+  const [tagIds, setTagIds] = useState<string[]>(initialDetails?.tagIds || []);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString));
   
   // Location fields
-  const [locationString, setLocationString] = useState('');
-  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>({});
+  const [locationString, setLocationString] = useState(initialDetails?.locationString || '');
+  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>(initialDetails?.locationData || {});
 
   // Loan payment split state
-  const [principalPayment, setPrincipalPayment] = useState('');
-  const [interestPayment, setInterestPayment] = useState('');
-  const [useAutoLoanSplit, setUseAutoLoanSplit] = useState(true);
+  const [principalPayment, setPrincipalPayment] = useState(initialDetails?.principal || '');
+  const [interestPayment, setInterestPayment] = useState(initialDetails?.interest || '');
+  const [useAutoLoanSplit, setUseAutoLoanSplit] = useState(!(initialDetails?.principal || initialDetails?.interest));
   
   // Spare Change State
   const [enableRoundUp, setEnableRoundUp] = useState(false);
@@ -508,30 +508,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         if (transactionToEdit.description) {
             setIsDescriptionUserModified(true);
         }
-    } else {
-        setType(initialType || 'expense');
-        setDate(initialDetails?.date || toLocalISOString(new Date()));
-        setFromAccountId(initialFromAccountId || defaultAccountId);
-        setToAccountId(initialToAccountId || defaultAccountId);
-        setDescription(initialDetails?.description || '');
-        setIsDescriptionUserModified(Boolean(initialDetails?.description));
-        setMerchant(initialDetails?.merchant || '');
-        setAmount(initialDetails?.amount || '');
-        setCategory(initialCategory || '');
-        setNotes(initialDetails?.notes || '');
-        setPrincipalPayment(initialDetails?.principal || '');
-        setInterestPayment(initialDetails?.interest || '');
-        setUseAutoLoanSplit(!(initialDetails?.principal || initialDetails?.interest));
-        setTagIds(initialDetails?.tagIds || []);
-        setLocationString(initialDetails?.locationString || '');
-        setLocationData(initialDetails?.locationData || {});
-        setEnableRoundUp(Boolean(linkedSpareChangeAccount));
-        setExistingRoundUpTransaction(null);
-        setRoundUpBehavior('skip');
-        setRoundUpMultiplier('1');
-        setShowDetails(!!(initialDetails?.tagIds?.length || initialDetails?.locationString));
     }
-  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory, linkedSpareChangeAccount]);
+  }, [transactionToEdit, isEditing, transactions, defaultAccountId]);
 
   // Auto-enable round up when a linked spare change account is detected
   useEffect(() => {
@@ -972,7 +950,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             <div className={SELECT_WRAPPER_STYLE}>
                                                 <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
                                                     <option value="" disabled>Select account</option>
-                                                    <AccountOptions accounts={accounts} />
+                                                    <AccountOptions accounts={availableAccounts} />
                                                 </select>
                                                 <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                                             </div>
@@ -988,7 +966,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                     <div className={SELECT_WRAPPER_STYLE}>
                                                         <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
                                                             <option value="" disabled>Select account</option>
-                                                            <AccountOptions accounts={accounts.filter(a => a.id !== fromAccountId)} />
+                                                            <AccountOptions accounts={availableAccounts.filter(a => a.id !== fromAccountId)} />
                                                         </select>
                                                         <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
                                                     </div>
