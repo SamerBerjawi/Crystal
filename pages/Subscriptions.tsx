@@ -368,7 +368,7 @@ const Subscriptions: React.FC = () => {
 
     const segments: { id: SubscriptionSegment; label: string; icon: string; count: number }[] = [
         { id: 'all', label: 'Overview', icon: 'layout_alt', count: totalCount + memberships.length },
-        { id: 'recurring', label: 'Payments', icon: 'calendar', count: totalCount },
+        { id: 'recurring', label: 'Payments', icon: 'CreditCard01', count: totalCount },
         { id: 'loyalty', label: 'Wallet', icon: 'wallet', count: memberships.length },
     ];
 

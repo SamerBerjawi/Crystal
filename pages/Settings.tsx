@@ -247,7 +247,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               />
               <SettingCard
                 page="Documentation"
-                icon="file_text"
+                icon="BookOpen01"
                 title="Knowledge Base"
                 description="Detailed user guide, system design, and API specs"
                 colorClass="bg-slate-500 text-white"

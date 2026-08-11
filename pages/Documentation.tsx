@@ -225,7 +225,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
         <div className="w-full animate-fade-in-up pb-24 px-4">
              {/* Navigation & Header */}
              <SettingsSubpageHeader
-               markerIcon="file_text"
+               markerIcon="BookOpen01"
                markerLabel="Operational Manual"
                title="Documentation"
                subtitle="Detailed technical guidance on operating the Crystal system. From taxonomy definition to advanced data synchronization."

@@ -527,7 +527,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
-         markerIcon="building"
+         markerIcon="Building02"
          markerLabel="Entity Intelligence"
          title="Merchants & Institutions"
          subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."

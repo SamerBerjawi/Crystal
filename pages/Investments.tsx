@@ -627,7 +627,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             { id: 'Stock', label: 'Stocks', icon: 'candlestick_chart', color: 'blue' },
             { id: 'ETF', label: 'ETFs', icon: 'bar_chart', color: 'teal' },
             { id: 'Crypto', label: 'Crypto', icon: 'zap', color: 'amber' },
-            { id: 'Warrant', label: 'Warrants', icon: 'award', color: 'rose' },
+            { id: 'Warrant', label: 'Warrants', icon: 'Certificate01', color: 'rose' },
         ];
 
         if (activeInvestmentAccounts.some(a => a.subType === 'Spare Change')) {
@@ -754,7 +754,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </HeaderButton>
                             <HeaderButton
                                 variant="secondary"
-                                icon="award"
+                                icon="Certificate01"
                                 onClick={() => handleOpenWarrantModal()}
                                 title="Add Equity Grant"
                             >

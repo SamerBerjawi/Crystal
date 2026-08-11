@@ -219,7 +219,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                     title="Temporal Window" 
                     value={stats.dueSoon} 
                     subtext="Due in 7-day cycle" 
-                    icon="calendar" 
+                    icon="Hourglass01" 
                     colorClass="bg-amber-500 text-white shadow-amber-500/20" 
                 />
                 <StatCard 

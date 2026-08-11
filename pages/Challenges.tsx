@@ -893,13 +893,13 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   };
 
   const navItems = [
-      { id: 'score', label: 'Score', icon: 'award' },
-      { id: 'battles', label: 'Battles', icon: 'target' },
-      { id: 'badges', label: 'Badges', icon: 'award' },
-      { id: 'mastery', label: 'Mastery', icon: 'award' },
-      { id: 'sprints', label: 'Sprints', icon: 'clock' },
-      { id: 'prediction', label: 'Predictions', icon: 'zap' },
-      { id: 'personal-best', label: 'Records', icon: 'bar_chart' },
+      { id: 'score', label: 'Score', icon: 'Activity' },
+      { id: 'battles', label: 'Battles', icon: 'Target01' },
+      { id: 'badges', label: 'Badges', icon: 'Star01' },
+      { id: 'mastery', label: 'Mastery', icon: 'Zap' },
+      { id: 'sprints', label: 'Sprints', icon: 'Clock' },
+      { id: 'prediction', label: 'Predictions', icon: 'Zap' },
+      { id: 'personal-best', label: 'Records', icon: 'Trophy01' },
   ];
 
   return (
@@ -907,7 +907,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       {isPredictionModalOpen && <PredictionModal onClose={() => setPredictionModalOpen(false)} onSave={savePrediction} accounts={accounts} expenseCategories={expenseCategories} investmentTransactions={investmentTransactions} warrants={warrants} />}
       
       <PageHeader
-        markerIcon="award"
+        markerIcon="GamingPad01"
         markerLabel="Gamification"
         title="Financial Health"
         subtitle="Level up your finances by completing challenges, unlocking badges, and beating your personal bests."

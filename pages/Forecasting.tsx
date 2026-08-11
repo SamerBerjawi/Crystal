@@ -859,7 +859,7 @@ const Forecasting: React.FC = () => {
             )}
 
             <PageHeader
-                markerIcon="trending_up"
+                markerIcon="PresentationChart01"
                 markerLabel="Forward View"
                 title="Financial Forecast"
                 subtitle="Projected cash, income, and obligations so you can plan moves weeks and months ahead."
@@ -867,7 +867,7 @@ const Forecasting: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-2">
                         <HeaderButton
                             variant={isPlaygroundOpen ? 'accent' : 'secondary'}
-                            icon="science"
+                            icon="sliders"
                             onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)}
                         >
                             {isPlaygroundOpen ? 'Close Playground' : 'Playground'}
@@ -887,7 +887,7 @@ const Forecasting: React.FC = () => {
 
                         <HeaderButton
                             variant="primary"
-                            icon="add"
+                            icon="PlusCircle"
                             onClick={() => handleOpenModal()}
                         >
                             Add Goal

@@ -118,7 +118,7 @@ const InvoicesPage: React.FC = () => {
             />
 
             <PageHeader
-                markerIcon="wallet"
+                markerIcon="ReceiptCheck"
                 markerLabel="Ledger & Receivables"
                 title="Invoices & Quotes"
                 subtitle="Financial Document Lifecycle Management"
