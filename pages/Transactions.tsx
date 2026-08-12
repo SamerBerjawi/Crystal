@@ -23,6 +23,7 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
+import { MobileTransactionsView } from '../components/MobileTransactionsView';
 
 interface TransactionsProps {
   initialAccountFilter?: string | null;
@@ -1411,7 +1412,42 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             </div>
         )}
 
-      <PageHeader
+      <MobileTransactionsView
+        transactions={transactions}
+        filteredTransactions={filteredTransactions}
+        accounts={accounts}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
+        tags={tags}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        selectedAccountIds={selectedAccountIds}
+        setSelectedAccountIds={setSelectedAccountIds}
+        selectedCategoryNames={selectedCategoryNames}
+        setSelectedCategoryNames={setSelectedCategoryNames}
+        selectedTagIds={selectedTagIds}
+        setSelectedTagIds={setSelectedTagIds}
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+        clearFilters={clearFilters}
+        onAddTransaction={handleOpenAddModal}
+        onEditTransaction={(tx) => {
+          setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
+          setTransactionModalOpen(true);
+        }}
+        onDeleteTransaction={(txId) => {
+          deleteTransactions([txId]);
+        }}
+        onSyncBanks={onSyncBanks}
+        isSyncingBanks={isSyncingBanks}
+      />
+
+      <div className="hidden md:block space-y-6">
+        <PageHeader
         markerIcon="receipt"
         markerLabel="Activity Feed"
         title="Transactions"
@@ -2027,6 +2063,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
               </div>
           </Card>
       </div>
+    </div>
     </div>
   );
 };

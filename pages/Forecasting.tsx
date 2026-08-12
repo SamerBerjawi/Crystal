@@ -51,6 +51,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import Icon from '../components/ui/Icon';
+import { MobileForecastView } from '../components/MobileForecastView';
 
 const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
@@ -841,7 +842,17 @@ const Forecasting: React.FC = () => {
     }, [tableData]);
 
      return (
-        <div className="space-y-8 pb-12 animate-fade-in-up">
+        <div className="relative">
+            <MobileForecastView
+                forecastDuration={forecastDuration}
+                setForecastDuration={setForecastDuration}
+                projectedNetWorth={endBalance}
+                lowestBalance={lowestPoint?.value || 0}
+                lowestBalanceDate={lowestPoint?.date || ''}
+                runwayMonths={12}
+            />
+
+            <div className="hidden md:block space-y-8 pb-12 animate-fade-in-up">
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}
@@ -1651,7 +1662,8 @@ const Forecasting: React.FC = () => {
                 </Card>
             </div>
         </div>
-    );
+    </div>
+);
 };
 
 export default Forecasting;

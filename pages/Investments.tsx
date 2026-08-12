@@ -22,6 +22,7 @@ import Modal from '../components/Modal';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSafeState } from '../hooks/useSafeState';
 import Icon from '../components/ui/Icon';
+import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -70,7 +71,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     onToggleAccountStatus,
     deleteAccount,
     transactions,
-    onViewAccount
+    onViewAccount,
+    holdingsOverview
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -661,7 +663,17 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     return (
         <div className="relative">
-            <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
+            <MobileInvestmentsView
+                accounts={accounts}
+                investmentTransactions={investmentTransactions}
+                holdingsOverview={holdingsOverview || globalOverview}
+                onOpenHoldingDetail={onOpenHoldingDetail}
+                onAddTransaction={() => handleOpenModal()}
+                onViewAccount={onViewAccount}
+                onRefreshData={() => handleUpdateAllPrices()}
+            />
+
+            <div className="hidden md:block space-y-8">
                 {isModalOpen && (
                     <AddInvestmentTransactionModal
                         onClose={() => setIsModalOpen(false)}

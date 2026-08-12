@@ -501,7 +501,7 @@ export const Icon: React.FC<IconProps> = ({
   // Standardize sizing: If no explicit width/height in className or size prop, default to inline text scaling (1em x 1em)
   const hasWidthClass = /\b(w-\d+|w-\[.*\]|w-full|w-screen|w-auto)\b/.test(className);
   const hasHeightClass = /\b(h-\d+|h-\[.*\]|h-full|h-screen|h-auto)\b/.test(className);
-  
+
   const defaultSizeClass = !hasWidthClass && !hasHeightClass && !size ? 'w-[1em] h-[1em] inline-block shrink-0 align-middle' : '';
 
   return (

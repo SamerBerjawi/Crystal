@@ -21,6 +21,7 @@ import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CalendarView from '../components/CalendarView';
 import { v4 as uuidv4 } from 'uuid';
+import { MobileScheduleView } from '../components/MobileScheduleView';
 
 // --- Summary Card Component ---
 const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'income' | 'expense' | 'net'; count?: number }> = ({ title, value, type, count }) => {
@@ -874,7 +875,19 @@ const SchedulePage: React.FC = () => {
 
     return (
         <div className="relative">
-            <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
+            <MobileScheduleView
+                scheduledItems={allUpcomingForHeatmap}
+                totalIncome={summaryMetrics.income}
+                totalExpense={summaryMetrics.expense}
+                netFlow={summaryMetrics.net}
+                onProcessItem={handleOpenPostModal}
+                onEditItem={handleEditItem}
+                onDeleteItem={(item) => handleDeleteItem(item.id, item.isRecurring)}
+                onAddRecurring={() => handleOpenRecurringModal()}
+                onAddBill={() => handleOpenBillModal()}
+            />
+
+            <div className="hidden md:block space-y-6 pb-12 animate-fade-in-up">
                 {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
                 {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
                 {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}

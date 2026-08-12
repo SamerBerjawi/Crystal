@@ -16,6 +16,7 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { motion, AnimatePresence } from 'motion/react';
 import { useConfirm } from '../components/ConfirmationModal';
 import Icon from '../components/ui/Icon';
+import { MobileSubscriptionsView } from '../components/MobileSubscriptionsView';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -387,7 +388,16 @@ const Subscriptions: React.FC = () => {
 
     return (
         <div className="relative">
-            <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
+            <MobileSubscriptionsView
+                subscriptions={activeSubscriptions}
+                totalMonthlyCost={monthlySpend}
+                totalAnnualCost={yearlySpend}
+                onAddSubscription={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
+                onEditSubscription={handleEditActive}
+                onDeleteSubscription={handleDeleteActive}
+            />
+
+            <div className="hidden md:block space-y-6 pb-12 animate-fade-in-up">
                 {isModalOpen && (
                     <RecurringTransactionModal
                         onClose={() => setIsModalOpen(false)}

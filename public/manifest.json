@@ -1,17 +1,27 @@
 {
   "short_name": "Crystal",
-  "name": "Crystal - Personal Finance Dashboard",
+  "name": "Crystal - Personal Finance",
+  "description": "Track your finances, budgets, investments and net worth — all in one beautiful dashboard.",
   "icons": [
     {
       "src": "/favicon.svg",
       "type": "image/svg+xml",
-      "sizes": "128x128 192x192 512x512",
-      "purpose": "any maskable"
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
-  "background_color": "#0d0e12",
-  "theme_color": "#6366f1",
+  "scope": "/",
+  "background_color": "#050505",
+  "theme_color": "#fa9a1d",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "categories": ["finance", "productivity"],
+  "id": "crystal-finance-pwa"
 }

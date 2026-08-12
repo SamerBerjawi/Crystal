@@ -10,18 +10,24 @@ interface MobileNavbarProps {
   setCurrentPage: (page: Page) => void;
 }
 
+/**
+ * Apple HIG Bottom Tab Bar — 5 primary tabs.
+ *
+ * Tab mapping:
+ *   Home      → Dashboard
+ *   Accounts  → Accounts
+ *   Activity  → Transactions
+ *   Insights  → Reports (with Budget, Forecasting as sub-tabs)
+ *   More      → Bottom sheet grid for all remaining pages
+ */
 const PRIMARY_TABS = [
-  { label: 'Dashboard', icon: 'layout_alt', id: 'Dashboard' as Page, color: 'indigo' },
+  { label: 'Home', icon: 'layout_alt', id: 'Dashboard' as Page, color: 'indigo' },
   { label: 'Accounts', icon: 'wallet', id: 'Accounts' as Page, color: 'emerald' },
-  { label: 'Transactions', icon: 'receipt', id: 'Transactions' as Page, color: 'amber' },
-  { label: 'Forecast', icon: 'PresentationChart01', id: 'Forecasting' as Page, color: 'purple' },
+  { label: 'Activity', icon: 'receipt', id: 'Transactions' as Page, color: 'amber' },
+  { label: 'Insights', icon: 'bar_chart', id: 'Reports' as Page, color: 'blue' },
 ];
 
 const NAV_CATEGORIES = [
-  {
-    title: 'Overview',
-    items: ['Dashboard', 'Accounts', 'Transactions', 'Reports'] as Page[],
-  },
   {
     title: 'Planning',
     items: ['Budget', 'Forecasting', 'Investments', 'Schedule & Bills'] as Page[],
@@ -57,10 +63,12 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
 
   return (
     <>
-      {/* Bottom Floating Navigation Bar */}
-      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-sm">
+      {/* Bottom Floating Navigation Bar — Apple HIG Tab Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
         <nav
-          className="flex items-center justify-around p-1.5 gap-1 ios-regular shadow-2xl backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-black/10 dark:border-white/10 rounded-[28px]"
+          className="flex items-center justify-around p-1.5 gap-1 bg-white/80 dark:bg-gray-900/80 border-t border-black/10 dark:border-white/10 backdrop-blur-xl safe-bottom"
+          style={{ paddingBottom: `calc(0.375rem + env(safe-area-inset-bottom, 0px))` }}
+          role="tabbar"
         >
           {PRIMARY_TABS.map((item) => {
             const isActive = currentPage === item.id && !isMoreOpen;
@@ -69,11 +77,10 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                 key={item.id}
                 onClick={() => handleNavSelect(item.id)}
                 aria-label={item.label}
-                className={`flex flex-col items-center justify-center py-2 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${
-                  isActive
+                className={`touch-feedback flex flex-col items-center justify-center py-2 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${isActive
                     ? getColorClasses(item.color, true)
                     : 'text-light-text-secondary/50 dark:text-dark-text-secondary/40'
-                }`}
+                  }`}
               >
                 {isActive && (
                   <motion.div
@@ -82,7 +89,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <Icon name={item.icon} className={`text-[22px] transition-all duration-300 relative z-10 ${ isActive ? 'scale-110 ' : 'scale-100' }`} />
+                <Icon name={item.icon} className={`text-[22px] transition-all duration-300 relative z-10 ${isActive ? 'scale-110 ' : 'scale-100'}`} />
                 <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
                   {item.label}
                 </span>
@@ -94,11 +101,10 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
           <button
             onClick={() => setIsMoreOpen(prev => !prev)}
             aria-label="More navigation options"
-            className={`flex flex-col items-center justify-center py-2 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${
-              isMoreOpen || !isPrimaryActive
+            className={`touch-feedback flex flex-col items-center justify-center py-2 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${isMoreOpen || !isPrimaryActive
                 ? 'text-primary-600 dark:text-primary-400 font-bold'
                 : 'text-light-text-secondary/50 dark:text-dark-text-secondary/40'
-            }`}
+              }`}
           >
             {(isMoreOpen || !isPrimaryActive) && (
               <motion.div
@@ -107,7 +113,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-[22px] transition-all duration-300 relative z-10 ${ isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100' }`} />
+            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-[22px] transition-all duration-300 relative z-10 ${isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100'}`} />
             <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
               {isMoreOpen ? 'Close' : 'More'}
             </span>
@@ -125,7 +131,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMoreOpen(false)}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              className="absolute inset-0 sheet-backdrop"
             />
 
             {/* Bottom Sheet */}
@@ -134,7 +140,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-              className="relative z-10 bg-white dark:bg-gray-900 rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-2xl max-h-[82vh] flex flex-col overflow-hidden pb-24"
+              className="relative z-10 bg-white dark:bg-gray-900 rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-2xl max-h-[82vh] flex flex-col overflow-hidden"
+              style={{ paddingBottom: `calc(5rem + env(safe-area-inset-bottom, 0px))` }}
             >
               {/* Sheet Drag Handle */}
               <div className="flex justify-center pt-3 pb-1">
@@ -149,14 +156,14 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                 </div>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white min-h-[44px] min-w-[44px]"
                 >
                   <Icon name="close" className="text-lg" />
                 </button>
               </div>
 
               {/* Categorized Navigation Grid */}
-              <div className="overflow-y-auto px-5 py-4 space-y-6">
+              <div className="overflow-y-auto px-5 py-4 space-y-6 scroll-touch">
                 {NAV_CATEGORIES.map((category) => (
                   <div key={category.title} className="space-y-2">
                     <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50 px-1">
@@ -172,11 +179,10 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                           <button
                             key={pageName}
                             onClick={() => handleNavSelect(pageName)}
-                            className={`flex items-center gap-3 p-3 rounded-2xl text-left transition-all duration-200 border ${
-                              isCurrent
+                            className={`touch-feedback flex items-center gap-3 p-3 rounded-2xl text-left transition-all duration-200 border min-h-[44px] ${isCurrent
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-600 dark:text-primary-400 font-bold shadow-sm'
                                 : 'bg-gray-50/70 dark:bg-gray-800/40 border-black/5 dark:border-white/5 text-light-text dark:text-dark-text hover:bg-gray-100 dark:hover:bg-gray-800'
-                            }`}
+                              }`}
                           >
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getBgClasses(colorKey)}`}>
                               <Icon name={iconName} className={`text-xl ${getColorClasses(colorKey, true)}`} />

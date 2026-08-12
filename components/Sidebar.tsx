@@ -163,7 +163,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           flex-1 flex flex-col m-3 md:m-4 h-[calc(100%-24px)] md:h-[calc(100%-32px)]
           ios-regular shadow-2xl rounded-[32px] 
           border border-white/20 dark:border-white/5
-          relative
+          relative safe-top
         `}>
           {/* Background overlay clipping container for subtle top inner gradient */}
           <div className="absolute inset-0 rounded-[32px] overflow-hidden pointer-events-none z-0">

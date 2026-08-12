@@ -15,6 +15,7 @@ import { useConfirm } from '../components/ConfirmationModal';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import Icon from '../components/ui/Icon';
+import { MobileBudgetView } from '../components/MobileBudgetView';
 
 interface BudgetingProps {
   budgets?: Budget[];
@@ -213,7 +214,19 @@ const Budgeting: React.FC<BudgetingProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-8 animate-fade-in-up">
+    <div className="relative">
+      <MobileBudgetView
+        budgets={budgets}
+        transactions={transactions}
+        expenseCategories={expenseCategories}
+        totalBudgeted={totalBudgeted}
+        totalSpent={totalSpent}
+        onAddBudget={() => handleOpenModal()}
+        onEditBudget={(b) => handleOpenModal(b)}
+        onDeleteBudget={(id) => deleteBudget(id)}
+      />
+
+      <div className="hidden md:block space-y-6 pb-8 animate-fade-in-up">
       {isModalOpen && (
         <BudgetModal 
           onClose={handleCloseModal}
@@ -509,6 +522,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                   </div>
               </Card>
           </div>
+      </div>
       </div>
       <ConfirmDialog />
     </div>

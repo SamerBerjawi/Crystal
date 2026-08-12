@@ -10,6 +10,7 @@ import PageSkeleton from './components/PageSkeleton';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AddTransactionModal from './components/AddTransactionModal';
+import { useIsMobile } from './hooks/useIsMobile';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const pageRegistry = {
@@ -2560,7 +2561,7 @@ const App: React.FC = () => {
                 ),
               }}
             >
-              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-24 md:pb-8" id="main-content">
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-28 md:pb-8 scroll-touch safe-top" id="main-content">
                 <ErrorBoundary>
                   <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
                     <AnimatePresence mode="wait">
