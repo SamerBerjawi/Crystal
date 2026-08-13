@@ -18,18 +18,13 @@ interface ModalProps {
  *          following Apple HIG modal presentation guidelines.
  */
 const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-[9999]', size = 'lg' }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [mounted, setMounted] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    // Small timeout to allow mount before animation
-    const timer = setTimeout(() => setIsVisible(true), 10);
-
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
     return () => {
-      clearTimeout(timer);
       document.body.style.overflow = '';
     };
   }, []);

@@ -42,61 +42,30 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   className = '',
 }) => {
   const sheetRef = useRef<HTMLDivElement>(null);
-  const controls = useAnimation();
   const isDragging = useRef(false);
 
   const shouldShowClose = showClose ?? !!title;
 
   useEffect(() => {
     if (isOpen) {
-      controls.start({ y: 0 });
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, controls]);
+  }, [isOpen]);
 
   const handleDragEnd = useCallback(
     (_: any, info: PanInfo) => {
       isDragging.current = false;
       const { velocity, offset } = info;
 
-      // Dismiss if dragged down > 30% or fast swipe down
-      if (offset.y > 100 || velocity.y > 500) {
-        controls.start({ y: '100%' }).then(onClose);
-        return;
+      // Dismiss if dragged down > 80px or fast swipe down
+      if (offset.y > 80 || velocity.y > 400) {
+        onClose();
       }
-
-      // Snap to nearest point if snap points are defined
-      if (snapPoints && snapPoints.length > 0) {
-        const sheetHeight = sheetRef.current?.offsetHeight || 0;
-        const currentPos = offset.y;
-        const percentDragged = (currentPos / sheetHeight) * 100;
-
-        // Find nearest snap point
-        let nearestSnap = 0;
-        let minDist = Infinity;
-        for (const sp of [0, ...snapPoints.map(p => 100 - p)]) {
-          const dist = Math.abs(percentDragged - sp);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestSnap = sp;
-          }
-        }
-
-        if (nearestSnap >= 70) {
-          controls.start({ y: '100%' }).then(onClose);
-        } else {
-          controls.start({ y: `${nearestSnap}%` });
-        }
-        return;
-      }
-
-      // Bounce back
-      controls.start({ y: 0 });
     },
-    [controls, onClose, snapPoints]
+    [onClose]
   );
 
   return (
@@ -117,9 +86,9 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
           <motion.div
             ref={sheetRef}
             initial={{ y: '100%' }}
-            animate={controls}
+            animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             drag="y"
             dragConstraints={{ top: 0 }}
             dragElastic={0.1}
@@ -129,7 +98,6 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             style={{
               maxHeight: `${maxHeight}vh`,
               paddingBottom: `env(safe-area-inset-bottom, 0px)`,
-              touchAction: 'none',
             }}
           >
             {/* Drag Handle */}

@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { motion, useAnimation, PanInfo } from 'motion/react';
+import Icon from './ui/Icon';
 
 interface SwipeAction {
   /** Icon name (material symbols or Untitled UI) */
@@ -34,11 +35,6 @@ interface SwipeableRowProps {
  * Reveals action buttons when the user swipes a list item.
  * Swipe left to reveal right-side actions (e.g., delete, edit).
  * Swipe right to reveal left-side actions (e.g., mark as read).
- *
- * Follows Apple HIG destructive action pattern:
- * - Full swipe triggers the first action
- * - Partial swipe reveals buttons
- * - Spring physics for bounce-back
  */
 const SwipeableRow: React.FC<SwipeableRowProps> = ({
   children,
@@ -50,10 +46,16 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
 }) => {
   const controls = useAnimation();
   const [revealedSide, setRevealedSide] = useState<'left' | 'right' | null>(null);
+  const [isSwiping, setIsSwiping] = useState(false);
   const actionWidth = useRef(0);
+
+  const handleDragStart = useCallback(() => {
+    setIsSwiping(true);
+  }, []);
 
   const handleDragEnd = useCallback(
     (_: any, info: PanInfo) => {
+      setIsSwiping(false);
       if (disabled) return;
 
       const { offset, velocity } = info;
@@ -106,25 +108,28 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
 
   const renderActions = (actions: SwipeAction[], side: 'left' | 'right') => {
     if (actions.length === 0) return null;
+    const isVisible = isSwiping || revealedSide === side;
 
     return (
       <div
-        className={`absolute top-0 bottom-0 flex items-stretch ${side === 'right' ? 'right-0' : 'left-0'
-          }`}
+        className={`absolute top-0 bottom-0 flex items-stretch z-0 transition-opacity duration-150 ${
+          side === 'right' ? 'right-0' : 'left-0'
+        } ${isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       >
         {actions.map((action, i) => (
           <button
             key={i}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               action.onAction();
               controls.start({ x: 0 });
               setRevealedSide(null);
             }}
             className={`touch-feedback flex flex-col items-center justify-center w-[72px] ${action.bgClass} ${action.colorClass || 'text-white'} transition-colors`}
           >
-            <span className="material-symbols-rounded text-xl">{action.icon}</span>
+            <Icon name={action.icon} className="text-lg mb-0.5" />
             {action.label && (
-              <span className="text-[10px] font-semibold mt-0.5">{action.label}</span>
+              <span className="text-[10px] font-semibold tracking-tight">{action.label}</span>
             )}
           </button>
         ))}
@@ -133,7 +138,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
   };
 
   return (
-    <div className={`swipe-action-container ${className}`}>
+    <div className={`relative overflow-hidden w-full select-none ${className}`}>
       {/* Background actions */}
       {renderActions(leftActions, 'left')}
       {renderActions(rightActions, 'right')}
@@ -144,9 +149,10 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
         drag={disabled ? false : 'x'}
         dragConstraints={{ left: -(rightActions.length * 72), right: leftActions.length * 72 }}
         dragElastic={0.15}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onTap={handleTap}
-        className="relative z-10 bg-white dark:bg-dark-card"
+        className="relative z-10 w-full bg-white dark:bg-[#18181b]"
         style={{ touchAction: 'pan-y' }}
       >
         {children}

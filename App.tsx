@@ -2396,6 +2396,12 @@ const App: React.FC = () => {
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     root.classList.toggle('dark', isDark);
     safeLocalStorage.setItem('theme', theme);
+
+    // Update meta theme-color for iOS / Android PWA status bar
+    const metaThemeColor = document.getElementById('theme-color-meta');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isDark ? '#050505' : '#FAFAFA');
+    }
   }, [theme]);
 
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);

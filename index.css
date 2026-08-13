@@ -73,6 +73,22 @@
   100% { background-position: 0% center; }
 }
 
+html {
+  background-color: #FAFAFA;
+  color: #2D2D2D;
+}
+
+html.dark {
+  background-color: #050505;
+  color: #FFFFFF;
+}
+
+body {
+  background-color: inherit;
+  color: inherit;
+  min-height: 100vh;
+}
+
 :root {
   --chart-1: oklch(0.32 0 none);
   --chart-2: oklch(0.41 0 none);
