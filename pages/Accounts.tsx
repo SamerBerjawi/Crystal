@@ -358,8 +358,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           conversionRates={conversionRates}
           sortBy={sortBy}
           setSortBy={setSortBy}
+          accountOrder={accountOrder}
+          setAccountOrder={setAccountOrder}
           splitAssetsLiabilities={splitAssetsLiabilities}
           setSplitAssetsLiabilities={setSplitAssetsLiabilities}
+          loanPaymentOverrides={loanPaymentOverrides}
         />
 
         {/* Desktop View */}
