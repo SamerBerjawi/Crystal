@@ -69,7 +69,7 @@ function XAxisLabel({
       className="absolute"
       style={{
         left: x,
-        bottom: 12,
+        bottom: 2,
         width: 0,
         display: "flex",
         justifyContent: "center",

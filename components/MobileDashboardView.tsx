@@ -1,23 +1,31 @@
-import React, { useState, useMemo } from 'react';
-import { Account, Transaction, ForecastDuration, Duration, Currency } from '../types';
-import MultiAccountFilter from './MultiAccountFilter';
-import { TransactionMatcherCard } from './TransactionMatcherCard';
-import { SyncedBillMatcherCard } from './SyncedBillMatcherCard';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Account, Transaction, ForecastDuration, Duration, Currency, User, Category } from '../types';
+import { formatCurrency, parseLocalDate, convertCurrency, toLocalISOString } from '../utils';
+import { getMerchantLogoUrl } from '../utils/brandfetch';
+import {
+  PieChart as BklitPieChart,
+  PieSlice,
+  PieCenter,
+  type PieData,
+} from '../src/components/charts';
+import NetWorthChart from './NetWorthChart';
 import Icon from './ui/Icon';
 import PullToRefresh from './PullToRefresh';
-import FloatingActionButton from './FloatingActionButton';
 import MobileFilterSheet from './MobileFilterSheet';
 import SwipeableRow from './SwipeableRow';
 
 export type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 
 interface MobileDashboardViewProps {
+  userProfile?: User;
+  categories?: Category[];
   accounts: Account[];
   transactions: Transaction[];
   analyticsAccounts: Account[];
   analyticsTransactions: Transaction[];
   selectedAccountIds: string[];
   setSelectedAccountIds: (ids: string[]) => void;
+  netWorthData?: { name: string; value?: number; actual?: number; forecast?: number }[];
   duration: Duration;
   setDuration: (duration: Duration) => void;
   activeTab: DashboardTab;
@@ -37,7 +45,7 @@ interface MobileDashboardViewProps {
   allWidgets: any[];
   WIDGET_TABS: Record<DashboardTab, string[]>;
   removeWidget: (id: string) => void;
-  updateWidgetWidth: (id: string, w: number) => void;
+  updateWidgetWidth?: (id: string, w: number) => void;
   isEditMode: boolean;
   setIsEditMode: (edit: boolean) => void;
   setIsAddWidgetModalOpen: (open: boolean) => void;
@@ -56,23 +64,29 @@ interface MobileDashboardViewProps {
   billSuggestions?: any[];
   setIsBillMatcherModalOpen?: (open: boolean) => void;
   dismissAllBillMatches?: () => void;
-  calculateAccountTotals: (accounts: Account[], transactions: Transaction[]) => { totalAssets: number; totalDebt: number; netWorth: number };
-  assetAllocationData: any[];
-  assetGroups: any;
-  liabilityGroups: any;
-  FORECAST_DURATION_OPTIONS: { label: string; value: ForecastDuration }[];
-  SELECT_WRAPPER_STYLE: string;
-  SELECT_STYLE: string;
-  SELECT_ARROW_STYLE: string;
+  calculateAccountTotals?: (accounts: Account[], transactions: Transaction[]) => { totalAssets: number; totalDebt: number; netWorth: number };
+  assetAllocationData?: any[];
+  assetGroups?: any;
+  liabilityGroups?: any;
+  FORECAST_DURATION_OPTIONS?: { label: string; value: ForecastDuration }[];
+  SELECT_WRAPPER_STYLE?: string;
+  SELECT_STYLE?: string;
+  SELECT_ARROW_STYLE?: string;
+  brandfetchClientId?: string;
 }
 
+const CATEGORY_COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#3B82F6'];
+
 export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
+  userProfile,
+  categories = [],
   accounts,
   transactions,
   analyticsAccounts,
   analyticsTransactions,
   selectedAccountIds,
   setSelectedAccountIds,
+  netWorthData = [],
   duration,
   setDuration,
   activeTab,
@@ -89,9 +103,6 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
   liquidityRatio,
   savingsRate,
   widgets,
-  allWidgets,
-  WIDGET_TABS,
-  removeWidget,
   isEditMode,
   setIsEditMode,
   setIsAddWidgetModalOpen,
@@ -104,14 +115,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
   handleOpenTransactionModal,
   isSyncingBanks,
   onSyncBanks,
-  suggestions,
-  setIsMatcherModalOpen,
-  dismissAllSuggestions,
-  billSuggestions = [],
-  setIsBillMatcherModalOpen,
-  dismissAllBillMatches,
+  brandfetchClientId,
 }) => {
   const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [logoErrors, setLogoErrors] = useState<Record<string, boolean>>({});
 
   const curr = preferredCurrency as Currency;
 
@@ -119,10 +126,61 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
     if (onSyncBanks) {
       await onSyncBanks();
     } else {
-      await new Promise(res => setTimeout(res, 800));
+      await new Promise((res) => setTimeout(res, 800));
     }
   };
 
+  const handleLogoError = useCallback((url: string) => {
+    setLogoErrors((prev) => ({ ...prev, [url]: true }));
+  }, []);
+
+  // 1. Identify Primary / Main Account
+  const primaryAccount = useMemo(() => {
+    return (
+      accounts.find((a) => a.isPrimary) ||
+      accounts.find((a) => a.type === 'Checking') ||
+      accounts[0]
+    );
+  }, [accounts]);
+
+  // Default selectedAccountIds to ONLY the main account if unselected
+  useEffect(() => {
+    if (selectedAccountIds.length === 0 && primaryAccount) {
+      setSelectedAccountIds([primaryAccount.id]);
+    }
+  }, [primaryAccount, selectedAccountIds, setSelectedAccountIds]);
+
+  // Active Account Set for Filtering Widgets
+  const activeAccountSet = useMemo(() => {
+    if (selectedAccountIds.length > 0) return new Set(selectedAccountIds);
+    return new Set(accounts.map((a) => a.id));
+  }, [selectedAccountIds, accounts]);
+
+  // Transactions filtered by selected accounts
+  const dashboardFilteredTransactions = useMemo(() => {
+    return analyticsTransactions.filter((tx) => activeAccountSet.has(tx.accountId));
+  }, [analyticsTransactions, activeAccountSet]);
+
+  // Header Greeting with User Name
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const userName = userProfile
+    ? ((userProfile as any).firstName ||
+       (userProfile as any).name ||
+       (userProfile as any).displayName ||
+       (userProfile.email ? userProfile.email.split('@')[0] : ''))
+    : '';
+  const greeting = userName ? `${timeGreeting}, ${userName}` : timeGreeting;
+  const todayDateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  // Main Account Balance
+  const primaryBalanceFormatted = useMemo(() => {
+    if (!primaryAccount) return formatCurrency(0, curr);
+    const converted = convertCurrency(primaryAccount.balance, primaryAccount.currency || 'EUR', curr, conversionRates);
+    return formatCurrency(converted, curr);
+  }, [primaryAccount, convertCurrency, formatCurrency, curr, conversionRates]);
+
+  // 2. Net Portfolio Value Hero Card (ALWAYS TOTAL OF ALL ACCOUNTS)
   const netWorthEur = globalTotalAssets - Math.abs(globalTotalDebt);
   const netWorthFormatted = formatCurrency(
     convertCurrency(netWorthEur, 'EUR', preferredCurrency, conversionRates),
@@ -139,329 +197,545 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
     preferredCurrency
   );
 
-  // Greeting & Date
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const todayDateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  // 3. Slice netWorthData to Past 30 Days Actuals + Next 30 Days Forecast
+  const netWorth30DSlicedData = useMemo(() => {
+    if (!netWorthData || netWorthData.length === 0) return [];
 
-  // 1. MoneyCoach Daily Safe-to-Spend & Monthly Cashflow Computation
+    const todayISO = toLocalISOString(new Date()).split('T')[0];
+    let todayIdx = netWorthData.findIndex((d) => d.name === todayISO);
+    
+    if (todayIdx === -1) {
+      for (let i = netWorthData.length - 1; i >= 0; i--) {
+        if (netWorthData[i].value !== undefined) {
+          todayIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (todayIdx !== -1) {
+      const startIdx = Math.max(0, todayIdx - 30);
+      const endIdx = Math.min(netWorthData.length, todayIdx + 31);
+      return netWorthData.slice(startIdx, endIdx);
+    }
+
+    return netWorthData;
+  }, [netWorthData]);
+
+  // Precise Net Change over past 30 days & projected 30D value calculation
+  const { projected30DVal, change30DVal } = useMemo(() => {
+    if (netWorth30DSlicedData.length === 0) return { projected30DVal: 0, change30DVal: 0 };
+
+    const histPoints = netWorth30DSlicedData.filter((d) => d.value !== undefined);
+    if (histPoints.length === 0) return { projected30DVal: 0, change30DVal: 0 };
+
+    const firstHistVal = histPoints[0].value ?? 0;
+    const todayHistVal = histPoints[histPoints.length - 1].value ?? 0;
+    const changeVal = todayHistVal - firstHistVal;
+
+    const forecastPoints = netWorth30DSlicedData.filter((d) => d.forecast !== undefined);
+    const lastForecastVal = forecastPoints.length > 0 ? (forecastPoints[forecastPoints.length - 1].forecast ?? todayHistVal) : todayHistVal;
+
+    return {
+      projected30DVal: lastForecastVal,
+      change30DVal: changeVal,
+    };
+  }, [netWorth30DSlicedData]);
+
+  // 4. Monthly Cashflow & Budget Allowance (Filtered)
   const today = new Date();
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, daysInMonth - today.getDate() + 1);
 
-  const monthExpenses = useMemo(() => {
-    return analyticsTransactions
-      .filter(t => {
+  const monthExpensesEur = useMemo(() => {
+    return dashboardFilteredTransactions
+      .filter((t) => {
         const d = new Date(t.date);
         return t.type === 'expense' && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
       })
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  }, [analyticsTransactions]);
+      .reduce((sum, t) => sum + convertCurrency(Math.abs(t.amount), t.currency || 'EUR', 'EUR', conversionRates), 0);
+  }, [dashboardFilteredTransactions, conversionRates, convertCurrency]);
 
-  const monthIncome = useMemo(() => {
-    return analyticsTransactions
-      .filter(t => {
+  const monthIncomeEur = useMemo(() => {
+    return dashboardFilteredTransactions
+      .filter((t) => {
         const d = new Date(t.date);
         return t.type === 'income' && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
       })
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  }, [analyticsTransactions]);
+      .reduce((sum, t) => sum + convertCurrency(Math.abs(t.amount), t.currency || 'EUR', 'EUR', conversionRates), 0);
+  }, [dashboardFilteredTransactions, conversionRates, convertCurrency]);
 
-  const estimatedBudget = monthIncome > 0 ? monthIncome : 3500;
-  const remainingForMonth = Math.max(0, estimatedBudget - monthExpenses);
-  const dailySafeSpend = remainingForMonth / daysRemaining;
-  const budgetSpentPercent = Math.min(100, Math.round((monthExpenses / estimatedBudget) * 100));
+  const estimatedBudgetEur = monthIncomeEur > 0 ? monthIncomeEur : 3500;
+  const remainingForMonthEur = Math.max(0, estimatedBudgetEur - monthExpensesEur);
+  const dailySafeSpendEur = remainingForMonthEur / daysRemaining;
+  const budgetSpentPercent = Math.min(100, Math.round((monthExpensesEur / estimatedBudgetEur) * 100));
 
-  // 2. Top Spending Categories (MoneyCoach style)
-  const topCategories = useMemo(() => {
+  // 5. Category Breakdown Pie Chart Data (bklit PieChart - LAST 30 DAYS EXPENSES & ORIGINAL CONFIGURED COLORS)
+  const bklitPieData = useMemo<PieData[]>(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Map category names to their original configured colors
+    const categoryColorMap = new Map<string, string>();
+    if (categories && categories.length > 0) {
+      const walk = (nodes: Category[], parentColor?: string) => {
+        nodes.forEach((node) => {
+          const resolvedColor = node.color || parentColor;
+          if (resolvedColor) {
+            categoryColorMap.set(node.name, resolvedColor);
+          }
+          if (node.subCategories && node.subCategories.length > 0) {
+            walk(node.subCategories, resolvedColor);
+          }
+        });
+      };
+      walk(categories);
+    }
+
     const categoryTotals: Record<string, number> = {};
-    analyticsTransactions
-      .filter(t => t.type === 'expense')
-      .forEach(t => {
+    dashboardFilteredTransactions
+      .filter((t) => {
+        if (t.type !== 'expense') return false;
+        const txDate = parseLocalDate(t.date);
+        return txDate >= thirtyDaysAgo;
+      })
+      .forEach((t) => {
         const cat = t.category || 'Uncategorized';
-        categoryTotals[cat] = (categoryTotals[cat] || 0) + Math.abs(t.amount);
+        const amtEur = convertCurrency(Math.abs(t.amount), t.currency || 'EUR', 'EUR', conversionRates);
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + amtEur;
       });
 
     return Object.entries(categoryTotals)
-      .map(([name, total]) => ({ name, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 4);
-  }, [analyticsTransactions]);
+      .map(([name, totalEur], idx) => {
+        const originalColor = categoryColorMap.get(name) || CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+        return {
+          label: name,
+          value: convertCurrency(totalEur, 'EUR', preferredCurrency, conversionRates),
+          color: originalColor,
+        };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [dashboardFilteredTransactions, categories, preferredCurrency, conversionRates, convertCurrency]);
 
-  // 3. Recent 5 Transactions
+  // 6. Recent Activity Feed (Filtered)
   const recentTransactions = useMemo(() => {
-    return analyticsTransactions
+    return dashboardFilteredTransactions
       .slice()
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
-  }, [analyticsTransactions]);
+  }, [dashboardFilteredTransactions]);
 
-  const activeWidgetsForTab = widgets.filter(w => WIDGET_TABS[activeTab]?.includes(w.id));
-  const activeFilterCount = (selectedAccountIds.length > 0 ? 1 : 0) + (duration !== '30D' ? 1 : 0);
-  const DURATION_OPTIONS: Duration[] = ['30D', '60D', '90D', '6M', 'YTD', '1Y', 'ALL'];
+  // Group accounts by type for MobileFilterSheet
+  const filterAccountSections = useMemo(() => {
+    const map: Record<string, Account[]> = {};
+    accounts.forEach((acc) => {
+      const typeStr = acc.type || 'Other';
+      if (!map[typeStr]) map[typeStr] = [];
+      map[typeStr].push(acc);
+    });
+
+    return Object.entries(map).map(([typeStr, accs]) => ({
+      title: typeStr,
+      chips: accs.map((acc) => ({
+        id: acc.id,
+        label: acc.name,
+        isActive: selectedAccountIds.includes(acc.id),
+        onToggle: () => {
+          if (selectedAccountIds.includes(acc.id)) {
+            const next = selectedAccountIds.filter((id) => id !== acc.id);
+            setSelectedAccountIds(next);
+          } else {
+            setSelectedAccountIds([...selectedAccountIds, acc.id]);
+          }
+        },
+      })),
+    }));
+  }, [accounts, selectedAccountIds, setSelectedAccountIds]);
+
+  const activeFilterCount = selectedAccountIds.length > 0 ? 1 : 0;
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="space-y-5 pb-24 animate-fade-in relative">
-        {/* 1. iOS HIG Header & Salutation */}
-        <div className="flex items-center justify-between pt-1">
+      <div className="space-y-3.5 pb-20 animate-fade-in md:hidden relative font-sans px-0.5">
+        {/* 1. iOS Large Title Navigation Header with Funnel Filter Button */}
+        <div className="sticky top-0 z-20 pt-2 pb-2.5 bg-light-bg/85 dark:bg-dark-bg/85 backdrop-blur-xl -mx-4 px-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between transition-all">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               {todayDateStr}
             </p>
-            <h1 className="text-2xl font-black text-light-text dark:text-white tracking-tight">
-              {greeting} ☀️
+            <h1 className="text-2xl font-black text-light-text dark:text-white tracking-tight flex items-center gap-1.5">
+              <span>{greeting}</span>
+              {isSyncingBanks && <Icon name="sync" className="text-primary-500 animate-spin text-sm" />}
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPrivacyMode(!isPrivacyMode)}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-center text-light-text dark:text-white transition-all active:scale-95 touch-feedback"
+              className="w-9 h-9 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-xs flex items-center justify-center text-light-text dark:text-white active:scale-95 touch-feedback transition-transform"
               aria-label="Toggle Privacy Mode"
             >
-              <Icon name={isPrivacyMode ? 'visibility_off' : 'visibility'} className="text-xl" />
+              <Icon name={isPrivacyMode ? 'visibility_off' : 'visibility'} className="text-lg" />
+            </button>
+
+            {/* Filter Funnel Button in Top Right Header */}
+            <button
+              onClick={() => setShowFilterSheet(true)}
+              className="w-9 h-9 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-xs flex items-center justify-center text-light-text dark:text-white active:scale-95 touch-feedback transition-transform relative"
+              aria-label="Account Filters"
+            >
+              <Icon name="filter_alt" className="text-lg" />
+              {selectedAccountIds.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-gray-900 text-[9px] font-black flex items-center justify-center border border-white dark:border-dark-card">
+                  {selectedAccountIds.length}
+                </span>
+              )}
             </button>
 
             <button
-              onClick={() => setIsEditMode(!isEditMode)}
-              className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl flex items-center justify-center transition-all active:scale-95 touch-feedback shadow-sm border ${
-                isEditMode
-                  ? 'bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/30'
-                  : 'bg-white/80 dark:bg-dark-card/80 border-black/5 dark:border-white/10 text-light-text dark:text-white'
-              }`}
-              aria-label="Customize Layout"
+              onClick={handleOpenTransactionModal}
+              className="w-9 h-9 rounded-2xl bg-primary-500 hover:bg-primary-600 active:scale-95 text-white shadow-md shadow-primary-500/25 flex items-center justify-center touch-feedback transition-transform"
+              aria-label="Add Transaction"
             >
-              <Icon name={isEditMode ? 'CheckCircle' : 'Grid01'} className="text-xl" />
+              <Icon name="add" className="text-xl font-bold" />
             </button>
           </div>
         </div>
 
-        {/* 2. MoneyCoach Glassmorphic Hero Net Worth Card */}
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-gray-900 via-slate-900 to-indigo-950 dark:from-gray-950 dark:via-slate-900 dark:to-indigo-900 p-6 text-white shadow-xl border border-white/10">
-          <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-primary-500/25 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-12 -top-12 w-40 h-40 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+        {/* 2. Unified Hero Card: Main Account Highlighted (Primary) & Net Portfolio Value (Secondary) */}
+        <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-900 text-white rounded-[24px] p-4 shadow-lg border border-white/15 relative overflow-hidden space-y-3.5">
+          <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center justify-between text-xs text-white/70 font-bold tracking-wider uppercase">
-              <span className="flex items-center gap-1.5">
-                <Icon name="account_balance_wallet" className="text-sm text-primary-400" />
-                <span>Net Portfolio Value</span>
-              </span>
-              <span className="bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white border border-white/10">
-                {preferredCurrency}
-              </span>
+          {/* PRIMARY HIGHLIGHT: Main Account Balance */}
+          {primaryAccount && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shrink-0">
+                    <Icon name="star" className="text-xs text-amber-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-white/70 block">
+                      Main Account
+                    </span>
+                    <p className="text-xs font-black text-white truncate max-w-[180px]">
+                      {primaryAccount.name}
+                    </p>
+                  </div>
+                </div>
+
+                {/* GREEN Sync Button Replacing Currency Label */}
+                <button
+                  onClick={() => {
+                    if (onSyncBanks) onSyncBanks();
+                  }}
+                  className="px-3 py-1 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-black shadow-md shadow-emerald-500/20 border border-emerald-400/30 flex items-center gap-1.5 touch-feedback transition-all shrink-0"
+                  aria-label="Sync Banks"
+                >
+                  <Icon name="sync" className={`text-xs ${isSyncingBanks ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingBanks ? 'Syncing...' : 'Sync'}</span>
+                </button>
+              </div>
+
+              <p className="text-3xl font-black text-white tracking-tight privacy-blur leading-none pt-1">
+                {primaryBalanceFormatted}
+              </p>
             </div>
+          )}
 
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white privacy-blur leading-none">
+          {/* SECONDARY SECTION: Net Portfolio Value & Assets/Liabilities Breakdown */}
+          <div className="pt-2.5 border-t border-white/15 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-white/70">
+                Net Portfolio Value (All Accounts)
+              </span>
+              <span className="text-base font-black text-white privacy-blur">
                 {netWorthFormatted}
-              </h2>
+              </span>
             </div>
 
-            {/* Cashflow Pills Stack */}
-            <div className="flex items-center gap-2 pt-1">
-              <div className="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/20 px-3.5 py-2 rounded-2xl text-emerald-400 text-xs font-bold flex-1">
-                <div className="flex items-center gap-1.5">
-                  <Icon name="arrow_upward" className="text-sm" />
-                  <span className="opacity-75 text-[10px]">Assets</span>
+            <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-0.5">
+              <div className="bg-emerald-500/15 rounded-xl p-2 border border-emerald-500/25 flex items-center justify-between">
+                <div>
+                  <span className="text-[9px] font-extrabold uppercase text-emerald-300 block">
+                    Total Assets
+                  </span>
+                  <span className="text-xs font-black text-emerald-400 privacy-blur truncate block mt-0.5">
+                    {assetsFormatted}
+                  </span>
                 </div>
-                <span className="privacy-blur font-extrabold">{assetsFormatted}</span>
+                <Icon name="arrow_upward" className="text-emerald-400 text-sm shrink-0" />
               </div>
 
-              <div className="flex items-center justify-between bg-rose-500/15 border border-rose-500/20 px-3.5 py-2 rounded-2xl text-rose-400 text-xs font-bold flex-1">
-                <div className="flex items-center gap-1.5">
-                  <Icon name="arrow_downward" className="text-sm" />
-                  <span className="opacity-75 text-[10px]">Debt</span>
+              <div className="bg-rose-500/15 rounded-xl p-2 border border-rose-500/25 flex items-center justify-between">
+                <div>
+                  <span className="text-[9px] font-extrabold uppercase text-rose-300 block">
+                    Total Liabilities
+                  </span>
+                  <span className="text-xs font-black text-rose-400 privacy-blur truncate block mt-0.5">
+                    {debtFormatted}
+                  </span>
                 </div>
-                <span className="privacy-blur font-extrabold">{debtFormatted}</span>
+                <Icon name="arrow_downward" className="text-rose-400 text-sm shrink-0" />
               </div>
-            </div>
-
-            {/* MoneyCoach Swift Quick Actions Grid */}
-            <div className="pt-2 grid grid-cols-4 gap-2 border-t border-white/10 mt-3">
-              <button
-                onClick={handleOpenTransactionModal}
-                className="touch-feedback flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white text-gray-900 font-extrabold min-h-[46px] shadow-md"
-              >
-                <Icon name="PlusCircle" className="text-lg" />
-                <span className="text-[10px] mt-0.5 font-extrabold">Transact</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  if (onSyncBanks) onSyncBanks();
-                  else {
-                    const syncBtn = document.querySelector('[data-eb-sync-all]');
-                    if (syncBtn) (syncBtn as HTMLElement).click();
-                  }
-                }}
-                className="touch-feedback flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold min-h-[46px] border border-white/10"
-              >
-                <Icon name="sync" className={`text-lg ${isSyncingBanks ? 'animate-spin' : ''}`} />
-                <span className="text-[10px] mt-0.5">{isSyncingBanks ? 'Syncing' : 'Sync'}</span>
-              </button>
-
-              <button
-                onClick={() => setShowFilterSheet(true)}
-                className="touch-feedback flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold min-h-[46px] border border-white/10 relative"
-              >
-                <Icon name="tune" className="text-lg" />
-                <span className="text-[10px] mt-0.5">Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary-400" />
-                )}
-              </button>
-
-              <button
-                onClick={() => {
-                  if (isEditMode) setIsAddWidgetModalOpen(true);
-                  else setIsEditMode(true);
-                }}
-                className="touch-feedback flex flex-col items-center justify-center p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold min-h-[46px] border border-white/10"
-              >
-                <Icon name={isEditMode ? 'PlusSquare' : 'Grid01'} className="text-lg" />
-                <span className="text-[10px] mt-0.5">{isEditMode ? 'Add' : 'Widgets'}</span>
-              </button>
             </div>
           </div>
         </div>
 
-        {/* 3. MoneyCoach "Daily Safe-to-Spend" & Smart Money Coach Widget */}
-        <div className="p-4 rounded-[2rem] bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 shadow-sm flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
-              <Icon name="zap" className="text-2xl animate-pulse" />
+        {/* 3. NetWorthChart (100% IDENTICAL TO WEB VIEW CHART WITH PROPER AXIS ALIGNMENT) */}
+        <div className="bg-white/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-[22px] p-3.5 sm:p-4 border border-black/5 dark:border-white/10 shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 block">
+                30D Trend & 30D Forecast
+              </span>
+              <p className="text-xs font-black text-light-text dark:text-white mt-0.5 privacy-blur">
+                Projected 30D: {formatCurrency(projected30DVal, curr)}
+              </p>
+            </div>
+
+            <div className="text-right">
+              <span
+                className={`text-xs font-black privacy-blur inline-flex items-center gap-0.5 ${
+                  change30DVal >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                <Icon
+                  name={change30DVal >= 0 ? 'arrow_upward' : 'arrow_downward'}
+                  className="text-xs"
+                />
+                {formatCurrency(Math.abs(change30DVal), curr)}
+              </span>
+            </div>
+          </div>
+
+          {/* Web View NetWorthChart Component Sliced to 30D Window */}
+          <div className="h-44 sm:h-52 w-full pt-0.5 overflow-hidden">
+            <NetWorthChart
+              data={netWorth30DSlicedData}
+              showForecast={true}
+              showGoals={false}
+              margin={{ top: 10, right: 15, bottom: 28, left: 56 }}
+              minHeight="min-h-[170px]"
+            />
+          </div>
+        </div>
+
+        {/* 4. Daily Safe-to-Spend Allowance Widget */}
+        <div className="p-3.5 rounded-[22px] bg-amber-500/10 border border-amber-500/20 shadow-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Icon name="zap" className="text-lg" />
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Daily Safe Spend • {daysRemaining} days left
               </p>
-              <p className="text-lg font-black text-light-text dark:text-white privacy-blur">
-                {formatCurrency(dailySafeSpend, curr)} <span className="text-xs font-semibold opacity-60">/ day</span>
+              <p className="text-base sm:text-lg font-black text-light-text dark:text-white privacy-blur">
+                {formatCurrency(convertCurrency(dailySafeSpendEur, 'EUR', preferredCurrency, conversionRates), curr)}{' '}
+                <span className="text-xs font-semibold opacity-60">/ day</span>
               </p>
             </div>
           </div>
 
           <div className="text-right shrink-0">
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
               {budgetSpentPercent}% Spent
             </span>
           </div>
         </div>
 
-        {/* 4. Snap Accounts Horizon Carousel (MoneyCoach Style) */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-              Linked Accounts ({accounts.length})
-            </span>
-            <span className="text-xs font-bold text-primary-500">Swipe →</span>
-          </div>
-
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar snap-scroll-x scroll-touch py-1">
-            {accounts.map((acc) => (
-              <div
-                key={acc.id}
-                className="snap-start shrink-0 w-[170px] p-3.5 rounded-2xl bg-white/90 dark:bg-dark-card/90 border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all active:scale-[0.98] touch-feedback cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                    <Icon name="account_balance_wallet" className="text-base" />
-                  </div>
-                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary">
-                    {acc.type}
-                  </span>
-                </div>
-
-                <p className="text-xs font-bold text-light-text dark:text-white truncate">
-                  {acc.name}
-                </p>
-                <p className="text-xs font-black text-primary-600 dark:text-primary-400 privacy-blur mt-0.5">
-                  {formatCurrency(acc.balance, (acc.currency || curr) as Currency)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 5. Top Categories Spending Bar (MoneyCoach visual breakdown) */}
-        {topCategories.length > 0 && (
-          <div className="p-4 rounded-[2rem] bg-white/80 dark:bg-dark-card/80 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-sm space-y-3">
+        {/* 5. Category Spending Breakdown Donut Chart (bklit PieChart with Theme Border - Last 30 Days) */}
+        {bklitPieData.length > 0 && (
+          <div className="bg-white/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-[22px] p-3.5 sm:p-4 border border-black/5 dark:border-white/10 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
-                Top Spending Categories
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                Category Spending (Last 30D)
               </span>
               <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                This Period
+                Selected Accounts
               </span>
             </div>
 
-            <div className="space-y-2.5">
-              {topCategories.map((cat) => {
-                const catPercent = monthExpenses > 0 ? Math.round((cat.total / monthExpenses) * 100) : 0;
-                return (
-                  <div key={cat.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-light-text dark:text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-primary-500" />
-                        <span>{cat.name}</span>
-                      </span>
-                      <span className="privacy-blur text-light-text-secondary dark:text-dark-text-secondary">
-                        {formatCurrency(cat.total, curr)} ({catPercent}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                      <div
-                        className="h-full bg-primary-500 rounded-full transition-all duration-500"
-                        style={{ width: `${catPercent}%` }}
+            <div className="flex items-center justify-between gap-3 pt-0.5">
+              <div className="h-32 w-32 shrink-0 relative flex items-center justify-center">
+                <BklitPieChart
+                  data={bklitPieData}
+                  innerRadius={40}
+                  cornerRadius={6}
+                  padAngle={bklitPieData.length > 1 ? 0.05 : 0}
+                  className="w-full h-full max-h-[140px]"
+                >
+                  {bklitPieData.map((cat, index) => (
+                    <PieSlice
+                      key={index}
+                      index={index}
+                      color={cat.color}
+                      fill={cat.color}
+                      showGlow
+                      className="stroke-white dark:stroke-[#18181b] stroke-2"
+                    />
+                  ))}
+                  <PieCenter defaultLabel="Total Spent">
+                    {({ value, label, isHovered }) => (
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <span className="text-light-text-secondary dark:text-gray-300 text-[9px] tracking-widest font-black uppercase">
+                          {label}
+                        </span>
+                        <span className="text-xs font-black text-light-text dark:text-white tracking-tight privacy-blur">
+                          {formatCurrency(value, curr)}
+                        </span>
+                      </div>
+                    )}
+                  </PieCenter>
+                </BklitPieChart>
+              </div>
+
+              <div className="flex-1 space-y-1.5 text-xs font-bold min-w-0">
+                {bklitPieData.map((cat) => (
+                  <div key={cat.label} className="flex items-center justify-between gap-1">
+                    <span className="flex items-center gap-1.5 text-light-text dark:text-white truncate min-w-0">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10 dark:border-white/10"
+                        style={{ backgroundColor: cat.color }}
                       />
-                    </div>
+                      <span className="truncate">{cat.label}</span>
+                    </span>
+                    <span className="privacy-blur text-light-text-secondary dark:text-dark-text-secondary text-[11px] shrink-0">
+                      {formatCurrency(cat.value, curr)}
+                    </span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* 6. Recent Activity Feed */}
+        {/* 6. Linked Accounts Horizontal Carousel */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              Accounts ({accounts.length})
+            </span>
+            <span className="text-xs font-bold text-primary-500">Swipe →</span>
+          </div>
+
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar snap-scroll-x scroll-touch py-0.5">
+            {accounts.map((acc) => {
+              const isSelected = activeAccountSet.has(acc.id);
+              const formattedBal = formatCurrency(
+                convertCurrency(acc.balance, acc.currency || 'EUR', curr, conversionRates),
+                curr
+              );
+              const logoUrl = getMerchantLogoUrl(
+                (acc as any).institutionName || (acc as any).institutionId || acc.name,
+                brandfetchClientId,
+                {},
+                { type: 'icon', fallback: 'lettermark', width: 64, height: 64 }
+              );
+              const isValidLogo = logoUrl && !logoErrors[logoUrl];
+
+              return (
+                <div
+                  key={acc.id}
+                  onClick={() => {
+                    if (selectedAccountIds.includes(acc.id)) {
+                      if (selectedAccountIds.length > 1) {
+                        setSelectedAccountIds(selectedAccountIds.filter((id) => id !== acc.id));
+                      }
+                    } else {
+                      setSelectedAccountIds([...selectedAccountIds, acc.id]);
+                    }
+                  }}
+                  className={`snap-start shrink-0 w-[165px] p-3 rounded-[18px] bg-white dark:bg-dark-card border transition-all active:scale-[0.98] touch-feedback cursor-pointer ${
+                    isSelected
+                      ? 'border-primary-500 shadow-md shadow-primary-500/15 ring-2 ring-primary-500/20'
+                      : 'border-black/5 dark:border-white/10 shadow-xs opacity-70'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10">
+                      {isValidLogo ? (
+                        <img
+                          src={logoUrl}
+                          alt={acc.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={() => handleLogoError(logoUrl)}
+                        />
+                      ) : (
+                        <Icon name="account_balance_wallet" className="text-sm" />
+                      )}
+                    </div>
+                    <span
+                      className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                        isSelected ? 'bg-primary-500 text-white' : 'bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary'
+                      }`}
+                    >
+                      {acc.type}
+                    </span>
+                  </div>
+
+                  <p className="text-xs font-extrabold text-light-text dark:text-white truncate">
+                    {acc.name}
+                  </p>
+                  <p className="text-xs font-black text-primary-600 dark:text-primary-400 privacy-blur mt-0.5">
+                    {formattedBal}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 7. Recent Activity Feed (Filtered) */}
         {recentTransactions.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-                Recent Transactions
+                Recent Activity
               </span>
             </div>
 
-            <div className="space-y-2">
+            <div className="bg-white dark:bg-dark-card rounded-[22px] border border-black/5 dark:border-white/10 shadow-xs divide-y divide-black/5 dark:divide-white/5 overflow-hidden">
               {recentTransactions.map((tx) => {
                 const isExpense = tx.type === 'expense';
+                const isIncome = tx.type === 'income';
                 return (
                   <SwipeableRow key={tx.id}>
                     <div
                       onClick={handleOpenTransactionModal}
-                      className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md rounded-2xl p-3 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-between gap-3 min-h-[58px] touch-feedback cursor-pointer"
+                      className="p-3 flex items-center justify-between gap-3 min-h-[54px] bg-white dark:bg-[#18181b] touch-feedback cursor-pointer active:bg-gray-100 dark:active:bg-gray-800/80 transition-colors"
                     >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-primary-500/10 text-primary-500">
-                        <Icon name={isExpense ? 'arrow_upward' : 'arrow_downward'} className="text-base" />
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-primary-500/10 text-primary-500 border border-primary-500/20">
+                        <Icon name={isExpense ? 'arrow_upward' : 'arrow_downward'} className="text-sm" />
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-light-text dark:text-white truncate">
-                          {tx.description}
+                        <p className="text-xs font-extrabold text-light-text dark:text-white truncate">
+                          {tx.merchant || tx.description}
                         </p>
-                        <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate">
-                          {tx.category || 'General'} • {tx.date}
+                        <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.2">
+                          {tx.category || 'Uncategorized'} • {tx.date}
                         </p>
                       </div>
 
                       <div className="text-right shrink-0">
                         <p
                           className={`text-xs font-black privacy-blur ${
-                            isExpense ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                            isExpense
+                              ? 'text-light-text dark:text-white'
+                              : 'text-emerald-600 dark:text-emerald-400'
                           }`}
                         >
-                          {isExpense ? '-' : '+'}{formatCurrency(Math.abs(tx.amount), (tx.currency || curr) as Currency)}
+                          {isExpense ? '-' : isIncome ? '+' : ''}
+                          {formatCurrency(
+                            convertCurrency(Math.abs(tx.amount), tx.currency || 'EUR', curr, conversionRates),
+                            curr
+                          )}
                         </p>
                       </div>
                     </div>
@@ -472,124 +746,17 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           </div>
         )}
 
-        {/* 7. Segmented Tab Bar for Dashboard Sections */}
-        <div className="flex items-center gap-1.5 p-1 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 overflow-x-auto no-scrollbar scroll-touch">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab;
-            const labels: Record<DashboardTab, string> = {
-              overview: 'Overview',
-              analysis: 'Analysis',
-              activity: 'Activity',
-              pending_matches: 'Matches',
-            };
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`touch-feedback flex-1 min-w-[75px] py-2 px-3 rounded-xl text-xs font-bold transition-all text-center min-h-[38px] whitespace-nowrap ${
-                  isActive
-                    ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm border border-black/5 dark:border-white/10'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'
-                }`}
-              >
-                {labels[tab] || tab}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 8. Active Tab Content - Vertical Single Column Card Stack */}
-        <div className="space-y-4">
-          {/* Bank Sync Matcher Banners */}
-          {suggestions.length > 0 && (
-            <TransactionMatcherCard
-              suggestionsCount={suggestions.length}
-              onReview={() => setIsMatcherModalOpen(true)}
-              onDismiss={dismissAllSuggestions}
-            />
-          )}
-
-          {billSuggestions.length > 0 && setIsBillMatcherModalOpen && dismissAllBillMatches && (
-            <SyncedBillMatcherCard
-              suggestionsCount={billSuggestions.length}
-              onReview={() => setIsBillMatcherModalOpen(true)}
-              onDismiss={dismissAllBillMatches}
-            />
-          )}
-
-          {/* Widgets Stack */}
-          {activeWidgetsForTab.map((widget) => (
-            <div key={widget.id} className="relative group">
-              {isEditMode && (
-                <button
-                  onClick={() => removeWidget(widget.id)}
-                  className="absolute -top-2 -right-2 z-30 w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg"
-                  aria-label="Remove widget"
-                >
-                  <Icon name="close" className="text-sm" />
-                </button>
-              )}
-              <div className="w-full">
-                {widget.component}
-              </div>
-            </div>
-          ))}
-
-          {activeWidgetsForTab.length === 0 && (
-            <div className="text-center py-10 bg-white/60 dark:bg-dark-card/60 rounded-3xl border border-black/5 dark:border-white/5 p-6">
-              <Icon name="widgets" className="text-3xl text-gray-400 mb-2" />
-              <p className="text-sm font-bold text-light-text dark:text-dark-text">No active widgets</p>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 opacity-70">
-                Tap the edit button to customize your dashboard layout.
-              </p>
-              <button
-                onClick={() => setIsAddWidgetModalOpen(true)}
-                className="mt-4 px-4 py-2 rounded-xl bg-primary-500 text-white text-xs font-bold shadow-md touch-feedback"
-              >
-                Add Widget
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* 9. Mobile Filter Sheet */}
+        {/* 8. Apple HIG Mobile Filter Sheet (Accounts Grouped by Type) */}
         <MobileFilterSheet
           isOpen={showFilterSheet}
           onClose={() => setShowFilterSheet(false)}
-          title="Dashboard Filters"
+          title="Account View Options"
           activeCount={activeFilterCount}
-          sections={[
-            {
-              title: 'Time Range',
-              chips: DURATION_OPTIONS.map((dur) => ({
-                id: dur,
-                label: dur,
-                isActive: duration === dur,
-                onToggle: () => setDuration(dur),
-              })),
-            },
-          ]}
           onReset={() => {
-            setSelectedAccountIds([]);
-            setDuration('30D');
+            if (primaryAccount) setSelectedAccountIds([primaryAccount.id]);
+            else setSelectedAccountIds([]);
           }}
-        >
-          <div className="space-y-3 pt-2">
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50">
-              Selected Accounts
-            </h4>
-            <MultiAccountFilter
-              accounts={accounts}
-              selectedAccountIds={selectedAccountIds}
-              setSelectedAccountIds={setSelectedAccountIds}
-            />
-          </div>
-        </MobileFilterSheet>
-
-        {/* 10. Floating Action Button for Adding Transactions */}
-        <FloatingActionButton
-          onClick={handleOpenTransactionModal}
-          label="Add Transaction"
+          sections={filterAccountSections}
         />
       </div>
     </PullToRefresh>

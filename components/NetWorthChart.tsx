@@ -36,6 +36,8 @@ interface NetWorthChartProps {
   showGoals?: boolean;
   goals?: FinancialGoal[];
   annotations?: MilestoneAnnotation[];
+  margin?: { top?: number; right?: number; bottom?: number; left?: number };
+  minHeight?: string;
 }
 
 const yAxisTickFormatter = (value: number) => {
@@ -61,6 +63,8 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   showGoals = true,
   goals = [],
   annotations = [],
+  margin = { top: 15, right: 15, bottom: 25, left: 55 },
+  minHeight = 'min-h-[220px]',
 }) => {
   const { chartData, lastActualIndex } = useMemo(() => {
     if (!data || data.length === 0) {
@@ -177,15 +181,15 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   const isDashedProjection = showForecast && lastActualIndex >= 0 && lastActualIndex < chartData.length - 1;
 
   return (
-    <div className="flex-grow relative h-full w-full min-h-[250px]">
+    <div className={`flex-grow relative h-full w-full ${minHeight}`}>
       <LineChart
         data={chartData}
         xDataKey="date"
         revealSignature={chartData.length.toString()}
         yDomainTween
         aspectRatio=""
-        className="w-full h-full min-h-[250px]"
-        margin={{ top: 25, right: 25, bottom: 30, left: 70 }}
+        className={`w-full h-full ${minHeight}`}
+        margin={margin}
       >
         <Grid horizontal />
         <XAxis />

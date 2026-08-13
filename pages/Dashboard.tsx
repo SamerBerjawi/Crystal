@@ -1484,12 +1484,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       {/* Mobile View Layout (SwiftUI Reimagined) */}
       <div className="block md:hidden">
         <MobileDashboardView
+          userProfile={user}
+          categories={allCategories}
           accounts={accounts}
           transactions={transactions}
           analyticsAccounts={analyticsAccounts}
           analyticsTransactions={analyticsTransactions}
           selectedAccountIds={selectedAccountIds}
           setSelectedAccountIds={setSelectedAccountIds}
+          netWorthData={netWorthData}
           duration={duration}
           setDuration={setDuration}
           activeTab={activeTab}
@@ -1539,6 +1542,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           SELECT_WRAPPER_STYLE={SELECT_WRAPPER_STYLE}
           SELECT_STYLE={SELECT_STYLE}
           SELECT_ARROW_STYLE={SELECT_ARROW_STYLE}
+          brandfetchClientId={preferences.brandfetchClientId}
         />
       </div>
 

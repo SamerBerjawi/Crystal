@@ -363,6 +363,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           splitAssetsLiabilities={splitAssetsLiabilities}
           setSplitAssetsLiabilities={setSplitAssetsLiabilities}
           loanPaymentOverrides={loanPaymentOverrides}
+          brandfetchClientId={usePreferencesSelector(p => p.brandfetchClientId)}
+          merchantLogoOverrides={usePreferencesSelector(p => p.merchantLogoOverrides)}
         />
 
         {/* Desktop View */}
