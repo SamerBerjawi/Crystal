@@ -119,6 +119,44 @@ export function detectLocationFromText(text: string): DetectedLocation | null {
   return null;
 }
 
+/**
+ * Parses any location string (e.g., "Paris, France" or "Brussels") into structured city and country fields.
+ */
+export function parseLocationString(rawLocation?: string): { city?: string; country?: string } {
+  if (!rawLocation || !rawLocation.trim()) return {};
+
+  const trimmed = rawLocation.trim();
+
+  // Handle comma-separated formats like "Paris, France" or "San Francisco, CA, United States"
+  if (trimmed.includes(',')) {
+    const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+    const city = parts[0];
+    const rawCountry = parts.slice(1).join(', ');
+    const mappedCountry = COUNTRY_MAP[rawCountry.toUpperCase()] || rawCountry;
+    return {
+      city: capitalizeWords(city),
+      country: capitalizeWords(mappedCountry)
+    };
+  }
+
+  // Check known popular cities index
+  const lower = trimmed.toLowerCase();
+  const matchedCity = POPULAR_CITIES.find(
+    c => c.city.toLowerCase() === lower || c.aliases.includes(lower)
+  );
+
+  if (matchedCity) {
+    return {
+      city: matchedCity.city,
+      country: matchedCity.country
+    };
+  }
+
+  return {
+    city: capitalizeWords(trimmed)
+  };
+}
+
 function capitalizeWords(str: string): string {
   return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
 }

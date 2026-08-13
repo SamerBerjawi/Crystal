@@ -20,6 +20,7 @@ export const initializeDatabase = async () => {
                 profile_picture_url TEXT,
                 phone VARCHAR(50),
                 address TEXT,
+                default_city TEXT,
                 role VARCHAR(50) DEFAULT 'Member',
                 is_2fa_enabled BOOLEAN DEFAULT FALSE,
                 status VARCHAR(50) DEFAULT 'Active',
@@ -30,6 +31,7 @@ export const initializeDatabase = async () => {
         // Ensure older databases pick up the newer optional columns as well
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT`);
+        await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS default_city TEXT`);
 
         await db.query(`
             CREATE TABLE IF NOT EXISTS financial_data (

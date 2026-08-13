@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.260812.2",
+  "version": "2.260813.3",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -48,6 +48,7 @@
     "motion": "^12.38.0",
     "path-to-regexp": "^8.4.2",
     "react": "^19.2.0",
+    "react-aria-components": "^1.20.0",
     "react-dom": "^19.2.0",
     "react-grid-layout": "^1.5.0",
     "react-leaflet": "^5.0.0",

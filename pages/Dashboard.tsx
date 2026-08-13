@@ -1392,6 +1392,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           transactionToEdit={editingTransaction}
           transactions={transactions}
           tags={tags}
+          userProfile={user}
           initialType={initialModalData.initialType}
           initialFromAccountId={initialModalData.initialFromAccountId}
           initialToAccountId={initialModalData.initialToAccountId}

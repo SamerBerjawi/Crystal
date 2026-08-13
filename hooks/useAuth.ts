@@ -14,6 +14,7 @@ const mapApiUserToUser = (apiUser: any): User => ({
   role: apiUser.role ?? 'Member',
   phone: apiUser.phone ?? undefined,
   address: apiUser.address ?? undefined,
+  defaultCity: apiUser.defaultCity ?? undefined,
   is2FAEnabled: Boolean(apiUser.is2FAEnabled),
   status: apiUser.status ?? 'Active',
   lastLogin: apiUser.lastLogin ?? new Date().toISOString(),

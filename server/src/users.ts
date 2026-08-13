@@ -19,7 +19,7 @@ const passwordChangeRateLimiter = createRateLimiter({
 // Update current user's profile
 router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const { firstName, lastName, profilePictureUrl, phone, address } = req.body;
+    const { firstName, lastName, profilePictureUrl, phone, address, defaultCity } = req.body;
 
     const sql = `
         UPDATE users
@@ -28,11 +28,12 @@ router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
             last_name = COALESCE($2, last_name),
             profile_picture_url = COALESCE($3, profile_picture_url),
             phone = COALESCE($4, phone),
-            address = COALESCE($5, address)
-        WHERE id = $6`;
+            address = COALESCE($5, address),
+            default_city = COALESCE($6, default_city)
+        WHERE id = $7`;
 
     try {
-        await db.query(sql, [firstName, lastName, profilePictureUrl, phone, address, userId]);
+        await db.query(sql, [firstName, lastName, profilePictureUrl, phone, address, defaultCity, userId]);
         res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         console.error(err);

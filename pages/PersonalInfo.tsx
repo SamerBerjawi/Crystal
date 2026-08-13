@@ -8,6 +8,8 @@ import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
 
+import LocationAutocomplete from '../components/LocationAutocomplete';
+
 interface PersonalInfoProps {
   user: User;
   setUser: (updates: Partial<User>) => void;
@@ -181,29 +183,40 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                         </div>
                     </div>
                     
-                    <div className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <label htmlFor="email" className={labelStyle}>Email Protocol</label>
-                                <div className="relative group">
-                                    <input type="email" id="email" name="email" value={formData.email} readOnly className={`${INPUT_BASE_STYLE} h-12 pl-12 bg-gray-50/50 dark:bg-white/5 text-gray-500 cursor-not-allowed border-transparent font-bold`} />
-                                    <Icon name="verified_user" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                        <div className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="space-y-2 md:col-span-1">
+                                    <label htmlFor="email" className={labelStyle}>Email Protocol</label>
+                                    <div className="relative group">
+                                        <input type="email" id="email" name="email" value={formData.email} readOnly className={`${INPUT_BASE_STYLE} h-12 pl-12 bg-gray-50/50 dark:bg-white/5 text-gray-500 cursor-not-allowed border-transparent font-bold`} />
+                                        <Icon name="verified_user" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors pointer-events-none" />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-50">
+                                       <Icon name="info" className="text-[10px]" />
+                                       Primary login key
+                                    </p>
                                 </div>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-50">
-                                   <Icon name="info" className="text-[10px]" />
-                                   Your email is your primary login key and cannot be altered.
-                                </p>
+                                <div className="space-y-2 md:col-span-1">
+                                    <label htmlFor="phone" className={labelStyle}>Mobile Number</label>
+                                    <input type="tel" id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-bold px-4`} placeholder="+1 (555) 000-0000" autoComplete="off" />
+                                </div>
+                                <div className="space-y-2 md:col-span-1">
+                                    <label htmlFor="defaultCity" className={labelStyle}>Default City (Transactions)</label>
+                                    <LocationAutocomplete
+                                        value={formData.defaultCity || ''}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, defaultCity: val }))}
+                                        placeholder="e.g. Brussels, Belgium"
+                                    />
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-50">
+                                       Auto-filled on new transactions
+                                    </p>
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="phone" className={labelStyle}>Mobile Number</label>
-                                <input type="tel" id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-bold px-4`} placeholder="+1 (555) 000-0000" />
+                                <label htmlFor="address" className={labelStyle}>Mailing Address</label>
+                                <textarea id="address" name="address" value={formData.address || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} min-h-[100px] font-bold p-4 resize-none`} placeholder="Street, Building, City, ZIP / Postal Code" autoComplete="off" spellCheck={false}></textarea>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label htmlFor="address" className={labelStyle}>Mailing Address</label>
-                            <textarea id="address" name="address" value={formData.address || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} min-h-[100px] font-bold p-4 resize-none`} placeholder="Street, Building, City, ZIP / Postal Code"></textarea>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Security Section */}

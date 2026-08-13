@@ -129,14 +129,15 @@ const fetchLocationSuggestions = async (query: string): Promise<LocationData[]> 
   return deduplicated;
 };
 
-export const useLocationSearch = (value: string) => {
+export const useLocationSearch = (value: string, options?: { enabled?: boolean }) => {
   const debouncedValue = useDebounce(value, 250);
   const query = debouncedValue.trim();
+  const isEnabled = (options?.enabled ?? true) && query.length >= 2;
 
   const queryResult = useQuery({
     queryKey: ['location-search', query],
     queryFn: () => fetchLocationSuggestions(query),
-    enabled: query.length >= 2,
+    enabled: isEnabled,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     retry: 1,

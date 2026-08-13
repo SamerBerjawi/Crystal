@@ -924,6 +924,7 @@ export const createDemoUser = (): User => ({
     role: 'Member',
     phone: undefined,
     address: undefined,
+    defaultCity: 'Brussels',
     is2FAEnabled: false,
     status: 'Active',
     lastLogin: new Date().toISOString(),

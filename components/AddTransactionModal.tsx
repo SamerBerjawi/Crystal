@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
-import { Account, Category, Transaction, Tag, Currency } from '../types';
+import { Account, Category, Transaction, Tag, Currency, User } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
-import { detectLocationFromText } from '../utils/locationDetector';
+import { parseLocationString } from '../utils/locationDetector';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
 
@@ -24,6 +24,7 @@ interface AddTransactionModalProps {
   initialToAccountId?: string;
   initialCategory?: string;
   tags: Tag[];
+  userProfile?: User;
   initialDetails?: {
     date?: string;
     amount?: string;
@@ -87,12 +88,14 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
   );
 };
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, initialDetails }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, userProfile, initialDetails }) => {
   const isEditing = !!transactionToEdit;
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+
+  const userDefaultCity = userProfile?.defaultCity?.trim() || '';
 
   const defaultAccountId = useMemo(() => {
     const primary = accounts.find(a => a.isPrimary);
@@ -112,11 +115,22 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [tagIds, setTagIds] = useState<string[]>(initialDetails?.tagIds || []);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
-  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString));
+  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString || userDefaultCity));
   
-  // Location fields
-  const [locationString, setLocationString] = useState(initialDetails?.locationString || '');
-  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>(initialDetails?.locationData || {});
+  // Location fields: Default to User Profile's defaultCity when creating a new transaction
+  const [locationString, setLocationString] = useState(() => {
+    if (initialDetails?.locationString) return initialDetails.locationString;
+    if (!isEditing && userDefaultCity) return userDefaultCity;
+    return '';
+  });
+  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>(() => {
+    if (initialDetails?.locationData) return initialDetails.locationData;
+    if (!isEditing && userDefaultCity) {
+      const parsed = parseLocationString(userDefaultCity);
+      return { city: parsed.city, country: parsed.country };
+    }
+    return {};
+  });
 
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState(initialDetails?.principal || '');
@@ -518,19 +532,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     }
   }, [linkedSpareChangeAccount]);
 
-  // Fast offline location detection from transaction description or merchant
+  // Pre-fill location string with user's Default City when creating new transaction
   useEffect(() => {
-    if (!locationString && (description || merchant)) {
-      const textToTest = `${merchant || ''} ${description || ''}`.trim();
-      const detected = detectLocationFromText(textToTest);
-      if (detected) {
-        const locStr = `${detected.city}, ${detected.country}`;
-        setLocationString(locStr);
-        setLocationData({ city: detected.city, country: detected.country });
-        setShowDetails(true);
-      }
+    if (!isEditing && !locationString && userDefaultCity) {
+      const parsed = parseLocationString(userDefaultCity);
+      setLocationString(userDefaultCity);
+      setLocationData({ city: parsed.city, country: parsed.country });
     }
-  }, [description, merchant, locationString]);
+  }, [isEditing, userDefaultCity, locationString]);
   
   const availableAccounts = useMemo(() => {
     return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);
@@ -791,21 +800,21 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         <button
                             type="button"
                             onClick={() => setType('expense')}
-                            className={`flex-1 py-1.5 text-xs font-black  tracking-widest rounded-lg transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-2 md:py-1.5 text-xs font-black tracking-widest rounded-lg transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                         >
                             Expense
                         </button>
                         <button
                             type="button"
                             onClick={() => setType('income')}
-                            className={`flex-1 py-1.5 text-xs font-black  tracking-widest rounded-lg transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-2 md:py-1.5 text-xs font-black tracking-widest rounded-lg transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                         >
                             Income
                         </button>
                         <button
                             type="button"
                             onClick={() => setType('transfer')}
-                            className={`flex-1 py-1.5 text-xs font-black  tracking-widest rounded-lg transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                            className={`flex-1 py-2 md:py-1.5 text-xs font-black tracking-widest rounded-lg transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                         >
                             Transfer
                         </button>
@@ -813,8 +822,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
                     {/* Highly Compact Hero Amount */}
                     <div className="flex flex-col items-center md:items-end w-full md:w-auto shrink-0 pr-2">
-                        <div className="relative group max-w-[260px] flex items-center justify-end">
-                            <span className={`text-4xl font-light text-light-text-secondary dark:text-dark-text-secondary pointer-events-none mr-2 transition-all ${amount ? 'opacity-100' : 'opacity-40'}`}>
+                        <div className="relative group max-w-[260px] flex items-center justify-center md:justify-end">
+                            <span className={`text-3xl sm:text-4xl font-light text-light-text-secondary dark:text-dark-text-secondary pointer-events-none mr-2 transition-all ${amount ? 'opacity-100' : 'opacity-40'}`}>
                                 {currencySymbol}
                             </span>
                             <input 
@@ -824,18 +833,19 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 value={amount} 
                                 onChange={e => setAmount(e.target.value)} 
                                 onBlur={() => applyRules(merchant, description, amount)}
-                                className="bg-transparent border-none text-right text-4xl font-black text-light-text dark:text-dark-text placeholder-black/5 dark:placeholder-white/5 focus:ring-0 py-0 tracking-tighter tabular-nums w-48" 
+                                className="bg-transparent border-none text-right text-3xl sm:text-4xl font-black text-light-text dark:text-dark-text placeholder-black/10 dark:placeholder-white/10 focus:ring-0 py-0 tracking-tighter tabular-nums w-48" 
                                 placeholder="0.00" 
                                 autoFocus
                                 required 
                                 inputMode="decimal"
                                 autoComplete="off"
+                                spellCheck={false}
                             />
                         </div>
                         {isLoanPayment && (
                             <div className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/15 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full mt-1 border border-blue-100 dark:border-blue-800/20">
-                                <Icon name="account_balance" className="text-xs" />
-                                <span className="text-[11px] font-black  tracking-widest">Loan Payment Detected</span>
+                                <Icon name="account_balance" className="text-xs pointer-events-none" />
+                                <span className="text-[11px] font-black tracking-widest">Loan Payment Detected</span>
                             </div>
                         )}
                     </div>
@@ -848,7 +858,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                     <div className="lg:col-span-7 space-y-4 flex flex-col justify-between">
                         <div className="bg-light-fill/30 dark:bg-dark-fill/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 space-y-4">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 mb-1">
-                                <Icon name="assignment" className="text-primary-500 text-base" />
+                                <Icon name="assignment" className="text-primary-500 text-base pointer-events-none" />
                                 Core Information
                             </h3>
 
@@ -856,15 +866,15 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 <div>
                                     <label className={labelStyle}>Execution Date</label>
                                     <div className="relative group">
-                                        <Icon name="calendar_today" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
-                                        <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-9 h-10 font-bold text-sm`} required />
+                                        <Icon name="calendar_today" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base pointer-events-none" />
+                                        <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-9 h-11 sm:h-10 font-bold text-sm`} required autoComplete="off" />
                                     </div>
                                 </div>
 
                                 <div ref={merchantContainerRef}>
                                     <label className={labelStyle}>Counterparty / Merchant</label>
                                     <div className="relative group">
-                                        <Icon name="store" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
+                                        <Icon name="store" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base pointer-events-none" />
                                         <div className="relative">
                                             <input
                                                 id="tx-merchant"
@@ -876,12 +886,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                     setActiveSuggestionIndex(-1);
                                                 }}
                                                 onKeyDown={handleMerchantKeyDown}
-                                                className={`${INPUT_BASE_STYLE} pl-9 h-10 font-bold text-sm`}
+                                                className={`${INPUT_BASE_STYLE} pl-9 h-11 sm:h-10 font-bold text-sm`}
                                                 placeholder="Who or where?"
                                                 autoComplete="off"
+                                                spellCheck={false}
                                             />
                                             {showMerchantSuggestions && filteredSuggestions.length > 0 && (
-                                                <div className="absolute left-0 right-0 top-full mt-2 bg-white/95 dark:bg-dark-card/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl z-[60] max-h-56 overflow-y-auto py-1.5 custom-scrollbar">
+                                                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white/95 dark:bg-dark-card/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl z-[60] max-h-56 overflow-y-auto py-1.5 custom-scrollbar">
                                                     <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50 flex justify-between items-center border-b border-black/5 dark:border-white/5 mb-1">
                                                         <span>{!merchant.trim() ? 'Popular Merchants' : 'Matching Merchants'}</span>
                                                         <span>{filteredSuggestions.length} found</span>
@@ -894,6 +905,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                             <button
                                                                 key={item.name}
                                                                 type="button"
+                                                                tabIndex={-1}
                                                                 onClick={() => {
                                                                     setMerchant(item.name);
                                                                     setIsDescriptionUserModified(false);
@@ -917,7 +929,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                                             onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                                                         />
                                                                     ) : (
-                                                                        <Icon name="store" className="text-gray-400 text-sm shrink-0" />
+                                                                        <Icon name="store" className="text-gray-400 text-sm shrink-0 pointer-events-none" />
                                                                     )}
                                                                     <span className="font-bold tracking-tight truncate">{item.name}</span>
                                                                 </div>
@@ -948,27 +960,27 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                         <div className="flex-1 w-full">
                                             <label className={labelStyle}>{type === 'income' ? 'Holding Account' : 'From Account'}</label>
                                             <div className={SELECT_WRAPPER_STYLE}>
-                                                <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
+                                                <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={`${SELECT_STYLE} h-11 sm:h-10 font-bold text-sm`} required>
                                                     <option value="" disabled>Select account</option>
                                                     <AccountOptions accounts={availableAccounts} />
                                                 </select>
-                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
+                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm pointer-events-none" /></div>
                                             </div>
                                         </div>
                                         
                                         {type === 'transfer' && (
                                             <>
                                                 <div className="mt-5 text-primary-500 bg-primary-500/10 p-1.5 rounded-lg shrink-0">
-                                                    <Icon name="sync_alt" className="rotate-90 sm:rotate-0 text-sm font-bold" />
+                                                    <Icon name="sync_alt" className="rotate-90 sm:rotate-0 text-sm font-bold pointer-events-none" />
                                                 </div>
                                                 <div className="flex-1 w-full">
                                                     <label className={labelStyle}>To Account</label>
                                                     <div className={SELECT_WRAPPER_STYLE}>
-                                                        <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
+                                                        <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={`${SELECT_STYLE} h-11 sm:h-10 font-bold text-sm`} required>
                                                             <option value="" disabled>Select account</option>
                                                             <AccountOptions accounts={availableAccounts.filter(a => a.id !== fromAccountId)} />
                                                         </select>
-                                                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
+                                                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm pointer-events-none" /></div>
                                                     </div>
                                                 </div>
                                             </>
@@ -980,20 +992,20 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     <div>
                                         <label className={labelStyle}>Category</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-10 font-bold text-sm`} required>
+                                            <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={`${SELECT_STYLE} h-11 sm:h-10 font-bold text-sm`} required>
                                                 <CategoryOptions categories={activeCategories} />
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm pointer-events-none" /></div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="md:col-span-2">
                                         <label className={labelStyle}>Category</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="tx-category" value={category} onChange={e => setCategory(e.target.value || 'Transfer')} className={`${SELECT_STYLE} h-10 font-bold text-sm`}>
+                                            <select id="tx-category" value={category} onChange={e => setCategory(e.target.value || 'Transfer')} className={`${SELECT_STYLE} h-11 sm:h-10 font-bold text-sm`}>
                                                 <CategoryOptions categories={activeCategories} showTransferOption />
                                             </select>
-                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm pointer-events-none" /></div>
                                         </div>
                                     </div>
                                 )}
@@ -1002,7 +1014,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                             <div>
                                 <label className={labelStyle}>Internal Memo / Description</label>
                                 <div className="relative group">
-                                    <Icon name="description" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
+                                    <Icon name="description" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base pointer-events-none" />
                                     <input 
                                         id="tx-description" 
                                         type="text" 
@@ -1012,9 +1024,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             setIsDescriptionUserModified(true);
                                         }} 
                                         onBlur={handleDescriptionBlur} 
-                                        className={`${INPUT_BASE_STYLE} pl-9 h-10 font-medium text-sm`} 
+                                        className={`${INPUT_BASE_STYLE} pl-9 h-11 sm:h-10 font-medium text-sm`} 
                                         placeholder={type === 'transfer' ? 'Purpose of transfer' : 'What was this for?'} 
                                         required 
+                                        autoComplete="off"
+                                        spellCheck={false}
                                     />
                                 </div>
                             </div>
@@ -1024,25 +1038,25 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         {isLoanPayment && (
                             <div className="bg-blue-500/5 dark:bg-blue-500/10 p-4 rounded-xl border border-blue-500/10 space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black  tracking-widest text-blue-600">Amortization Split</span>
+                                    <span className="text-xs font-black tracking-widest text-blue-600">Amortization Split</span>
                                     <label className="flex items-center gap-1.5 cursor-pointer group">
                                         <input type="checkbox" checked={useAutoLoanSplit} onChange={e => setUseAutoLoanSplit(e.target.checked)} className={CHECKBOX_STYLE} />
-                                        <span className="text-[11px] font-black  tracking-widest text-blue-400 group-hover:text-blue-500 transition-colors">Auto-Calc</span>
+                                        <span className="text-[11px] font-black tracking-widest text-blue-400 group-hover:text-blue-500 transition-colors">Auto-Calc</span>
                                     </label>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <label className="text-[11px] font-black  tracking-widest text-blue-400">Principal</label>
+                                        <label className="text-[11px] font-black tracking-widest text-blue-400">Principal</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500/40 font-bold text-xs">{currencySymbol}</span>
-                                            <input type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className="w-full h-9 bg-white dark:bg-black/20 rounded-lg pl-8 pr-3 text-xs font-black text-blue-600 tabular-nums border border-blue-500/5 focus:ring-2 focus:ring-blue-500 transition-all" />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500/40 font-bold text-xs pointer-events-none">{currencySymbol}</span>
+                                            <input type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className="w-full h-9 bg-white dark:bg-black/20 rounded-lg pl-8 pr-3 text-xs font-black text-blue-600 tabular-nums border border-blue-500/5 focus:ring-2 focus:ring-blue-500 transition-all" autoComplete="off" />
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[11px] font-black  tracking-widest text-blue-400">Interest</label>
+                                        <label className="text-[11px] font-black tracking-widest text-blue-400">Interest</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500/40 font-bold text-xs">{currencySymbol}</span>
-                                            <input type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className="w-full h-9 bg-white dark:bg-black/20 rounded-lg pl-8 pr-3 text-xs font-black text-rose-600 tabular-nums border border-blue-500/5 focus:ring-2 focus:ring-blue-500 transition-all" />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500/40 font-bold text-xs pointer-events-none">{currencySymbol}</span>
+                                            <input type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className="w-full h-9 bg-white dark:bg-black/20 rounded-lg pl-8 pr-3 text-xs font-black text-rose-600 tabular-nums border border-blue-500/5 focus:ring-2 focus:ring-blue-500 transition-all" autoComplete="off" />
                                         </div>
                                     </div>
                                 </div>
@@ -1055,7 +1069,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${enableRoundUp ? 'bg-cyan-500 text-white shadow-md' : 'bg-gray-200 dark:bg-gray-800 text-gray-400'}`}>
-                                            <Icon name="savings" className="text-sm font-bold" />
+                                            <Icon name="savings" className="text-sm font-bold pointer-events-none" />
                                         </div>
                                         <div className="flex flex-col">
                                             <h4 className={`text-xs font-bold tracking-tight ${enableRoundUp ? 'text-cyan-600' : 'text-gray-500'}`}>Spare Change Round-Up</h4>
@@ -1072,19 +1086,19 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     <div className="space-y-3 mt-3 animate-fade-in">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="space-y-1">
-                                                <label className="text-[11px] font-black  tracking-widest text-cyan-600/60">Strategy</label>
+                                                <label className="text-[11px] font-black tracking-widest text-cyan-600/60">Strategy</label>
                                                 <div className="flex bg-white dark:bg-black/20 p-0.5 rounded-lg border border-cyan-500/10">
-                                                    <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-1 text-[11px] font-black  tracking-wider rounded-md transition-all ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:bg-cyan-500/5'}`}>Skip Whole</button>
-                                                    <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-1 text-[11px] font-black  tracking-wider rounded-md transition-all ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:bg-cyan-500/5'}`}>Unit Push</button>
+                                                    <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-1 text-[11px] font-black tracking-wider rounded-md transition-all ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:bg-cyan-500/5'}`}>Skip Whole</button>
+                                                    <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-1 text-[11px] font-black tracking-wider rounded-md transition-all ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:bg-cyan-500/5'}`}>Unit Push</button>
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[11px] font-black  tracking-widest text-cyan-600/60">Multiplier</label>
-                                                <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className={`${INPUT_BASE_STYLE} !h-7 font-black text-cyan-600 text-xs border-cyan-500/10 focus:ring-cyan-500`} />
+                                                <label className="text-[11px] font-black tracking-widest text-cyan-600/60">Multiplier</label>
+                                                <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className={`${INPUT_BASE_STYLE} !h-7 font-black text-cyan-600 text-xs border-cyan-500/10 focus:ring-cyan-500`} autoComplete="off" />
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/10">
-                                            <span className="text-[11px] font-black  tracking-widest text-cyan-600">Calculated Sweep</span>
+                                            <span className="text-[11px] font-black tracking-widest text-cyan-600">Calculated Sweep</span>
                                             <span className="text-xs font-black text-cyan-600 tabular-nums">{formatCurrency(adjustedRoundUpAmount, activeAccount?.currency || 'EUR')}</span>
                                         </div>
                                     </div>
@@ -1098,7 +1112,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         <div className="bg-light-fill/30 dark:bg-dark-fill/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 space-y-4 h-full flex flex-col justify-between">
                             <div className="space-y-4">
                                 <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 mb-1">
-                                    <Icon name="style" className="text-primary-500 text-base" />
+                                    <Icon name="style" className="text-primary-500 text-base pointer-events-none" />
                                     Metadata & Context
                                 </h3>
 
@@ -1114,7 +1128,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                         key={tag.id}
                                                         type="button"
                                                         onClick={() => handleTagToggle(tag.id)}
-                                                        className={`px-2 py-1 rounded-lg text-[11px] font-black  tracking-wider transition-all border ${
+                                                        className={`px-2 py-1 rounded-lg text-[11px] font-black tracking-wider transition-all border ${
                                                             isSelected 
                                                                 ? 'scale-[1.02] shadow-sm' 
                                                                 : 'border-transparent bg-gray-200/50 dark:bg-gray-800/10 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800/20'
@@ -1128,7 +1142,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             })}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-2.5 border border-dashed border-black/10 dark:border-white/10 rounded-xl text-gray-400 text-[11px] font-bold  tracking-widest">
+                                        <div className="text-center py-2.5 border border-dashed border-black/10 dark:border-white/10 rounded-xl text-gray-400 text-[11px] font-bold tracking-widest">
                                             No Tags Defined
                                         </div>
                                     )}
@@ -1160,6 +1174,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     onChange={e => setNotes(e.target.value)}
                                     className={`${INPUT_BASE_STYLE} min-h-[64px] p-2.5 text-xs font-medium resize-none border-dashed bg-transparent`}
                                     placeholder="Add contextual remarks or details..."
+                                    autoComplete="off"
+                                    spellCheck={false}
                                 />
                             </div>
                         </div>

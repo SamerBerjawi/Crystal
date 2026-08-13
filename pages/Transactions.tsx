@@ -26,6 +26,7 @@ import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
 
 interface TransactionsProps {
+  user?: User;
   initialAccountFilter?: string | null;
   initialTagFilter?: string | null;
   onClearInitialFilters?: () => void;
@@ -156,7 +157,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
     );
 });
 
-const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
+const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -1295,6 +1296,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
           transactionToEdit={editingTransaction}
           transactions={transactions}
           tags={tags}
+          userProfile={user}
           {...duplicateData}
         />
       )}
