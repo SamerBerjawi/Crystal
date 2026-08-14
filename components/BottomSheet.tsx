@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, PanInfo, useAnimation } from 'motion/react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence, PanInfo } from 'motion/react';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -7,7 +8,9 @@ interface BottomSheetProps {
   children: React.ReactNode;
   /** Title displayed in the sheet header */
   title?: string;
-  /** Maximum height as vh percentage (default: 85) */
+  /** Subtitle or description displayed in header */
+  subtitle?: string;
+  /** Maximum height as vh percentage (default: 92) */
   maxHeight?: number;
   /** Snap points as vh percentages — the sheet will snap to the nearest */
   snapPoints?: number[];
@@ -15,17 +18,24 @@ interface BottomSheetProps {
   showHandle?: boolean;
   /** Whether to show the close button (default: true when title is provided) */
   showClose?: boolean;
+  /** Optional left header action (e.g., "Reset" text button) */
+  headerLeft?: React.ReactNode;
+  /** Optional right header action (e.g., "Done" button or custom badge) */
+  headerRight?: React.ReactNode;
+  /** Optional sticky footer at the bottom of the sheet */
+  footer?: React.ReactNode;
   /** Additional className for the sheet container */
   className?: string;
 }
 
 /**
- * Apple HIG Bottom Sheet
+ * Apple iOS HIG Bottom Sheet
  *
  * Features:
+ * - Rendered in createPortal to ensure escape from parent CSS transforms & navbar stacking
  * - Drag-to-dismiss with spring physics
- * - Snap points for intermediate heights
- * - Backdrop blur overlay
+ * - High-coverage default max height (92vh/dvh) so it pulls all the way up cleanly
+ * - iOS frosted glass backdrop and grouped surface
  * - Rounded top corners with drag handle
  * - Safe-area bottom padding
  * - Overscroll-aware (won't dismiss when scrolling content)
@@ -35,16 +45,20 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   onClose,
   children,
   title,
-  maxHeight = 85,
+  subtitle,
+  maxHeight = 92,
   snapPoints,
   showHandle = true,
   showClose,
+  headerLeft,
+  headerRight,
+  footer,
   className = '',
 }) => {
   const sheetRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
-  const shouldShowClose = showClose ?? !!title;
+  const shouldShowClose = showClose ?? (!!title && !headerRight);
 
   useEffect(() => {
     if (isOpen) {
@@ -68,21 +82,23 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     [onClose]
   );
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9998] flex flex-col justify-end md:hidden">
+        <div className="fixed inset-0 z-[9999] flex flex-col justify-end md:hidden font-sans">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="absolute inset-0 sheet-backdrop"
+            className="absolute inset-0 bg-black/45 dark:bg-black/70 backdrop-blur-md"
           />
 
-          {/* Sheet */}
+          {/* Sheet Surface */}
           <motion.div
             ref={sheetRef}
             initial={{ y: '100%' }}
@@ -91,52 +107,81 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             drag="y"
             dragConstraints={{ top: 0 }}
-            dragElastic={0.1}
-            onDragStart={() => { isDragging.current = true; }}
+            dragElastic={0.08}
+            onDragStart={() => {
+              isDragging.current = true;
+            }}
             onDragEnd={handleDragEnd}
-            className={`relative z-10 bg-white dark:bg-gray-900 rounded-t-[28px] border-t border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden ${className}`}
+            className={`relative z-10 bg-[#f8f9fa]/98 dark:bg-[#1a1b1e]/98 backdrop-blur-2xl rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-[0_-16px_48px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden ${className}`}
             style={{
-              maxHeight: `${maxHeight}vh`,
+              maxHeight: `min(${maxHeight}vh, ${maxHeight}dvh)`,
               paddingBottom: `env(safe-area-inset-bottom, 0px)`,
             }}
           >
-            {/* Drag Handle */}
+            {/* iOS Grab Handle */}
             {showHandle && (
-              <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing" aria-hidden="true">
-                <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+              <div className="flex justify-center pt-2.5 pb-1 cursor-grab active:cursor-grabbing shrink-0" aria-hidden="true">
+                <div className="w-10 h-1.5 rounded-full bg-gray-300/90 dark:bg-gray-600/90 transition-colors" />
               </div>
             )}
 
-            {/* Header */}
-            {(title || shouldShowClose) && (
-              <div className="flex items-center justify-between px-5 py-2 border-b border-black/5 dark:border-white/5 shrink-0">
-                {title ? (
-                  <div>
-                    <h3 className="text-base font-bold text-light-text dark:text-dark-text">{title}</h3>
-                  </div>
-                ) : <div />}
-                {shouldShowClose && (
-                  <button
-                    onClick={onClose}
-                    className="touch-feedback w-9 h-9 min-h-[44px] min-w-[44px] rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                    aria-label="Close"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+            {/* iOS Navigation Header */}
+            {(title || headerLeft || headerRight || shouldShowClose) && (
+              <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] shrink-0 min-h-[48px]">
+                {/* Left Action */}
+                <div className="flex items-center justify-start min-w-[70px]">
+                  {headerLeft}
+                </div>
+
+                {/* Center Title */}
+                <div className="text-center flex-1 px-2">
+                  {title && (
+                    <h3 className="text-[15px] font-bold text-light-text dark:text-white tracking-tight leading-tight">
+                      {title}
+                    </h3>
+                  )}
+                  {subtitle && (
+                    <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right Action */}
+                <div className="flex items-center justify-end min-w-[70px]">
+                  {headerRight ? (
+                    headerRight
+                  ) : shouldShowClose ? (
+                    <button
+                      onClick={onClose}
+                      className="touch-feedback w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 active:scale-95 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-all"
+                      aria-label="Close"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  ) : null}
+                </div>
               </div>
             )}
 
-            {/* Content */}
+            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto scroll-touch overscroll-contain">
               {children}
             </div>
+
+            {/* Sticky Footer */}
+            {footer && (
+              <div className="shrink-0 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#f8f9fa]/95 dark:bg-[#1a1b1e]/95 backdrop-blur-xl px-4 sm:px-5 py-3 safe-bottom shadow-lg">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

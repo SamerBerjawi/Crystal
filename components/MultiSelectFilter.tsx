@@ -55,47 +55,75 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
     : `${selectedValues.length} selected`;
 
   return (
-    <div ref={wrapperRef} className="relative w-auto">
+    <div ref={wrapperRef} className="relative w-auto font-sans">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap font-semibold text-[11px] !pl-4 !pr-2 bg-light-fill dark:bg-dark-fill transition-all duration-200`}
+        className="touch-feedback inline-flex items-center justify-between gap-2 px-3.5 py-2 rounded-2xl bg-white/90 dark:bg-dark-card/90 border border-black/10 dark:border-white/10 shadow-xs text-xs font-semibold text-light-text dark:text-white min-h-[38px] min-w-[9.5rem] transition-all hover:bg-white dark:hover:bg-dark-card active:scale-95 text-left"
       >
-        <span className="mr-2 truncate max-w-[12rem]">{buttonText}</span>
-        <Icon name="expand_more" className={`text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="truncate max-w-[11rem]">{buttonText}</span>
+        <Icon name="expand_more" className={`text-sm text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
+
       {isOpen && (
-        /* Removed background slate, shadow-2xl, border-white, and rounded-2xl to give total control to .ios-regular */
-        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] ios-regular z-50 p-3 overflow-hidden animate-fade-in-up !backdrop-blur-xl bg-white/40 dark:bg-black/40">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search..."
-            className={`${INPUT_BASE_STYLE} !h-9 !text-xs !px-3 mb-3 font-semibold bg-white/5 dark:bg-black/20 border-white/5`}
-            autoFocus
-          />
-          <div className="flex justify-between items-center text-[10px] font-semibold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary">
-            <button type="button" onClick={handleToggleAll} className="text-primary-600 dark:text-primary-400 hover:opacity-80 transition-opacity">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[15rem] bg-white/95 dark:bg-[#1e1f23]/95 backdrop-blur-2xl rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl z-50 p-3 overflow-hidden animate-fade-in-up">
+          {/* iOS Search Input */}
+          <div className="relative mb-2.5">
+            <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search..."
+              className="w-full h-8 pl-7 pr-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 text-[11px] font-medium text-light-text dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex justify-between items-center text-[10px] font-bold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+            <button
+              type="button"
+              onClick={handleToggleAll}
+              className="text-primary-600 dark:text-primary-400 hover:underline normal-case text-[11px]"
+            >
               {selectedValues.length === options.length ? 'Deselect all' : 'Select all'}
             </button>
-            <span>{selectedValues.length} / {options.length}</span>
+            <span className="font-mono">{selectedValues.length} / {options.length}</span>
           </div>
-          <div className="max-h-48 overflow-y-auto space-y-1">
-            {filteredOptions.map(option => (
-              <label key={option.value} className="flex items-center gap-2 p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedValues.includes(option.value)}
-                  onChange={() => handleToggle(option.value)}
-                  className={CHECKBOX_STYLE}
-                />
-                <span className="text-sm" style={{ paddingLeft: `${(option.level || 0) * 12}px` }}>
-                  {option.label}
-                </span>
-              </label>
-            ))}
-             {filteredOptions.length === 0 && <p className="text-center text-xs p-4 text-light-text-secondary dark:text-dark-text-secondary">No results found.</p>}
+
+          <div className="max-h-52 overflow-y-auto space-y-0.5 scroll-touch">
+            {filteredOptions.map(option => {
+              const isChecked = selectedValues.includes(option.value);
+              return (
+                <button
+                  type="button"
+                  key={option.value}
+                  onClick={() => handleToggle(option.value)}
+                  className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all active:scale-[0.99] ${
+                    isChecked
+                      ? 'bg-primary-500/10 dark:bg-primary-500/20 text-primary-700 dark:text-primary-300 font-semibold'
+                      : 'hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-gray-200'
+                  }`}
+                  style={{ paddingLeft: `${8 + (option.level || 0) * 12}px` }}
+                >
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <div
+                      className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all ${
+                        isChecked
+                          ? 'bg-primary-500 border-primary-500 text-white'
+                          : 'border-black/20 dark:border-white/20 bg-transparent'
+                      }`}
+                    >
+                      {isChecked && <Icon name="check" className="text-xs text-white" />}
+                    </div>
+                    <span className="text-xs truncate">{option.label}</span>
+                  </div>
+                </button>
+              );
+            })}
+            {filteredOptions.length === 0 && (
+              <p className="text-center text-xs py-4 text-gray-400">No results found.</p>
+            )}
           </div>
         </div>
       )}

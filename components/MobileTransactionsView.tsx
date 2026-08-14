@@ -619,28 +619,39 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
           )}
         </div>
 
-        {/* 5. Apple HIG Filter Sheet */}
+        {/* 5. Apple iOS HIG Filter Sheet */}
         <MobileFilterSheet
           isOpen={showFilterSheet}
           onClose={() => setShowFilterSheet(false)}
           title="Filter Activity"
+          subtitle="Refine transactions by type, account, category, or date"
           activeCount={activeFilterCount}
+          resultCount={filteredTransactions.length}
           onReset={clearFilters}
+          onApply={() => setShowFilterSheet(false)}
           sections={[
             {
               title: 'Transaction Type',
+              icon: 'tune',
+              type: 'segmented',
               chips: [
-                { id: 'all', label: 'All Types', isActive: typeFilter === 'all', onToggle: () => setTypeFilter('all') },
-                { id: 'expense', label: 'Expenses', isActive: typeFilter === 'expense', onToggle: () => setTypeFilter('expense') },
-                { id: 'income', label: 'Income', isActive: typeFilter === 'income', onToggle: () => setTypeFilter('income') },
-                { id: 'transfer', label: 'Transfers', isActive: typeFilter === 'transfer', onToggle: () => setTypeFilter('transfer') },
+                { id: 'all', label: 'All', icon: 'list', isActive: typeFilter === 'all', onToggle: () => setTypeFilter('all') },
+                { id: 'expense', label: 'Expenses', icon: 'arrow_upward', isActive: typeFilter === 'expense', onToggle: () => setTypeFilter('expense') },
+                { id: 'income', label: 'Income', icon: 'arrow_downward', isActive: typeFilter === 'income', onToggle: () => setTypeFilter('income') },
+                { id: 'transfer', label: 'Transfers', icon: 'sync', isActive: typeFilter === 'transfer', onToggle: () => setTypeFilter('transfer') },
               ],
             },
             {
               title: 'Accounts',
+              icon: 'account_balance_wallet',
+              searchable: accounts.length > 5,
+              searchPlaceholder: 'Search accounts...',
+              onSelectAll: () => setSelectedAccountIds(accounts.map((a) => a.id)),
+              onClearAll: () => setSelectedAccountIds([]),
               chips: accounts.map((acc) => ({
                 id: acc.id,
                 label: acc.name,
+                icon: acc.type === 'Investment' || acc.type === 'Crypto' ? 'trending_up' : acc.type === 'Credit Card' ? 'credit_card' : 'wallet',
                 isActive: selectedAccountIds.includes(acc.id),
                 onToggle: () => {
                   if (selectedAccountIds.includes(acc.id)) {
@@ -653,9 +664,16 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
             },
             {
               title: 'Categories',
-              chips: allCategories.slice(0, 16).map((cat) => ({
+              icon: 'category',
+              searchable: true,
+              searchPlaceholder: 'Search categories...',
+              onSelectAll: () => setSelectedCategoryNames(allCategories.map((c) => c.name)),
+              onClearAll: () => setSelectedCategoryNames([]),
+              chips: allCategories.map((cat) => ({
                 id: cat.name,
                 label: cat.name,
+                icon: cat.icon || 'receipt',
+                color: cat.color,
                 isActive: selectedCategoryNames.includes(cat.name),
                 onToggle: () => {
                   if (selectedCategoryNames.includes(cat.name)) {
@@ -666,31 +684,151 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                 },
               })),
             },
+            ...(tags && tags.length > 0
+              ? [
+                  {
+                    title: 'Tags',
+                    icon: 'label',
+                    searchable: tags.length > 6,
+                    searchPlaceholder: 'Search tags...',
+                    onSelectAll: () => setSelectedTagIds(tags.map((t) => t.id)),
+                    onClearAll: () => setSelectedTagIds([]),
+                    chips: tags.map((tag) => ({
+                      id: tag.id,
+                      label: tag.name,
+                      icon: 'tag',
+                      color: tag.color,
+                      isActive: selectedTagIds.includes(tag.id),
+                      onToggle: () => {
+                        if (selectedTagIds.includes(tag.id)) {
+                          setSelectedTagIds(selectedTagIds.filter((t) => t !== tag.id));
+                        } else {
+                          setSelectedTagIds([...selectedTagIds, tag.id]);
+                        }
+                      },
+                    })),
+                  },
+                ]
+              : []),
           ]}
         >
-          {/* Custom Date Range Picker */}
-          <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50 font-mono">
-              Date Interval
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-bold opacity-70 block mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-xs font-semibold border border-black/5 dark:border-white/10"
-                />
+          {/* iOS Date Range Inset Card */}
+          <div className="bg-white dark:bg-[#2c2c2e]/70 rounded-2xl p-3.5 border border-black/[0.04] dark:border-white/[0.06] shadow-2xs space-y-3">
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                  <Icon name="calendar_today" className="text-xs" />
+                </div>
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
+                  Date Interval
+                </h4>
               </div>
-              <div>
-                <label className="text-[10px] font-bold opacity-70 block mb-1">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-xs font-semibold border border-black/5 dark:border-white/10"
-                />
+
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:opacity-60 transition-opacity"
+                >
+                  Clear Date
+                </button>
+              )}
+            </div>
+
+            {/* Quick Preset Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-touch py-0.5">
+              {[
+                {
+                  id: 'all',
+                  label: 'All Time',
+                  action: () => {
+                    setStartDate('');
+                    setEndDate('');
+                  },
+                  active: !startDate && !endDate,
+                },
+                {
+                  id: 'thisMonth',
+                  label: 'This Month',
+                  action: () => {
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    const firstDay = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+                    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    setStartDate(firstDay);
+                    setEndDate(today);
+                  },
+                  active: Boolean(startDate && !startDate.endsWith('-01') ? false : startDate && endDate),
+                },
+                {
+                  id: 'last30',
+                  label: 'Last 30 Days',
+                  action: () => {
+                    const now = new Date();
+                    const past = new Date(now);
+                    past.setDate(now.getDate() - 30);
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    setStartDate(`${past.getFullYear()}-${pad(past.getMonth() + 1)}-${pad(past.getDate())}`);
+                    setEndDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+                  },
+                  active: false,
+                },
+                {
+                  id: 'thisYear',
+                  label: 'Year to Date',
+                  action: () => {
+                    const now = new Date();
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    setStartDate(`${now.getFullYear()}-01-01`);
+                    setEndDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+                  },
+                  active: Boolean(startDate === `${new Date().getFullYear()}-01-01`),
+                },
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={preset.action}
+                  className={`touch-feedback px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border min-h-[30px] active:scale-95 ${
+                    preset.active
+                      ? 'bg-primary-500 text-white border-primary-500 shadow-xs shadow-primary-500/20 font-bold'
+                      : 'bg-black/[0.03] dark:bg-white/[0.06] border-black/[0.06] dark:border-white/[0.08] text-light-text dark:text-gray-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.1]'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            {/* iOS Calendar Inputs */}
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase px-1">
+                  From
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] text-xs font-semibold text-light-text dark:text-white border border-black/5 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase px-1">
+                  To
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] text-xs font-semibold text-light-text dark:text-white border border-black/5 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -695,7 +695,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         onClose={() => setShowControlsSheet(false)}
         title="View & Sorting Options"
       >
-        <div className="space-y-4 pt-1">
+        <div className="space-y-4 px-5 py-4">
           <div>
             <label className="text-xs font-extrabold uppercase text-light-text-secondary dark:text-dark-text-secondary block mb-2">
               Group Accounts By

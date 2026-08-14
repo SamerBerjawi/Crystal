@@ -335,25 +335,61 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
       map[typeStr].push(acc);
     });
 
-    return Object.entries(map).map(([typeStr, accs]) => ({
-      title: typeStr,
-      chips: accs.map((acc) => ({
-        id: acc.id,
-        label: acc.name,
-        isActive: selectedAccountIds.includes(acc.id),
-        onToggle: () => {
-          if (selectedAccountIds.includes(acc.id)) {
-            const next = selectedAccountIds.filter((id) => id !== acc.id);
-            setSelectedAccountIds(next);
-          } else {
-            setSelectedAccountIds([...selectedAccountIds, acc.id]);
-          }
+    const getIconForType = (t: string) => {
+      switch (t) {
+        case 'Checking':
+        case 'Savings':
+          return 'wallet';
+        case 'Credit Card':
+          return 'credit_card';
+        case 'Investment':
+        case 'Crypto':
+          return 'trending_up';
+        case 'Loan':
+        case 'Mortgage':
+          return 'receipt_long';
+        case 'Property':
+          return 'home';
+        case 'Vehicle':
+          return 'directions_car';
+        default:
+          return 'account_balance';
+      }
+    };
+
+    return Object.entries(map).map(([typeStr, accs]) => {
+      const accIds = accs.map((a) => a.id);
+      return {
+        title: typeStr,
+        icon: getIconForType(typeStr),
+        searchable: accs.length > 5,
+        searchPlaceholder: `Search ${typeStr.toLowerCase()} accounts...`,
+        onSelectAll: () => {
+          const merged = Array.from(new Set([...selectedAccountIds, ...accIds]));
+          setSelectedAccountIds(merged);
         },
-      })),
-    }));
+        onClearAll: () => {
+          setSelectedAccountIds(selectedAccountIds.filter((id) => !accIds.includes(id)));
+        },
+        chips: accs.map((acc) => ({
+          id: acc.id,
+          label: acc.name,
+          icon: getIconForType(acc.type || typeStr),
+          isActive: selectedAccountIds.includes(acc.id),
+          onToggle: () => {
+            if (selectedAccountIds.includes(acc.id)) {
+              const next = selectedAccountIds.filter((id) => id !== acc.id);
+              setSelectedAccountIds(next);
+            } else {
+              setSelectedAccountIds([...selectedAccountIds, acc.id]);
+            }
+          },
+        })),
+      };
+    });
   }, [accounts, selectedAccountIds, setSelectedAccountIds]);
 
-  const activeFilterCount = selectedAccountIds.length > 0 ? 1 : 0;
+  const activeFilterCount = selectedAccountIds.length;
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -746,16 +782,18 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           </div>
         )}
 
-        {/* 8. Apple HIG Mobile Filter Sheet (Accounts Grouped by Type) */}
+        {/* 8. Apple iOS HIG Mobile Filter Sheet (Accounts Grouped by Type) */}
         <MobileFilterSheet
           isOpen={showFilterSheet}
           onClose={() => setShowFilterSheet(false)}
           title="Account View Options"
+          subtitle="Select accounts to include in your dashboard balance and metrics"
           activeCount={activeFilterCount}
           onReset={() => {
             if (primaryAccount) setSelectedAccountIds([primaryAccount.id]);
             else setSelectedAccountIds([]);
           }}
+          onApply={() => setShowFilterSheet(false)}
           sections={filterAccountSections}
         />
       </div>
