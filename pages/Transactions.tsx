@@ -4,7 +4,7 @@ import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule, User } from '../types';
 import { motion } from 'motion/react';
 import Card from '../components/Card';
-import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
+import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
@@ -173,6 +173,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
+  const conversionRates = usePreferencesSelector(p => p.conversionRates || CONVERSION_RATES);
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
   const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
@@ -1561,7 +1563,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const selectedKeys = useMemo(() => {
     if (isAllSelected && filteredTransactions.length > 0) return 'all' as const;
-    return new Set(Array.from(selectedIds));
+    return selectedIds;
   }, [isAllSelected, filteredTransactions.length, selectedIds]);
 
   const disabledGroupHeaderKeys = useMemo(() => {
@@ -1570,10 +1572,20 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const handleSelectionChange = useCallback((keys: 'all' | Set<React.Key>) => {
     if (keys === 'all') {
-      setSelectedIds(new Set(filteredTransactions.map(t => t.id)));
+      setSelectedIds(prev => {
+        if (prev.size === filteredTransactions.length && filteredTransactions.every(t => prev.has(t.id))) {
+          return prev;
+        }
+        return new Set(filteredTransactions.map(t => t.id));
+      });
     } else {
       const validIds = Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-'));
-      setSelectedIds(new Set(validIds));
+      setSelectedIds(prev => {
+        if (prev.size === validIds.length && validIds.every(id => prev.has(id))) {
+          return prev;
+        }
+        return new Set(validIds);
+      });
     }
   }, [filteredTransactions]);
 
@@ -1722,89 +1734,94 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             </div>
         )}
 
-      <MobileTransactionsView
-        transactions={transactions}
-        filteredTransactions={filteredTransactions}
-        accounts={accounts}
-        incomeCategories={incomeCategories}
-        expenseCategories={expenseCategories}
-        tags={tags}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        typeFilter={typeFilter}
-        setTypeFilter={setTypeFilter}
-        selectedAccountIds={selectedAccountIds}
-        setSelectedAccountIds={setSelectedAccountIds}
-        selectedCategoryNames={selectedCategoryNames}
-        setSelectedCategoryNames={setSelectedCategoryNames}
-        selectedTagIds={selectedTagIds}
-        setSelectedTagIds={setSelectedTagIds}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
-        clearFilters={clearFilters}
-        onAddTransaction={handleOpenAddModal}
-        onEditTransaction={(tx) => {
-          const targetId = tx.originalId || tx.id;
-          const found = transactions.find(
-            (t) =>
-              t.id === targetId ||
-              t.id === tx.id ||
-              (tx.transferId && t.transferId === tx.transferId)
-          );
+      {/* Mobile Transactions Feed */}
+      <div className="block md:hidden">
+        <MobileTransactionsView
+          transactions={transactions}
+          filteredTransactions={filteredTransactions}
+          accounts={accounts}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          tags={tags}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          typeFilter={typeFilter}
+          setTypeFilter={setTypeFilter}
+          selectedAccountIds={selectedAccountIds}
+          setSelectedAccountIds={setSelectedAccountIds}
+          selectedCategoryNames={selectedCategoryNames}
+          setSelectedCategoryNames={setSelectedCategoryNames}
+          selectedTagIds={selectedTagIds}
+          setSelectedTagIds={setSelectedTagIds}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          clearFilters={clearFilters}
+          onAddTransaction={handleOpenAddModal}
+          onEditTransaction={(tx) => {
+            const targetId = tx.originalId || tx.id;
+            const found = transactions.find(
+              (t) =>
+                t.id === targetId ||
+                t.id === tx.id ||
+                (tx.transferId && t.transferId === tx.transferId)
+            );
 
-          const fallbackTx: Transaction = {
-            id: tx.id,
-            accountId: tx.accountId || (accounts[0]?.id || ''),
-            description: tx.description,
-            amount: Math.abs(tx.amount),
-            type: (tx.type as any) || 'expense',
-            category: tx.category || '',
-            date: tx.date,
-            currency: tx.currency || 'EUR',
-            notes: tx.notes,
-            merchant: tx.merchant,
-            tagIds: tx.tagIds,
-          };
+            const fallbackTx: Transaction = {
+              id: tx.id,
+              accountId: tx.accountId || (accounts[0]?.id || ''),
+              description: tx.description,
+              amount: Math.abs(tx.amount),
+              type: (tx.type as any) || 'expense',
+              category: tx.category || '',
+              date: tx.date,
+              currency: tx.currency || 'EUR',
+              notes: tx.notes,
+              merchant: tx.merchant,
+              tagIds: tx.tagIds,
+            };
 
-          setEditingTransaction(found || fallbackTx);
-          setTransactionModalOpen(true);
-        }}
-        onDeleteTransaction={(txId) => {
-          deleteTransactions([txId]);
-        }}
-        onCategorizeTransaction={(tx) => {
-          setSelectedIds(new Set([tx.id]));
-          setIsCategorizeModalOpen(true);
-        }}
-        onMakeRecurring={(tx) => {
-          setTransactionToMakeRecurring({
-            description: tx.description,
-            amount: Math.abs(tx.amount),
-            type: tx.type as any,
-            category: tx.category,
-            accountId: tx.accountId,
-            frequency: 'monthly',
-            startDate: tx.date,
-            nextDueDate: tx.date,
-            currency: tx.currency || 'EUR',
-            weekendAdjustment: 'on',
-          });
-          setIsRecurringModalOpen(true);
-        }}
-        onSplitTransaction={(tx) => {
-          const original = transactions.find((t) => t.id === tx.id);
-          if (original) {
-            setTransactionToSplit(original);
-            setIsSplitModalOpen(true);
-          }
-        }}
-        onSyncBanks={onSyncBanks}
-        isSyncingBanks={isSyncingBanks}
-        brandfetchClientId={brandfetchClientId}
-        merchantLogoOverrides={effectiveMerchantLogoOverrides}
-      />
+            setEditingTransaction(found || fallbackTx);
+            setTransactionModalOpen(true);
+          }}
+          onDeleteTransaction={(txId) => {
+            deleteTransactions([txId]);
+          }}
+          onCategorizeTransaction={(tx) => {
+            setSelectedIds(new Set([tx.id]));
+            setIsCategorizeModalOpen(true);
+          }}
+          onMakeRecurring={(tx) => {
+            setTransactionToMakeRecurring({
+              description: tx.description,
+              amount: Math.abs(tx.amount),
+              type: tx.type as any,
+              category: tx.category,
+              accountId: tx.accountId,
+              frequency: 'monthly',
+              startDate: tx.date,
+              nextDueDate: tx.date,
+              currency: tx.currency || 'EUR',
+              weekendAdjustment: 'on',
+            });
+            setIsRecurringModalOpen(true);
+          }}
+          onSplitTransaction={(tx) => {
+            const original = transactions.find((t) => t.id === tx.id);
+            if (original) {
+              setTransactionToSplit(original);
+              setIsSplitModalOpen(true);
+            }
+          }}
+          onSyncBanks={onSyncBanks}
+          isSyncingBanks={isSyncingBanks}
+          preferredCurrency={preferredCurrency}
+          conversionRates={conversionRates}
+          brandfetchClientId={brandfetchClientId}
+          merchantLogoOverrides={effectiveMerchantLogoOverrides}
+        />
+      </div>
 
       <div className="hidden md:block space-y-6">
         <PageHeader

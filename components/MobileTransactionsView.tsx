@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Transaction, Account, Category, Tag, Currency, DisplayTransaction } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, convertCurrency } from '../utils';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import Icon from './ui/Icon';
 import SwipeableRow from './SwipeableRow';
@@ -77,6 +77,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
   onSyncBanks,
   isSyncingBanks,
   preferredCurrency = 'EUR',
+  conversionRates,
   brandfetchClientId,
   merchantLogoOverrides,
 }) => {
@@ -92,8 +93,16 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
 
   // Reset pagination limit whenever search or filter parameters change
   useEffect(() => {
-    setDisplayLimit(INITIAL_BATCH);
-  }, [searchTerm, typeFilter, selectedAccountIds, selectedCategoryNames, selectedTagIds, startDate, endDate]);
+    setDisplayLimit((prev) => (prev === INITIAL_BATCH ? prev : INITIAL_BATCH));
+  }, [
+    searchTerm,
+    typeFilter,
+    selectedAccountIds.join(','),
+    selectedCategoryNames.join(','),
+    selectedTagIds.join(','),
+    startDate,
+    endDate,
+  ]);
 
   // Handle logo error
   const handleLogoError = useCallback((logoUrl: string) => {
@@ -140,16 +149,22 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
     () =>
       filteredTransactions
         .filter((t) => t.type === 'income' && !(t as DisplayTransaction).isTransfer && !t.transferId)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
-    [filteredTransactions]
+        .reduce((sum, t) => {
+          const amt = convertCurrency(Math.abs(t.amount), (t.currency || curr) as Currency, curr, conversionRates);
+          return sum + (isNaN(amt) ? 0 : amt);
+        }, 0),
+    [filteredTransactions, curr, conversionRates]
   );
 
   const totalExpense = useMemo(
     () =>
       filteredTransactions
         .filter((t) => t.type === 'expense' && !(t as DisplayTransaction).isTransfer && !t.transferId)
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
-    [filteredTransactions]
+        .reduce((sum, t) => {
+          const amt = convertCurrency(Math.abs(t.amount), (t.currency || curr) as Currency, curr, conversionRates);
+          return sum + (isNaN(amt) ? 0 : amt);
+        }, 0),
+    [filteredTransactions, curr, conversionRates]
   );
 
   const netFlow = totalIncome - totalExpense;

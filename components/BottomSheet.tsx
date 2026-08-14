@@ -28,6 +28,8 @@ interface BottomSheetProps {
   className?: string;
 }
 
+const DRAG_CONSTRAINTS = { top: 0 };
+
 /**
  * Apple iOS HIG Bottom Sheet
  *
@@ -106,7 +108,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             drag="y"
-            dragConstraints={{ top: 0 }}
+            dragConstraints={DRAG_CONSTRAINTS}
             dragElastic={0.08}
             onDragStart={() => {
               isDragging.current = true;
