@@ -498,7 +498,17 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
 
                             {/* Merchant & Details */}
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className={`size-1.5 rounded-full shrink-0 ${
+                                    tx.isTransfer
+                                      ? 'bg-slate-400 dark:bg-white/80 shadow-xs'
+                                      : tx.type === 'income'
+                                      ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+                                      : 'bg-rose-500 shadow-xs shadow-rose-500/50'
+                                  }`}
+                                  title={tx.isTransfer ? 'Internal Transfer' : tx.type === 'income' ? 'Income' : 'Expense'}
+                                />
                                 <p className="text-[14.5px] font-extrabold text-light-text dark:text-white truncate tracking-tight">
                                   {tx.merchant || tx.description}
                                 </p>

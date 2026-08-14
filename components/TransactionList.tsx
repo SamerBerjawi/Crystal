@@ -238,6 +238,16 @@ const TransactionList: React.FC<TransactionListProps> = ({
                   </div>
                   <div className="ml-3 sm:ml-3.5 min-w-0 overflow-hidden flex-1">
                     <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                        <span
+                          className={`size-1.5 rounded-full shrink-0 ${
+                            isTransfer
+                              ? 'bg-slate-400 dark:bg-white/80 shadow-xs'
+                              : tx.type === 'income'
+                              ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+                              : 'bg-rose-500 shadow-xs shadow-rose-500/50'
+                          }`}
+                          title={isTransfer ? 'Internal Transfer' : tx.type === 'income' ? 'Income' : 'Expense'}
+                        />
                         <p className={`${density === 'high' ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'} font-bold text-light-text dark:text-dark-text truncate tracking-tight`}>
                             {description}
                         </p>
