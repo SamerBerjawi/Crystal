@@ -185,6 +185,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Salary',
             type: 'income',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             tagIds: ['tag-work'],
         },
         {
@@ -197,6 +199,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Salary',
             type: 'income',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             tagIds: ['tag-work'],
         },
         {
@@ -209,6 +213,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Freelance',
             type: 'income',
             currency: 'EUR',
+            city: 'Paris',
+            country: 'France',
             tagIds: ['tag-work', 'tag-tax'],
         },
         {
@@ -221,6 +227,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Investments & Dividends',
             type: 'income',
             currency: 'EUR',
+            city: 'Dublin',
+            country: 'Ireland',
         },
         {
             id: 'tx-rent-jun',
@@ -232,6 +240,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Rent',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
         },
         {
             id: 'tx-groceries-1',
@@ -243,6 +253,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Supermarket',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             tagIds: ['tag-personal'],
         },
         {
@@ -255,6 +267,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Supermarket',
             type: 'expense',
             currency: 'EUR',
+            city: 'London',
+            country: 'United Kingdom',
             tagIds: ['tag-personal'],
         },
         {
@@ -267,6 +281,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Restaurants',
             type: 'expense',
             currency: 'EUR',
+            city: 'Paris',
+            country: 'France',
         },
         {
             id: 'tx-coffee-starbrew',
@@ -278,6 +294,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Coffee Shops',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
         },
         {
             id: 'tx-commute',
@@ -289,6 +307,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Public Transport',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
         },
         {
             id: 'tx-ev-charging',
@@ -300,6 +320,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Fuel & EV Charging',
             type: 'expense',
             currency: 'EUR',
+            city: 'Antwerp',
+            country: 'Belgium',
         },
         {
             id: 'tx-streaming-netflix',
@@ -311,6 +333,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Streaming Services',
             type: 'expense',
             currency: 'EUR',
+            city: 'Los Gatos',
+            country: 'United States',
         },
         {
             id: 'tx-music-spotify',
@@ -322,6 +346,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Apps & Software',
             type: 'expense',
             currency: 'EUR',
+            city: 'Stockholm',
+            country: 'Sweden',
         },
         {
             id: 'tx-chatgpt',
@@ -333,6 +359,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Apps & Software',
             type: 'expense',
             currency: 'EUR',
+            city: 'San Francisco',
+            country: 'United States',
             tagIds: ['tag-work'],
         },
         {
@@ -345,6 +373,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Apps & Software',
             type: 'expense',
             currency: 'EUR',
+            city: 'San Francisco',
+            country: 'United States',
             tagIds: ['tag-work'],
         },
         {
@@ -357,6 +387,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Fitness / Gym',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
         },
         {
             id: 'tx-internet',
@@ -368,6 +400,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Internet / WiFi',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
         },
         {
             id: 'tx-power-bill',
@@ -379,6 +413,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Electricity / Power',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
         },
         {
             id: 'tx-flight-tokyo',
@@ -390,6 +426,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Flights',
             type: 'expense',
             currency: 'EUR',
+            city: 'Tokyo',
+            country: 'Japan',
             tagIds: ['tag-personal', 'tag-urgent'],
         },
         {
@@ -402,6 +440,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Electronics & Tech',
             type: 'expense',
             currency: 'EUR',
+            city: 'Cupertino',
+            country: 'United States',
             tagIds: ['tag-work', 'tag-tax'],
         },
         {
@@ -414,6 +454,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Investments',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             transferId: 'tr-savings-06',
         },
         {
@@ -426,6 +468,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Investments',
             type: 'income',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             transferId: 'tr-savings-06',
         },
         {
@@ -438,6 +482,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Investments',
             type: 'expense',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             transferId: 'tr-etf-06',
         },
         {
@@ -450,6 +496,8 @@ export const initialFinancialData: FinancialData = {
             category: 'Investments',
             type: 'income',
             currency: 'EUR',
+            city: 'Brussels',
+            country: 'Belgium',
             transferId: 'tr-etf-06',
         },
     ],

@@ -185,7 +185,7 @@ const TableHead = ({ className, tooltip, label, children, ...props }: TableHeadP
             {(state) => (
                 <AriaGroup className="flex items-center gap-1">
                     <div className="flex items-center gap-1">
-                        {label && <span className="text-xs font-semibold whitespace-nowrap text-quaternary">{label}</span>}
+                        {label && <span className="text-sm font-semibold whitespace-nowrap text-quaternary">{label}</span>}
                         {typeof children === "function" ? children(state) : children}
                     </div>
 
@@ -213,10 +213,12 @@ TableHead.displayName = "TableHead";
 interface TableRowProps<T extends object>
     extends AriaRowProps<T>, Omit<ComponentPropsWithRef<"tr">, "children" | "className" | "onClick" | "slot" | "style" | "id"> {
     highlightSelectedRow?: boolean;
-    size?: "sm" | "md";
+    size?: "xs" | "sm" | "md";
+    hideSelectionCheckbox?: boolean;
+    customSelectionSlot?: ReactNode;
 }
 
-const TableRow = <T extends object>({ columns, children, className, highlightSelectedRow = true, size: sizeProp, ...props }: TableRowProps<T>) => {
+const TableRow = <T extends object>({ columns, children, className, highlightSelectedRow = true, hideSelectionCheckbox = false, customSelectionSlot, size: sizeProp, ...props }: TableRowProps<T>) => {
     const context = useContext(TableContext);
     const { selectionBehavior } = useTableOptions();
 
@@ -228,7 +230,7 @@ const TableRow = <T extends object>({ columns, children, className, highlightSel
             className={(state) =>
                 cx(
                     "relative outline-focus-ring transition-colors after:pointer-events-none hover:bg-secondary focus-visible:outline-2 focus-visible:-outline-offset-2",
-                    size === "sm" ? "h-14" : "h-18",
+                    size === "xs" ? "h-9" : size === "sm" ? "h-14" : "h-18",
                     highlightSelectedRow && "selected:bg-secondary",
 
                     // Row border—using an "after" pseudo-element to avoid the border taking up space.
@@ -239,10 +241,25 @@ const TableRow = <T extends object>({ columns, children, className, highlightSel
             }
         >
             {selectionBehavior === "toggle" && (
-                <AriaCell className={cx("relative py-2 pr-0 pl-4", size === "sm" ? "md:pl-5" : "md:pl-6")}>
-                    <div className="flex items-end">
-                        <Checkbox slot="selection" size="md" />
-                    </div>
+                <AriaCell className={cx("relative py-1 pr-0 pl-4", size === "xs" ? "md:pl-4" : size === "sm" ? "md:pl-5" : "md:pl-6")}>
+                    {customSelectionSlot ? (
+                        <div
+                            className="flex items-center"
+                            onClick={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onPointerUp={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onMouseUp={(e) => e.stopPropagation()}
+                        >
+                            {customSelectionSlot}
+                        </div>
+                    ) : !hideSelectionCheckbox ? (
+                        <div className="flex items-end">
+                            <Checkbox slot="selection" size="md" />
+                        </div>
+                    ) : (
+                        <div className="size-4" />
+                    )}
                 </AriaCell>
             )}
             <AriaCollection items={columns}>{children}</AriaCollection>
@@ -254,7 +271,7 @@ TableRow.displayName = "TableRow";
 
 interface TableCellProps extends AriaCellProps, Omit<TdHTMLAttributes<HTMLTableCellElement>, "children" | "className" | "style" | "id"> {
     ref?: Ref<HTMLTableCellElement>;
-    size?: "sm" | "md";
+    size?: "xs" | "sm" | "md";
 }
 
 const TableCell = ({ className, children, size: sizeProp, ...props }: TableCellProps) => {
@@ -269,6 +286,7 @@ const TableCell = ({ className, children, size: sizeProp, ...props }: TableCellP
             className={(state) =>
                 cx(
                     "relative text-sm text-tertiary outline-focus-ring focus-visible:z-1 focus-visible:outline-2 focus-visible:-outline-offset-2",
+                    size === "xs" && "px-4 py-1.5",
                     size === "sm" && "px-5 py-3",
                     size === "md" && "px-6 py-4",
 

@@ -16,7 +16,6 @@ import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
-import VirtualizedList from '../components/VirtualizedList';
 import { useDebounce } from '../hooks/useDebounce';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
@@ -24,6 +23,17 @@ import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
+import { Edit01, Trash01, DotsVertical } from '@untitledui/icons';
+import type { SortDescriptor } from 'react-aria-components';
+import { PaginationPageMinimalCenter } from '@/components/application/pagination/pagination';
+import { Table, TableCard } from '@/components/application/table/table';
+import { Avatar } from '@/components/base/avatar/avatar';
+import { Badge } from '@/components/base/badges/badges';
+import { ButtonUtility } from '@/components/base/buttons/button-utility';
+import { DropdownIconSimple } from '@/components/base/dropdown/dropdown-icon-simple';
+import { formatTransactionLocation } from '../utils/locationFormat';
+import { Checkbox, CheckboxBase } from '@/components/base/checkbox/checkbox';
+import { cx } from '@/lib/utils/cx';
 
 interface TransactionsProps {
   user?: User;
@@ -69,93 +79,92 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
     );
 });
 
-// Helper Component for Column Header
-const ColumnHeader = React.memo(function ColumnHeader({
-    label,
-    sortKey,
-    currentSort,
-    onSort,
-    isFilterActive,
-    filterContent,
-    className = "",
-    alignRight = false
-}: {
-    label: string;
-    sortKey?: string;
-    currentSort: string;
-    onSort: (key: string) => void;
-    isFilterActive?: boolean;
-    filterContent?: React.ReactNode;
-    className?: string;
-    alignRight?: boolean;
-}) {
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const filterRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
-                setIsFilterOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const isSorted = currentSort.startsWith(sortKey || '___');
-    const isAsc = currentSort.endsWith('-asc');
-
-    const handleSort = () => {
-        if (!sortKey) return;
-        // Default to desc for date/amount, asc for text
-        const defaultDir = (sortKey === 'date' || sortKey === 'amount') ? 'desc' : 'asc';
-        
-        if (isSorted) {
-            onSort(`${sortKey}-${isAsc ? 'desc' : 'asc'}`);
-        } else {
-            onSort(`${sortKey}-${defaultDir}`);
-        }
+// Column Header Filter Popover
+export type TableRenderItem =
+  | {
+      isGroupHeader: true;
+      id: string;
+      date: string;
+      formattedDate: string;
+      count: number;
+      totalEur: number;
+      groupTxIds: string[];
+      isAllGroupSelected: boolean;
+      isSomeGroupSelected: boolean;
+    }
+  | {
+      isGroupHeader: false;
+      id: string;
+      tx: DisplayTransaction;
     };
 
-    return (
-        <div className={`flex items-center gap-2 ${className} ${alignRight ? 'justify-end' : 'justify-start'}`} ref={filterRef}>
-            <div 
-                className={`flex items-center gap-2 select-none cursor-pointer group/sort py-1.5 px-2.5 -ml-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300`} 
-                onClick={handleSort}
+const ColumnHeaderFilter: React.FC<{
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  isActive: boolean;
+  activeCount?: number;
+  title: string;
+  children: React.ReactNode;
+}> = ({ isOpen, onToggle, onClose, isActive, activeCount, title, children }) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, onClose]);
+
+  return (
+    <div className="relative inline-flex items-center ml-1" ref={popoverRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+        className={cx(
+          "size-6 rounded-md flex items-center justify-center transition-all cursor-pointer",
+          isActive || isOpen
+            ? "bg-primary-500 text-white shadow-xs"
+            : "text-fg-quaternary hover:text-fg-quaternary_hover hover:bg-black/5 dark:hover:bg-white/10"
+        )}
+        title={`Filter by ${title}`}
+      >
+        <Icon name="filter_alt" className="text-xs" />
+        {activeCount && activeCount > 0 ? (
+          <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-primary-600 text-[8px] font-bold text-white flex items-center justify-center leading-none">
+            {activeCount}
+          </span>
+        ) : null}
+      </button>
+
+      {isOpen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-full mt-2 -left-2 z-50 w-72 rounded-xl border border-secondary bg-primary p-4 shadow-xl backdrop-blur-xl text-left font-normal text-secondary normal-case"
+        >
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-secondary">
+            <span className="text-sm font-semibold text-primary">{title}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-tertiary hover:text-primary cursor-pointer p-0.5"
             >
-                <span className={`text-[10px] font-semibold transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
-                    {label}
-                </span>
-                
-                {sortKey && (
-                    <div className={`flex flex-col gap-[1px] ${isSorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-40'} transition-opacity duration-300`}>
-                        <Icon name="arrow_drop_up" className={`text-[10px] leading-none ${isSorted && isAsc ? 'text-primary-500' : 'text-gray-400'}`} />
-                        <Icon name="arrow_drop_down" className={`text-[10px] leading-none -mt-1 ${isSorted && !isAsc ? 'text-primary-500' : 'text-gray-400'}`} />
-                    </div>
-                )}
-            </div>
-            {filterContent && (
-                <div className="relative">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setIsFilterOpen(!isFilterOpen); }}
-                        className={`w-6 h-6 flex items-center justify-center rounded-xl transition-all duration-300 ${isFilterActive || isFilterOpen ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5'}`}
-                        title="Filter"
-                    >
-                        <Icon name="filter_alt" className={`text-[14px] ${isFilterActive ? '' : ''}`} />
-                    </button>
-                    {isFilterOpen && (
-                        <div className={`absolute top-full mt-3 ${alignRight ? 'right-0' : 'left-0'} z-50 w-72 bg-white/95 dark:bg-dark-card/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 p-5 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text overflow-hidden`} onClick={e => e.stopPropagation()}>
-                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary-500/5 to-transparent"></div>
-                            <div className="relative z-10">
-                                {filterContent}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
+              ✕
+            </button>
+          </div>
+          {children}
         </div>
-    );
-});
+      )}
+    </div>
+  );
+};
 
 const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
@@ -208,6 +217,9 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [openFilterCol, setOpenFilterCol] = useState<'description' | 'account' | 'category' | 'location' | 'tags' | 'amount' | null>(null);
 
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -548,9 +560,14 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         const matchMinAmount = isNaN(min) || amountAbsEur >= min;
         const matchMaxAmount = isNaN(max) || amountAbsEur <= max;
 
+        const matchLocation = selectedLocations.length === 0 || (() => {
+            const loc = formatTransactionLocation(tx, user);
+            return selectedLocations.includes(loc.city) || selectedLocations.includes(loc.country);
+        })();
+
         const matchBalanceAdjustment = showBalanceAdjustments || !tx.isBalanceAdjustment;
 
-        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant && matchBalanceAdjustment;
+        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant && matchLocation && matchBalanceAdjustment;
       }).map(({ tx }) => tx);
     
     return transactionList.sort((a, b) => {
@@ -566,7 +583,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       }
     });
 
-  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, showBalanceAdjustments]);
+  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, showBalanceAdjustments, user]);
   
   const toggleExpandParent = useCallback((parentId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -1086,6 +1103,9 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     setSelectedAccountIds([]);
     setSelectedCategoryNames([]);
     setSelectedTagIds([]);
+    setSelectedLocations([]);
+    setLocationSearch('');
+    setOpenFilterCol(null);
     setTypeFilter('all');
     setStartDate('');
     setEndDate('');
@@ -1139,6 +1159,35 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
       );
   }, []);
+
+  const handleLocationToggle = useCallback((city: string) => {
+      setSelectedLocations(prev =>
+        prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
+      );
+  }, []);
+
+  const uniqueLocations = useMemo(() => {
+    const map = new Map<string, { flag: string; city: string; country: string; count: number }>();
+    transactions.forEach(tx => {
+        const loc = formatTransactionLocation(tx, user);
+        const existing = map.get(loc.city);
+        if (existing) {
+            existing.count += 1;
+        } else {
+            map.set(loc.city, { ...loc, count: 1 });
+        }
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [transactions, user]);
+
+  const filteredLocationOptions = useMemo(() => {
+    if (!locationSearch.trim()) return uniqueLocations;
+    const query = locationSearch.toLowerCase();
+    return uniqueLocations.filter(loc => 
+        loc.city.toLowerCase().includes(query) || 
+        loc.country.toLowerCase().includes(query)
+    );
+  }, [uniqueLocations, locationSearch]);
 
   const dateFilterContent = useMemo(() => (
       <div className="space-y-3 p-1">
@@ -1204,25 +1253,39 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const merchantFilterContent = useMemo(() => (
       <div className="space-y-2 p-1">
-          <input
-              type="text"
-              placeholder="Filter merchant..."
-              value={merchantFilter}
-              onChange={(e) => setMerchantFilter(e.target.value)}
-              className={INPUT_BASE_STYLE}
-              autoFocus
-          />
-          {merchantFilter && <button onClick={() => setMerchantFilter('')} className="text-xs text-red-500 w-full text-center hover:underline">Clear</button>}
+          <div>
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Search Text</label>
+              <input
+                  type="text"
+                  placeholder="Search description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={INPUT_BASE_STYLE}
+              />
+          </div>
+          <div>
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Merchant</label>
+              <input
+                  type="text"
+                  placeholder="Filter merchant..."
+                  value={merchantFilter}
+                  onChange={(e) => setMerchantFilter(e.target.value)}
+                  className={INPUT_BASE_STYLE}
+              />
+          </div>
+          {(searchTerm || merchantFilter) && (
+              <button onClick={() => { setSearchTerm(''); setMerchantFilter(''); }} className="text-xs text-red-500 w-full text-center hover:underline pt-1">Clear</button>
+          )}
       </div>
-  ), [merchantFilter]);
+  ), [merchantFilter, searchTerm]);
 
   const categoryFilterContent = useMemo(() => (
       <div className="space-y-2">
-           <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+           <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
               {categoryOptions.map(cat => (
                    <label key={cat.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                        <input type="checkbox" checked={selectedCategoryNames.includes(cat.value)} onChange={() => handleCategoryToggle(cat.value)} className={CHECKBOX_STYLE} />
-                       <span className="truncate" style={{ paddingLeft: cat.level * 12 }}>{cat.label}</span>
+                       <span className="truncate text-xs font-medium" style={{ paddingLeft: cat.level * 12 }}>{cat.label}</span>
                    </label>
               ))}
           </div>
@@ -1232,10 +1295,47 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       </div>
   ), [categoryOptions, handleCategoryToggle, selectedCategoryNames]);
 
+  const locationFilterContent = useMemo(() => (
+      <div className="space-y-2 p-1">
+          <input
+              type="text"
+              placeholder="Search location..."
+              value={locationSearch}
+              onChange={(e) => setLocationSearch(e.target.value)}
+              className={INPUT_BASE_STYLE}
+          />
+          <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              {filteredLocationOptions.map(loc => (
+                  <label key={loc.city} className="flex items-center justify-between gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                      <div className="flex items-center gap-2 min-w-0">
+                          <input
+                              type="checkbox"
+                              checked={selectedLocations.includes(loc.city)}
+                              onChange={() => handleLocationToggle(loc.city)}
+                              className={CHECKBOX_STYLE}
+                          />
+                          <span className="text-base leading-none">{loc.flag}</span>
+                          <span className="truncate text-xs font-semibold text-primary">{loc.city}</span>
+                          <span className="text-[10px] text-tertiary truncate">({loc.country})</span>
+                      </div>
+                      <span className="text-[10px] font-medium text-quaternary shrink-0">
+                          {loc.count}
+                      </span>
+                  </label>
+              ))}
+          </div>
+          {selectedLocations.length > 0 && (
+              <button onClick={() => setSelectedLocations([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">
+                  Clear Location Filters ({selectedLocations.length})
+              </button>
+          )}
+      </div>
+  ), [filteredLocationOptions, handleLocationToggle, locationSearch, selectedLocations]);
+
   const tagFilterContent = useMemo(() => (
       <div className="space-y-2">
           {tagOptions.length > 0 ? (
-              <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+              <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                   {tagOptions.map(tag => (
                       <label key={tag.value} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer rounded-md">
                           <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
@@ -1254,19 +1354,41 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const amountFilterContent = useMemo(() => (
       <div className="space-y-3 p-1">
-          <div className="grid gap-2">
-              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Min</label>
-              <input type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+          <div>
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Type</label>
+              <div className="grid grid-cols-2 gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg">
+                  {typeFilterOptions.map(opt => (
+                      <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setTypeFilter(opt.value)}
+                          className={cx(
+                              "px-2 py-1 rounded text-xs font-semibold transition-all cursor-pointer",
+                              typeFilter === opt.value
+                                  ? "bg-white dark:bg-dark-card shadow-xs text-primary font-bold"
+                                  : "text-tertiary hover:text-primary"
+                          )}
+                      >
+                          {opt.label}
+                      </button>
+                  ))}
+              </div>
           </div>
-          <div className="grid gap-2">
-              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Max</label>
-              <input type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+          <div className="grid grid-cols-2 gap-2">
+              <div>
+                  <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Min (€)</label>
+                  <input type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+              </div>
+              <div>
+                  <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Max (€)</label>
+                  <input type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+              </div>
           </div>
-          {(minAmount || maxAmount) && (
-              <button onClick={() => {setMinAmount(''); setMaxAmount('');}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Amount Filter</button>
+          {(minAmount || maxAmount || typeFilter !== 'all') && (
+              <button onClick={() => {setMinAmount(''); setMaxAmount(''); setTypeFilter('all');}} className="text-xs text-red-500 w-full text-center hover:underline pt-1">Clear Filters</button>
           )}
       </div>
-  ), [maxAmount, minAmount]);
+  ), [maxAmount, minAmount, typeFilter, typeFilterOptions]);
 
   const getCardIcon = (cardNetwork: string) => {
     const network = (cardNetwork || '').toLowerCase();
@@ -1279,6 +1401,192 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     );
     if (network.includes('amex')) return <span className="font-bold text-xs text-blue-500 border border-blue-500 px-0.5 rounded">AMEX</span>;
     return <Icon name="credit_card" className="text-gray-400 text-sm" />;
+  };
+
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: "date",
+    direction: "descending",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, typeFilter, startDate, endDate, minAmount, maxAmount, merchantFilter, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations]);
+
+  const formatDateHeader = useCallback((dateString: string) => {
+    if (!dateString) return 'No Date';
+    const date = parseLocalDate(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isToday = date.toDateString() === today.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    if (isToday) return `Today • ${weekday}, ${formattedDate}`;
+    if (isYesterday) return `Yesterday • ${weekday}, ${formattedDate}`;
+    return `${weekday}, ${formattedDate}`;
+  }, []);
+
+  const sortedTransactions = useMemo(() => {
+    const list = [...filteredTransactions];
+    const col = String(sortDescriptor.column || 'date');
+    const isDesc = sortDescriptor.direction === 'descending';
+
+    return list.sort((a, b) => {
+      let cmp = 0;
+      if (col === 'date') {
+        cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
+      } else if (col === 'amount') {
+        cmp = Math.abs(a.amount) - Math.abs(b.amount);
+      } else if (col === 'description') {
+        cmp = (a.description || '').localeCompare(b.description || '');
+      } else if (col === 'account') {
+        const nameA = accountMapByName[a.accountName || '']?.name || a.accountName || '';
+        const nameB = accountMapByName[b.accountName || '']?.name || b.accountName || '';
+        cmp = nameA.localeCompare(nameB);
+      } else if (col === 'category') {
+        cmp = (a.category || '').localeCompare(b.category || '');
+      } else if (col === 'location') {
+        const locA = formatTransactionLocation(a, user).city;
+        const locB = formatTransactionLocation(b, user).city;
+        cmp = locA.localeCompare(locB);
+      } else {
+        cmp = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
+      }
+      return isDesc ? -cmp : cmp;
+    });
+  }, [filteredTransactions, sortDescriptor, accountMapByName, user]);
+
+  const displayItemsWithSubs = useMemo(() => {
+    const subTxMap = new Map<string, DisplayTransaction[]>();
+    const topLevelList: DisplayTransaction[] = [];
+
+    sortedTransactions.forEach(tx => {
+      if (tx.parentTransactionId) {
+        const list = subTxMap.get(tx.parentTransactionId) || [];
+        list.push({ ...tx, isSubTransaction: true });
+        subTxMap.set(tx.parentTransactionId, list);
+      } else {
+        topLevelList.push(tx);
+      }
+    });
+
+    const isFilterActive = Boolean(debouncedSearchTerm || merchantFilter || minAmount || maxAmount || selectedLocations.length > 0);
+
+    const result: DisplayTransaction[] = [];
+    topLevelList.forEach(tx => {
+      const subTxs = subTxMap.get(tx.id) || [];
+      result.push({
+        ...tx,
+        subItemCount: subTxs.length,
+        isExpanded: expandedParentIds.has(tx.id),
+      });
+
+      const shouldExpand = expandedParentIds.has(tx.id) || isFilterActive;
+      if (shouldExpand && subTxs.length > 0) {
+        subTxs.forEach(sub => result.push(sub));
+      }
+    });
+
+    return result;
+  }, [sortedTransactions, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount, selectedLocations]);
+
+  const totalPages = Math.max(1, Math.ceil(displayItemsWithSubs.length / itemsPerPage));
+
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return displayItemsWithSubs.slice(start, start + itemsPerPage);
+  }, [displayItemsWithSubs, currentPage, itemsPerPage]);
+
+  // Group current page items by date
+  const tableRenderItems = useMemo<TableRenderItem[]>(() => {
+    const items: TableRenderItem[] = [];
+    let currentDate = '';
+    let currentGroupTxs: DisplayTransaction[] = [];
+
+    const flushGroup = () => {
+      if (currentDate && currentGroupTxs.length > 0) {
+        let totalEur = 0;
+        const groupTxIds: string[] = [];
+        currentGroupTxs.forEach(t => {
+          const resolved = resolveTransferDisplay(t);
+          totalEur += convertToEur(resolved.amount, resolved.currency);
+          groupTxIds.push(t.id);
+        });
+
+        const isAllGroupSelected = groupTxIds.length > 0 && groupTxIds.every(id => selectedIds.has(id));
+        const isSomeGroupSelected = groupTxIds.some(id => selectedIds.has(id)) && !isAllGroupSelected;
+
+        items.push({
+          isGroupHeader: true,
+          id: `group-hdr-${currentDate}`,
+          date: currentDate,
+          formattedDate: formatDateHeader(currentDate),
+          count: currentGroupTxs.length,
+          totalEur,
+          groupTxIds,
+          isAllGroupSelected,
+          isSomeGroupSelected,
+        });
+
+        currentGroupTxs.forEach(t => {
+          items.push({
+            isGroupHeader: false,
+            id: t.id,
+            tx: t,
+          });
+        });
+      }
+    };
+
+    paginatedItems.forEach(tx => {
+      const d = tx.date || 'No Date';
+      if (d !== currentDate) {
+        flushGroup();
+        currentDate = d;
+        currentGroupTxs = [tx];
+      } else {
+        currentGroupTxs.push(tx);
+      }
+    });
+    flushGroup();
+
+    return items;
+  }, [paginatedItems, selectedIds, formatDateHeader, resolveTransferDisplay]);
+
+  const selectedKeys = useMemo(() => {
+    if (isAllSelected && filteredTransactions.length > 0) return 'all' as const;
+    return new Set(Array.from(selectedIds));
+  }, [isAllSelected, filteredTransactions.length, selectedIds]);
+
+  const disabledGroupHeaderKeys = useMemo(() => {
+    return new Set(tableRenderItems.filter(i => i.isGroupHeader).map(i => i.id));
+  }, [tableRenderItems]);
+
+  const handleSelectionChange = useCallback((keys: 'all' | Set<React.Key>) => {
+    if (keys === 'all') {
+      setSelectedIds(new Set(filteredTransactions.map(t => t.id)));
+    } else {
+      const validIds = Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-'));
+      setSelectedIds(new Set(validIds));
+    }
+  }, [filteredTransactions]);
+
+  const handleSortBySelect = (newSortBy: string) => {
+    setSortBy(newSortBy);
+    if (newSortBy === 'date-desc') setSortDescriptor({ column: 'date', direction: 'descending' });
+    else if (newSortBy === 'date-asc') setSortDescriptor({ column: 'date', direction: 'ascending' });
+    else if (newSortBy === 'amount-desc') setSortDescriptor({ column: 'amount', direction: 'descending' });
+    else if (newSortBy === 'amount-asc') setSortDescriptor({ column: 'amount', direction: 'ascending' });
+    else if (newSortBy === 'merchant-asc') setSortDescriptor({ column: 'description', direction: 'ascending' });
+    else if (newSortBy === 'merchant-desc') setSortDescriptor({ column: 'description', direction: 'descending' });
+    else if (newSortBy === 'category-asc') setSortDescriptor({ column: 'category', direction: 'ascending' });
+    else if (newSortBy === 'category-desc') setSortDescriptor({ column: 'category', direction: 'descending' });
   };
 
   return (
@@ -1692,32 +2000,44 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               )}
           </div>
       </div>
-      
-      {/* Transaction List Card */}
+      {/* Untitled UI Table Card with Alternating Fills */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="!p-0 h-full flex flex-col relative border border-black/5 dark:border-white/5 shadow-sm rounded-[2rem] bg-white dark:bg-dark-card">
-            <div className="flex flex-col h-full"> {/* Container to avoid inner overflow-x issue */}
-                <div className={`transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${selectedIds.size > 0 ? 'h-[72px] opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
-                  <div className={`${selectedIds.size > 0 ? 'bg-primary-600 dark:bg-primary-900 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-8 flex justify-between items-center h-[72px] z-[40] relative transition-colors duration-500`}>
-                     <div className="flex items-center gap-6">
-                         <div className="flex items-center gap-4">
-                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={`${CHECKBOX_STYLE} border-white/30 checked:bg-white checked:text-primary-600`} aria-label="Select all transactions"/>
-                             <div className="flex flex-col">
-                                <span className="font-semibold text-lg tracking-tight leading-none">{selectedIds.size}</span>
-                                <span className="text-[10px] font-semibold tracking-widest opacity-70">records selected</span>
-                             </div>
-                         </div>
-                         {selectedIds.size > 0 && (
-                             <button 
-                                onClick={() => setSelectedIds(new Set())} 
-                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
-                                aria-label="Deselect all"
-                             >
-                                 <Icon name="close" className="text-lg" />
-                             </button>
-                         )}
-                     </div>
-                    <div className="flex gap-2 flex-wrap">
+        <TableCard.Root className="shadow-sm border border-secondary rounded-2xl bg-primary">
+            <TableCard.Header
+                title="Transactions"
+                badge={`${filteredTransactions.length} records`}
+                description="Every inflow and outflow with location, categories, tags, and audit-ready history."
+                contentTrailing={
+                    <div className="flex items-center gap-2">
+                        {selectedIds.size > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedIds(new Set())}
+                                className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline px-2 cursor-pointer"
+                            >
+                                Clear selection ({selectedIds.size})
+                            </button>
+                        )}
+                        <DropdownIconSimple />
+                    </div>
+                }
+            />
+
+            {/* Bulk Action Header Banner */}
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${selectedIds.size > 0 ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+                <div className="bg-primary-600 dark:bg-primary-900 text-white px-6 py-3 flex justify-between items-center z-20 relative">
+                    <div className="flex items-center gap-4">
+                        <span className="font-semibold text-sm tracking-tight">{selectedIds.size} records selected</span>
+                        <button 
+                            type="button"
+                            onClick={() => setSelectedIds(new Set())} 
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                            aria-label="Deselect all"
+                        >
+                            <Icon name="close" className="text-sm" />
+                        </button>
+                    </div>
+                    <div className="flex gap-1.5 flex-wrap">
                         {[
                             { label: 'Edit', icon: 'edit', onClick: () => setBulkEditModalOpen(true), disabled: selectedIds.size === 0 },
                             { label: 'Categorize', icon: 'category', onClick: handleOpenCategorizeModal, disabled: selectedIds.size === 0 },
@@ -1734,386 +2054,445 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                                 onClick={btn.onClick} 
                                 disabled={btn.disabled}
                                 className={`
-                                    h-10 px-3.5 rounded-2xl flex items-center gap-2 text-[11px] font-semibold tracking-wider transition-all
+                                    h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-semibold tracking-wide transition-all cursor-pointer
                                     ${btn.disabled 
                                         ? 'opacity-40 cursor-not-allowed grayscale' 
                                         : btn.danger
-                                            ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20'
-                                            : 'bg-white/10 hover:bg-white/20 text-white'
+                                            ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm' 
+                                            : 'bg-white/15 hover:bg-white/25 text-white'
                                     }
                                 `}
                             >
-                                <Icon name={btn.icon} className="text-base" />
-                                <span className="hidden md:inline">{btn.label}</span>
+                                <Icon name={btn.icon} className="text-sm" />
+                                <span>{btn.label}</span>
                             </button>
                         ))}
                     </div>
                 </div>
-              </div>
-                
-                <div className="hidden lg:flex px-8 py-4 border-b border-black/5 dark:border-white/5 items-center gap-4 bg-white/50 dark:bg-dark-card/50 sticky top-0 z-[30] backdrop-blur-xl">
-                    <div className="flex items-center justify-center w-6">
-                         <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all visible transactions"/>
-                    </div>
-                    <div className="flex-1 grid grid-cols-12 gap-4 items-center">
-                        <div className="col-span-4">
-                            <ColumnHeader
-                                label="Transaction Details"
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                                isFilterActive={!!merchantFilter}
-                                filterContent={merchantFilterContent}
-                            />
-                        </div>
-                        <div className="col-span-2">
-                             <ColumnHeader
-                                label="Account"
-                                isFilterActive={selectedAccountIds.length > 0}
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                                filterContent={accountFilterContent}
-                             />
-                        </div>
-                        <div className="col-span-3">
-                            <ColumnHeader
-                                label="Category"
-                                sortKey="category"
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                                isFilterActive={selectedCategoryNames.length > 0}
-                                filterContent={categoryFilterContent}
-                            />
-                        </div>
-                        <div className="col-span-2">
-                            <ColumnHeader
-                                label="Tags"
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                                isFilterActive={selectedTagIds.length > 0}
-                                filterContent={tagFilterContent}
-                            />
-                        </div>
-                        <div className="col-span-1 text-right flex justify-end">
-                             <ColumnHeader
-                                label="Value"
-                                sortKey="amount"
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                                alignRight
-                                isFilterActive={!!minAmount || !!maxAmount}
-                                filterContent={amountFilterContent}
-                            />
-                        </div>
-                    </div>
-                    <div className="w-8"></div>
-                </div>
-                <div
-                  ref={listContainerRef}
-                  className="flex-grow bg-white dark:bg-dark-card"
-                  style={{ height: '75vh', minHeight: '600px' }}
+            </div>
+
+            {tableRenderItems.length > 0 ? (
+                <Table
+                    aria-label="Transactions"
+                    selectionMode="multiple"
+                    selectionBehavior="toggle"
+                    selectedKeys={selectedKeys}
+                    disabledKeys={disabledGroupHeaderKeys}
+                    disabledBehavior="selection"
+                    onSelectionChange={handleSelectionChange}
+                    sortDescriptor={sortDescriptor}
+                    onSortChange={setSortDescriptor}
                 >
-                  {virtualRows.length > 0 ? (
-                    <VirtualizedList
-                      height={listHeight}
-                      itemCount={virtualRows.length}
-                      estimatedItemSize={80}
-                      getItemSize={getRowSize}
-                      itemKey={getRowKey}
-                    >
-                      {({ index, style }) => {
-                        const row = virtualRows[index];
-                        
-                        if (row.type === 'header') {
-                            const dateTransactions = virtualRows.filter(r => r.type === 'transaction' && (r as {type: 'transaction', transaction: DisplayTransaction}).transaction.date === row.date);
-                            const allSelected = dateTransactions.length > 0 && dateTransactions.every(r => selectedIds.has((r as {type: 'transaction', transaction: DisplayTransaction}).transaction.id));
-                            const handleSelectDay = (e: React.ChangeEvent<HTMLInputElement>) => {
-                                 e.stopPropagation();
-                                 const nextIds = new Set(selectedIds);
-                                 if (allSelected) {
-                                     dateTransactions.forEach(r => nextIds.delete((r as {type: 'transaction', transaction: DisplayTransaction}).transaction.id));
-                                 } else {
-                                     dateTransactions.forEach(r => nextIds.add((r as {type: 'transaction', transaction: DisplayTransaction}).transaction.id));
-                                 }
-                                 setSelectedIds(nextIds);
-                            };
+                    <Table.Header className="bg-primary">
+                        <Table.Head id="description" label="Transaction Details" isRowHeader allowsSorting className="w-full max-w-[280px] xl:max-w-xs">
+                            <ColumnHeaderFilter
+                                isOpen={openFilterCol === 'description'}
+                                onToggle={() => setOpenFilterCol(prev => prev === 'description' ? null : 'description')}
+                                onClose={() => setOpenFilterCol(null)}
+                                isActive={Boolean(debouncedSearchTerm || merchantFilter)}
+                                title="Details & Merchant"
+                            >
+                                {merchantFilterContent}
+                            </ColumnHeaderFilter>
+                        </Table.Head>
 
-                            return (
-                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
-                                    <div className="flex items-center justify-center w-5">
-                                        <input type="checkbox" className={CHECKBOX_STYLE} checked={allSelected} onChange={handleSelectDay} aria-label={`Select all for ${row.date}`} onClick={e => e.stopPropagation()} />
-                                    </div>
-                                    <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-[0.2em] ml-3">
-                                        {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </span>
-                                </div>
-                            );
-                        }
+                        <Table.Head id="account" label="Account" allowsSorting>
+                            <ColumnHeaderFilter
+                                isOpen={openFilterCol === 'account'}
+                                onToggle={() => setOpenFilterCol(prev => prev === 'account' ? null : 'account')}
+                                onClose={() => setOpenFilterCol(null)}
+                                isActive={selectedAccountIds.length > 0}
+                                activeCount={selectedAccountIds.length}
+                                title="Accounts"
+                            >
+                                {accountFilterContent}
+                            </ColumnHeaderFilter>
+                        </Table.Head>
 
-                    const tx = row.transaction;
-                    let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                        <Table.Head id="category" label="Category" allowsSorting>
+                            <ColumnHeaderFilter
+                                isOpen={openFilterCol === 'category'}
+                                onToggle={() => setOpenFilterCol(prev => prev === 'category' ? null : 'category')}
+                                onClose={() => setOpenFilterCol(null)}
+                                isActive={selectedCategoryNames.length > 0}
+                                activeCount={selectedCategoryNames.length}
+                                title="Categories"
+                            >
+                                {categoryFilterContent}
+                            </ColumnHeaderFilter>
+                        </Table.Head>
 
-                    const fromAcc = accountMapByName[tx.fromAccountName!];
-                    const toAcc = accountMapByName[tx.toAccountName!];
-                    
-                    if (tx.isTransfer) {
-                      amountColor = 'text-light-text dark:text-dark-text';
-                      if (selectedAccountIds.length > 0) {
-                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-red-600 dark:text-red-400'; }
-                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-green-600 dark:text-green-400'; }
-                      }
-                    }
+                        <Table.Head id="location" label="Location" allowsSorting>
+                            <ColumnHeaderFilter
+                                isOpen={openFilterCol === 'location'}
+                                onToggle={() => setOpenFilterCol(prev => prev === 'location' ? null : 'location')}
+                                onClose={() => setOpenFilterCol(null)}
+                                isActive={selectedLocations.length > 0}
+                                activeCount={selectedLocations.length}
+                                title="Locations"
+                            >
+                                {locationFilterContent}
+                            </ColumnHeaderFilter>
+                        </Table.Head>
 
-                    const categoryDetails = getCategoryDetails(tx.category, allCategories);
-                    const categoryColor = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (categoryDetails.color || '#A0AEC0');
-                    const categoryIcon = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'swap_horiz' : (categoryDetails.icon || 'category');
-                    const merchantKey = normalizeMerchantKey(tx.merchant);
-                    const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
-                    const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
-                    const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
+                        <Table.Head id="tags" label="Tags">
+                            <ColumnHeaderFilter
+                                isOpen={openFilterCol === 'tags'}
+                                onToggle={() => setOpenFilterCol(prev => prev === 'tags' ? null : 'tags')}
+                                onClose={() => setOpenFilterCol(null)}
+                                isActive={selectedTagIds.length > 0}
+                                activeCount={selectedTagIds.length}
+                                title="Tags"
+                            >
+                                {tagFilterContent}
+                            </ColumnHeaderFilter>
+                        </Table.Head>
 
-                    // Account Info
-                    const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
-                    const cardNetwork = account?.cardNetwork;
-                    const accountName = account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : 'Unknown');
-                    const accountSub = account ? (account.last4 ? `•••• ${account.last4}` : (account.type === 'Credit Card' ? 'Credit' : account.type)) : 'Manual';
-                    
-                    const resolvedDisplay = resolveTransferDisplay(tx);
-                    const displayAmount = tx.isTransfer && selectedAccountIds.length === 0
-                        ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
-                        : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
+                        <Table.Head id="amount" label="Value" allowsSorting className="text-right">
+                            <ColumnHeaderFilter
+                                isOpen={openFilterCol === 'amount'}
+                                onToggle={() => setOpenFilterCol(prev => prev === 'amount' ? null : 'amount')}
+                                onClose={() => setOpenFilterCol(null)}
+                                isActive={Boolean(minAmount || maxAmount || typeFilter !== 'all')}
+                                title="Value & Type"
+                            >
+                            {amountFilterContent}
+                            </ColumnHeaderFilter>
+                        </Table.Head>
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
-                    const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
-                    
-                    const accentColor = tx.isTransfer 
-                        ? 'rgba(59, 130, 246, 0.4)' 
-                        : (tx.type === 'income' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)');
+                        <Table.Head id="actions" className="w-16 text-right" />
+                    </Table.Header>
+                    <Table.Body items={tableRenderItems} dependencies={[selectedIds]}>
+                        {(item: TableRenderItem) => {
+                            if (item.isGroupHeader) {
+                                const handleToggleGroup = (e?: React.MouseEvent) => {
+                                    e?.stopPropagation();
+                                    e?.preventDefault();
+                                    setSelectedIds(prev => {
+                                        const next = new Set(prev);
+                                        if (item.isAllGroupSelected) {
+                                            item.groupTxIds.forEach(id => next.delete(id));
+                                        } else {
+                                            item.groupTxIds.forEach(id => next.add(id));
+                                        }
+                                        return next;
+                                    });
+                                };
 
-                    return (
-                      <div
-                        key={tx.id}
-                        style={style}
-                        className="px-1 py-1"
-                      >
-                        <motion.div
-                            initial={false}
-                            whileHover={{ y: -1 }}
-                            className={`
-                                group relative h-full flex items-center gap-2 px-3 rounded-[1.5rem] border transition-all duration-300 cursor-default
-                                ${selectedIds.has(tx.id)
-                                    ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/30 shadow-lg shadow-primary-500/5'
-                                    : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 shadow-sm'
-                                }
-                            `}
-                            style={{
-                                boxShadow: selectedIds.has(tx.id) ? `0 10px 30px -10px ${accentColor.replace('0.4', '0.15')}` : undefined
-                            }}
-                            onDoubleClick={() => {
-                              setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
-                              setTransactionModalOpen(true);
-                            }}
-                            onContextMenu={(e) => openContextMenu(e, tx)}
-                         >
-                            {/* Inner Glow Effect */}
-                            <div className="absolute inset-0 pointer-events-none rounded-[1.5rem] overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                                <div 
-                                    className="absolute inset-0"
-                                    style={{ 
-                                        background: `radial-gradient(circle at 100% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
-                                    }}
-                                />
-                            </div>
-
-                             <div className="flex items-center justify-center w-6 z-10 shrink-0">
-                                 <input 
-                                     type="checkbox" 
-                                     className={`${CHECKBOX_STYLE} !rounded-lg border-black/10 dark:border-white/10`} 
-                                     checked={selectedIds.has(tx.id)} 
-                                     onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} 
-                                     onClick={e => e.stopPropagation()} 
-                                     aria-label={`Select transaction ${tx.description}`} 
-                                 />
-                             </div>
-
-                             <div className={`flex-1 flex lg:grid lg:grid-cols-12 gap-4 items-center min-w-0 z-10 ${tx.parentTransactionId ? 'pl-6 sm:pl-8 md:pl-10 border-l-2 border-primary-500/40 ml-1' : ''}`}>
-                                {/* Column 1: Description */}
-                                <div className="flex-1 lg:col-span-4 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-                                    {tx.parentTransactionId && (
-                                        <Icon name="subdirectory_arrow_right" className="text-sm text-primary-500 shrink-0 opacity-70" />
-                                    )}
-                                    {(tx.isSplitParent || tx.isCombinedParent) && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => toggleExpandParent(tx.id, e)}
-                                            className="w-6 h-6 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary transition-all shrink-0"
-                                            title={tx.isExpanded ? "Collapse sub-transactions" : "Expand sub-transactions"}
-                                        >
-                                            <Icon name={tx.isExpanded ? "expand_more" : "chevron_right"} className="text-base" />
-                                        </button>
-                                    )}
-                                    <div className="shrink-0">
-                                        <div
-                                            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center text-white overflow-hidden shrink-0 ${showMerchantLogo ? 'bg-white dark:bg-white/10' : ''}`}
-                                            style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
-                                        >
-                                            {showMerchantLogo && merchantLogoUrl ? (
-                                                <img
-                                                    src={merchantLogoUrl}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                    referrerPolicy="no-referrer"
-                                                    onError={() => handleLogoError(merchantLogoUrl)}
+                                return (
+                                    <Table.Row
+                                        id={item.id}
+                                        size="xs"
+                                        customSelectionSlot={
+                                            <button
+                                                type="button"
+                                                aria-label={`Select all ${item.formattedDate} transactions`}
+                                                onClick={handleToggleGroup}
+                                                onPointerDown={(e) => e.stopPropagation()}
+                                                onPointerUp={(e) => e.stopPropagation()}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onMouseUp={(e) => e.stopPropagation()}
+                                                className="cursor-pointer p-0.5 rounded focus:outline-hidden"
+                                            >
+                                                <CheckboxBase
+                                                    size="sm"
+                                                    isSelected={item.isAllGroupSelected}
+                                                    isIndeterminate={item.isSomeGroupSelected}
                                                 />
-                                            ) : merchantInitial ? (
-                                                <span className="text-sm font-black tracking-widest">{merchantInitial}</span>
-                                            ) : (
-                                                <Icon name={categoryIcon} className="text-xl" />
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="min-w-0 flex-grow">
-                                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                            <p className="font-semibold text-[14px] sm:text-[15px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
-                                            {tx.isSplitParent && (
-                                              <span className="text-[8px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
-                                                Split ({tx.subItemCount || 0})
-                                              </span>
-                                            )}
-                                            {tx.isCombinedParent && (
-                                              <span className="text-[8px] font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md shrink-0 border border-indigo-500/20">
-                                                Combined ({tx.subItemCount || 0})
-                                              </span>
-                                            )}
-                                            {tx.recurringSourceId && <Icon name="repeat" className="text-[13px] text-primary-500 shrink-0" />}
-                                            {tx.notes && <Icon name="notes" className="text-[13px] text-primary-500/40 shrink-0" />}
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-x-2">
-                                            <span className="text-[11px] sm:text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-60 truncate max-w-[150px]">
-                                                {tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}
-                                            </span>
-                                            {/* Mobile Secondary Info - Balanced Polish */}
-                                            <div className="lg:hidden flex flex-wrap items-center gap-1 mt-1">
-                                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60">
-                                                    <Icon name="account_balance_wallet" className="text-[9px]" />
-                                                    <span className="text-[8px] sm:text-[9px] font-medium truncate max-w-[50px] sm:max-w-[80px]">{accountName}</span>
-                                                </div>
-                                                <span className="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-lg font-bold tracking-wider flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
-                                                    <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}></span>
-                                                    <span className="truncate max-w-[60px] sm:max-w-[70px]">{tx.category || 'Unset'}</span>
+                                            </button>
+                                        }
+                                        className="bg-secondary/90 dark:bg-white/[0.04] border-y border-secondary select-none font-medium hover:bg-secondary cursor-default"
+                                    >
+                                        {/* 1. Details (Date Banner) */}
+                                        <Table.Cell size="xs" className="!py-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-primary tracking-tight">
+                                                    {item.formattedDate}
+                                                </span>
+                                                <span className="text-xs font-medium text-tertiary px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 shrink-0">
+                                                    {item.count}
                                                 </span>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                        </Table.Cell>
 
-                                {/* Column 2: Account */}
-                                <div className="hidden lg:flex col-span-2 items-center gap-3 min-w-0">
-                                    <div className="shrink-0">
-                                        {showInstitutionLogo ? (
-                                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden shrink-0 bg-white dark:bg-white/10 flex items-center justify-center">
-                                                <img 
-                                                    src={institutionLogoUrl!} 
-                                                    alt="" 
-                                                    className="w-full h-full object-cover" 
-                                                    referrerPolicy="no-referrer"
-                                                    onError={() => handleLogoError(institutionLogoUrl!)}
+                                        {/* 2. Account */}
+                                        <Table.Cell size="xs" className="!py-1">
+                                            <span className="sr-only">Account</span>
+                                        </Table.Cell>
+
+                                        {/* 3. Category */}
+                                        <Table.Cell size="xs" className="!py-1">
+                                            <span className="sr-only">Category</span>
+                                        </Table.Cell>
+
+                                        {/* 4. Location */}
+                                        <Table.Cell size="xs" className="!py-1">
+                                            <span className="sr-only">Location</span>
+                                        </Table.Cell>
+
+                                        {/* 5. Tags */}
+                                        <Table.Cell size="xs" className="!py-1">
+                                            <span className="sr-only">Tags</span>
+                                        </Table.Cell>
+
+                                        {/* 6. Amount (Daily Net Sum) */}
+                                        <Table.Cell size="xs" className="!py-1 text-right whitespace-nowrap">
+                                            <span className={cx(
+                                                "text-sm font-semibold tracking-tight",
+                                                item.totalEur > 0 ? "text-green-600 dark:text-green-400" : item.totalEur < 0 ? "text-light-text dark:text-dark-text" : "text-tertiary"
+                                            )}>
+                                                {item.totalEur > 0 ? `+${formatCurrency(item.totalEur, 'EUR')}` : formatCurrency(item.totalEur, 'EUR')}
+                                            </span>
+                                        </Table.Cell>
+
+                                        {/* 7. Actions */}
+                                        <Table.Cell size="xs" className="!py-1 px-4 text-right">
+                                            <span className="sr-only">Actions</span>
+                                        </Table.Cell>
+                                    </Table.Row>
+                                );
+                            } else {
+                                const tx = (item as { isGroupHeader: false; id: string; tx: DisplayTransaction }).tx;
+                                let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+
+                                const fromAcc = accountMapByName[tx.fromAccountName!];
+                                const toAcc = accountMapByName[tx.toAccountName!];
+                                
+                                if (tx.isTransfer) {
+                                  amountColor = 'text-primary';
+                                  if (selectedAccountIds.length > 0) {
+                                    if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-red-600 dark:text-red-400'; }
+                                    else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-green-600 dark:text-green-400'; }
+                                  }
+                                }
+
+                                const txType = tx.isTransfer ? 'transfer' : tx.type;
+                                const typeIndicator = txType === 'income'
+                                  ? {
+                                      dot: "bg-emerald-500 shadow-xs shadow-emerald-500/50",
+                                      label: "Income"
+                                    }
+                                  : txType === 'expense'
+                                  ? {
+                                      dot: "bg-rose-500 shadow-xs shadow-rose-500/50",
+                                      label: "Expense"
+                                    }
+                                  : {
+                                      dot: "bg-slate-400 dark:bg-white/80 shadow-xs",
+                                      label: "Internal Transfer"
+                                    };
+
+                                const categoryDetails = getCategoryDetails(tx.category, allCategories);
+                                const categoryColor = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (categoryDetails.color || '#A0AEC0');
+                                const categoryIcon = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? 'swap_horiz' : (categoryDetails.icon || 'category');
+                                const merchantKey = normalizeMerchantKey(tx.merchant);
+                                const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
+                                const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
+                                const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
+
+                                const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
+                                const accountName = account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : 'Unknown');
+                                const accountSub = account ? (account.last4 ? `•••• ${account.last4}` : (account.type === 'Credit Card' ? 'Credit' : account.type)) : 'Manual';
+                                
+                                const resolvedDisplay = resolveTransferDisplay(tx);
+                                const displayAmount = tx.isTransfer && selectedAccountIds.length === 0
+                                    ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
+                                    : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
+
+                                const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                                const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
+                                const loc = formatTransactionLocation(tx, user);
+
+                                return (
+                                    <Table.Row
+                                        id={tx.id}
+                                        className={cx(
+                                            "odd:bg-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group",
+                                            tx.parentTransactionId && "bg-primary-500/[0.03] dark:bg-primary-500/[0.05]"
+                                        )}
+                                        onDoubleClick={() => {
+                                          setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
+                                          setTransactionModalOpen(true);
+                                        }}
+                                        onContextMenu={(e) => openContextMenu(e, tx)}
+                                    >
+                                        {/* 1. Details */}
+                                        <Table.Cell>
+                                            <div className={cx("flex items-center gap-3 min-w-0 py-0.5", tx.parentTransactionId && "pl-6 border-l-2 border-primary-500/40 ml-1")}>
+                                                {tx.parentTransactionId && (
+                                                    <Icon name="subdirectory_arrow_right" className="size-3.5 text-primary-500 shrink-0 opacity-70" />
+                                                )}
+                                                {(tx.isSplitParent || tx.isCombinedParent) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => toggleExpandParent(tx.id, e)}
+                                                        className="size-6 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 flex items-center justify-center text-secondary transition-all shrink-0 cursor-pointer"
+                                                        title={tx.isExpanded ? "Collapse sub-transactions" : "Expand sub-transactions"}
+                                                    >
+                                                        <Icon name={tx.isExpanded ? "expand_more" : "chevron_right"} className="text-sm" />
+                                                    </button>
+                                                )}
+                                                {showMerchantLogo && merchantLogoUrl ? (
+                                                    <div className="size-10 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.04]">
+                                                        <img src={merchantLogoUrl} alt={tx.merchant || tx.description} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : merchantInitial ? (
+                                                    <div className="size-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 text-sm shadow-xs" style={{ backgroundColor: categoryColor }}>
+                                                        {merchantInitial}
+                                                    </div>
+                                                ) : (
+                                                    <div className="size-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs" style={{ backgroundColor: categoryColor }}>
+                                                        <Icon name={categoryIcon} className="text-lg" />
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <p className="text-base font-semibold text-primary truncate max-w-[220px] xl:max-w-xs">{tx.description}</p>
+                                                        {tx.isSplitParent && (
+                                                            <Badge color="warning" size="sm">Split ({tx.subItemCount || 0})</Badge>
+                                                        )}
+                                                        {tx.isCombinedParent && (
+                                                            <Badge color="indigo" size="sm">Combined ({tx.subItemCount || 0})</Badge>
+                                                        )}
+                                                        {tx.recurringSourceId && <Icon name="repeat" className="text-xs text-primary-500 shrink-0" />}
+                                                        {tx.notes && <Icon name="notes" className="text-xs text-primary-500/50 shrink-0" />}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-sm text-tertiary truncate">
+                                                        <span className={cx("size-1.5 rounded-full shrink-0", typeIndicator.dot)} title={typeIndicator.label} />
+                                                        <span className="truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Table.Cell>
+
+                                        {/* 2. Account */}
+                                        <Table.Cell className="whitespace-nowrap">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                {showInstitutionLogo ? (
+                                                    <div className="size-8 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.04]">
+                                                        <img src={institutionLogoUrl} alt={accountName} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="size-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 text-tertiary shrink-0">
+                                                        <Icon name="account_balance" className="text-sm opacity-50" />
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <p className="text-base font-medium text-primary truncate max-w-[150px]">{accountName}</p>
+                                                    <p className="text-sm text-tertiary truncate">{accountSub}</p>
+                                                </div>
+                                            </div>
+                                        </Table.Cell>
+
+                                        {/* 3. Category */}
+                                        <Table.Cell className="whitespace-nowrap">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
+                                                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all hover:scale-105 active:scale-95 shadow-2xs group/cat"
+                                                style={{ backgroundColor: `${categoryColor}18`, color: categoryColor }}
+                                                title={`Category: ${tx.category || 'Uncategorized'}`}
+                                            >
+                                                <Icon name={categoryIcon} className="text-sm shrink-0" />
+                                                <span className="truncate max-w-[120px]">{tx.category || 'Uncategorized'}</span>
+                                            </button>
+                                        </Table.Cell>
+
+                                        {/* 4. Location */}
+                                        <Table.Cell className="whitespace-nowrap">
+                                            <div
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/10 transition-all select-none group/loc"
+                                                title={loc.fullDisplay}
+                                            >
+                                                <span className="text-base leading-none shrink-0 drop-shadow-2xs select-none">{loc.flag}</span>
+                                                <span className="text-xs font-semibold text-primary truncate max-w-[120px]">{loc.city}</span>
+                                            </div>
+                                        </Table.Cell>
+
+                                        {/* 5. Tags */}
+                                        <Table.Cell className="whitespace-nowrap">
+                                            <div className="flex items-center gap-1">
+                                                {tx.tagIds && tx.tagIds.length > 0 ? (
+                                                    <>
+                                                        {tx.tagIds.slice(0, 1).map(tagId => {
+                                                            const tag = tags.find(t => t.id === tagId);
+                                                            if (!tag) return null;
+                                                            return (
+                                                                <span key={tag.id} className="px-2 py-0.5 rounded-md text-xs font-medium" style={{ backgroundColor: `${tag.color}18`, color: tag.color }}>
+                                                                    {tag.name}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                        {tx.tagIds.length > 1 && (
+                                                            <Badge color="gray" size="sm">+{tx.tagIds.length - 1}</Badge>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-quaternary opacity-40">—</span>
+                                                )}
+                                            </div>
+                                        </Table.Cell>
+
+                                        {/* 6. Amount */}
+                                        <Table.Cell className="whitespace-nowrap text-right">
+                                            <div className="flex flex-col items-end">
+                                                <span className={`text-base font-semibold tracking-tight ${amountColor}`}>
+                                                    {displayAmount}
+                                                </span>
+                                                {tx.spareChangeAmount ? (
+                                                    <div className="flex items-center justify-end gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-500 text-xs font-semibold animate-pulse">
+                                                        <Icon name="savings" className="text-xs" />
+                                                        <span>{formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}</span>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        </Table.Cell>
+
+                                        {/* 7. Actions */}
+                                        <Table.Cell className="px-4 whitespace-nowrap text-right">
+                                            <div className="flex justify-end opacity-80 group-hover:opacity-100 transition-opacity">
+                                                <ButtonUtility
+                                                    size="sm"
+                                                    color="tertiary"
+                                                    tooltip="Options"
+                                                    icon={DotsVertical}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openContextMenu(e, tx);
+                                                    }}
                                                 />
                                             </div>
-                                        ) : (
-                                            <div className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded-2xl shrink-0">
-                                                <Icon name="account_balance" className="text-xl text-light-text-secondary dark:text-dark-text-secondary opacity-40" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[14px] font-semibold text-light-text dark:text-dark-text truncate tracking-tight leading-tight">{accountName}</p>
-                                        <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-40 leading-tight tracking-tighter">{accountSub}</p>
-                                    </div>
-                                </div>
-
-                                {/* Column 3: Category */}
-                                <div className="hidden lg:block col-span-3 overflow-hidden">
-                                    <div 
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors duration-300 max-w-full cursor-pointer overflow-hidden font-bold text-[12px]"
-                                        style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
-                                        onClick={(e) => { e.stopPropagation(); setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
-                                    >
-                                        <Icon name={categoryIcon} className="text-[16px] shrink-0" style={{ color: categoryColor }} />
-                                        <span className="truncate">
-                                            {tx.category || 'Uncategorized'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Column 4: Tags */}
-                                <div className="hidden lg:block col-span-2 overflow-hidden">
-                                    {tx.tagIds && tx.tagIds.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {tx.tagIds.slice(0, 1).map(tagId => {
-                                                const tag = tags.find(t => t.id === tagId);
-                                                if (!tag) return null;
-                                                return (
-                                                    <span key={tag.id} className="px-2.5 py-1 rounded-lg text-[12px] font-bold" style={{ backgroundColor: `${tag.color}15`, color: tag.color }}>
-                                                        {tag.name}
-                                                    </span>
-                                                );
-                                            })}
-                                            {tx.tagIds.length > 1 && (
-                                                <span className="text-[12px] font-black text-primary-500">+{tx.tagIds.length - 1}</span>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <span className="text-[12px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-30">No tags</span>
-                                    )}
-                                </div>
-
-                                {/* Column 5: Amount */}
-                                <div className="sm:col-span-1 lg:col-span-1 text-right flex flex-col items-end shrink-0">
-                                    <span className={`text-[15px] sm:text-base font-semibold tracking-tighter ${amountColor}`}>
-                                        {displayAmount}
-                                    </span>
-                                    {tx.spareChangeAmount ? (
-                                        <div className="flex items-center justify-end gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-500 animate-pulse">
-                                            <Icon name="savings" className="text-[12px]" />
-                                            <span className="text-[11px] font-semibold tracking-widest">{formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-60 transition-opacity">
-                                            <span className="text-[8px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Verified</span>
-                                            <Icon name="verified" className="text-[10px] text-green-500" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Action Button */}
-                            <div className="w-8 flex justify-end opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 duration-300 z-20">
-                                <button
-                                    className="w-8 h-8 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary flex items-center justify-center transition-colors"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        openContextMenu(e, tx);
-                                    }}
-                                    aria-label="Actions"
-                                >
-                                    <Icon name="more_vert" className="text-xl" />
-                                </button>
-                            </div>
-                         </motion.div>
-                      </div>
-                    );
-                  }}
-                    </VirtualizedList>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-16 text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-                      <Icon name="search_off" className="text-5xl mb-2" />
-                      <p>No transactions match the current filters.</p>
-                    </div>
-                  )}
+                                        </Table.Cell>
+                                    </Table.Row>
+                                );
+                            }
+                        }}
+                    </Table.Body>
+                </Table>
+            ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-tertiary">
+                    <Icon name="search_off" className="text-5xl mb-2 opacity-50" />
+                    <p className="text-sm font-medium">No transactions match the current filters.</p>
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 cursor-pointer"
+                    >
+                        Reset all filters
+                    </button>
                 </div>
-              </div>
-          </Card>
+            )}
+
+            <PaginationPageMinimalCenter
+                page={currentPage}
+                total={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={displayItemsWithSubs.length}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={setItemsPerPage}
+                className="px-4 py-3 md:px-6 md:pt-3 md:pb-4"
+            />
+        </TableCard.Root>
       </div>
     </div>
     </div>
