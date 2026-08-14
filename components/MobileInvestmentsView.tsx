@@ -1,276 +1,933 @@
-import React, { useState } from 'react';
-import { Account, InvestmentTransaction, Warrant, HoldingsOverview, Currency } from '../types';
-import { formatCurrency } from '../utils';
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+  Account,
+  InvestmentTransaction,
+  Warrant,
+  HoldingsOverview,
+  Currency,
+  InvestmentSubType,
+} from '../types';
+import {
+  formatCurrency,
+  convertCurrency,
+  parseLocalDate,
+  toLocalISOString,
+} from '../utils';
+import { INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Icon from './ui/Icon';
 import SwipeableRow from './SwipeableRow';
 import PullToRefresh from './PullToRefresh';
-import FloatingActionButton from './FloatingActionButton';
+import BottomSheet from './BottomSheet';
+import {
+  PieChart as BklitPieChart,
+  PieSlice,
+  PieCenter,
+  type PieData,
+} from '../src/components/charts';
 
-interface MobileInvestmentsViewProps {
+export type InvestmentMobileTab = 'holdings' | 'accounts' | 'performance' | 'activity';
+export type InvestmentSegment =
+  | 'all'
+  | 'Stock'
+  | 'ETF'
+  | 'Crypto'
+  | 'Warrant'
+  | 'Spare Change'
+  | 'Pension Fund'
+  | 'Other';
+
+export interface MobileInvestmentsViewProps {
   accounts: Account[];
+  cashAccounts: Account[];
   investmentTransactions: InvestmentTransaction[];
+  warrants: Warrant[];
+  transactions: Transaction[];
+  prices: Record<string, number | null>;
+  manualPrices: Record<string, number | undefined>;
+
   holdingsOverview?: HoldingsOverview;
+  globalOverview: HoldingsOverview;
+  activeOverview: HoldingsOverview;
+  displayHoldings: any[];
+  holdingsByType: [string, any[]][];
+  segmentValues: Record<string, number>;
+  segmentMetrics: { totalValue: number; details: any[] };
+  recentActivity: any[];
+  realizedPerformance: {
+    realizedSales: any[];
+    totalRealizedGain: number;
+    winsCount: number;
+    lossesCount: number;
+    biggestWin: { symbol: string; gain: number; gainPercent: number };
+    biggestLoss: { symbol: string; gain: number; gainPercent: number };
+  };
+
+  activeSegment: InvestmentSegment;
+  setActiveSegment: (seg: InvestmentSegment) => void;
+  segments: { id: InvestmentSegment; label: string; icon: string; color: string }[];
+  showInactiveHoldings: boolean;
+  setShowInactiveHoldings: (show: boolean) => void;
+
   onOpenHoldingDetail: (symbol: string) => void;
-  onAddTransaction: () => void;
+  onAddTransaction: (tx?: InvestmentTransaction) => void;
+  onAddWarrant: (w?: Warrant) => void;
+  onEditAccount: (account: Account) => void;
+  onAdjustBalance: (account: Account) => void;
+  onDeleteAccount: (account: Account) => void;
+  onDeleteActivity: (id: string, isWarrant: boolean) => void;
+  onOpenPriceModal: (symbol: string, name: string, currentPrice: number | null) => void;
+  onUpdateAllPrices: () => Promise<void>;
+  isUpdatingPrices: boolean;
   onViewAccount?: (accountId: string) => void;
   preferredCurrency?: string;
   conversionRates?: any;
-  onRefreshData?: () => Promise<void>;
 }
 
-type InvestmentSegment = 'all' | 'Warrant' | 'Standard';
+const ASSET_TYPE_COLORS: Record<string, string> = {
+  Stock: '#3b82f6',
+  ETF: '#0d9488',
+  Crypto: '#f59e0b',
+  Warrant: '#f43f5e',
+  'Spare Change': '#10b981',
+  'Pension Fund': '#8b5cf6',
+  Other: '#64748b',
+};
 
 export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
   accounts,
+  cashAccounts,
   investmentTransactions,
+  warrants,
+  transactions,
+  prices,
+  manualPrices,
   holdingsOverview,
+  globalOverview,
+  activeOverview,
+  displayHoldings,
+  holdingsByType,
+  segmentValues,
+  segmentMetrics,
+  recentActivity,
+  realizedPerformance,
+  activeSegment,
+  setActiveSegment,
+  segments,
+  showInactiveHoldings,
+  setShowInactiveHoldings,
   onOpenHoldingDetail,
   onAddTransaction,
+  onAddWarrant,
+  onEditAccount,
+  onAdjustBalance,
+  onDeleteAccount,
+  onDeleteActivity,
+  onOpenPriceModal,
+  onUpdateAllPrices,
+  isUpdatingPrices,
   onViewAccount,
   preferredCurrency = 'EUR',
   conversionRates,
-  onRefreshData,
 }) => {
-  const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
-  const [viewTab, setViewTab] = useState<'holdings' | 'accounts'>('holdings');
+  const [activeTab, setActiveTab] = useState<InvestmentMobileTab>('holdings');
+  const [isActionsSheetOpen, setIsActionsSheetOpen] = useState(false);
 
   const curr = preferredCurrency as Currency;
 
   const handleRefresh = async () => {
-    if (onRefreshData) {
-      await onRefreshData();
+    if (onUpdateAllPrices) {
+      await onUpdateAllPrices();
     } else {
       await new Promise((res) => setTimeout(res, 800));
     }
   };
 
-  const totalPortfolioValue = holdingsOverview?.totalValue || 0;
-  const totalCostBasis = holdingsOverview?.totalCostBasis || 0;
-  const totalUnrealizedGain = totalPortfolioValue - totalCostBasis;
+  const investmentAccounts = useMemo(
+    () => accounts.filter((a) => a.type === 'Investment' && a.status !== 'closed'),
+    [accounts]
+  );
+
+  const currentSegmentTotal = segmentValues[activeSegment] ?? segmentValues.all ?? 0;
+  const { totalCostBasis, totalValue } = activeOverview;
+  const totalUnrealizedGain = totalValue - totalCostBasis;
   const totalGainPercent = totalCostBasis > 0 ? (totalUnrealizedGain / totalCostBasis) * 100 : 0;
 
-  const holdings = holdingsOverview?.holdings || [];
+  // Pie chart data for allocation
+  const allocationPieData: PieData[] = useMemo(() => {
+    const list = Object.entries(segmentValues)
+      .filter(([k, val]) => k !== 'all' && val > 0)
+      .map(([k, val]) => ({
+        label: k,
+        value: val,
+        color: ASSET_TYPE_COLORS[k] || '#6366f1',
+      }));
 
-  const filteredHoldings = holdings.filter((h) => {
-    if (activeSegment === 'all') return true;
-    return h.type === activeSegment;
-  });
+    return list.sort((a, b) => b.value - a.value);
+  }, [segmentValues]);
 
-  const investmentAccounts = accounts.filter((a) => a.type === 'Investment');
-
-  const segments: { id: InvestmentSegment; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'Standard', label: 'Standard' },
-    { id: 'Warrant', label: 'Warrants' },
-  ];
+  // Segment Hero Gradient
+  const heroGradient = useMemo(() => {
+    switch (activeSegment) {
+      case 'Stock':
+        return 'from-[#0b1b36] via-[#10274e] to-[#1c183d] border-blue-500/20';
+      case 'ETF':
+        return 'from-[#062424] via-[#0b3838] to-[#182a35] border-teal-500/20';
+      case 'Crypto':
+        return 'from-[#2e1d05] via-[#432906] to-[#25152b] border-amber-500/20';
+      case 'Warrant':
+        return 'from-[#2d0915] via-[#440e20] to-[#241334] border-rose-500/20';
+      case 'Spare Change':
+        return 'from-[#06241b] via-[#0d3b2c] to-[#142337] border-emerald-500/20';
+      case 'Pension Fund':
+        return 'from-[#1c0c32] via-[#2d1252] to-[#1d1639] border-purple-500/20';
+      default:
+        return 'from-[#0d172e] via-[#132347] to-[#1d1438] border-indigo-500/20';
+    }
+  }, [activeSegment]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="space-y-5 pb-24 animate-fade-in md:hidden relative">
-        {/* Header */}
-        <div className="flex items-center justify-between pt-1">
+      <div className="space-y-4 pb-28 animate-fade-in md:hidden font-sans select-none">
+        {/* ================================================================= */}
+        {/* 1. iOS Top Navigation Header */}
+        {/* ================================================================= */}
+        <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-              Wealth & Portfolio
+            <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+              Portfolio & Wealth
             </p>
-            <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight">
-              Investments
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight leading-tight">
+                Investments
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                Live Tracking
+              </span>
+            </div>
           </div>
 
-          <button
-            onClick={onAddTransaction}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-500/25 flex items-center justify-center active:scale-95 touch-feedback transition-all"
-            aria-label="Add Investment"
-          >
-            <Icon name="add" className="text-2xl" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Update Prices Trigger */}
+            <button
+              type="button"
+              onClick={onUpdateAllPrices}
+              disabled={isUpdatingPrices}
+              aria-label="Update Live Prices"
+              className={`h-9 px-3 rounded-2xl flex items-center gap-1.5 text-xs font-bold transition-all border shadow-xs active:scale-95 ${
+                isUpdatingPrices
+                  ? 'bg-teal-500 text-white border-teal-600 opacity-80'
+                  : 'bg-white/80 dark:bg-dark-card/80 border-black/10 dark:border-white/10 text-light-text dark:text-white hover:bg-black/5'
+              }`}
+            >
+              <Icon
+                name="refresh"
+                className={`text-sm ${isUpdatingPrices ? 'animate-spin text-white' : 'text-teal-500'}`}
+              />
+              <span>{isUpdatingPrices ? 'Syncing...' : 'Prices'}</span>
+            </button>
+
+            {/* Quick Action Button */}
+            <button
+              type="button"
+              onClick={() => setIsActionsSheetOpen(true)}
+              aria-label="Add Investment Action"
+              className="h-9 w-9 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-md shadow-teal-500/25 active:scale-95"
+            >
+              <Icon name="add" className="text-xl" />
+            </button>
+          </div>
         </div>
 
-        {/* Hero Portfolio Card */}
-        <div className="relative overflow-hidden rounded-[2.2rem] bg-gradient-to-br from-teal-950 via-slate-900 to-emerald-950 p-6 text-white shadow-xl border border-teal-500/20">
-          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-teal-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 space-y-3">
-            <div className="flex items-center justify-between text-xs text-teal-200/70 font-bold uppercase tracking-wider">
-              <span>Investment Portfolio</span>
-              <span>{preferredCurrency}</span>
+        {/* ================================================================= */}
+        {/* 2. iOS Segmented Asset Class Filter */}
+        {/* ================================================================= */}
+        <div className="p-1 rounded-2xl bg-black/5 dark:bg-white/[0.06] border border-black/[0.04] dark:border-white/[0.04] flex items-center gap-1 overflow-x-auto no-scrollbar scroll-touch">
+          {segments.map((seg) => {
+            const isActive = activeSegment === seg.id;
+            return (
+              <button
+                key={seg.id}
+                type="button"
+                onClick={() => setActiveSegment(seg.id)}
+                className={`flex-1 min-w-[58px] py-1.5 px-2 rounded-xl text-xs font-extrabold transition-all text-center whitespace-nowrap ${
+                  isActive
+                    ? 'bg-white dark:bg-[#2c2d30] text-teal-600 dark:text-teal-400 shadow-sm'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-70 hover:opacity-100'
+                }`}
+              >
+                {seg.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ================================================================= */}
+        {/* 3. Hero Investment Portfolio Card */}
+        {/* ================================================================= */}
+        <div
+          className={`relative overflow-hidden rounded-[2.2rem] bg-gradient-to-br ${heroGradient} text-white p-5 shadow-xl border`}
+        >
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center justify-between text-xs text-white/80 font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-1.5">
+                <Icon name="candlestick_chart" className="text-sm text-teal-400" />
+                <span>
+                  {activeSegment === 'all' ? 'Total Portfolio Value' : `${activeSegment} Value`}
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-bold">
+                {preferredCurrency}
+              </span>
             </div>
 
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-white privacy-blur">
-                {formatCurrency(totalPortfolioValue, curr)}
+              <h2 className="text-3.5xl font-black tracking-tight text-white privacy-blur leading-none">
+                {formatCurrency(currentSegmentTotal, curr)}
               </h2>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-white/10">
-              <div>
-                <span className="text-[10px] font-semibold text-white/60 uppercase block">Total Gain/Loss</span>
+              <div className="flex items-center gap-2 mt-2">
                 <span
-                  className={`text-xs font-black privacy-blur ${
-                    totalUnrealizedGain >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                    totalUnrealizedGain >= 0
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                   }`}
                 >
+                  <Icon
+                    name={totalUnrealizedGain >= 0 ? 'trending_up' : 'trending_down'}
+                    className="text-xs"
+                  />
                   {totalUnrealizedGain >= 0 ? '+' : ''}
-                  {formatCurrency(totalUnrealizedGain, curr)} ({totalGainPercent.toFixed(2)}%)
+                  {formatCurrency(totalUnrealizedGain, curr)} ({totalGainPercent.toFixed(1)}%)
+                </span>
+                <span className="text-[11px] text-white/50 font-medium">
+                  Basis: {formatCurrency(totalCostBasis, curr)}
+                </span>
+              </div>
+            </div>
+
+            {/* Inset Metrics Grid */}
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/10">
+              <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
+                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                  Holdings
+                </span>
+                <span className="text-xs font-black text-white">
+                  {displayHoldings.length} Positions
                 </span>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10px] font-semibold text-white/60 uppercase block">Holdings Count</span>
-                <span className="text-xs font-black text-white">{holdings.length} Positions</span>
+              <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
+                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                  Realized P&L
+                </span>
+                <span
+                  className={`text-xs font-black ${
+                    realizedPerformance.totalRealizedGain >= 0
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
+                  }`}
+                >
+                  {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}
+                  {formatCurrency(realizedPerformance.totalRealizedGain, curr)}
+                </span>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
+                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                  Win Rate
+                </span>
+                <span className="text-xs font-black text-teal-400">
+                  {realizedPerformance.winsCount + realizedPerformance.lossesCount > 0
+                    ? `${Math.round(
+                        (realizedPerformance.winsCount /
+                          (realizedPerformance.winsCount + realizedPerformance.lossesCount)) *
+                          100
+                      )}%`
+                    : 'N/A'}
+                </span>
               </div>
             </div>
           </div>
+
+          {/* Ambient Glow mesh */}
+          <div className="absolute top-0 right-0 w-44 h-44 bg-teal-500/15 rounded-full blur-3xl pointer-events-none -z-1" />
+          <div className="absolute bottom-0 left-0 w-44 h-44 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none -z-1" />
         </div>
 
-        {/* Tab Switcher: Holdings vs Accounts */}
-        <div className="flex items-center p-1 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5">
+        {/* ================================================================= */}
+        {/* 4. Main Sub-View Tabs (Holdings / Accounts / Performance / Activity) */}
+        {/* ================================================================= */}
+        <div className="flex bg-black/5 dark:bg-white/[0.06] p-1 rounded-2xl border border-black/[0.04] dark:border-white/[0.04]">
           <button
-            onClick={() => setViewTab('holdings')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all min-h-[38px] touch-feedback ${
-              viewTab === 'holdings'
-                ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
-                : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'
+            type="button"
+            onClick={() => setActiveTab('holdings')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'holdings'
+                ? 'bg-white dark:bg-[#2c2d30] text-light-text dark:text-white shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary'
             }`}
           >
-            Holdings ({holdings.length})
+            <Icon name="candlestick_chart" className="text-sm text-teal-500" />
+            <span>Holdings ({displayHoldings.length})</span>
           </button>
+
           <button
-            onClick={() => setViewTab('accounts')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all min-h-[38px] touch-feedback ${
-              viewTab === 'accounts'
-                ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
-                : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'
+            type="button"
+            onClick={() => setActiveTab('accounts')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'accounts'
+                ? 'bg-white dark:bg-[#2c2d30] text-light-text dark:text-white shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary'
             }`}
           >
-            Accounts ({investmentAccounts.length})
+            <Icon name="account_balance" className="text-sm text-blue-500" />
+            <span>Accounts ({investmentAccounts.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('performance')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'performance'
+                ? 'bg-white dark:bg-[#2c2d30] text-light-text dark:text-white shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary'
+            }`}
+          >
+            <Icon name="pie_chart" className="text-sm text-amber-500" />
+            <span>Metrics</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('activity')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'activity'
+                ? 'bg-white dark:bg-[#2c2d30] text-light-text dark:text-white shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary'
+            }`}
+          >
+            <Icon name="history" className="text-sm text-indigo-500" />
+            <span>Trades</span>
           </button>
         </div>
 
-        {viewTab === 'holdings' && (
-          <>
-            {/* Segment Filter Strip */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-touch py-0.5">
-              {segments.map((seg) => {
-                const isActive = activeSegment === seg.id;
-                return (
-                  <button
-                    key={seg.id}
-                    onClick={() => setActiveSegment(seg.id)}
-                    className={`touch-feedback px-3.5 py-1.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap min-h-[36px] border ${
-                      isActive
-                        ? 'bg-teal-500 text-white border-teal-500 shadow-sm'
-                        : 'bg-white/80 dark:bg-dark-card/80 border-black/5 dark:border-white/10 text-light-text-secondary dark:text-dark-text-secondary'
-                    }`}
-                  >
-                    {seg.label}
-                  </button>
-                );
-              })}
+        {/* ================================================================= */}
+        {/* TAB 1: HOLDINGS */}
+        {/* ================================================================= */}
+        {activeTab === 'holdings' && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Holdings Controls Bar */}
+            <div className="flex items-center justify-between px-1">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary cursor-pointer bg-white dark:bg-dark-card px-3 py-1.5 rounded-full border border-black/5 dark:border-white/10 shadow-xs">
+                <input
+                  type="checkbox"
+                  checked={showInactiveHoldings}
+                  onChange={(e) => setShowInactiveHoldings(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded text-teal-500 focus:ring-0 cursor-pointer"
+                />
+                <span>Include Closed (0 Qty)</span>
+              </label>
+
+              <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                Swipe left for quick actions
+              </span>
             </div>
 
-            {/* Holdings Stack */}
-            <div className="space-y-2.5">
-              {filteredHoldings.map((h) => {
-                const valueEur = h.currentValue || 0;
-                const gainEur = h.currentValue - h.totalCost;
-                const gainPct = h.totalCost > 0 ? (gainEur / h.totalCost) * 100 : 0;
+            {/* Holdings Grouped Sections */}
+            <div className="space-y-4">
+              {holdingsByType.length > 0 ? (
+                holdingsByType.map(([groupName, groupHoldings]) => (
+                  <div
+                    key={groupName}
+                    className="rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm overflow-hidden"
+                  >
+                    {/* Inset Section Header */}
+                    <div className="px-4 py-2.5 bg-black/[0.03] dark:bg-white/[0.04] border-b border-black/5 dark:border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{
+                            backgroundColor:
+                              ASSET_TYPE_COLORS[groupName] || ASSET_TYPE_COLORS.Stock,
+                          }}
+                        />
+                        <span className="text-xs font-black text-light-text dark:text-white">
+                          {groupName}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                        {groupHoldings.length} item{groupHoldings.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
 
+                    {/* Holdings Items */}
+                    <div className="divide-y divide-black/5 dark:divide-white/5">
+                      {groupHoldings.map((h) => {
+                        const isWarrant = h.type === 'Warrant';
+                        const isCustom = h.isCustomAccount;
+                        const valueEur = h.currentValue || 0;
+                        const gainEur = h.currentValue - (h.totalCost || 0);
+                        const gainPct =
+                          h.totalCost > 0 ? (gainEur / h.totalCost) * 100 : 0;
+
+                        const color =
+                          ASSET_TYPE_COLORS[h.subType || (isWarrant ? 'Warrant' : 'Stock')] ||
+                          '#0d9488';
+
+                        return (
+                          <SwipeableRow
+                            key={h.symbol || h.account?.id}
+                            rightActions={[
+                              {
+                                icon: 'analytics',
+                                bgClass: 'bg-teal-500',
+                                label: 'Detail',
+                                onAction: () => {
+                                  if (isCustom && h.account) {
+                                    if (onViewAccount) onViewAccount(h.account.id);
+                                  } else {
+                                    onOpenHoldingDetail(h.symbol);
+                                  }
+                                },
+                              },
+                              {
+                                icon: 'edit',
+                                bgClass: 'bg-indigo-500',
+                                label: 'Price',
+                                onAction: () =>
+                                  onOpenPriceModal(
+                                    h.symbol,
+                                    h.name || h.symbol,
+                                    h.currentPrice
+                                  ),
+                              },
+                            ]}
+                          >
+                            <div
+                              onClick={() => {
+                                if (isCustom && h.account) {
+                                  if (onViewAccount) onViewAccount(h.account.id);
+                                } else {
+                                  onOpenHoldingDetail(h.symbol);
+                                }
+                              }}
+                              className="p-3.5 flex items-center justify-between gap-3 active:bg-black/5 transition-colors cursor-pointer"
+                            >
+                              {/* Left Squircle & Ticker */}
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div
+                                  className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-xs shrink-0 shadow-xs"
+                                  style={{ backgroundColor: color }}
+                                >
+                                  {h.symbol ? h.symbol.slice(0, 3).toUpperCase() : 'ACC'}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs font-bold text-light-text dark:text-white truncate">
+                                      {h.name || h.symbol}
+                                    </p>
+                                  </div>
+                                  <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
+                                    {isCustom
+                                      ? h.qtyLabel || `${h.quantity} items`
+                                      : `${h.quantity} shares • Avg: ${formatCurrency(h.averageCost || 0, curr)}`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Right Amount & Gain % */}
+                              <div className="text-right shrink-0">
+                                <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
+                                  {formatCurrency(valueEur, curr)}
+                                </p>
+                                {!isCustom && (
+                                  <p
+                                    className={`text-[10px] font-extrabold privacy-blur mt-0.5 ${
+                                      gainEur >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                                    }`}
+                                  >
+                                    {gainEur >= 0 ? '+' : ''}
+                                    {gainPct.toFixed(1)}%
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </SwipeableRow>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center text-light-text-secondary opacity-50 bg-white dark:bg-dark-card rounded-3xl p-6">
+                  <Icon name="candlestick_chart" className="text-4xl mb-2 text-teal-500" />
+                  <p className="text-sm font-bold text-light-text dark:text-white">
+                    No active positions
+                  </p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                    Tap the + button above to add an investment or warrant.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 2: ACCOUNTS */}
+        {/* ================================================================= */}
+        {activeTab === 'accounts' && (
+          <div className="space-y-3 animate-fade-in">
+            <div className="p-4 rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-light-text dark:text-white">
+                  Investment Accounts
+                </h3>
+                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                  Brokerages, crypto wallets, and pension accounts
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onAddTransaction()}
+                className="h-8 px-3 rounded-full bg-teal-500 text-white text-xs font-bold flex items-center gap-1 shadow-xs"
+              >
+                <Icon name="add" className="text-sm" />
+                <span>Add Position</span>
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {investmentAccounts.map((acc) => {
+                const convertedBal = formatCurrency(
+                  convertCurrency(acc.balance, acc.currency, curr, conversionRates),
+                  curr
+                );
                 return (
                   <SwipeableRow
-                    key={h.symbol}
+                    key={acc.id}
                     rightActions={[
                       {
-                        icon: 'analytics',
-                        bgClass: 'bg-teal-500',
-                        label: 'Detail',
-                        onAction: () => onOpenHoldingDetail(h.symbol),
+                        icon: 'tune',
+                        bgClass: 'bg-amber-500',
+                        label: 'Adjust',
+                        onAction: () => onAdjustBalance(acc),
+                      },
+                      {
+                        icon: 'edit',
+                        bgClass: 'bg-indigo-500',
+                        label: 'Edit',
+                        onAction: () => onEditAccount(acc),
                       },
                     ]}
                   >
                     <div
-                      onClick={() => onOpenHoldingDetail(h.symbol)}
-                      className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md rounded-2xl p-4 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-between gap-3 min-h-[64px] touch-feedback cursor-pointer"
+                      onClick={() => onViewAccount && onViewAccount(acc.id)}
+                      className="bg-white dark:bg-dark-card rounded-2xl p-4 border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between gap-3 min-h-[64px] active:bg-black/5 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 font-black text-xs flex items-center justify-center shrink-0 border border-teal-500/20">
-                          {h.symbol.slice(0, 4)}
+                        <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 font-bold flex items-center justify-center shrink-0 border border-teal-500/20">
+                          <Icon name="account_balance" className="text-xl" />
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-light-text dark:text-white truncate">
-                            {h.name || h.symbol}
+                            {acc.name}
                           </p>
                           <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
-                            {h.quantity} shares • {h.subType || h.type}
+                            {acc.subType || acc.type}
+                            {acc.financialInstitution ? ` • ${acc.financialInstitution}` : ''}
                           </p>
                         </div>
                       </div>
 
                       <div className="text-right shrink-0">
                         <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
-                          {formatCurrency(valueEur, curr)}
+                          {convertedBal}
                         </p>
-                        <p
-                          className={`text-[10px] font-extrabold privacy-blur mt-0.5 ${
-                            gainEur >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                          }`}
-                        >
-                          {gainEur >= 0 ? '+' : ''}
-                          {gainPct.toFixed(1)}%
-                        </p>
+                        <span className="text-[9px] font-bold text-teal-500">Active</span>
                       </div>
                     </div>
                   </SwipeableRow>
                 );
               })}
-
-              {filteredHoldings.length === 0 && (
-                <div className="text-center py-12 bg-white/60 dark:bg-dark-card/60 rounded-3xl border border-black/5 dark:border-white/5 p-6">
-                  <Icon name="candlestick_chart" className="text-4xl text-gray-400 mb-2" />
-                  <p className="text-sm font-bold text-light-text dark:text-white">No holdings found</p>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                    Tap the button below to add your first investment position.
-                  </p>
-                </div>
-              )}
             </div>
-          </>
-        )}
-
-        {viewTab === 'accounts' && (
-          <div className="space-y-2.5">
-            {investmentAccounts.map((acc) => (
-              <div
-                key={acc.id}
-                onClick={() => onViewAccount && onViewAccount(acc.id)}
-                className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-md rounded-2xl p-4 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-between gap-3 min-h-[64px] touch-feedback cursor-pointer"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-500 flex items-center justify-center shrink-0 border border-teal-500/20">
-                    <Icon name="show_chart" className="text-xl" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-light-text dark:text-white truncate">
-                      {acc.name}
-                    </p>
-                    <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
-                      {acc.type} {acc.subType ? `• ${acc.subType}` : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
-                    {formatCurrency(acc.balance, (acc.currency || curr) as Currency)}
-                  </p>
-                </div>
-              </div>
-            ))}
           </div>
         )}
 
-        <FloatingActionButton onClick={onAddTransaction} label="Add Investment" />
+        {/* ================================================================= */}
+        {/* TAB 3: PERFORMANCE & ALLOCATION */}
+        {/* ================================================================= */}
+        {activeTab === 'performance' && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Asset Allocation Donut Chart Card */}
+            <div className="rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-light-text dark:text-white">
+                  Asset Class Allocation
+                </h3>
+                <span className="text-xs font-bold text-teal-500">
+                  {formatCurrency(segmentValues.all, curr)}
+                </span>
+              </div>
+
+              {/* BklitPieChart container */}
+              <div className="h-56 w-full flex items-center justify-center">
+                <BklitPieChart
+                  data={allocationPieData}
+                  className="w-full h-full"
+                  holeSize="68%"
+                  padAngle={0.03}
+                >
+                  <PieSlice />
+                  <PieCenter>
+                    <div className="text-center">
+                      <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
+                        Total
+                      </span>
+                      <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
+                        {formatCurrency(segmentValues.all, curr)}
+                      </span>
+                    </div>
+                  </PieCenter>
+                </BklitPieChart>
+              </div>
+
+              {/* Allocation Legend List */}
+              <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                {allocationPieData.map((item) => {
+                  const pct =
+                    segmentValues.all > 0 ? (item.value / segmentValues.all) * 100 : 0;
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center justify-between text-xs font-bold"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-light-text dark:text-white">{item.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-light-text dark:text-white privacy-blur">
+                          {formatCurrency(item.value, curr)}
+                        </span>
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-[10px] w-10 text-right">
+                          {pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Realized Gains & Losses Card */}
+            <div className="rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-light-text dark:text-white">
+                  Realized Trade Performance
+                </h3>
+                <span
+                  className={`text-xs font-black ${
+                    realizedPerformance.totalRealizedGain >= 0
+                      ? 'text-emerald-500'
+                      : 'text-rose-500'
+                  }`}
+                >
+                  {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}
+                  {formatCurrency(realizedPerformance.totalRealizedGain, curr)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase block">
+                    Biggest Win
+                  </span>
+                  <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
+                    {realizedPerformance.biggestWin.symbol || 'None'}
+                  </p>
+                  <p className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                    +{formatCurrency(realizedPerformance.biggestWin.gain, curr)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                  <span className="text-[10px] font-bold text-rose-800 dark:text-rose-300 uppercase block">
+                    Biggest Loss
+                  </span>
+                  <p className="text-xs font-black text-rose-600 dark:text-rose-400 truncate mt-0.5">
+                    {realizedPerformance.biggestLoss.symbol || 'None'}
+                  </p>
+                  <p className="text-[10px] font-extrabold text-rose-700 dark:text-rose-300">
+                    {formatCurrency(realizedPerformance.biggestLoss.gain, curr)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* TAB 4: ACTIVITY / TRADES */}
+        {/* ================================================================= */}
+        {activeTab === 'activity' && (
+          <div className="space-y-3 animate-fade-in">
+            <div className="p-4 rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-light-text dark:text-white">
+                  Trade Activity Feed
+                </h3>
+                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                  Recent buy, sell, and warrant grant records
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-teal-500/10 text-teal-500">
+                {recentActivity.length} Events
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {recentActivity.length > 0 ? (
+                recentActivity.map((act) => {
+                  const isBuy = act.type === 'BUY';
+                  const isGrant = act.type === 'GRANT';
+                  const totalAmt = (act.quantity || 0) * (act.price || 0);
+
+                  return (
+                    <SwipeableRow
+                      key={act.id}
+                      rightActions={[
+                        {
+                          icon: 'delete',
+                          bgClass: 'bg-rose-500',
+                          label: 'Delete',
+                          onAction: () => onDeleteActivity(act.id, act.isWarrant),
+                        },
+                      ]}
+                    >
+                      <div className="p-3.5 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                              isBuy
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                : isGrant
+                                ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20'
+                                : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                            }`}
+                          >
+                            <Icon
+                              name={isBuy ? 'add' : isGrant ? 'award' : 'remove'}
+                              className="text-base"
+                            />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-light-text dark:text-white truncate">
+                                {act.symbol}
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.2 rounded-md text-[9px] font-extrabold ${
+                                  isBuy
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : isGrant
+                                    ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                }`}
+                              >
+                                {act.type}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
+                              {parseLocalDate(act.date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}{' '}
+                              • {act.quantity} @ {formatCurrency(act.price, curr)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
+                            {formatCurrency(totalAmt, curr)}
+                          </p>
+                        </div>
+                      </div>
+                    </SwipeableRow>
+                  );
+                })
+              ) : (
+                <div className="py-12 text-center text-light-text-secondary opacity-50 bg-white dark:bg-dark-card rounded-3xl p-6">
+                  <Icon name="history" className="text-3xl mb-2" />
+                  <p className="text-xs font-bold">No investment trade records.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* 5. BottomSheet: Quick Actions Menu */}
+        {/* ================================================================= */}
+        <BottomSheet
+          isOpen={isActionsSheetOpen}
+          onClose={() => setIsActionsSheetOpen(false)}
+          title="Add Investment"
+          subtitle="Record transactions or create new investment accounts"
+        >
+          <div className="space-y-2 p-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsActionsSheetOpen(false);
+                onAddTransaction();
+              }}
+              className="w-full p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center gap-3.5 text-left active:bg-black/5 transition-all"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20">
+                <Icon name="candlestick_chart" className="text-xl" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-light-text dark:text-white">
+                  Buy / Sell Trade
+                </p>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                  Record stocks, ETFs, crypto, or commodity transactions
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsActionsSheetOpen(false);
+                onAddWarrant();
+              }}
+              className="w-full p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center gap-3.5 text-left active:bg-black/5 transition-all"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
+                <Icon name="award" className="text-xl" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-light-text dark:text-white">
+                  Add Warrant Grant
+                </p>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                  Track employee stock options or company warrant programs
+                </p>
+              </div>
+            </button>
+          </div>
+        </BottomSheet>
       </div>
     </PullToRefresh>
   );
