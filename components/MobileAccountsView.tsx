@@ -162,16 +162,6 @@ const MobileAccountItem: React.FC<{
               <p className="text-[14px] font-extrabold text-light-text dark:text-white truncate tracking-tight">
                 {account.name}
               </p>
-              {account.isPrimary && (
-                <span className="bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shrink-0 border border-primary-500/20">
-                  Main
-                </span>
-              )}
-              {linkedEnableBankingAccountIds.has(account.id) && (
-                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shrink-0 border border-emerald-500/20 inline-flex items-center gap-0.5">
-                  <Icon name="sync" className="text-[10px]" /> Linked
-                </span>
-              )}
             </div>
 
             <p className="text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-75 truncate mt-0.5">
@@ -481,22 +471,47 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
       color: 'bg-indigo-500/10 text-indigo-500',
     };
 
+    const isMain = Boolean(account.isPrimary);
+    const isLinked = linkedEnableBankingAccountIds.has(account.id);
+
     return (
-      <div
-        className={`w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-black/5 dark:border-white/10 shadow-xs overflow-hidden ${
-          isValidLogo ? 'bg-white dark:bg-white/90' : typeConfig.color
-        }`}
-      >
-        {isValidLogo ? (
-          <img
-            src={logoUrl}
-            alt={account.name}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-            onError={() => handleLogoError(logoUrl)}
-          />
-        ) : (
-          <Icon name={typeConfig.icon} className="text-xl" />
+      <div className="relative shrink-0">
+        <div
+          className={`w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-black/5 dark:border-white/10 shadow-xs overflow-hidden ${
+            isValidLogo ? 'bg-white dark:bg-white/90' : typeConfig.color
+          }`}
+        >
+          {isValidLogo ? (
+            <img
+              src={logoUrl}
+              alt={account.name}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={() => handleLogoError(logoUrl)}
+            />
+          ) : (
+            <Icon name={typeConfig.icon} className="text-xl" />
+          )}
+        </div>
+
+        {/* Top-Right: Cryptocurrency01 Icon for Main Account */}
+        {isMain && (
+          <div
+            className="absolute -top-1 -right-1 size-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#18181b] z-10"
+            title="Main Account"
+          >
+            <Icon name="cryptocurrency-01" className="text-[11px]" strokeWidth={2.5} />
+          </div>
+        )}
+
+        {/* Bottom-Right: Link04 Icon for Linked Accounts */}
+        {isLinked && (
+          <div
+            className="absolute -bottom-1 -right-1 size-4.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#18181b] z-10"
+            title="Connected / Linked Account"
+          >
+            <Icon name="link-04" className="text-[11px]" strokeWidth={2.5} />
+          </div>
         )}
       </div>
     );

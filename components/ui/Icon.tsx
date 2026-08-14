@@ -489,10 +489,12 @@ export const Icon: React.FC<IconProps> = ({
 
   // Resolve component name from map or direct match
   const cleanName = name.trim();
+  const pascalName = cleanName.replace(/(^[a-z]|[_\-\s]+([a-z0-9]))/gi, (_, p1, p2) => (p2 || p1).toUpperCase());
   const componentName =
     ICON_NAME_MAP[cleanName] ||
     ICON_NAME_MAP[cleanName.toLowerCase()] ||
-    (cleanName in UntitleduiIcons ? (cleanName as keyof typeof UntitleduiIcons) : null);
+    (cleanName in UntitleduiIcons ? (cleanName as keyof typeof UntitleduiIcons) : null) ||
+    (pascalName in UntitleduiIcons ? (pascalName as keyof typeof UntitleduiIcons) : null);
 
   const IconComponent = componentName
     ? (UntitleduiIcons[componentName] as React.ComponentType<any>)
