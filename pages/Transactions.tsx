@@ -96,6 +96,16 @@ export type TableRenderItem =
       tx: DisplayTransaction;
     };
 
+// Fallback empty object to preserve reference stability in selectors
+const EMPTY_OBJECT = {};
+
+const TYPE_FILTER_OPTIONS: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
+  { label: 'All Types', value: 'all' },
+  { label: 'Expenses', value: 'expense' },
+  { label: 'Income', value: 'income' },
+  { label: 'Transfers', value: 'transfer' },
+];
+
 const ColumnHeaderFilter: React.FC<{
   isOpen: boolean;
   onToggle: () => void;
@@ -106,17 +116,19 @@ const ColumnHeaderFilter: React.FC<{
   children: React.ReactNode;
 }> = ({ isOpen, onToggle, onClose, isActive, activeCount, title, children }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return (
     <div className="relative inline-flex items-center ml-1" ref={popoverRef}>
@@ -165,6 +177,16 @@ const ColumnHeaderFilter: React.FC<{
 };
 
 const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  useEffect(() => {
+    const timer = setTimeout(() => { renderCountRef.current = 0; }, 100);
+    return () => clearTimeout(timer);
+  });
+  if (renderCountRef.current > 25) {
+    console.error('[DIAGNOSTIC] Infinite loop in Transactions! Render count exceeded 25 in 100ms window.');
+  }
+
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -173,8 +195,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
   const conversionRates = usePreferencesSelector(p => p.conversionRates || CONVERSION_RATES);
-  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || EMPTY_OBJECT);
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || EMPTY_OBJECT) as Record<string, MerchantRule>;
   const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
@@ -220,6 +242,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
   const [openFilterCol, setOpenFilterCol] = useState<'description' | 'account' | 'category' | 'location' | 'tags' | 'amount' | null>(null);
+  const handleCloseFilterCol = useCallback(() => setOpenFilterCol(null), []);
 
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -351,13 +374,20 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const spareChangeByParentId = new Map<string, number>();
     const legacySpareChangeLookup = new Map<string, number[]>();
 
+    const txIdSet = new Set<string>();
+    const transferIdSet = new Set<string>();
+    sortedTransactions.forEach(t => {
+      txIdSet.add(t.id);
+      if (t.transferId) transferIdSet.add(t.transferId);
+    });
+
     sortedTransactions.forEach(tx => {
         if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return;
 
         const match = tx.transferId.match(/^spare-(.+)$/);
         const embeddedId = match ? match[1] : null;
 
-        const isBoundToTx = embeddedId && sortedTransactions.some(t => t.id === embeddedId || (t.transferId && t.transferId === embeddedId));
+        const isBoundToTx = embeddedId ? (txIdSet.has(embeddedId) || transferIdSet.has(embeddedId)) : false;
 
         if (isBoundToTx && embeddedId) {
             spareChangeByParentId.set(embeddedId, Math.abs(tx.amount));
@@ -558,80 +588,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       return next;
     });
   }, []);
-
-  type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
-
-  const virtualRows: VirtualRow[] = useMemo(() => {
-    const rows: VirtualRow[] = [];
-    
-    const subTxMap = new Map<string, DisplayTransaction[]>();
-    const topLevelList: DisplayTransaction[] = [];
-
-    filteredTransactions.forEach(tx => {
-      if (tx.parentTransactionId) {
-        const list = subTxMap.get(tx.parentTransactionId) || [];
-        list.push({ ...tx, isSubTransaction: true });
-        subTxMap.set(tx.parentTransactionId, list);
-      } else {
-        topLevelList.push(tx);
-      }
-    });
-
-    const addTxWithSub = (tx: DisplayTransaction) => {
-      const subTxs = subTxMap.get(tx.id) || [];
-      const txWithCount: DisplayTransaction = {
-        ...tx,
-        subItemCount: subTxs.length,
-        isExpanded: expandedParentIds.has(tx.id),
-      };
-      rows.push({ type: 'transaction', transaction: txWithCount });
-
-      const isFilterActive = Boolean(debouncedSearchTerm || merchantFilter || minAmount || maxAmount);
-      const shouldExpand = expandedParentIds.has(tx.id) || isFilterActive;
-      if (shouldExpand && subTxs.length > 0) {
-        subTxs.forEach(subTx => {
-          rows.push({ type: 'transaction', transaction: subTx });
-        });
-      }
-    };
-
-    if (sortBy === 'date-desc' || sortBy === 'date-asc') {
-        let lastDate = '';
-        topLevelList.forEach(tx => {
-            const dateStr = tx.date;
-            if (dateStr !== lastDate) {
-                rows.push({ type: 'header', date: dateStr, total: 0 });
-                lastDate = dateStr;
-            }
-            addTxWithSub(tx);
-        });
-    } else {
-        topLevelList.forEach(tx => {
-            addTxWithSub(tx);
-        });
-    }
-    return rows;
-  }, [filteredTransactions, sortBy, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount]);
-
-  const getRowSize = useCallback(
-    (index: number) => {
-        const row = virtualRows[index];
-        if (row && row.type === 'header') return 40; 
-        if (isMobile) return density === 'high' ? 110 : 130;
-        return density === 'high' ? 68 : 72;
-    },
-    [virtualRows, isMobile, density]
-  );
-
-  const getRowKey = useCallback(
-    (index: number) => {
-      const row = virtualRows[index];
-      if (!row) return index;
-      if (row.type === 'header') return `header-${row.date}`;
-      return (row as any).transaction.id;
-    },
-    [virtualRows]
-  );
 
   const { totalIncome, totalExpense, netFlow } = useMemo(() => {
     let income = 0;
@@ -1099,12 +1055,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-  const typeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
-    { label: 'All Types', value: 'all' },
-    { label: 'Expenses', value: 'expense' },
-    { label: 'Income', value: 'income' },
-    { label: 'Transfers', value: 'transfer' },
-  ];
 
   const handleAccountToggle = useCallback((id: string) => {
       setSelectedAccountIds(prev =>
@@ -1321,7 +1271,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           <div>
               <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Type</label>
               <div className="grid grid-cols-2 gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg">
-                  {typeFilterOptions.map(opt => (
+                  {TYPE_FILTER_OPTIONS.map(opt => (
                       <button
                           key={opt.value}
                           type="button"
@@ -1352,7 +1302,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               <button onClick={() => {setMinAmount(''); setMaxAmount(''); setTypeFilter('all');}} className="text-xs text-red-500 w-full text-center hover:underline pt-1">Clear Filters</button>
           )}
       </div>
-  ), [maxAmount, minAmount, typeFilter, typeFilterOptions]);
+  ), [maxAmount, minAmount, typeFilter]);
 
   const getCardIcon = (cardNetwork: string) => {
     const network = (cardNetwork || '').toLowerCase();
@@ -1375,7 +1325,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setCurrentPage(prev => (prev === 1 ? prev : 1));
   }, [debouncedSearchTerm, typeFilter, startDate, endDate, minAmount, maxAmount, merchantFilter, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations]);
 
   const formatDateHeader = useCallback((dateString: string) => {
@@ -1519,9 +1469,15 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   }, [paginatedItems, formatDateHeader, resolveTransferDisplay]);
 
   const selectedKeys = useMemo(() => {
-    if (isAllSelected && filteredTransactions.length > 0) return 'all' as const;
-    return selectedIds;
-  }, [isAllSelected, filteredTransactions.length, selectedIds]);
+    const pageItemIds = new Set(tableRenderItems.map(i => i.id));
+    const visibleKeys = new Set<string>();
+    selectedIds.forEach(id => {
+      if (pageItemIds.has(id)) {
+        visibleKeys.add(id);
+      }
+    });
+    return visibleKeys;
+  }, [selectedIds, tableRenderItems]);
 
   const disabledGroupHeaderKeys = useMemo(() => {
     return new Set(tableRenderItems.filter(i => i.isGroupHeader).map(i => i.id));
@@ -1530,21 +1486,32 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const handleSelectionChange = useCallback((keys: 'all' | Set<React.Key>) => {
     if (keys === 'all') {
       setSelectedIds(prev => {
-        if (prev.size === filteredTransactions.length && filteredTransactions.every(t => prev.has(t.id))) {
+        const next = new Set(prev);
+        filteredTransactions.forEach(t => next.add(t.id));
+        if (prev.size === next.size && Array.from(prev).every(id => next.has(id))) {
           return prev;
         }
-        return new Set(filteredTransactions.map(t => t.id));
+        return next;
       });
     } else {
-      const validIds = Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-'));
+      const pageTxIds = new Set(tableRenderItems.filter(i => !i.isGroupHeader).map(i => i.id));
+      const selectedOnPage = new Set(Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-')));
+      
       setSelectedIds(prev => {
-        if (prev.size === validIds.length && validIds.every(id => prev.has(id))) {
+        const next = new Set(prev);
+        pageTxIds.forEach(id => {
+          if (!selectedOnPage.has(id)) {
+            next.delete(id);
+          }
+        });
+        selectedOnPage.forEach(id => next.add(id));
+        if (prev.size === next.size && Array.from(prev).every(id => next.has(id))) {
           return prev;
         }
-        return new Set(validIds);
+        return next;
       });
     }
-  }, [filteredTransactions]);
+  }, [filteredTransactions, tableRenderItems]);
 
   const handleSortBySelect = (newSortBy: string) => {
     setSortBy(newSortBy);
@@ -1904,7 +1871,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                           <label htmlFor="type-filter" className={labelStyle}>Transfer type</label>
                           <div className={`${SELECT_WRAPPER_STYLE} !rounded-2xl`}>
                               <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
-                                  {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                  {TYPE_FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
                               <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                           </div>
@@ -2061,7 +2028,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'description'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'description' ? null : 'description')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={Boolean(debouncedSearchTerm || merchantFilter)}
                                 title="Details & Merchant"
                             >
@@ -2073,7 +2040,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'account'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'account' ? null : 'account')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedAccountIds.length > 0}
                                 activeCount={selectedAccountIds.length}
                                 title="Accounts"
@@ -2086,7 +2053,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'category'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'category' ? null : 'category')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedCategoryNames.length > 0}
                                 activeCount={selectedCategoryNames.length}
                                 title="Categories"
@@ -2099,7 +2066,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'location'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'location' ? null : 'location')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedLocations.length > 0}
                                 activeCount={selectedLocations.length}
                                 title="Locations"
@@ -2112,7 +2079,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'tags'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'tags' ? null : 'tags')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedTagIds.length > 0}
                                 activeCount={selectedTagIds.length}
                                 title="Tags"
@@ -2125,7 +2092,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'amount'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'amount' ? null : 'amount')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={Boolean(minAmount || maxAmount || typeFilter !== 'all')}
                                 title="Value & Type"
                             >

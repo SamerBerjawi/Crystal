@@ -352,6 +352,16 @@ const App: React.FC = () => {
   const { user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const appRenderCountRef = useRef(0);
+  appRenderCountRef.current += 1;
+  useEffect(() => {
+    const timer = setTimeout(() => { appRenderCountRef.current = 0; }, 100);
+    return () => clearTimeout(timer);
+  });
+  if (appRenderCountRef.current > 25) {
+    console.error('[DIAGNOSTIC] Infinite loop in App! Render count exceeded 25 in 100ms window.');
+  }
+
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
@@ -449,7 +459,17 @@ const App: React.FC = () => {
   const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(emptyFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  const isJustLoadedRef = useRef(true);
+  useEffect(() => {
+    if (isDataLoaded) {
+      isJustLoadedRef.current = true;
+      const timer = setTimeout(() => { isJustLoadedRef.current = false; }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isDataLoaded]);
+
   const markSliceDirty = useCallback((slice: keyof FinancialData) => {
+    if (isJustLoadedRef.current || restoreInProgressRef.current) return;
     const pending = new Set(dirtySlicesRef.current);
     if (!pending.has(slice)) {
       pending.add(slice);
@@ -679,20 +699,22 @@ const App: React.FC = () => {
   }, [investmentTransactions, warrants]);
 
   useEffect(() => {
-    let hasChanges = false;
-    const updatedAccounts = accounts.map(account => {
-      if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
-        const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
-        const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
-        const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-          hasChanges = true;
-          return { ...account, balance: calculatedBalance };
+    setAccounts(prevAccounts => {
+      let hasChanges = false;
+      const updatedAccounts = prevAccounts.map(account => {
+        if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
+          const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
+          const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
+          const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
+          if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
+          }
         }
-      }
-      return account;
+        return account;
+      });
+      return hasChanges ? updatedAccounts : prevAccounts;
     });
-    if (hasChanges) { setAccounts(updatedAccounts); }
   }, [assetPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
@@ -962,11 +984,12 @@ const App: React.FC = () => {
     if (skipNextSaveRef.current) { skipNextSaveRef.current = false; dirtySlicesRef.current.clear(); return; }
     if (dirtySlicesRef.current.size === 0) return;
     const persistDirtySlices = async () => {
-      const payloadSignature = JSON.stringify(dataToSave);
+      const currentData = latestDataRef.current;
+      const payloadSignature = JSON.stringify(currentData);
       if (payloadSignature === lastSavedSignatureRef.current) { dirtySlicesRef.current.clear(); return; }
-      if (!allowEmptySaveRef.current && !hasMaterialData(dataToSave)) { dirtySlicesRef.current.clear(); lastSavedSignatureRef.current = payloadSignature; return; }
+      if (!allowEmptySaveRef.current && !hasMaterialData(currentData)) { dirtySlicesRef.current.clear(); lastSavedSignatureRef.current = payloadSignature; return; }
       const allowEmpty = allowEmptySaveRef.current;
-      const succeeded = await saveData(dataToSave, { allowEmpty });
+      const succeeded = await saveData(currentData, { allowEmpty });
       if (succeeded) {
         dirtySlicesRef.current.clear();
         lastSavedSignatureRef.current = payloadSignature;
@@ -974,41 +997,54 @@ const App: React.FC = () => {
       }
     };
     persistDirtySlices();
-  }, [dataToSave, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') return;
     const handleBeforeUnload = () => {
       if (!isDataLoaded || dirtySlicesRef.current.size === 0) return;
-      const payloadSignature = JSON.stringify(dataToSave);
+      const currentData = latestDataRef.current;
+      const payloadSignature = JSON.stringify(currentData);
       if (payloadSignature === lastSavedSignatureRef.current) return;
-      saveData(dataToSave, { keepalive: true, suppressErrors: true }).catch(() => { });
+      saveData(currentData, { keepalive: true, suppressErrors: true }).catch(() => { });
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [dataToSave, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [isAuthenticated, isDataLoaded, isDemoMode, saveData]);
 
   useEffect(() => {
+    if (!isDataLoaded || isJustLoadedRef.current) return;
     if (accounts.length > accountOrder.length) {
       const orderedAccountIds = new Set(accountOrder);
       const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
-      setAccountOrder(prev => [...prev, ...newAccountIds]);
+      if (newAccountIds.length > 0) {
+        setAccountOrder(prev => [...prev, ...newAccountIds]);
+      }
     } else if (accounts.length < accountOrder.length) {
       const accountIds = new Set(accounts.map(a => a.id));
-      setAccountOrder(prev => prev.filter(id => accountIds.has(id)));
+      const nextOrder = accountOrder.filter(id => accountIds.has(id));
+      if (nextOrder.length !== accountOrder.length) {
+        setAccountOrder(nextOrder);
+      }
     }
-  }, [accounts, accountOrder, setAccountOrder]);
+  }, [accounts, accountOrder, setAccountOrder, isDataLoaded]);
 
   useEffect(() => {
+    if (!isDataLoaded || isJustLoadedRef.current) return;
     if (tasks.length > taskOrder.length) {
       const orderedTaskIds = new Set(taskOrder);
       const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
-      setTaskOrder(prev => [...prev, ...newTaskIds]);
+      if (newTaskIds.length > 0) {
+        setTaskOrder(prev => [...prev, ...newTaskIds]);
+      }
     } else if (tasks.length < taskOrder.length) {
       const taskIds = new Set(tasks.map(t => t.id));
-      setTaskOrder(prev => prev.filter(id => taskIds.has(id)));
+      const nextOrder = taskOrder.filter(id => taskIds.has(id));
+      if (nextOrder.length !== taskOrder.length) {
+        setTaskOrder(nextOrder);
+      }
     }
-  }, [tasks, taskOrder, setTaskOrder]);
+  }, [tasks, taskOrder, setTaskOrder, isDataLoaded]);
 
   const handleSignIn = async (email: string, password: string) => {
     setIsDataLoaded(false);
@@ -1379,7 +1415,7 @@ const App: React.FC = () => {
     });
   }, [accounts, preferences]);
 
-  const handleDeleteTransactions = (transactionIds: string[]) => {
+  const handleDeleteTransactions = useCallback((transactionIds: string[]) => {
     if (transactionIds.length === 0) return;
     const deletedTxs = transactions.filter(t => transactionIds.includes(t.id));
     handleSaveTransaction([], transactionIds);
@@ -1397,7 +1433,7 @@ const App: React.FC = () => {
         }
       }
     );
-  };
+  }, [transactions, handleSaveTransaction]);
   const handleSaveInvestmentTransaction = (invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {
     const symbol = invTxData.symbol.toUpperCase();
     const type = invTxData.type?.toLowerCase();
