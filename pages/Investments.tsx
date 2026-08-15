@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useSafeState } from '../hooks/useSafeState';
 import Icon from '../components/ui/Icon';
 import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -74,6 +75,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     onViewAccount,
     holdingsOverview
 }) => {
+    const isMobile = useIsMobile();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
@@ -175,6 +177,24 @@ const Investments: React.FC<InvestmentsProps> = ({
     const formatPercent = (value: number, digits = 1) => (
         safeTotalValue > 0 ? ((value / safeTotalValue) * 100).toFixed(digits) : '0.0'
     );
+
+    const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
+        if (!adjustingAccount) return;
+        const txData: Omit<Transaction, 'id'> = {
+            accountId: adjustingAccount.id,
+            date,
+            description: 'Balance Adjustment',
+            merchant: notes || 'Manual balance correction',
+            amount: adjustmentAmount,
+            category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous',
+            type: adjustmentAmount >= 0 ? 'income' : 'expense',
+            currency: adjustingAccount.currency,
+            isBalanceAdjustment: true,
+        };
+        saveTransaction([txData], []);
+        setAdjustingAccount(null);
+        setAdjustModalOpen(false);
+    };
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
         setEditingTransaction(tx || null);
@@ -700,12 +720,9 @@ const Investments: React.FC<InvestmentsProps> = ({
             )}
             {isAdjustModalOpen && adjustingAccount && (
                 <BalanceAdjustmentModal
-                    isOpen={isAdjustModalOpen}
                     onClose={() => setAdjustModalOpen(false)}
-                    onSave={saveAccount}
+                    onSave={handleSaveAdjustment}
                     account={adjustingAccount}
-                    transactions={transactionsByAccount[adjustingAccount.id] || []}
-                    onSaveTransaction={saveTransaction}
                 />
             )}
             {isPriceModalOpen && editingPriceItem && (
@@ -750,8 +767,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                 confirmButtonText="Delete"
             />
 
-            {/* Mobile Investments Feed */}
-            <div className="block md:hidden">
+            {/* Responsive View Switch */}
+            {isMobile ? (
                 <MobileInvestmentsView
                     accounts={accounts}
                     cashAccounts={cashAccounts}
@@ -791,10 +808,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                     preferredCurrency={preferredCurrency}
                     conversionRates={conversionRates}
                 />
-            </div>
-
-            {/* Desktop Investments Feed */}
-            <div className="hidden md:block space-y-8">
+            ) : (
+                <div className="space-y-8">
                 <PageHeader 
                     markerIcon="candlestick_chart"
                     markerLabel="Investment Center"
@@ -1373,6 +1388,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 />
             )}
         </div>
+        )}
     </div>
 );
 };

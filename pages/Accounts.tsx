@@ -15,6 +15,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { MobileAccountsView } from '../components/MobileAccountsView';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import Icon from '../components/ui/Icon';
@@ -28,8 +29,8 @@ interface AccountsProps {
     setViewingAccountId: (id: string | null) => void;
     onViewAccount?: (id: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
-    accountOrder: string[];
-    setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
+    accountOrder?: string[];
+    setAccountOrder?: React.Dispatch<React.SetStateAction<string[]>>;
     initialSortBy: 'name' | 'balance' | 'manual';
     warrants: Warrant[];
     onToggleAccountStatus: (accountId: string) => void;
@@ -42,6 +43,7 @@ interface AccountsProps {
 type AccountSegment = 'all' | 'cash' | 'invested' | 'property' | 'debt';
 
 const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds, onSyncBanks, isSyncingBanks }) => {
+  const isMobile = useIsMobile();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -57,6 +59,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const { loanPaymentOverrides } = useScheduleContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as any);
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
+  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides);
   
   // New State for Segmentation
   const [activeSegment, setActiveSegment] = useState<AccountSegment>('all');
@@ -337,38 +341,38 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
         )}
 
-        {/* Mobile View */}
-        <MobileAccountsView
-          accounts={accounts}
-          transactions={transactions}
-          globalMetrics={globalMetrics}
-          segmentValues={segmentValues}
-          activeSegment={activeSegment}
-          setActiveSegment={setActiveSegment}
-          filteredAccounts={filteredAccounts}
-          closedAccounts={closedAccounts}
-          transactionsByAccount={transactionsByAccount}
-          warrants={warrants}
-          linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
-          onAccountClick={handleAccountClick}
-          onEditClick={openEditModal}
-          onAdjustBalanceClick={openAdjustModal}
-          onAddAccountClick={() => setAddModalOpen(true)}
-          preferredCurrency={preferredCurrency}
-          conversionRates={conversionRates}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          accountOrder={accountOrder}
-          setAccountOrder={setAccountOrder}
-          splitAssetsLiabilities={splitAssetsLiabilities}
-          setSplitAssetsLiabilities={setSplitAssetsLiabilities}
-          loanPaymentOverrides={loanPaymentOverrides}
-          brandfetchClientId={usePreferencesSelector(p => p.brandfetchClientId)}
-          merchantLogoOverrides={usePreferencesSelector(p => p.merchantLogoOverrides)}
-        />
-
-        {/* Desktop View */}
-        <div className="hidden md:block space-y-6">
+        {/* Responsive View Switch */}
+        {isMobile ? (
+          <MobileAccountsView
+            accounts={accounts}
+            transactions={transactions}
+            globalMetrics={globalMetrics}
+            segmentValues={segmentValues}
+            activeSegment={activeSegment}
+            setActiveSegment={setActiveSegment}
+            filteredAccounts={filteredAccounts}
+            closedAccounts={closedAccounts}
+            transactionsByAccount={transactionsByAccount}
+            warrants={warrants}
+            linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
+            onAccountClick={handleAccountClick}
+            onEditClick={openEditModal}
+            onAdjustBalanceClick={openAdjustModal}
+            onAddAccountClick={() => setAddModalOpen(true)}
+            preferredCurrency={preferredCurrency}
+            conversionRates={conversionRates}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            accountOrder={accountOrder}
+            setAccountOrder={setAccountOrder}
+            splitAssetsLiabilities={splitAssetsLiabilities}
+            setSplitAssetsLiabilities={setSplitAssetsLiabilities}
+            loanPaymentOverrides={loanPaymentOverrides}
+            brandfetchClientId={brandfetchClientId}
+            merchantLogoOverrides={merchantLogoOverrides}
+          />
+        ) : (
+          <div className="space-y-6">
           <PageHeader 
               markerIcon="wallet"
               markerLabel="Portfolio Overview"
@@ -669,6 +673,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
         )}
         </div>
+        )}
       </div>
     </div>
   );

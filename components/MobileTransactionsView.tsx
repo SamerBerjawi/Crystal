@@ -666,7 +666,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
               chips: accounts.map((acc) => ({
                 id: acc.id,
                 label: acc.name,
-                icon: acc.type === 'Investment' || acc.type === 'Crypto' ? 'trending_up' : acc.type === 'Credit Card' ? 'credit_card' : 'wallet',
+                icon: acc.type === 'Investment' ? 'trending_up' : acc.type === 'Credit Card' ? 'credit_card' : 'wallet',
                 isActive: selectedAccountIds.includes(acc.id),
                 onToggle: () => {
                   if (selectedAccountIds.includes(acc.id)) {

@@ -6,6 +6,7 @@ import {
   HoldingsOverview,
   Currency,
   InvestmentSubType,
+  Transaction,
 } from '../types';
 import {
   formatCurrency,
@@ -751,19 +752,23 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                 <BklitPieChart
                   data={allocationPieData}
                   className="w-full h-full"
-                  holeSize="68%"
+                  innerRadius={68}
                   padAngle={0.03}
                 >
-                  <PieSlice />
-                  <PieCenter>
-                    <div className="text-center">
-                      <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
-                        Total
-                      </span>
-                      <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
-                        {formatCurrency(segmentValues.all, curr)}
-                      </span>
-                    </div>
+                  {allocationPieData.map((_, index) => (
+                    <PieSlice key={index} index={index} />
+                  ))}
+                  <PieCenter defaultLabel="Total">
+                    {({ label }) => (
+                      <div className="text-center">
+                        <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
+                          {label}
+                        </span>
+                        <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
+                          {formatCurrency(segmentValues.all, curr)}
+                        </span>
+                      </div>
+                    )}
                   </PieCenter>
                 </BklitPieChart>
               </div>

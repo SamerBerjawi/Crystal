@@ -3,10 +3,49 @@ import { Account, Transaction, Warrant, Currency, ScheduledPayment } from '../ty
 import { formatCurrency, convertCurrency, generateAmortizationSchedule, convertToEur, toLocalISOString } from '../utils';
 import { DEBT_TYPES, ASSET_TYPES, ACCOUNT_TYPE_STYLES } from '../constants';
 import { getMerchantLogoUrl, getCardNetworkLogoUrl } from '../utils/brandfetch';
-import { LineChart, Line } from '../src/components/charts';
 import Icon from './ui/Icon';
 import SwipeableRow from './SwipeableRow';
 import BottomSheet from './BottomSheet';
+
+const MiniSparkline: React.FC<{
+  data: { value: number }[];
+  isPositive: boolean;
+  width?: number;
+  height?: number;
+}> = React.memo(({ data, isPositive, width = 72, height = 24 }) => {
+  if (!data || data.length < 2) return null;
+
+  const values = data.map(d => d.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const padding = 2;
+  const effectiveHeight = height - padding * 2;
+  const effectiveWidth = width - padding * 2;
+
+  const points = values.map((val, idx) => {
+    const x = padding + (idx / (values.length - 1)) * effectiveWidth;
+    const y = height - padding - ((val - min) / range) * effectiveHeight;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const pathString = `M ${points.join(' L ')}`;
+  const strokeColor = isPositive ? '#10B981' : '#F43F5E';
+  const areaString = `${pathString} L ${width - padding},${height} L ${padding},${height} Z`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible select-none shrink-0">
+      <defs>
+        <linearGradient id={`grad-${isPositive ? 'pos' : 'neg'}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+      <path d={areaString} fill={`url(#grad-${isPositive ? 'pos' : 'neg'})`} />
+      <path d={pathString} fill="none" stroke={strokeColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+});
 
 interface MobileAccountsViewProps {
   accounts: Account[];
@@ -90,9 +129,9 @@ const MobileAccountItem: React.FC<{
   const detailsText = account.financialInstitution || (account as any).institutionName || account.type;
   const subtext = `${detailsText}${account.last4 ? ` • ${account.last4}` : ''}`;
 
-  // 90-Day Sparkline & Trend Calculation
+  // 30-Day Sparkline & Trend Calculation (Sampled for 60fps mobile speed)
   const { sparklineData, trend, isPositiveTrend } = useMemo(() => {
-    const NUM_POINTS = 90;
+    const NUM_POINTS = 20;
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -119,10 +158,10 @@ const MobileAccountItem: React.FC<{
       const dateStr = toLocalISOString(runningDate);
       const change = txsByDate[dateStr] || 0;
       runningBal -= change;
-      runningDate.setDate(runningDate.getDate() - 1);
+      runningDate.setDate(runningDate.getDate() - 2);
     }
 
-    const data = history.reverse().map((item) => ({ date: item.date, value: Math.max(0, item.value) }));
+    const data = history.reverse().map((item) => ({ value: Math.max(0, item.value) }));
     const trendVal = data[data.length - 1].value - data[0].value;
     const isPositive = trendVal >= 0;
 
@@ -170,24 +209,10 @@ const MobileAccountItem: React.FC<{
           </div>
         </div>
 
-        {/* Middle Mini Sparkline */}
-        {sparklineData && sparklineData.length > 0 && (
-          <div className="w-20 h-7 sm:w-24 sm:h-8 opacity-85 shrink-0 select-none">
-            <LineChart
-              data={sparklineData}
-              xDataKey="date"
-              margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
-              className="w-20 h-7 sm:w-24 sm:h-8"
-            >
-              <Line
-                dataKey="value"
-                stroke={isPositiveTrend ? '#10B981' : '#F43F5E'}
-                strokeWidth={1.75}
-                fadeEdges={true}
-                animate={false}
-                showHighlight={true}
-              />
-            </LineChart>
+        {/* Middle Mini Sparkline (Pure SVG) */}
+        {sparklineData && sparklineData.length > 1 && (
+          <div className="w-16 h-6 sm:w-20 sm:h-7 opacity-85 shrink-0 select-none flex items-center justify-center">
+            <MiniSparkline data={sparklineData} isPositive={isPositiveTrend} width={64} height={22} />
           </div>
         )}
 

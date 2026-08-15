@@ -542,6 +542,33 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Preload primary route chunks when browser is idle for instant tab switching
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const preloadRoutes = () => {
+      const primaryLoaders = [
+        pageRegistry.Dashboard.loader,
+        pageRegistry.Accounts.loader,
+        pageRegistry.Transactions.loader,
+        pageRegistry.Reports.loader,
+        pageRegistry.Budget.loader,
+        pageRegistry.Forecasting.loader,
+        pageRegistry['Schedule & Bills'].loader,
+        pageRegistry.Investments.loader,
+        pageRegistry.Subscriptions.loader,
+      ];
+      primaryLoaders.forEach(loader => {
+        try { loader(); } catch { /* ignore */ }
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(preloadRoutes, { timeout: 3000 });
+    } else {
+      setTimeout(preloadRoutes, 1500);
+    }
+  }, []);
+
   useEffect(() => {
     const route = parseRoute(currentPath);
     setCurrentPageState(route.page);

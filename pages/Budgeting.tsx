@@ -16,6 +16,7 @@ import { useAccountsContext, usePreferencesContext, useTransactionsContext } fro
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import Icon from '../components/ui/Icon';
 import { MobileBudgetView } from '../components/MobileBudgetView';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface BudgetingProps {
   budgets?: Budget[];
@@ -58,6 +59,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
   const deleteBudget = propsDeleteBudget || contextBudgets.deleteBudget;
   const accounts = propsAccounts || contextAccounts.accounts;
   const preferences = propsPreferences || contextPreferences.preferences;
+  const isMobile = useIsMobile();
   const { confirm, ConfirmDialog } = useConfirm();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -233,10 +235,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onApply={handleApplyQuickBudget}
         />
       )}
-      <ConfirmDialog />
-
-      {/* Mobile Budget View */}
-      <div className="block md:hidden">
+      {/* Responsive View Switch */}
+      {isMobile ? (
         <MobileBudgetView
           budgets={budgets}
           transactions={transactions}
@@ -253,35 +253,33 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onQuickCreateDefault={handleQuickCreateDefault}
           preferredCurrency={preferences.currency || 'EUR'}
         />
-      </div>
-
-      {/* Desktop Budget View */}
-      <div className="hidden md:block space-y-6 pb-8 animate-fade-in-up">
-      <PageHeader
-        markerIcon="pie_chart"
-        markerLabel="Spending Plan"
-        title="Budgeting"
-        subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
-        actions={
-          <div className="flex items-center gap-2">
-            <HeaderButton
-              variant="accent"
-              icon="zap"
-              onClick={handleQuickCreateDefault}
-              title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
-            >
-              Quick Budget
-            </HeaderButton>
-            <HeaderButton
-              variant="primary"
-              icon="PlusCircle"
-              onClick={() => handleOpenModal()}
-            >
-              Create Budget
-            </HeaderButton>
-          </div>
-        }
-      />
+      ) : (
+        <div className="space-y-6 pb-8 animate-fade-in-up">
+          <PageHeader
+            markerIcon="pie_chart"
+            markerLabel="Spending Plan"
+            title="Budgeting"
+            subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
+            actions={
+              <div className="flex items-center gap-2">
+                <HeaderButton
+                  variant="accent"
+                  icon="zap"
+                  onClick={handleQuickCreateDefault}
+                  title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
+                >
+                  Quick Budget
+                </HeaderButton>
+                <HeaderButton
+                  variant="primary"
+                  icon="PlusCircle"
+                  onClick={() => handleOpenModal()}
+                >
+                  Create Budget
+                </HeaderButton>
+              </div>
+            }
+          />
 
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl relative z-10">
            <div className="flex items-center gap-2 bg-white/50 dark:bg-black/50 p-1 rounded-[1.5rem] w-full md:w-auto justify-between md:justify-start border border-black/5 dark:border-white/5 shadow-lg">
@@ -536,6 +534,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           </div>
       </div>
       </div>
+      )}
       <ConfirmDialog />
     </div>
   );

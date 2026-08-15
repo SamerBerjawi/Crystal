@@ -23,6 +23,7 @@ import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { Edit01, Trash01, DotsVertical } from '@untitledui/icons';
 import type { SortDescriptor } from 'react-aria-components';
 import { PaginationPageMinimalCenter } from '@/components/application/pagination/pagination';
@@ -237,15 +238,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [density, setDensity] = useState<'default' | 'high'>('default');
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
@@ -1734,8 +1728,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             </div>
         )}
 
-      {/* Mobile Transactions Feed */}
-      <div className="block md:hidden">
+      {/* Responsive View Switch */}
+      {isMobile ? (
         <MobileTransactionsView
           transactions={transactions}
           filteredTransactions={filteredTransactions}
@@ -1821,9 +1815,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           brandfetchClientId={brandfetchClientId}
           merchantLogoOverrides={effectiveMerchantLogoOverrides}
         />
-      </div>
-
-      <div className="hidden md:block space-y-6">
+      ) : (
+        <div className="space-y-6">
         <PageHeader
         markerIcon="receipt"
         markerLabel="Activity Feed"
@@ -2512,6 +2505,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         </TableCard.Root>
       </div>
     </div>
+    )}
     </div>
   );
 };
