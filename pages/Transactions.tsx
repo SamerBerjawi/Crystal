@@ -177,6 +177,16 @@ const ColumnHeaderFilter: React.FC<{
 };
 
 const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter, initialTagFilter, onClearInitialFilters, onSyncBanks, isSyncingBanks }) => {
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  useEffect(() => {
+    const timer = setTimeout(() => { renderCountRef.current = 0; }, 100);
+    return () => clearTimeout(timer);
+  });
+  if (renderCountRef.current > 25) {
+    console.error('[DIAGNOSTIC] Infinite loop in Transactions! Render count exceeded 25 in 100ms window.');
+  }
+
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -1458,7 +1468,16 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     return items;
   }, [paginatedItems, formatDateHeader, resolveTransferDisplay]);
 
-  const selectedKeys = useMemo(() => selectedIds, [selectedIds]);
+  const selectedKeys = useMemo(() => {
+    const pageItemIds = new Set(tableRenderItems.map(i => i.id));
+    const visibleKeys = new Set<string>();
+    selectedIds.forEach(id => {
+      if (pageItemIds.has(id)) {
+        visibleKeys.add(id);
+      }
+    });
+    return visibleKeys;
+  }, [selectedIds, tableRenderItems]);
 
   const disabledGroupHeaderKeys = useMemo(() => {
     return new Set(tableRenderItems.filter(i => i.isGroupHeader).map(i => i.id));
@@ -1467,21 +1486,32 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const handleSelectionChange = useCallback((keys: 'all' | Set<React.Key>) => {
     if (keys === 'all') {
       setSelectedIds(prev => {
-        if (prev.size === filteredTransactions.length && filteredTransactions.every(t => prev.has(t.id))) {
+        const next = new Set(prev);
+        filteredTransactions.forEach(t => next.add(t.id));
+        if (prev.size === next.size && Array.from(prev).every(id => next.has(id))) {
           return prev;
         }
-        return new Set(filteredTransactions.map(t => t.id));
+        return next;
       });
     } else {
-      const validIds = Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-'));
+      const pageTxIds = new Set(tableRenderItems.filter(i => !i.isGroupHeader).map(i => i.id));
+      const selectedOnPage = new Set(Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-')));
+      
       setSelectedIds(prev => {
-        if (prev.size === validIds.length && validIds.every(id => prev.has(id))) {
+        const next = new Set(prev);
+        pageTxIds.forEach(id => {
+          if (!selectedOnPage.has(id)) {
+            next.delete(id);
+          }
+        });
+        selectedOnPage.forEach(id => next.add(id));
+        if (prev.size === next.size && Array.from(prev).every(id => next.has(id))) {
           return prev;
         }
-        return new Set(validIds);
+        return next;
       });
     }
-  }, [filteredTransactions]);
+  }, [filteredTransactions, tableRenderItems]);
 
   const handleSortBySelect = (newSortBy: string) => {
     setSortBy(newSortBy);
