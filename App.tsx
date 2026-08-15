@@ -679,20 +679,22 @@ const App: React.FC = () => {
   }, [investmentTransactions, warrants]);
 
   useEffect(() => {
-    let hasChanges = false;
-    const updatedAccounts = accounts.map(account => {
-      if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
-        const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
-        const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
-        const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-          hasChanges = true;
-          return { ...account, balance: calculatedBalance };
+    setAccounts(prevAccounts => {
+      let hasChanges = false;
+      const updatedAccounts = prevAccounts.map(account => {
+        if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
+          const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
+          const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
+          const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
+          if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
+          }
         }
-      }
-      return account;
+        return account;
+      });
+      return hasChanges ? updatedAccounts : prevAccounts;
     });
-    if (hasChanges) { setAccounts(updatedAccounts); }
   }, [assetPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
