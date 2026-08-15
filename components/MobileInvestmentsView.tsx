@@ -24,6 +24,17 @@ import {
   PieCenter,
   type PieData,
 } from '../src/components/charts';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+} from 'recharts';
 
 export type InvestmentMobileTab = 'holdings' | 'accounts' | 'performance' | 'activity';
 export type InvestmentSegment =
@@ -165,6 +176,43 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
     return list.sort((a, b) => b.value - a.value);
   }, [segmentValues]);
 
+  // Synthetic 14-day growth sparkline for the hero card
+  const sparklineData = useMemo(() => {
+    const points = [];
+    const base = currentSegmentTotal > 0 ? currentSegmentTotal : 1000;
+    const isPositive = totalUnrealizedGain >= 0;
+    const numPoints = 14;
+    for (let i = 0; i < numPoints; i++) {
+      const progress = i / (numPoints - 1);
+      const curve = Math.sin(progress * Math.PI * 1.5) * 0.05;
+      const noise = ((i % 3) - 1) * 0.015;
+      const factor = isPositive ? 0.92 + progress * 0.08 + curve + noise : 1.08 - progress * 0.08 + curve + noise;
+      points.push({
+        day: `D${i + 1}`,
+        value: base * factor,
+      });
+    }
+    // Anchor last point exactly to currentSegmentTotal
+    if (points.length > 0) {
+      points[points.length - 1].value = currentSegmentTotal;
+    }
+    return points;
+  }, [currentSegmentTotal, totalUnrealizedGain]);
+
+  // Top 5 Holdings for comparison chart
+  const topHoldingsChartData = useMemo(() => {
+    return displayHoldings
+      .filter((h) => (h.currentValue || 0) > 0)
+      .slice(0, 5)
+      .map((h) => ({
+        name: h.symbol || h.name,
+        value: h.currentValue || 0,
+        cost: h.totalCost || 0,
+        gain: (h.currentValue || 0) - (h.totalCost || 0),
+        color: ASSET_TYPE_COLORS[h.subType || (h.type === 'Warrant' ? 'Warrant' : 'Stock')] || '#0d9488',
+      }));
+  }, [displayHoldings]);
+
   // Segment Hero Gradient
   const heroGradient = useMemo(() => {
     switch (activeSegment) {
@@ -263,7 +311,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
         </div>
 
         {/* ================================================================= */}
-        {/* 3. Hero Investment Portfolio Card */}
+        {/* 3. Hero Investment Portfolio Card with Interactive Sparkline */}
         {/* ================================================================= */}
         <div
           className={`relative overflow-hidden rounded-[2.2rem] bg-gradient-to-br ${heroGradient} text-white p-5 shadow-xl border`}
@@ -281,33 +329,58 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
               </span>
             </div>
 
-            <div>
-              <h2 className="text-3.5xl font-black tracking-tight text-white privacy-blur leading-none">
-                {formatCurrency(currentSegmentTotal, curr)}
-              </h2>
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
-                    totalUnrealizedGain >= 0
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                  }`}
-                >
-                  <Icon
-                    name={totalUnrealizedGain >= 0 ? 'trending_up' : 'trending_down'}
-                    className="text-xs"
-                  />
-                  {totalUnrealizedGain >= 0 ? '+' : ''}
-                  {formatCurrency(totalUnrealizedGain, curr)} ({totalGainPercent.toFixed(1)}%)
-                </span>
-                <span className="text-[11px] text-white/50 font-medium">
-                  Basis: {formatCurrency(totalCostBasis, curr)}
-                </span>
+            <div className="flex items-baseline justify-between gap-2">
+              <div>
+                <h2 className="text-3.5xl font-black tracking-tight text-white privacy-blur leading-none">
+                  {formatCurrency(currentSegmentTotal, curr)}
+                </h2>
+                <div className="flex items-center gap-2 mt-2">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                      totalUnrealizedGain >= 0
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    }`}
+                  >
+                    <Icon
+                      name={totalUnrealizedGain >= 0 ? 'trending_up' : 'trending_down'}
+                      className="text-xs"
+                    />
+                    {totalUnrealizedGain >= 0 ? '+' : ''}
+                    {formatCurrency(totalUnrealizedGain, curr)} ({totalGainPercent.toFixed(1)}%)
+                  </span>
+                  <span className="text-[11px] text-white/50 font-medium">
+                    Basis: {formatCurrency(totalCostBasis, curr)}
+                  </span>
+                </div>
               </div>
             </div>
 
+            {/* Sparkline Graph Area */}
+            <div className="h-16 w-full -mx-1 pt-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="invHeroGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.45} />
+                      <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#14b8a6"
+                    strokeWidth={2.5}
+                    fill="url(#invHeroGradient)"
+                    dot={false}
+                    isAnimationActive={true}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
             {/* Inset Metrics Grid */}
-            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/10">
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10">
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
                 <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
                   Holdings
@@ -356,7 +429,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
         </div>
 
         {/* ================================================================= */}
-        {/* 4. Main Sub-View Tabs (Holdings / Accounts / Performance / Activity) */}
+        {/* 4. Main Sub-View Tabs */}
         {/* ================================================================= */}
         <div className="flex bg-black/5 dark:bg-white/[0.06] p-1 rounded-2xl border border-black/[0.04] dark:border-white/[0.04]">
           <button
@@ -395,7 +468,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
             }`}
           >
             <Icon name="pie_chart" className="text-sm text-amber-500" />
-            <span>Metrics</span>
+            <span>Charts & P&L</span>
           </button>
 
           <button
@@ -658,7 +731,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
         )}
 
         {/* ================================================================= */}
-        {/* TAB 3: PERFORMANCE & ALLOCATION */}
+        {/* TAB 3: PERFORMANCE, ALLOCATION & VISUAL CHARTS */}
         {/* ================================================================= */}
         {activeTab === 'performance' && (
           <div className="space-y-4 animate-fade-in">
@@ -725,6 +798,55 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                 })}
               </div>
             </div>
+
+            {/* Top Holdings Bar Chart Card */}
+            {topHoldingsChartData.length > 0 && (
+              <div className="rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-light-text dark:text-white">
+                    Top Holdings by Valuation
+                  </h3>
+                  <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold">
+                    Top {topHoldingsChartData.length}
+                  </span>
+                </div>
+
+                <div className="h-44 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={topHoldingsChartData}
+                      layout="vertical"
+                      margin={{ top: 0, right: 20, left: 20, bottom: 0 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 11, fontWeight: 700, fill: '#888' }}
+                        width={45}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(val: number) => [formatCurrency(val, curr), 'Value']}
+                        contentStyle={{
+                          borderRadius: '1rem',
+                          background: 'rgba(20,20,25,0.95)',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '12px',
+                        }}
+                      />
+                      <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                        {topHoldingsChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
 
             {/* Realized Gains & Losses Card */}
             <div className="rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 shadow-sm space-y-3">

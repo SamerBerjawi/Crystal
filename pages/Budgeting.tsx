@@ -215,18 +215,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
 
   return (
     <div className="relative">
-      <MobileBudgetView
-        budgets={budgets}
-        transactions={transactions}
-        expenseCategories={expenseCategories}
-        totalBudgeted={totalBudgeted}
-        totalSpent={totalSpent}
-        onAddBudget={() => handleOpenModal()}
-        onEditBudget={(b) => handleOpenModal(b)}
-        onDeleteBudget={(id) => deleteBudget(id)}
-      />
-
-      <div className="hidden md:block space-y-6 pb-8 animate-fade-in-up">
+      {/* Shared Modals for Mobile & Desktop */}
       {isModalOpen && (
         <BudgetModal 
           onClose={handleCloseModal}
@@ -244,7 +233,30 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onApply={handleApplyQuickBudget}
         />
       )}
+      <ConfirmDialog />
 
+      {/* Mobile Budget View */}
+      <div className="block md:hidden">
+        <MobileBudgetView
+          budgets={budgets}
+          transactions={transactions}
+          expenseCategories={expenseCategories}
+          totalBudgeted={totalBudgeted}
+          totalSpent={totalSpent}
+          spendingByCategory={spendingByCategory}
+          currentDate={currentDate}
+          onMonthChange={handleMonthChange}
+          onAddBudget={(catName) => handleOpenModal(undefined, catName)}
+          onEditBudget={(b) => handleOpenModal(b)}
+          onDeleteBudget={(id) => deleteBudget(id)}
+          onApplyQuickBudget={handleApplyQuickBudget}
+          onQuickCreateDefault={handleQuickCreateDefault}
+          preferredCurrency={preferences.currency || 'EUR'}
+        />
+      </div>
+
+      {/* Desktop Budget View */}
+      <div className="hidden md:block space-y-6 pb-8 animate-fade-in-up">
       <PageHeader
         markerIcon="pie_chart"
         markerLabel="Spending Plan"

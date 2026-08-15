@@ -792,5 +792,8 @@ export type ScheduledItem = {
   originalItem: RecurringTransaction | BillPayment;
   isOverride?: boolean;
   originalDateForOverride?: string;
-  isSkipped?: boolean; // New Property
+  isSkipped?: boolean;
+  category?: string;
+  merchant?: string;
+  accountId?: string;
 };
