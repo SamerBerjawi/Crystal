@@ -12,7 +12,7 @@ import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import RecurringOverrideModal from '../components/RecurringOverrideModal';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, useTransactionsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext, useGoalsContext } from '../contexts/FinancialDataContext';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import PageHeader from '../components/PageHeader';
@@ -195,7 +195,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
 };
 
 // --- Collapsible Group Component ---
-const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEndSeries, onExpireBill, defaultOpen = true, totalAmount }: any) => {
+const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete, onPost, onEndSeries, onExpireBill, defaultOpen = true, totalAmount }: any) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     const [overdueFilter, setOverdueFilter] = useState<'all' | 'recurring' | 'one-time'>('all');
     
@@ -304,6 +304,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEnd
                             key={item.id} 
                             item={item} 
                             accounts={accounts} 
+                            allCategories={allCategories}
                             onEdit={onEdit} 
                             onDelete={onDelete} 
                             onPost={onPost}
@@ -348,6 +349,10 @@ const SchedulePage: React.FC = () => {
         deleteRecurringOverride,
         loanPaymentOverrides,
     } = useScheduleContext();
+
+    const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
+    const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
+    const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
 
     const [activeSegment, setActiveSegment] = useState<ScheduleSegment>('calendar');
     const [searchQuery, setSearchQuery] = useState('');
@@ -500,6 +505,9 @@ const SchedulePage: React.FC = () => {
                     isOverride: !!override,
                     originalDateForOverride: originalDateStr,
                     isSkipped: isSkipped,
+                    category: rt.category,
+                    merchant: rt.merchant,
+                    accountId: rt.accountId,
                 });
                 
                 const interval = rt.frequencyInterval || 1;
@@ -533,6 +541,9 @@ const SchedulePage: React.FC = () => {
                     type: b.type,
                     originalItem: b,
                     isSkipped: false,
+                    category: (b as any).category,
+                    merchant: (b as any).merchant,
+                    accountId: b.accountId,
                 });
             });
 
@@ -875,48 +886,65 @@ const SchedulePage: React.FC = () => {
 
     return (
         <div className="relative">
-            <MobileScheduleView
-                scheduledItems={allUpcomingForHeatmap}
-                totalIncome={summaryMetrics.income}
-                totalExpense={summaryMetrics.expense}
-                netFlow={summaryMetrics.net}
-                onProcessItem={handleOpenPostModal}
-                onEditItem={handleEditItem}
-                onDeleteItem={(item) => handleDeleteItem(item.id, item.isRecurring)}
-                onAddRecurring={() => handleOpenRecurringModal()}
-                onAddBill={() => handleOpenBillModal()}
+            {/* Shared Modals for both Mobile and Desktop */}
+            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
+            {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
+            {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
+            {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
+            {isTransactionModalOpen && itemToPost && (
+                <AddTransactionModal
+                    onClose={() => { setIsTransactionModalOpen(false); setItemToPost(null); }}
+                    onSave={handleSavePostedTransaction}
+                    accounts={accounts}
+                    incomeCategories={incomeCategories}
+                    expenseCategories={expenseCategories}
+                    tags={tags}
+                    initialType={initialModalData.initialType}
+                    initialFromAccountId={initialModalData.initialFromAccountId}
+                    initialToAccountId={initialModalData.initialToAccountId}
+                    initialCategory={initialModalData.initialCategory}
+                    initialDetails={initialModalData.initialDetails}
+                />
+            )}
+            
+            <ConfirmationModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmConfig.onConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmButtonText="Confirm"
             />
 
-            <div className="hidden md:block space-y-6 pb-12 animate-fade-in-up">
-                {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
-                {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
-                {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
-                {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
-                {isTransactionModalOpen && itemToPost && (
-                    <AddTransactionModal
-                        onClose={() => { setIsTransactionModalOpen(false); setItemToPost(null); }}
-                        onSave={handleSavePostedTransaction}
-                        accounts={accounts}
-                        incomeCategories={incomeCategories}
-                        expenseCategories={expenseCategories}
-                        tags={tags}
-                        initialType={initialModalData.initialType}
-                        initialFromAccountId={initialModalData.initialFromAccountId}
-                        initialToAccountId={initialModalData.initialToAccountId}
-                        initialCategory={initialModalData.initialCategory}
-                        initialDetails={initialModalData.initialDetails}
-                    />
-                )}
-                
-                <ConfirmationModal
-                    isOpen={confirmConfig.isOpen}
-                    onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
-                    onConfirm={confirmConfig.onConfirm}
-                    title={confirmConfig.title}
-                    message={confirmConfig.message}
-                    confirmButtonText="Confirm"
+            {/* Mobile Schedule View */}
+            <div className="block md:hidden">
+                <MobileScheduleView
+                    scheduledItems={allUpcomingForHeatmap}
+                    groupedItems={groupedItems}
+                    sortedGroupKeys={sortedGroupKeys}
+                    recurringList={recurringList}
+                    summaryMetrics={summaryMetrics}
+                    categoryBreakdown={categoryBreakdown}
+                    majorInflow={majorInflow}
+                    majorOutflow={majorOutflow}
+                    accounts={accounts}
+                    incomeCategories={incomeCategories}
+                    expenseCategories={expenseCategories}
+                    brandfetchClientId={brandfetchClientId}
+                    merchantLogoOverrides={merchantLogoOverrides}
+                    onProcessItem={handleOpenPostModal}
+                    onEditItem={handleEditItem}
+                    onDeleteItem={(id, isRecurring) => handleDeleteItem(id, isRecurring)}
+                    onAddRecurring={() => handleOpenRecurringModal()}
+                    onAddBill={() => handleOpenBillModal()}
+                    onEndSeries={handleEndSeries}
+                    onExpireBill={handleExpireBill}
+                    preferredCurrency={preferredCurrency}
                 />
+            </div>
 
+            {/* Desktop Schedule View */}
+            <div className="hidden md:block space-y-6 pb-12 animate-fade-in-up">
                 <PageHeader 
                     markerIcon="clock"
                     markerLabel="Future Outflows"
@@ -1194,13 +1222,14 @@ const SchedulePage: React.FC = () => {
                                         title={groupKey} 
                                         items={items} 
                                         accounts={accounts} 
+                                        allCategories={[...incomeCategories, ...expenseCategories]}
                                         onEdit={handleEditItem} 
                                         onDelete={handleDeleteItem} 
                                         onPost={handleOpenPostModal}
                                         onEndSeries={handleEndSeries}
                                         onExpireBill={handleExpireBill}
                                         totalAmount={groupTotal}
-                                        defaultOpen={['Today', 'Next 7 Days', 'Overdue'].includes(groupKey)}
+                                        defaultOpen={['Today', 'Next 7 Days'].includes(groupKey)}
                                     />
                                 );
                             })}

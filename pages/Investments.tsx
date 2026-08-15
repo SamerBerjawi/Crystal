@@ -91,6 +91,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
+    const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
     // Include all Investment accounts for the Investments page
     const investmentAccounts = useMemo(() => (
@@ -663,91 +665,136 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     return (
         <div className="relative">
-            <MobileInvestmentsView
-                accounts={accounts}
-                investmentTransactions={investmentTransactions}
-                holdingsOverview={holdingsOverview || globalOverview}
-                onOpenHoldingDetail={onOpenHoldingDetail}
-                onAddTransaction={() => handleOpenModal()}
-                onViewAccount={onViewAccount}
-                onRefreshData={() => handleUpdateAllPrices()}
+            {/* Shared Modals for both Mobile and Desktop */}
+            {isModalOpen && (
+                <AddInvestmentTransactionModal
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={saveInvestmentTransaction}
+                    accounts={accounts}
+                    cashAccounts={cashAccounts}
+                    transactionToEdit={editingTransaction}
+                    holdings={activeHoldings}
+                />
+            )}
+            {isWarrantModalOpen && (
+                <WarrantModal 
+                    onClose={() => setWarrantModalOpen(false)} 
+                    onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} 
+                    warrantToEdit={editingWarrant} 
+                />
+            )}
+            {isAccountModalOpen && editingAccount && (
+                <EditAccountModal
+                    onClose={() => setAccountModalOpen(false)}
+                    onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
+                    onDelete={(accountId) => {
+                        const acc = accounts.find(a => a.id === accountId);
+                        if (acc) setAccountToDelete(acc);
+                        setAccountModalOpen(false);
+                    }}
+                    account={editingAccount}
+                    accounts={accounts}
+                    warrants={warrants}
+                    onToggleStatus={onToggleAccountStatus}
+                />
+            )}
+            {isAdjustModalOpen && adjustingAccount && (
+                <BalanceAdjustmentModal
+                    isOpen={isAdjustModalOpen}
+                    onClose={() => setAdjustModalOpen(false)}
+                    onSave={saveAccount}
+                    account={adjustingAccount}
+                    transactions={transactionsByAccount[adjustingAccount.id] || []}
+                    onSaveTransaction={saveTransaction}
+                />
+            )}
+            {isPriceModalOpen && editingPriceItem && (
+                <WarrantPriceModal
+                    onClose={() => setIsPriceModalOpen(false)}
+                    onSave={onManualPriceChange}
+                    isin={editingPriceItem.symbol}
+                    name={editingPriceItem.name}
+                    manualPrice={manualPrices[editingPriceItem.symbol]}
+                />
+            )}
+
+            <ConfirmationModal
+                isOpen={!!accountToDelete}
+                onClose={() => setAccountToDelete(null)}
+                onConfirm={() => {
+                    if (accountToDelete) {
+                        deleteAccount(accountToDelete.id);
+                        setAccountToDelete(null);
+                    }
+                }}
+                title="Delete Account"
+                message={`Are you sure you want to delete ${accountToDelete?.name}? This will remove all associated transactions and data. This action cannot be undone.`}
+                confirmButtonText="Delete Account"
+            />
+            
+            <ConfirmationModal
+                isOpen={!!itemToDelete}
+                onClose={() => setItemToDelete(null)}
+                onConfirm={() => {
+                    if (itemToDelete) {
+                        if (itemToDelete.isWarrant) {
+                            deleteWarrant(itemToDelete.id);
+                        } else {
+                            deleteInvestmentTransaction(itemToDelete.id);
+                        }
+                        setItemToDelete(null);
+                    }
+                }}
+                title="Delete Activity"
+                message="Are you sure you want to delete this activity? This will recalculate your holdings basis."
+                confirmButtonText="Delete"
             />
 
+            {/* Mobile Investments Feed */}
+            <div className="block md:hidden">
+                <MobileInvestmentsView
+                    accounts={accounts}
+                    cashAccounts={cashAccounts}
+                    investmentTransactions={investmentTransactions}
+                    warrants={warrants}
+                    transactions={transactions}
+                    prices={prices}
+                    manualPrices={manualPrices}
+                    holdingsOverview={holdingsOverview}
+                    globalOverview={globalOverview}
+                    activeOverview={activeOverview}
+                    displayHoldings={displayHoldings}
+                    holdingsByType={holdingsByType}
+                    segmentValues={segmentValues}
+                    segmentMetrics={segmentMetrics}
+                    recentActivity={recentActivity}
+                    realizedPerformance={realizedPerformance}
+                    activeSegment={activeSegment}
+                    setActiveSegment={setActiveSegment}
+                    segments={segments}
+                    showInactiveHoldings={showInactiveHoldings}
+                    setShowInactiveHoldings={setShowInactiveHoldings}
+                    onOpenHoldingDetail={onOpenHoldingDetail}
+                    onAddTransaction={(tx) => handleOpenModal(tx)}
+                    onAddWarrant={(w) => handleOpenWarrantModal(w)}
+                    onEditAccount={(acc) => handleOpenAccountModal(acc)}
+                    onAdjustBalance={(acc) => {
+                        setAdjustingAccount(acc);
+                        setAdjustModalOpen(true);
+                    }}
+                    onDeleteAccount={(acc) => setAccountToDelete(acc)}
+                    onDeleteActivity={(id, isWarrant) => setItemToDelete({ id, isWarrant })}
+                    onOpenPriceModal={handleOpenPriceModal}
+                    onUpdateAllPrices={handleUpdateAllPrices}
+                    isUpdatingPrices={isUpdatingAllPrices}
+                    onViewAccount={onViewAccount}
+                    preferredCurrency={preferredCurrency}
+                    conversionRates={conversionRates}
+                />
+            </div>
+
+            {/* Desktop Investments Feed */}
             <div className="hidden md:block space-y-8">
-                {isModalOpen && (
-                    <AddInvestmentTransactionModal
-                        onClose={() => setIsModalOpen(false)}
-                        onSave={saveInvestmentTransaction}
-                        accounts={accounts}
-                        cashAccounts={cashAccounts}
-                        transactionToEdit={editingTransaction}
-                        holdings={activeHoldings}
-                    />
-                )}
-                {isWarrantModalOpen && (
-                    <WarrantModal 
-                        onClose={() => setWarrantModalOpen(false)} 
-                        onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} 
-                        warrantToEdit={editingWarrant} 
-                    />
-                )}
-                {isAccountModalOpen && editingAccount && (
-                    <EditAccountModal
-                        onClose={() => setAccountModalOpen(false)}
-                        onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
-                        onDelete={(accountId) => {
-                            const acc = accounts.find(a => a.id === accountId);
-                            if (acc) setAccountToDelete(acc);
-                            setAccountModalOpen(false);
-                        }}
-                        account={editingAccount}
-                        accounts={accounts}
-                        warrants={warrants}
-                        onToggleStatus={onToggleAccountStatus}
-                    />
-                )}
-                {isPriceModalOpen && editingPriceItem && (
-                    <WarrantPriceModal
-                        onClose={() => setIsPriceModalOpen(false)}
-                        onSave={onManualPriceChange}
-                        isin={editingPriceItem.symbol}
-                        name={editingPriceItem.name}
-                        manualPrice={manualPrices[editingPriceItem.symbol]}
-                    />
-                )}
-
-                <ConfirmationModal
-                    isOpen={!!accountToDelete}
-                    onClose={() => setAccountToDelete(null)}
-                    onConfirm={() => {
-                        if (accountToDelete) {
-                            deleteAccount(accountToDelete.id);
-                            setAccountToDelete(null);
-                        }
-                    }}
-                    title="Delete Account"
-                    message={`Are you sure you want to delete ${accountToDelete?.name}? This will remove all associated transactions and data. This action cannot be undone.`}
-                    confirmButtonText="Delete Account"
-                />
-                
-                <ConfirmationModal
-                    isOpen={!!itemToDelete}
-                    onClose={() => setItemToDelete(null)}
-                    onConfirm={() => {
-                        if (itemToDelete) {
-                            if (itemToDelete.isWarrant) {
-                                deleteWarrant(itemToDelete.id);
-                            } else {
-                                deleteInvestmentTransaction(itemToDelete.id);
-                            }
-                            setItemToDelete(null);
-                        }
-                    }}
-                    title="Delete Activity"
-                    message="Are you sure you want to delete this activity? This will recalculate your holdings basis."
-                    confirmButtonText="Delete"
-                />
-
                 <PageHeader 
                     markerIcon="candlestick_chart"
                     markerLabel="Investment Center"
