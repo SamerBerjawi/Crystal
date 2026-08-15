@@ -96,6 +96,16 @@ export type TableRenderItem =
       tx: DisplayTransaction;
     };
 
+// Fallback empty object to preserve reference stability in selectors
+const EMPTY_OBJECT = {};
+
+const TYPE_FILTER_OPTIONS: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
+  { label: 'All Types', value: 'all' },
+  { label: 'Expenses', value: 'expense' },
+  { label: 'Income', value: 'income' },
+  { label: 'Transfers', value: 'transfer' },
+];
+
 const ColumnHeaderFilter: React.FC<{
   isOpen: boolean;
   onToggle: () => void;
@@ -106,17 +116,19 @@ const ColumnHeaderFilter: React.FC<{
   children: React.ReactNode;
 }> = ({ isOpen, onToggle, onClose, isActive, activeCount, title, children }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return (
     <div className="relative inline-flex items-center ml-1" ref={popoverRef}>
@@ -173,8 +185,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
   const conversionRates = usePreferencesSelector(p => p.conversionRates || CONVERSION_RATES);
-  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || EMPTY_OBJECT);
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || EMPTY_OBJECT) as Record<string, MerchantRule>;
   const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
@@ -220,6 +232,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
   const [openFilterCol, setOpenFilterCol] = useState<'description' | 'account' | 'category' | 'location' | 'tags' | 'amount' | null>(null);
+  const handleCloseFilterCol = useCallback(() => setOpenFilterCol(null), []);
 
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -1099,12 +1112,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-  const typeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
-    { label: 'All Types', value: 'all' },
-    { label: 'Expenses', value: 'expense' },
-    { label: 'Income', value: 'income' },
-    { label: 'Transfers', value: 'transfer' },
-  ];
 
   const handleAccountToggle = useCallback((id: string) => {
       setSelectedAccountIds(prev =>
@@ -1321,7 +1328,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           <div>
               <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1 block">Type</label>
               <div className="grid grid-cols-2 gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-lg">
-                  {typeFilterOptions.map(opt => (
+                  {TYPE_FILTER_OPTIONS.map(opt => (
                       <button
                           key={opt.value}
                           type="button"
@@ -1352,7 +1359,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               <button onClick={() => {setMinAmount(''); setMaxAmount(''); setTypeFilter('all');}} className="text-xs text-red-500 w-full text-center hover:underline pt-1">Clear Filters</button>
           )}
       </div>
-  ), [maxAmount, minAmount, typeFilter, typeFilterOptions]);
+  ), [maxAmount, minAmount, typeFilter]);
 
   const getCardIcon = (cardNetwork: string) => {
     const network = (cardNetwork || '').toLowerCase();
@@ -1375,7 +1382,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setCurrentPage(prev => (prev === 1 ? prev : 1));
   }, [debouncedSearchTerm, typeFilter, startDate, endDate, minAmount, maxAmount, merchantFilter, selectedAccountIds, selectedCategoryNames, selectedTagIds, selectedLocations]);
 
   const formatDateHeader = useCallback((dateString: string) => {
@@ -1518,10 +1525,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     return items;
   }, [paginatedItems, formatDateHeader, resolveTransferDisplay]);
 
-  const selectedKeys = useMemo(() => {
-    if (isAllSelected && filteredTransactions.length > 0) return 'all' as const;
-    return selectedIds;
-  }, [isAllSelected, filteredTransactions.length, selectedIds]);
+  const selectedKeys = useMemo(() => selectedIds, [selectedIds]);
 
   const disabledGroupHeaderKeys = useMemo(() => {
     return new Set(tableRenderItems.filter(i => i.isGroupHeader).map(i => i.id));
@@ -1904,7 +1908,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                           <label htmlFor="type-filter" className={labelStyle}>Transfer type</label>
                           <div className={`${SELECT_WRAPPER_STYLE} !rounded-2xl`}>
                               <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
-                                  {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                  {TYPE_FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
                               <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                           </div>
@@ -2061,7 +2065,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'description'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'description' ? null : 'description')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={Boolean(debouncedSearchTerm || merchantFilter)}
                                 title="Details & Merchant"
                             >
@@ -2073,7 +2077,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'account'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'account' ? null : 'account')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedAccountIds.length > 0}
                                 activeCount={selectedAccountIds.length}
                                 title="Accounts"
@@ -2086,7 +2090,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'category'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'category' ? null : 'category')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedCategoryNames.length > 0}
                                 activeCount={selectedCategoryNames.length}
                                 title="Categories"
@@ -2099,7 +2103,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'location'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'location' ? null : 'location')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedLocations.length > 0}
                                 activeCount={selectedLocations.length}
                                 title="Locations"
@@ -2112,7 +2116,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'tags'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'tags' ? null : 'tags')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={selectedTagIds.length > 0}
                                 activeCount={selectedTagIds.length}
                                 title="Tags"
@@ -2125,7 +2129,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <ColumnHeaderFilter
                                 isOpen={openFilterCol === 'amount'}
                                 onToggle={() => setOpenFilterCol(prev => prev === 'amount' ? null : 'amount')}
-                                onClose={() => setOpenFilterCol(null)}
+                                onClose={handleCloseFilterCol}
                                 isActive={Boolean(minAmount || maxAmount || typeFilter !== 'all')}
                                 title="Value & Type"
                             >

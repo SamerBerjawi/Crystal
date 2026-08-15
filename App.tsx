@@ -1379,7 +1379,7 @@ const App: React.FC = () => {
     });
   }, [accounts, preferences]);
 
-  const handleDeleteTransactions = (transactionIds: string[]) => {
+  const handleDeleteTransactions = useCallback((transactionIds: string[]) => {
     if (transactionIds.length === 0) return;
     const deletedTxs = transactions.filter(t => transactionIds.includes(t.id));
     handleSaveTransaction([], transactionIds);
@@ -1397,7 +1397,7 @@ const App: React.FC = () => {
         }
       }
     );
-  };
+  }, [transactions, handleSaveTransaction]);
   const handleSaveInvestmentTransaction = (invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTxData?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => {
     const symbol = invTxData.symbol.toUpperCase();
     const type = invTxData.type?.toLowerCase();
