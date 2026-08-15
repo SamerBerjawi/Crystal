@@ -17,12 +17,12 @@ import MultiAccountFilter from '../components/MultiAccountFilter';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useDebounce } from '../hooks/useDebounce';
-import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { Edit01, Trash01, DotsVertical } from '@untitledui/icons';
 import type { SortDescriptor } from 'react-aria-components';
 import { PaginationPageMinimalCenter } from '@/components/application/pagination/pagination';
@@ -89,8 +89,6 @@ export type TableRenderItem =
       count: number;
       totalEur: number;
       groupTxIds: string[];
-      isAllGroupSelected: boolean;
-      isSomeGroupSelected: boolean;
     }
   | {
       isGroupHeader: false;
@@ -237,31 +235,14 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [density, setDensity] = useState<'default' | 'high'>('default');
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
-
-  // Virtualized list sizing
-  const [listHeight, setListHeight] = useState(600);
-  const listContainerRef = useRef<HTMLDivElement>(null);
-  const throttledUpdateHeight = useThrottledCallback(() => {
-    if (!listContainerRef.current) return;
-    const measuredHeight = listContainerRef.current.clientHeight;
-    setListHeight(measuredHeight > 0 ? measuredHeight : 600);
-  }, 150);
-
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -287,25 +268,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         document.removeEventListener('mousedown', handleClick);
     };
   }, []);
-
-  useEffect(() => {
-    throttledUpdateHeight();
-
-    const resizeObserver = new ResizeObserver(throttledUpdateHeight);
-    if (listContainerRef.current) {
-      resizeObserver.observe(listContainerRef.current);
-    }
-
-    window.addEventListener('resize', throttledUpdateHeight);
-
-    return () => {
-      if (listContainerRef.current) {
-        resizeObserver.unobserve(listContainerRef.current);
-      }
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', throttledUpdateHeight);
-    };
-  }, [throttledUpdateHeight]);
 
   const openContextMenu = useCallback((event: React.MouseEvent, transaction: DisplayTransaction) => {
     event.preventDefault();
@@ -1521,9 +1483,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           groupTxIds.push(t.id);
         });
 
-        const isAllGroupSelected = groupTxIds.length > 0 && groupTxIds.every(id => selectedIds.has(id));
-        const isSomeGroupSelected = groupTxIds.some(id => selectedIds.has(id)) && !isAllGroupSelected;
-
         items.push({
           isGroupHeader: true,
           id: `group-hdr-${currentDate}`,
@@ -1532,8 +1491,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           count: currentGroupTxs.length,
           totalEur,
           groupTxIds,
-          isAllGroupSelected,
-          isSomeGroupSelected,
         });
 
         currentGroupTxs.forEach(t => {
@@ -1559,7 +1516,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     flushGroup();
 
     return items;
-  }, [paginatedItems, selectedIds, formatDateHeader, resolveTransferDisplay]);
+  }, [paginatedItems, formatDateHeader, resolveTransferDisplay]);
 
   const selectedKeys = useMemo(() => {
     if (isAllSelected && filteredTransactions.length > 0) return 'all' as const;
@@ -1734,8 +1691,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             </div>
         )}
 
-      {/* Mobile Transactions Feed */}
-      <div className="block md:hidden">
+      {/* Responsive View Switch */}
+      {isMobile ? (
         <MobileTransactionsView
           transactions={transactions}
           filteredTransactions={filteredTransactions}
@@ -1821,9 +1778,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           brandfetchClientId={brandfetchClientId}
           merchantLogoOverrides={effectiveMerchantLogoOverrides}
         />
-      </div>
-
-      <div className="hidden md:block space-y-6">
+      ) : (
+        <div className="space-y-6">
         <PageHeader
         markerIcon="receipt"
         markerLabel="Activity Feed"
@@ -2182,12 +2138,16 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                     <Table.Body items={tableRenderItems} dependencies={[selectedIds]}>
                         {(item: TableRenderItem) => {
                             if (item.isGroupHeader) {
+                                const isAllGroupSelected = item.groupTxIds.length > 0 && item.groupTxIds.every(id => selectedIds.has(id));
+                                const isSomeGroupSelected = item.groupTxIds.some(id => selectedIds.has(id)) && !isAllGroupSelected;
+
                                 const handleToggleGroup = (e?: React.MouseEvent) => {
                                     e?.stopPropagation();
                                     e?.preventDefault();
                                     setSelectedIds(prev => {
                                         const next = new Set(prev);
-                                        if (item.isAllGroupSelected) {
+                                        const allSelected = item.groupTxIds.length > 0 && item.groupTxIds.every(id => prev.has(id));
+                                        if (allSelected) {
                                             item.groupTxIds.forEach(id => next.delete(id));
                                         } else {
                                             item.groupTxIds.forEach(id => next.add(id));
@@ -2213,8 +2173,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                                             >
                                                 <CheckboxBase
                                                     size="sm"
-                                                    isSelected={item.isAllGroupSelected}
-                                                    isIndeterminate={item.isSomeGroupSelected}
+                                                    isSelected={isAllGroupSelected}
+                                                    isIndeterminate={isSomeGroupSelected}
                                                 />
                                             </button>
                                         }
@@ -2512,6 +2472,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         </TableCard.Root>
       </div>
     </div>
+    )}
     </div>
   );
 };

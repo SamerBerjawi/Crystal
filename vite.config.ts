@@ -52,15 +52,10 @@ export default defineConfig(({ mode }) => {
         manifest: false, // We maintain our own manifest.json in /public
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           runtimeCaching: [
-            {
-              urlPattern: /^\/api\//,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'crystal-api-cache',
-                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 },
-              },
-            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
               handler: 'StaleWhileRevalidate',
@@ -81,9 +76,6 @@ export default defineConfig(({ mode }) => {
       }),
       shouldAnalyze && createBundleAnalyzerPlugin(),
     ].filter(Boolean) as PluginOption[],
-    define: {
-      'process.env.NODE_ENV': JSON.stringify('production'),
-    },
     build: {
       sourcemap: false,
       minify: 'esbuild',
@@ -91,7 +83,6 @@ export default defineConfig(({ mode }) => {
         treeshake: true,
         output: {
           manualChunks: {
-            react: ['react', 'react-dom'],
             leaflet: ['leaflet', 'react-leaflet'],
             recharts: ['recharts'],
             reactQuery: ['@tanstack/react-query'],

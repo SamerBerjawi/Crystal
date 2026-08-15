@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useConfirm } from '../components/ConfirmationModal';
 import Icon from '../components/ui/Icon';
 import { MobileSubscriptionsView } from '../components/MobileSubscriptionsView';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -87,6 +88,7 @@ const calculateFrequency = (intervals: number[]): RecurrenceFrequency | null => 
 type SubscriptionSegment = 'all' | 'recurring' | 'loyalty';
 
 const Subscriptions: React.FC = () => {
+    const isMobile = useIsMobile();
     const { transactions } = useTransactionsContext();
     const { accounts } = useAccountsContext();
     const { confirm, ConfirmDialog } = useConfirm();
@@ -388,33 +390,37 @@ const Subscriptions: React.FC = () => {
 
     return (
         <div className="relative">
-            <MobileSubscriptionsView
-                subscriptions={activeSubscriptions}
-                totalMonthlyCost={monthlySpend}
-                totalAnnualCost={yearlySpend}
-                onAddSubscription={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
-                onEditSubscription={handleEditActive}
-                onDeleteSubscription={handleDeleteActive}
-            />
+            {/* Shared Modals for Mobile & Desktop */}
+            {isModalOpen && (
+                <RecurringTransactionModal
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={handleSave}
+                    accounts={accounts}
+                    incomeCategories={incomeCategories}
+                    expenseCategories={expenseCategories}
+                    recurringTransactionToEdit={subscriptionToEdit}
+                />
+            )}
+            {isMembershipModalOpen && (
+                <MembershipModal
+                    onClose={() => setIsMembershipModalOpen(false)}
+                    onSave={(m) => { saveMembership(m); setIsMembershipModalOpen(false); }}
+                    membershipToEdit={membershipToEdit}
+                />
+            )}
 
-            <div className="hidden md:block space-y-6 pb-12 animate-fade-in-up">
-                {isModalOpen && (
-                    <RecurringTransactionModal
-                        onClose={() => setIsModalOpen(false)}
-                        onSave={handleSave}
-                        accounts={accounts}
-                        incomeCategories={incomeCategories}
-                        expenseCategories={expenseCategories}
-                        recurringTransactionToEdit={subscriptionToEdit}
-                    />
-                )}
-                {isMembershipModalOpen && (
-                    <MembershipModal
-                        onClose={() => setIsMembershipModalOpen(false)}
-                        onSave={(m) => { saveMembership(m); setIsMembershipModalOpen(false); }}
-                        membershipToEdit={membershipToEdit}
-                    />
-                )}
+            {/* Responsive View Switch */}
+            {isMobile ? (
+                <MobileSubscriptionsView
+                    subscriptions={activeSubscriptions}
+                    totalMonthlyCost={monthlySpend}
+                    totalAnnualCost={yearlySpend}
+                    onAddSubscription={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
+                    onEditSubscription={handleEditActive}
+                    onDeleteSubscription={handleDeleteActive}
+                />
+            ) : (
+                <div className="space-y-6 pb-12 animate-fade-in-up">
 
                 <PageHeader 
                     markerIcon="refresh"
@@ -892,6 +898,7 @@ const Subscriptions: React.FC = () => {
                     )}
                 </AnimatePresence>
             </div>
+            )}
             <ConfirmDialog />
         </div>
     );

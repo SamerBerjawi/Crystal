@@ -24,8 +24,8 @@ export function useIsMobile(breakpoint = MD_BREAKPOINT): boolean {
     const mql = window.matchMedia(query);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
 
-    // Set initial value (handles hydration mismatch)
-    setIsMobile(mql.matches);
+    // Only update if value actually changed
+    setIsMobile(prev => (prev === mql.matches ? prev : mql.matches));
 
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);

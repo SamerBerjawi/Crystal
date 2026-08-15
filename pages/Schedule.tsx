@@ -20,8 +20,8 @@ import HeaderButton from '../components/HeaderButton';
 import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CalendarView from '../components/CalendarView';
-import { v4 as uuidv4 } from 'uuid';
 import { MobileScheduleView } from '../components/MobileScheduleView';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // --- Summary Card Component ---
 const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'income' | 'expense' | 'net'; count?: number }> = ({ title, value, type, count }) => {
@@ -332,6 +332,7 @@ import Icon from '../components/ui/Icon';
 type ScheduleSegment = 'all' | 'timeline' | 'calendar' | 'rules' | 'expired';
 
 const SchedulePage: React.FC = () => {
+    const isMobile = useIsMobile();
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -916,8 +917,8 @@ const SchedulePage: React.FC = () => {
                 confirmButtonText="Confirm"
             />
 
-            {/* Mobile Schedule View */}
-            <div className="block md:hidden">
+            {/* Responsive View Switch */}
+            {isMobile ? (
                 <MobileScheduleView
                     scheduledItems={allUpcomingForHeatmap}
                     groupedItems={groupedItems}
@@ -937,14 +938,21 @@ const SchedulePage: React.FC = () => {
                     onDeleteItem={(id, isRecurring) => handleDeleteItem(id, isRecurring)}
                     onAddRecurring={() => handleOpenRecurringModal()}
                     onAddBill={() => handleOpenBillModal()}
-                    onEndSeries={handleEndSeries}
-                    onExpireBill={handleExpireBill}
+                    onEndSeries={(recurringId) => {
+                        const rt = recurringTransactions.find(t => t.id === recurringId);
+                        if (rt) {
+                            const today = toLocalISOString(new Date());
+                            saveRecurringTransaction({ ...rt, endDate: today });
+                        }
+                    }}
+                    onExpireBill={(billId) => {
+                        const bill = billsAndPayments.find(b => b.id === billId);
+                        if (bill) handleExpireBill(bill);
+                    }}
                     preferredCurrency={preferredCurrency}
                 />
-            </div>
-
-            {/* Desktop Schedule View */}
-            <div className="hidden md:block space-y-6 pb-12 animate-fade-in-up">
+            ) : (
+                <div className="space-y-6 pb-12 animate-fade-in-up">
                 <PageHeader 
                     markerIcon="clock"
                     markerLabel="Future Outflows"
@@ -1388,6 +1396,7 @@ const SchedulePage: React.FC = () => {
                     )}
                 </AnimatePresence>
             </div>
+            )}
         </div>
     );
 };

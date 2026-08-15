@@ -766,19 +766,23 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                 <BklitPieChart
                   data={allocationPieData}
                   className="w-full h-full"
-                  holeSize="68%"
+                  innerRadius={68}
                   padAngle={0.03}
                 >
-                  <PieSlice />
-                  <PieCenter>
-                    <div className="text-center">
-                      <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
-                        Monthly Cap
-                      </span>
-                      <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
-                        {formatCurrency(totalBudgeted, curr)}
-                      </span>
-                    </div>
+                  {allocationPieData.map((_, index) => (
+                    <PieSlice key={index} index={index} />
+                  ))}
+                  <PieCenter defaultLabel="Monthly Cap">
+                    {({ label }) => (
+                      <div className="text-center">
+                        <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
+                          {label}
+                        </span>
+                        <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
+                          {formatCurrency(totalBudgeted, curr)}
+                        </span>
+                      </div>
+                    )}
                   </PieCenter>
                 </BklitPieChart>
               </div>

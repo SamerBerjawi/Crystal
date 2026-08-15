@@ -45,6 +45,7 @@ import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import { MobileDashboardView } from '../components/MobileDashboardView';
+import { useIsMobile } from '../hooks/useIsMobile';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import PageHeader from '../components/PageHeader';
@@ -185,15 +186,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const [showGoals, setShowGoals] = useState(true);
   const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const isMobile = useIsMobile();
 
   // Touch Pull-to-Refresh
   const touchStartRef = useRef<number | null>(null);
@@ -1481,8 +1474,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
       {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
 
-      {/* Mobile View Layout (SwiftUI Reimagined) */}
-      <div className="block md:hidden">
+      {isMobile ? (
         <MobileDashboardView
           userProfile={user}
           categories={allCategories}
@@ -1544,10 +1536,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           SELECT_ARROW_STYLE={SELECT_ARROW_STYLE}
           brandfetchClientId={preferences.brandfetchClientId}
         />
-      </div>
-
-      {/* Desktop View Layout (Preserved Unaltered) */}
-      <div className="hidden md:block">
+      ) : (
+        <div>
         {/* Header Section */}
         <div className="mb-6 mt-2 md:mt-0">
           <PageHeader
@@ -2001,6 +1991,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           </div>
         )}
       </div>
+      )}
       <ConfirmDialog />
     </div>
   );

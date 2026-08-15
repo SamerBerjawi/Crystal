@@ -733,7 +733,7 @@ const Reports: React.FC = () => {
       />
 
       {/* Hero Section: Key Metrics */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
         <MetricCard
           label="Total Spend"
           value={`€${totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -768,18 +768,20 @@ const Reports: React.FC = () => {
           glowColor="rgba(99, 102, 241, 0.15)"
         />
 
-        <MetricCard
-          label="Recurring Impact"
-          value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
-          icon="clock"
-          subtitle="Est. Monthly Total"
-          glowColor="rgba(244, 63, 94, 0.15)"
-        />
+        <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+          <MetricCard
+            label="Recurring Impact"
+            value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
+            icon="clock"
+            subtitle="Est. Monthly Total"
+            glowColor="rgba(244, 63, 94, 0.15)"
+          />
+        </div>
       </section>
 
       {/* Filters & Saved Views */}
-      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-2xl rounded-[2rem]">
-        <div className="bg-black/5 dark:bg-white/5 p-8 border-b border-black/5 dark:border-white/10 relative">
+      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-2xl rounded-2xl md:rounded-[2rem]">
+        <div className="bg-black/5 dark:bg-white/5 p-4 sm:p-6 md:p-8 border-b border-black/5 dark:border-white/10 relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 relative z-10">

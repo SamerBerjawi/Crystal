@@ -109,13 +109,10 @@ export interface MobileForecastViewProps {
 }
 
 const HORIZON_OPTIONS: { id: ForecastDuration; label: string }[] = [
-  { id: '1M', label: '1M' },
   { id: '3M', label: '3M' },
   { id: '6M', label: '6M' },
   { id: 'EOY', label: 'EOY' },
   { id: '1Y', label: '1Y' },
-  { id: '2Y', label: '2Y' },
-  { id: '5Y', label: '5Y' },
 ];
 
 const GOAL_CATEGORY_META: Record<

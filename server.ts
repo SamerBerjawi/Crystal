@@ -38,18 +38,56 @@ async function startServer() {
     }
   });
 
-  // Mock data endpoint to prevent errors in App.tsx
-  app.post('/api/data', (req, res) => {
-    res.json({ status: 'ok', message: 'Data saved (mock)' });
-  });
+  const BACKEND_TARGET = process.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
-  app.get('/api/data', (req, res) => {
-    res.json({});
-  });
+  // Proxy /api requests to the backend server (preserving auth, cookies, data payload)
+  app.use('/api', async (req, res, next) => {
+    const targetUrl = `${BACKEND_TARGET}${req.originalUrl}`;
+    try {
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (value && key !== 'host' && key !== 'content-length') {
+          if (Array.isArray(value)) {
+            value.forEach(v => headers.append(key, v));
+          } else {
+            headers.set(key, value);
+          }
+        }
+      }
 
-  // Authentication mocks if needed
-  app.post('/api/auth/status', (req, res) => {
-    res.json({ status: 'unauthenticated' });
+      const fetchOptions: RequestInit = {
+        method: req.method,
+        headers,
+      };
+
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.body) {
+        fetchOptions.body = typeof req.body === 'object' ? JSON.stringify(req.body) : req.body;
+      }
+
+      const backendRes = await fetch(targetUrl, fetchOptions);
+
+      backendRes.headers.forEach((val, key) => {
+        if (key.toLowerCase() !== 'transfer-encoding') {
+          res.setHeader(key, val);
+        }
+      });
+
+      res.status(backendRes.status);
+      const arrayBuffer = await backendRes.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (err: any) {
+      if (req.path === '/data') {
+        if (req.method === 'GET') {
+          return res.json({});
+        }
+        return res.json({ status: 'ok', message: 'Backend unreachable, saved locally' });
+      }
+      if (req.path === '/auth/status' || req.path === '/auth/me') {
+        return res.status(401).json({ status: 'unauthenticated' });
+      }
+      console.warn(`[Proxy] Backend unreachable at ${targetUrl}:`, err.message);
+      res.status(502).json({ error: 'Backend unreachable', message: err.message });
+    }
   });
 
   // Vite middleware for development

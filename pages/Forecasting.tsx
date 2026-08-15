@@ -52,6 +52,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import Icon from '../components/ui/Icon';
 import { MobileForecastView } from '../components/MobileForecastView';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
@@ -96,6 +97,7 @@ const Forecasting: React.FC = () => {
     deleteBillPayment,
   } = useScheduleContext();
     const { preferences } = usePreferencesContext();
+    const isMobile = useIsMobile();
     const timeZone = getPreferredTimeZone();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
@@ -860,8 +862,8 @@ const Forecasting: React.FC = () => {
                 />
             )}
 
-            {/* Mobile View */}
-            <div className="block md:hidden">
+            {/* Responsive View Switch */}
+            {isMobile ? (
                 <MobileForecastView
                     accounts={accounts}
                     selectedAccountIds={selectedAccountIds}
@@ -919,10 +921,8 @@ const Forecasting: React.FC = () => {
                     groupedTableData={groupedTableData}
                     onEditForecastItem={handleEditForecastItem}
                 />
-            </div>
-
-            {/* Desktop View */}
-            <div className="hidden md:block space-y-8 pb-12 animate-fade-in-up">
+            ) : (
+                <div className="space-y-8 pb-12 animate-fade-in-up">
             <PageHeader
                 markerIcon="PresentationChart01"
                 markerLabel="Forward View"
@@ -1716,6 +1716,7 @@ const Forecasting: React.FC = () => {
                 </Card>
             </div>
         </div>
+        )}
     </div>
 );
 };
