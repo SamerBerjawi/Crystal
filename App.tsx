@@ -11,8 +11,27 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AddTransactionModal from './components/AddTransactionModal';
 import { useIsMobile } from './hooks/useIsMobile';
-const SignIn = lazy(() => import('./pages/SignIn'));
-const SignUp = lazy(() => import('./pages/SignUp'));
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+): React.LazyExoticComponent<T> {
+  return lazy(async () => {
+    try {
+      return await factory();
+    } catch (error) {
+      const key = 'crystal_chunk_reload_' + (typeof factory === 'function' ? factory.toString().slice(0, 40) : 'page');
+      if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      sessionStorage.removeItem(key);
+      throw error;
+    }
+  });
+}
+
+const SignIn = lazyWithRetry(() => import('./pages/SignIn'));
+const SignUp = lazyWithRetry(() => import('./pages/SignUp'));
 const pageRegistry = {
   Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
   Accounts: { path: '/accounts', loader: () => import('./pages/Accounts') },
@@ -41,31 +60,31 @@ const pageRegistry = {
   Rules: { path: '/rules', loader: () => import('./pages/Rules') },
 } as const;
 
-const Dashboard = lazy(pageRegistry.Dashboard.loader);
-const Accounts = lazy(pageRegistry.Accounts.loader);
-const Transactions = lazy(pageRegistry.Transactions.loader);
-const ReportsPage = lazy(pageRegistry.Reports.loader);
-const Budgeting = lazy(pageRegistry.Budget.loader);
-const Forecasting = lazy(pageRegistry.Forecasting.loader);
-const ChallengesPage = lazy(pageRegistry.Challenges.loader);
-const SettingsPage = lazy(pageRegistry.Settings.loader);
-const SchedulePage = lazy(pageRegistry['Schedule & Bills'].loader);
-const CategoriesPage = lazy(pageRegistry.Categories.loader);
-const TagsPage = lazy(pageRegistry.Tags.loader);
-const PersonalInfoPage = lazy(pageRegistry['Personal Info'].loader);
-const DataImportExportPage = lazy(pageRegistry['Data Management'].loader);
-const PreferencesPage = lazy(pageRegistry.Preferences.loader);
-const IntegrationsPage = lazy(pageRegistry.Integrations.loader);
-const AccountDetail = lazy(pageRegistry.AccountDetail.loader);
-const EnableBankingCallbackPage = lazy(pageRegistry.EnableBankingCallback.loader);
-const InvestmentsPage = lazy(pageRegistry.Investments.loader);
-const HoldingDetail = lazy(pageRegistry.HoldingDetail.loader);
-const TasksPage = lazy(pageRegistry.Tasks.loader);
-const Documentation = lazy(pageRegistry.Documentation.loader);
-const SubscriptionsPage = lazy(pageRegistry.Subscriptions.loader);
-const InvoicesPage = lazy(pageRegistry['Quotes & Invoices'].loader);
-const MerchantsPage = lazy(pageRegistry.Merchants.loader);
-const RulesPage = lazy(pageRegistry.Rules.loader);
+const Dashboard = lazyWithRetry(pageRegistry.Dashboard.loader);
+const Accounts = lazyWithRetry(pageRegistry.Accounts.loader);
+const Transactions = lazyWithRetry(pageRegistry.Transactions.loader);
+const ReportsPage = lazyWithRetry(pageRegistry.Reports.loader);
+const Budgeting = lazyWithRetry(pageRegistry.Budget.loader);
+const Forecasting = lazyWithRetry(pageRegistry.Forecasting.loader);
+const ChallengesPage = lazyWithRetry(pageRegistry.Challenges.loader);
+const SettingsPage = lazyWithRetry(pageRegistry.Settings.loader);
+const SchedulePage = lazyWithRetry(pageRegistry['Schedule & Bills'].loader);
+const CategoriesPage = lazyWithRetry(pageRegistry.Categories.loader);
+const TagsPage = lazyWithRetry(pageRegistry.Tags.loader);
+const PersonalInfoPage = lazyWithRetry(pageRegistry['Personal Info'].loader);
+const DataImportExportPage = lazyWithRetry(pageRegistry['Data Management'].loader);
+const PreferencesPage = lazyWithRetry(pageRegistry.Preferences.loader);
+const IntegrationsPage = lazyWithRetry(pageRegistry.Integrations.loader);
+const AccountDetail = lazyWithRetry(pageRegistry.AccountDetail.loader);
+const EnableBankingCallbackPage = lazyWithRetry(pageRegistry.EnableBankingCallback.loader);
+const InvestmentsPage = lazyWithRetry(pageRegistry.Investments.loader);
+const HoldingDetail = lazyWithRetry(pageRegistry.HoldingDetail.loader);
+const TasksPage = lazyWithRetry(pageRegistry.Tasks.loader);
+const Documentation = lazyWithRetry(pageRegistry.Documentation.loader);
+const SubscriptionsPage = lazyWithRetry(pageRegistry.Subscriptions.loader);
+const InvoicesPage = lazyWithRetry(pageRegistry['Quotes & Invoices'].loader);
+const MerchantsPage = lazyWithRetry(pageRegistry.Merchants.loader);
+const RulesPage = lazyWithRetry(pageRegistry.Rules.loader);
 
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
@@ -82,7 +101,7 @@ import { useAuth } from './hooks/useAuth';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import NotificationCenter from './components/NotificationCenter';
-const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
+const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
@@ -545,21 +564,23 @@ const App: React.FC = () => {
   // Preload primary route chunks when browser is idle for instant tab switching
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const preloadRoutes = () => {
+    const preloadRoutes = async () => {
       const primaryLoaders = [
-        pageRegistry.Dashboard.loader,
         pageRegistry.Accounts.loader,
         pageRegistry.Transactions.loader,
-        pageRegistry.Reports.loader,
         pageRegistry.Budget.loader,
-        pageRegistry.Forecasting.loader,
         pageRegistry['Schedule & Bills'].loader,
+        pageRegistry.Reports.loader,
+        pageRegistry.Forecasting.loader,
         pageRegistry.Investments.loader,
         pageRegistry.Subscriptions.loader,
       ];
-      primaryLoaders.forEach(loader => {
-        try { loader(); } catch { /* ignore */ }
-      });
+      for (const loader of primaryLoaders) {
+        try {
+          await loader();
+          await new Promise(r => setTimeout(r, 120));
+        } catch { /* ignore */ }
+      }
     };
 
     if ('requestIdleCallback' in window) {
