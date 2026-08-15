@@ -62,7 +62,6 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
             fill={(_, index) => (index < 3 ? '#fa9a1d' : '#94A3B8')}
             lineCap="round"
           />
-          <BarXAxis />
           <BarYAxis />
           <ChartTooltip
             valueFormatter={(val: number) => formatCurrency(val, 'EUR')}

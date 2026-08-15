@@ -25,7 +25,8 @@ function BarYAxisLabel({
   y,
   bandHeight,
   isHovered,
-}: BarYAxisLabelProps) {
+  maxWidth = 100,
+}: BarYAxisLabelProps & { maxWidth?: number }) {
   return (
     <div
       className="absolute right-0 flex items-center justify-end pr-2"
@@ -46,7 +47,7 @@ function BarYAxisLabel({
           opacity: 0.7,
           color: "var(--chart-label, var(--color-zinc-500))",
         }}
-        style={{ maxWidth: 70 }}
+        style={{ maxWidth }}
         transition={{ duration: 0.15 }}
       >
         {label}
@@ -130,6 +131,7 @@ const BarYAxisInner = memo(function BarYAxisInner({
           key={`${item.label}-${item.y}`}
           label={item.label}
           y={item.y}
+          maxWidth={Math.max(70, margin.left - 12)}
         />
       ))}
     </div>,

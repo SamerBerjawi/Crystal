@@ -71,6 +71,9 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
             <DetailRow label="Category" value={tx.category} />
             <DetailRow label="Account" value={account?.name || 'Unknown'} />
             <DetailRow label="Type" value={<span className="capitalize">{tx.type}</span>} />
+            {(tx.city || tx.country) && (
+                <DetailRow label="Location" value={[tx.city, tx.country].filter(Boolean).join(', ')} />
+            )}
             {tx.tagIds && tx.tagIds.length > 0 && (
                 <DetailRow 
                     label="Tags" 
