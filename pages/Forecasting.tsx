@@ -843,16 +843,7 @@ const Forecasting: React.FC = () => {
 
      return (
         <div className="relative">
-            <MobileForecastView
-                forecastDuration={forecastDuration}
-                setForecastDuration={setForecastDuration}
-                projectedNetWorth={endBalance}
-                lowestBalance={lowestPoint?.value || 0}
-                lowestBalanceDate={lowestPoint?.date || ''}
-                runwayMonths={12}
-            />
-
-            <div className="hidden md:block space-y-8 pb-12 animate-fade-in-up">
+            {/* Shared Modals (Available for both mobile and desktop) */}
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}
@@ -869,6 +860,69 @@ const Forecasting: React.FC = () => {
                 />
             )}
 
+            {/* Mobile View */}
+            <div className="block md:hidden">
+                <MobileForecastView
+                    accounts={accounts}
+                    selectedAccountIds={selectedAccountIds}
+                    setSelectedAccountIds={setSelectedAccountIds}
+                    forecastDuration={forecastDuration}
+                    setForecastDuration={setForecastDuration}
+                    preferredCurrency={preferences.currency || 'EUR'}
+                    conversionRates={preferences.conversionRates}
+                    startBalance={startBalance}
+                    endBalance={endBalance}
+                    netChange={netChange}
+                    lowestPoint={lowestPoint}
+                    lowestBalanceForecasts={lowestBalanceForecasts}
+                    combinedChartData={combinedChartData}
+                    showIndividualLines={showIndividualLines}
+                    setShowIndividualLines={setShowIndividualLines}
+                    showGoalLines={showGoalLines}
+                    setShowGoalLines={setShowGoalLines}
+                    onDataPointClick={handleDateClick}
+                    assumptions={assumptions}
+                    setAssumptions={setAssumptions}
+                    goalProgress={goalProgress}
+                    savingsProgress={savingsProgress}
+                    incomeProgress={incomeProgress}
+                    expenseProgress={expenseProgress}
+                    globalIncomeGoalCurrent={globalIncomeGoalCurrent}
+                    globalIncomeGoalTarget={globalIncomeGoalTarget}
+                    globalSavingsGoalCurrent={globalSavingsGoalCurrent}
+                    globalSavingsGoalTarget={globalSavingsGoalTarget}
+                    globalExpenseGoalCurrent={globalExpenseGoalCurrent}
+                    globalExpenseGoalTarget={globalExpenseGoalTarget}
+                    globalAccountBreakdown={globalAccountBreakdown}
+                    financialGoals={financialGoals}
+                    topLevelGoals={topLevelGoals}
+                    goalsByParentId={goalsByParentId}
+                    activeGoalIds={activeGoalIds}
+                    setActiveGoalIds={setActiveGoalIds}
+                    filterGoalsByAccount={filterGoalsByAccount}
+                    setFilterGoalsByAccount={setFilterGoalsByAccount}
+                    onAddGoal={(parentId) => {
+                        if (parentId) handleAddSubGoal(parentId);
+                        else handleOpenModal();
+                    }}
+                    onEditGoal={(g) => handleOpenModal(g)}
+                    onDeleteGoal={(g) => setDeletingGoal(g)}
+                    onToggleGoal={(goalId) => {
+                        setActiveGoalIds(prev =>
+                            prev.includes(goalId) ? prev.filter(id => id !== goalId) : [...prev, goalId]
+                        );
+                    }}
+                    monthlyPaymentBreakdown={monthlyPaymentBreakdown}
+                    monthlyDateBreakdown={monthlyDateBreakdown}
+                    scheduleMode={scheduleMode}
+                    setScheduleMode={setScheduleMode}
+                    groupedTableData={groupedTableData}
+                    onEditForecastItem={handleEditForecastItem}
+                />
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block space-y-8 pb-12 animate-fade-in-up">
             <PageHeader
                 markerIcon="PresentationChart01"
                 markerLabel="Forward View"
