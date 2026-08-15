@@ -364,13 +364,20 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const spareChangeByParentId = new Map<string, number>();
     const legacySpareChangeLookup = new Map<string, number[]>();
 
+    const txIdSet = new Set<string>();
+    const transferIdSet = new Set<string>();
+    sortedTransactions.forEach(t => {
+      txIdSet.add(t.id);
+      if (t.transferId) transferIdSet.add(t.transferId);
+    });
+
     sortedTransactions.forEach(tx => {
         if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return;
 
         const match = tx.transferId.match(/^spare-(.+)$/);
         const embeddedId = match ? match[1] : null;
 
-        const isBoundToTx = embeddedId && sortedTransactions.some(t => t.id === embeddedId || (t.transferId && t.transferId === embeddedId));
+        const isBoundToTx = embeddedId ? (txIdSet.has(embeddedId) || transferIdSet.has(embeddedId)) : false;
 
         if (isBoundToTx && embeddedId) {
             spareChangeByParentId.set(embeddedId, Math.abs(tx.amount));
@@ -571,80 +578,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       return next;
     });
   }, []);
-
-  type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
-
-  const virtualRows: VirtualRow[] = useMemo(() => {
-    const rows: VirtualRow[] = [];
-    
-    const subTxMap = new Map<string, DisplayTransaction[]>();
-    const topLevelList: DisplayTransaction[] = [];
-
-    filteredTransactions.forEach(tx => {
-      if (tx.parentTransactionId) {
-        const list = subTxMap.get(tx.parentTransactionId) || [];
-        list.push({ ...tx, isSubTransaction: true });
-        subTxMap.set(tx.parentTransactionId, list);
-      } else {
-        topLevelList.push(tx);
-      }
-    });
-
-    const addTxWithSub = (tx: DisplayTransaction) => {
-      const subTxs = subTxMap.get(tx.id) || [];
-      const txWithCount: DisplayTransaction = {
-        ...tx,
-        subItemCount: subTxs.length,
-        isExpanded: expandedParentIds.has(tx.id),
-      };
-      rows.push({ type: 'transaction', transaction: txWithCount });
-
-      const isFilterActive = Boolean(debouncedSearchTerm || merchantFilter || minAmount || maxAmount);
-      const shouldExpand = expandedParentIds.has(tx.id) || isFilterActive;
-      if (shouldExpand && subTxs.length > 0) {
-        subTxs.forEach(subTx => {
-          rows.push({ type: 'transaction', transaction: subTx });
-        });
-      }
-    };
-
-    if (sortBy === 'date-desc' || sortBy === 'date-asc') {
-        let lastDate = '';
-        topLevelList.forEach(tx => {
-            const dateStr = tx.date;
-            if (dateStr !== lastDate) {
-                rows.push({ type: 'header', date: dateStr, total: 0 });
-                lastDate = dateStr;
-            }
-            addTxWithSub(tx);
-        });
-    } else {
-        topLevelList.forEach(tx => {
-            addTxWithSub(tx);
-        });
-    }
-    return rows;
-  }, [filteredTransactions, sortBy, expandedParentIds, debouncedSearchTerm, merchantFilter, minAmount, maxAmount]);
-
-  const getRowSize = useCallback(
-    (index: number) => {
-        const row = virtualRows[index];
-        if (row && row.type === 'header') return 40; 
-        if (isMobile) return density === 'high' ? 110 : 130;
-        return density === 'high' ? 68 : 72;
-    },
-    [virtualRows, isMobile, density]
-  );
-
-  const getRowKey = useCallback(
-    (index: number) => {
-      const row = virtualRows[index];
-      if (!row) return index;
-      if (row.type === 'header') return `header-${row.date}`;
-      return (row as any).transaction.id;
-    },
-    [virtualRows]
-  );
 
   const { totalIncome, totalExpense, netFlow } = useMemo(() => {
     let income = 0;
