@@ -25,12 +25,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
 
   const FeatureItem = ({ icon, title, desc }: { icon: string, title: string, desc: string }) => (
       <div className="flex gap-4">
-          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 backdrop-blur-sm border border-white/10">
+          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 backdrop-blur-md border border-white/15 shadow-sm">
               <Icon name={icon} className="text-2xl text-white" />
           </div>
           <div>
               <h3 className="font-bold text-white text-lg">{title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{desc}</p>
+              <p className="text-gray-300 text-sm leading-relaxed">{desc}</p>
           </div>
       </div>
   );

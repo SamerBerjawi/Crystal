@@ -19,9 +19,9 @@ const NetWorthCard: React.FC<NetWorthCardProps> = ({ amount, currency }) => {
         </div>
 
         <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-primary-100 dark:border-white/10 backdrop-blur-sm mb-4 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/70 dark:bg-white/10 border border-primary-500/20 dark:border-white/10 backdrop-blur-md mb-4 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></div>
-                <span className="text-xs font-bold  tracking-widest text-primary-700 dark:text-primary-300">Total Net Worth</span>
+                <span className="text-xs font-bold tracking-wider text-primary-700 dark:text-primary-300 uppercase">Total Net Worth</span>
             </div>
             
             <h2 className="text-4xl lg:text-5xl font-bold tracking-tight text-light-text dark:text-dark-text drop-shadow-sm privacy-blur">

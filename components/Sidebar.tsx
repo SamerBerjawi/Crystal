@@ -146,7 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Backdrop */}
       <div
-        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-30 bg-black/50 backdrop-blur-md transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setSidebarOpen(false)}
       ></div>
 
@@ -161,12 +161,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className={`
           flex-1 flex flex-col m-3 md:m-4 h-[calc(100%-24px)] md:h-[calc(100%-32px)]
-          ios-regular shadow-2xl rounded-[32px] 
-          border border-white/20 dark:border-white/5
+          ios-regular shadow-2xl rounded-3xl 
+          border border-black/5 dark:border-white/10
           relative safe-top
         `}>
           {/* Background overlay clipping container for subtle top inner gradient */}
-          <div className="absolute inset-0 rounded-[32px] overflow-hidden pointer-events-none z-0">
+          <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
             <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/10 dark:from-white/5 to-transparent" />
           </div>
 

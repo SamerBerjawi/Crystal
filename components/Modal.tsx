@@ -52,14 +52,14 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
 
   const modalContent = (
     <div 
-      className={`fixed inset-0 flex items-end md:items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-md md:p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-end md:items-center justify-center bg-gray-900/50 dark:bg-black/80 backdrop-blur-md md:p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* Mobile: Full-height sheet from bottom | Desktop: Centered dialog */}
       <div 
         className={`
-          bg-white/95 dark:bg-gray-900/95 ios-regular shadow-modal w-full overflow-hidden
+          bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-modal w-full overflow-hidden
           transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]
           
           /* Mobile: slide-up sheet */

@@ -89,7 +89,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
       <div className="absolute top-6 right-6 z-30 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(membership.id); }}
-            className="w-10 h-10 rounded-2xl bg-black/20 hover:bg-rose-500 text-white flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all shadow-xl"
+            className="w-10 h-10 rounded-xl bg-black/20 hover:bg-rose-500 text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-all shadow-xl"
             title="Delete"
           >
              <Icon name="delete" className="text-sm" />
@@ -124,7 +124,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
              </div>
              
              {membership.tier && (
-                <div className="px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-xl border border-white/10 shadow-lg group-hover:bg-white transition-colors group-hover:text-black">
+                <div className="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-md border border-white/20 shadow-sm group-hover:bg-white transition-colors group-hover:text-black">
                     {membership.tier}
                 </div>
              )}

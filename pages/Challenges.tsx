@@ -320,8 +320,8 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
     return (
         <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md group`}>
             {isDefeated && (
-                <div className="absolute inset-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center animate-fade-in-up">
-                    <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-bold text-lg tracking-wide">
+                <div className="absolute inset-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in-up">
+                    <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-bold text-lg tracking-wide rounded-xl">
                         Defeated!
                     </div>
                 </div>

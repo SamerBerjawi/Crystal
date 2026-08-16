@@ -142,15 +142,15 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
             </p>
             
             <div className="grid grid-cols-2 gap-6">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-lg shadow-black/10">
                     <Icon name="show_chart" className="text-3xl text-primary-400 mb-2" />
                     <h3 className="font-bold text-lg mb-1">Advanced Forecasting</h3>
-                    <p className="text-sm text-gray-400">Predict future balances based on recurring habits.</p>
+                    <p className="text-sm text-gray-300 leading-relaxed">Predict future balances based on recurring habits.</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <div className="p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-lg shadow-black/10">
                     <Icon name="account_balance" className="text-3xl text-purple-400 mb-2" />
                     <h3 className="font-bold text-lg mb-1">Bank Connectivity</h3>
-                    <p className="text-sm text-gray-400">Sync with 2,500+ banks across Europe instantly.</p>
+                    <p className="text-sm text-gray-300 leading-relaxed">Sync with 2,500+ banks across Europe instantly.</p>
                 </div>
             </div>
         </div>

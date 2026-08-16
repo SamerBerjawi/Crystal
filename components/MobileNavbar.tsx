@@ -66,7 +66,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
       {/* Bottom Floating Navigation Bar — Apple HIG Tab Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
         <nav
-          className="flex items-center justify-around p-1.5 gap-1 bg-white/80 dark:bg-gray-900/80 border-t border-black/10 dark:border-white/10 backdrop-blur-xl safe-bottom"
+          className="flex items-center justify-around p-1.5 gap-1 bg-white/75 dark:bg-dark-card/85 border-t border-black/5 dark:border-white/10 backdrop-blur-xl safe-bottom shadow-lg shadow-black/5 dark:shadow-black/40"
           style={{ paddingBottom: `calc(0.375rem + env(safe-area-inset-bottom, 0px))` }}
           role="tabbar"
         >

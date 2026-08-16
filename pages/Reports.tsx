@@ -1198,7 +1198,7 @@ const Reports: React.FC = () => {
 
             <div className="space-y-2 relative z-10">
               {insights.map((item, idx) => (
-                <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-3xl rounded-xl p-4 border border-white/10 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300"
+                <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/15 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300"
                   style={{ animationDelay: `${idx * 150}ms` }}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/10 ${item.tone === 'warning' ? 'bg-amber-500/20 text-amber-300' : item.tone === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/20 text-white'}`}>
                     <Icon name={item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'} className="text-base" />
