@@ -31,7 +31,6 @@ const BreakdownBarChart: React.FC<BreakdownBarChartProps> = ({ data }) => {
             fill={(d) => (d.color as string) || '#8884d8'}
             lineCap="round"
           />
-          <BarXAxis />
           <BarYAxis />
           <ChartTooltip
             valueFormatter={(val: number) => formatCurrency(val, 'EUR')}

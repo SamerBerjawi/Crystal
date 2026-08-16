@@ -154,10 +154,11 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
       if (fieldsToUpdate.merchant) updatedTx.merchant = updatedValues.merchant;
       if (fieldsToUpdate.tags) updatedTx.tagIds = updatedValues.tagIds;
       if (fieldsToUpdate.location) {
-        updatedTx.city = updatedValues.locationData.city;
-        updatedTx.country = updatedValues.locationData.country;
-        updatedTx.latitude = updatedValues.locationData.lat;
-        updatedTx.longitude = updatedValues.locationData.lon;
+        const hasLoc = Boolean(updatedValues.locationString?.trim());
+        updatedTx.city = hasLoc ? (updatedValues.locationData?.city || updatedValues.locationString.trim()) : undefined;
+        updatedTx.country = hasLoc ? updatedValues.locationData?.country : undefined;
+        updatedTx.latitude = hasLoc ? updatedValues.locationData?.lat : undefined;
+        updatedTx.longitude = hasLoc ? updatedValues.locationData?.lon : undefined;
       }
 
       if (fieldsToUpdate.category) {
@@ -281,21 +282,25 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
             </CheckboxField>
             
             <CheckboxField field="location" label="Update Location" isChecked={fieldsToUpdate.location} onToggle={handleToggle}>
-                <LocationAutocomplete
-                    value={updatedValues.locationString}
-                    onChange={(val, data) => {
-                        setUpdatedValues(prev => ({
-                            ...prev,
-                            locationString: val,
-                            locationData: data ? {
-                                city: data.city,
-                                country: data.country,
-                                lat: data.lat,
-                                lon: data.lon
-                            } : {}
-                        }));
-                    }}
-                />
+                <div>
+                    <LocationAutocomplete
+                        value={updatedValues.locationString}
+                        onChange={(val, data) => {
+                            setUpdatedValues(prev => ({
+                                ...prev,
+                                locationString: val,
+                                locationData: data ? {
+                                    city: data.city,
+                                    country: data.country,
+                                    lat: data.lat,
+                                    lon: data.lon
+                                } : (val.trim() ? { city: val.trim() } : {})
+                            }));
+                        }}
+                        placeholder="City, Country (or leave empty to clear)"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1 pl-1">Leave empty to remove location from all selected transactions.</p>
+                </div>
             </CheckboxField>
 
             <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-black/5 dark:border-white/5 bg-light-card dark:bg-dark-card">

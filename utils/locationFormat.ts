@@ -7,6 +7,7 @@ export interface LocationMeta {
   country: string;
   formatted: string; // e.g. "🇧🇪 Brussels"
   fullDisplay: string; // e.g. "Brussels, Belgium"
+  hasLocation: boolean;
 }
 
 // Convert 2-letter ISO country code to flag emoji
@@ -96,9 +97,9 @@ export function getCountryCodeAndFlag(countryInput?: string): { code: string; fl
   return { code: '', flag: '🌐', countryName: countryInput };
 }
 
-export function formatTransactionLocation(tx?: Partial<Transaction> | null, user?: User | null): LocationMeta {
+export function formatTransactionLocation(tx?: Partial<Transaction> | null, _user?: User | null): LocationMeta {
   if (!tx) {
-    return { flag: '🇧🇪', city: 'Brussels', country: 'Belgium', formatted: '🇧🇪 Brussels', fullDisplay: 'Brussels, Belgium' };
+    return { flag: '', city: '', country: '', formatted: '', fullDisplay: '', hasLocation: false };
   }
 
   let city = (tx.city || '').trim();
@@ -116,33 +117,20 @@ export function formatTransactionLocation(tx?: Partial<Transaction> | null, user
     }
   }
 
-  // Fallbacks for known merchants if city/country is not specified
-  if (!city && tx.merchant) {
-    const m = tx.merchant.toLowerCase();
-    if (m.includes('brussels') || m.includes('proximus') || m.includes('luminus')) {
-      city = 'Brussels';
-      if (!country) country = 'Belgium';
-    } else if (m.includes('paris') || m.includes('bistro regent')) {
-      city = 'Paris';
-      if (!country) country = 'France';
-    } else if (m.includes('tokyo') || m.includes('euroair')) {
-      city = 'Tokyo';
-      if (!country) country = 'Japan';
-    } else if (m.includes('spotify')) {
-      city = 'Stockholm';
-      if (!country) country = 'Sweden';
-    } else if (m.includes('netflix') || m.includes('openai') || m.includes('github') || m.includes('apple')) {
-      city = m.includes('netflix') ? 'Los Gatos' : m.includes('apple') ? 'Cupertino' : 'San Francisco';
-      if (!country) country = 'United States';
-    }
+  // If transaction has no explicit location set, do not invent one
+  if (!city && !country) {
+    return {
+      flag: '',
+      city: '',
+      country: '',
+      formatted: '',
+      fullDisplay: '',
+      hasLocation: false,
+    };
   }
 
-  // Default fallback to user defaultCity or Brussels, Belgium
-  if (!city) {
-    city = user?.defaultCity || 'Brussels';
-    if (!country) country = 'Belgium';
-  } else if (!country) {
-    // If only city is given
+  if (!country && city) {
+    // If only city is given, infer common country
     const cityLower = city.toLowerCase();
     if (['brussels', 'antwerp', 'ghent', 'bruges', 'liege', 'namur', 'leuven'].includes(cityLower)) {
       country = 'Belgium';
@@ -156,21 +144,20 @@ export function formatTransactionLocation(tx?: Partial<Transaction> | null, user
       country = 'Germany';
     } else if (['amsterdam', 'rotterdam', 'utrecht', 'the hague'].includes(cityLower)) {
       country = 'Netherlands';
-    } else {
-      country = 'Belgium';
     }
   }
 
   const { flag, countryName } = getCountryCodeAndFlag(country);
   const finalCountry = countryName || country;
-  const formatted = `${flag} ${city}`;
-  const fullDisplay = `${city}, ${finalCountry}`;
+  const formatted = flag ? `${flag} ${city}` : city;
+  const fullDisplay = finalCountry ? (city ? `${city}, ${finalCountry}` : finalCountry) : city;
 
   return {
-    flag,
+    flag: flag || '📍',
     city,
     country: finalCountry,
     formatted,
     fullDisplay,
+    hasLocation: true,
   };
 }

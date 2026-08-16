@@ -532,15 +532,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     }
   }, [linkedSpareChangeAccount]);
 
-  // Pre-fill location string with user's Default City when creating new transaction
-  useEffect(() => {
-    if (!isEditing && !locationString && userDefaultCity) {
-      const parsed = parseLocationString(userDefaultCity);
-      setLocationString(userDefaultCity);
-      setLocationData({ city: parsed.city, country: parsed.country });
-    }
-  }, [isEditing, userDefaultCity, locationString]);
-  
   const availableAccounts = useMemo(() => {
     return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);
   }, [accounts, fromAccountId, toAccountId]);
@@ -601,11 +592,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
     }
 
+    const hasLocation = Boolean(locationString?.trim());
     const locationProps = {
-        city: locationData.city,
-        country: locationData.country,
-        latitude: locationData.lat,
-        longitude: locationData.lon,
+        city: hasLocation ? (locationData.city || locationString.trim()) : undefined,
+        country: hasLocation ? locationData.country : undefined,
+        latitude: hasLocation ? locationData.lat : undefined,
+        longitude: hasLocation ? locationData.lon : undefined,
     };
 
     if (isNowTransfer) {
@@ -1160,6 +1152,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                     country: data.country,
                                                     lat: data.lat,
                                                     lon: data.lon
+                                                });
+                                            } else if (!val.trim()) {
+                                                setLocationData({});
+                                            } else {
+                                                const parsed = parseLocationString(val);
+                                                setLocationData({
+                                                    city: parsed.city,
+                                                    country: parsed.country
                                                 });
                                             }
                                         }}

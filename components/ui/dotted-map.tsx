@@ -118,7 +118,8 @@ export function DottedMap<M extends Marker = Marker>({
         const shouldPulse = pulse
           ? marker.pulse !== false
           : marker.pulse === true
-        const pulseTo = r * 2.8
+        const pulseTo = r * 1.8
+        const pulseStroke = Math.max(0.06, r * 0.15)
 
         return (
           <g key={`${marker.x}-${marker.y}-${index}`}>
@@ -132,43 +133,19 @@ export function DottedMap<M extends Marker = Marker>({
                   r={r}
                   fill="none"
                   stroke={markerColor}
-                  strokeOpacity={1}
-                  strokeWidth={0.35}
+                  strokeOpacity={0.8}
+                  strokeWidth={pulseStroke}
                 >
                   <animate
                     attributeName="r"
                     values={`${r};${pulseTo}`}
-                    dur="1.4s"
+                    dur="1.8s"
                     repeatCount="indefinite"
                   />
                   <animate
                     attributeName="opacity"
-                    values="1;0"
-                    dur="1.4s"
-                    repeatCount="indefinite"
-                  />
-                </circle>
-                <circle
-                  cx={x}
-                  cy={y}
-                  r={r}
-                  fill="none"
-                  stroke={markerColor}
-                  strokeOpacity={0.9}
-                  strokeWidth={0.3}
-                >
-                  <animate
-                    attributeName="r"
-                    values={`${r};${pulseTo}`}
-                    dur="1.4s"
-                    begin="0.7s"
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    values="0.9;0"
-                    dur="1.4s"
-                    begin="0.7s"
+                    values="0.8;0"
+                    dur="1.8s"
                     repeatCount="indefinite"
                   />
                 </circle>

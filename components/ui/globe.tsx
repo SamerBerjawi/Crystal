@@ -99,6 +99,9 @@ export function Globe({
       phi: phiRef.current,
       theta: thetaRef.current,
       onRender: (state) => {
+        if (pointerInteracting.current === null) {
+          phiRef.current += 0.0025
+        }
         state.phi = phiRef.current + rsPhi.get()
         state.theta = Math.max(-1.4, Math.min(1.4, thetaRef.current + rsTheta.get()))
         state.width = widthRef.current * 2
