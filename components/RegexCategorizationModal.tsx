@@ -149,7 +149,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
         {/* Create Rule Form with standard merchant-form ID */}
         <form id="merchant-form" onSubmit={handleAddRule} className="bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl p-5 border border-black/5 dark:border-white/5 space-y-4">
           <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-            <Icon name="add_moderator" className="text-sm text-primary-500" />
+            <Icon name="code" className="text-sm text-primary-500" />
             Deploy New Matching Protocol
           </h4>
           
@@ -227,7 +227,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
 
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 bg-black/[0.01] dark:bg-white/[0.01] rounded-2xl border border-dashed border-black/5 dark:border-white/5">
-              <Icon name="schema" className="text-2xl opacity-25 mb-2" />
+              <Icon name="code" className="text-2xl opacity-25 mb-2" />
               <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Zero active regex categorization rules.
               </p>

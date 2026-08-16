@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
-import { Account, Category, Transaction, Tag, Currency, User } from '../types';
+import { Account, Category, Transaction, Tag, Currency, User, MerchantLocation } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
-import LocationAutocomplete from './LocationAutocomplete';
+import AddressAutocomplete from './AddressAutocomplete';
+import { AddressData } from '../hooks/useAddressSearch';
 import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
 import { parseLocationString } from '../utils/locationDetector';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { toast } from 'sonner';
 import Icon from './ui/Icon';
 
 interface AddTransactionModalProps {
@@ -34,7 +36,7 @@ interface AddTransactionModalProps {
     merchant?: string;
     tagIds?: string[];
     locationString?: string;
-    locationData?: { city?: string; country?: string; lat?: number; lon?: number };
+    locationData?: { city?: string; country?: string; lat?: number; lon?: number; address?: string; placeName?: string; street?: string; postalCode?: string; state?: string; locationLabel?: string };
     notes?: string;
   };
 }
@@ -88,7 +90,7 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
   );
 };
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, userProfile, initialDetails }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags = [], userProfile, initialDetails }) => {
   const isEditing = !!transactionToEdit;
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
@@ -111,26 +113,150 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [merchant, setMerchant] = useState(initialDetails?.merchant || '');
   const [amount, setAmount] = useState(initialDetails?.amount || '');
   const [category, setCategory] = useState(initialCategory || '');
+  const [isCategoryUserModified, setIsCategoryUserModified] = useState(Boolean(transactionToEdit?.category || initialCategory));
   const [notes, setNotes] = useState(initialDetails?.notes || '');
   const [tagIds, setTagIds] = useState<string[]>(initialDetails?.tagIds || []);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
-  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString || userDefaultCity));
+  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString || initialDetails?.locationData?.address || userDefaultCity));
   
-  // Location fields: Default to User Profile's defaultCity when creating a new transaction
-  const [locationString, setLocationString] = useState(() => {
+  // Exact Location State
+  const [isLocationUserModified, setIsLocationUserModified] = useState(Boolean(transactionToEdit?.address || initialDetails?.locationData?.address || initialDetails?.locationString));
+  const [address, setAddress] = useState<string>(() => {
+    if (transactionToEdit?.address) return transactionToEdit.address;
+    if (initialDetails?.locationData?.address) return initialDetails.locationData.address;
     if (initialDetails?.locationString) return initialDetails.locationString;
     if (!isEditing && userDefaultCity) return userDefaultCity;
     return '';
   });
-  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>(() => {
-    if (initialDetails?.locationData) return initialDetails.locationData;
+  const [placeName, setPlaceName] = useState<string>(() => transactionToEdit?.placeName || initialDetails?.locationData?.placeName || '');
+  const [street, setStreet] = useState<string>(() => transactionToEdit?.street || initialDetails?.locationData?.street || '');
+  const [city, setCity] = useState<string>(() => {
+    if (transactionToEdit?.city) return transactionToEdit.city;
+    if (initialDetails?.locationData?.city) return initialDetails.locationData.city;
     if (!isEditing && userDefaultCity) {
       const parsed = parseLocationString(userDefaultCity);
-      return { city: parsed.city, country: parsed.country };
+      return parsed.city;
     }
-    return {};
+    return '';
   });
+  const [postalCode, setPostalCode] = useState<string>(() => transactionToEdit?.postalCode || initialDetails?.locationData?.postalCode || '');
+  const [stateRegion, setStateRegion] = useState<string>(() => transactionToEdit?.state || initialDetails?.locationData?.state || '');
+  const [country, setCountry] = useState<string>(() => {
+    if (transactionToEdit?.country) return transactionToEdit.country;
+    if (initialDetails?.locationData?.country) return initialDetails.locationData.country;
+    if (!isEditing && userDefaultCity) {
+      const parsed = parseLocationString(userDefaultCity);
+      return parsed.country || '';
+    }
+    return '';
+  });
+  const [latitude, setLatitude] = useState<number | undefined>(() => {
+    if (transactionToEdit?.latitude !== undefined) return transactionToEdit.latitude;
+    if (initialDetails?.locationData?.lat !== undefined) return initialDetails.locationData.lat;
+    return undefined;
+  });
+  const [longitude, setLongitude] = useState<number | undefined>(() => {
+    if (transactionToEdit?.longitude !== undefined) return transactionToEdit.longitude;
+    if (initialDetails?.locationData?.lon !== undefined) return initialDetails.locationData.lon;
+    return undefined;
+  });
+  const [locationLabel, setLocationLabel] = useState<string>(() => transactionToEdit?.locationLabel || initialDetails?.locationData?.locationLabel || '');
+  const [showManualLocation, setShowManualLocation] = useState(false);
+
+  // Active Merchant Rule & Branches
+  const activeMerchantRule = useMemo(() => {
+    if (!merchant || !merchantRules) return null;
+    const normalizedKey = normalizeMerchantKey(merchant);
+    return merchantRules[normalizedKey] || merchantRules[merchant.trim().toLowerCase()] || null;
+  }, [merchant, merchantRules]);
+
+  const merchantBranches = useMemo(() => {
+    if (!activeMerchantRule) return [] as MerchantLocation[];
+    if (activeMerchantRule.locations && activeMerchantRule.locations.length > 0) {
+      return activeMerchantRule.locations;
+    }
+    if (activeMerchantRule.address) {
+      return [{
+        id: 'loc-primary',
+        label: activeMerchantRule.placeName || 'Main Branch',
+        address: activeMerchantRule.address,
+        placeName: activeMerchantRule.placeName,
+        street: activeMerchantRule.street,
+        city: activeMerchantRule.city,
+        postalCode: activeMerchantRule.postalCode,
+        state: activeMerchantRule.state,
+        country: activeMerchantRule.country,
+        latitude: activeMerchantRule.latitude,
+        longitude: activeMerchantRule.longitude,
+        isPrimary: true
+      }] as MerchantLocation[];
+    }
+    return [] as MerchantLocation[];
+  }, [activeMerchantRule]);
+
+  const handleSelectMerchantBranch = (branch: MerchantLocation) => {
+    setAddress(branch.address);
+    setPlaceName(branch.placeName || '');
+    setStreet(branch.street || '');
+    setCity(branch.city || '');
+    setPostalCode(branch.postalCode || '');
+    setStateRegion(branch.state || '');
+    setCountry(branch.country || '');
+    setLatitude(branch.latitude);
+    setLongitude(branch.longitude);
+    setLocationLabel(branch.label || '');
+    setIsLocationUserModified(true);
+    setShowDetails(true);
+    toast.success(`Location set: ${branch.label || branch.address}`);
+  };
+
+  const handleAddressChange = (newVal: string, addressData?: AddressData) => {
+    setAddress(newVal);
+    setIsLocationUserModified(true);
+    if (addressData) {
+      setPlaceName(addressData.placeName || '');
+      setStreet(addressData.street || '');
+      setCity(addressData.city || '');
+      setPostalCode(addressData.postalCode || '');
+      setStateRegion(addressData.state || '');
+      setCountry(addressData.country || '');
+      setLatitude(addressData.lat);
+      setLongitude(addressData.lon);
+      setLocationLabel(addressData.placeName || '');
+      setShowDetails(true);
+      toast.success(`Location resolved: ${addressData.title}`);
+    } else if (!newVal) {
+      setPlaceName('');
+      setStreet('');
+      setCity('');
+      setPostalCode('');
+      setStateRegion('');
+      setCountry('');
+      setLatitude(undefined);
+      setLongitude(undefined);
+      setLocationLabel('');
+    } else {
+      const parsed = parseLocationString(newVal);
+      setCity(parsed.city);
+      setCountry(parsed.country || '');
+    }
+  };
+
+  const handleClearLocation = () => {
+    setAddress('');
+    setPlaceName('');
+    setStreet('');
+    setCity('');
+    setPostalCode('');
+    setStateRegion('');
+    setCountry('');
+    setLatitude(undefined);
+    setLongitude(undefined);
+    setLocationLabel('');
+    setIsLocationUserModified(true);
+    toast.info('Location removed.');
+  };
 
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState(initialDetails?.principal || '');
@@ -222,7 +348,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       if (selected) {
         setMerchant(selected.name);
         setIsDescriptionUserModified(false);
-        applyRules(selected.name, description, amount, { forceAutofillDesc: true });
+        setIsCategoryUserModified(false);
+        setIsLocationUserModified(false);
+        applyRules(selected.name, description, amount, { 
+            forceAutofillDesc: true, 
+            forceAutofillCategory: true, 
+            forceAutofillLocation: true 
+        });
         setShowMerchantSuggestions(false);
         setActiveSuggestionIndex(-1);
       }
@@ -351,26 +483,61 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     setPrincipalPayment(newPrincipal.toFixed(2));
   };
 
-  const applyRules = (merchantName: string, descText: string, amountText: string, options?: { forceAutofillDesc?: boolean }) => {
-      // 1. Merchant rule - if merchant already exists/keys and has category/defaultDescription configured
+  const applyRules = (
+      merchantName: string, 
+      descText: string, 
+      amountText: string, 
+      options?: { forceAutofillDesc?: boolean; forceAutofillCategory?: boolean; forceAutofillLocation?: boolean }
+  ) => {
+      // 1. Merchant rule - if merchant already exists/keys and has category/defaultDescription/location configured
       const key = normalizeMerchantKey(merchantName || descText);
       if (key) {
           const mRule = merchantRules[key];
           if (mRule) {
-              if (mRule.category) {
+              const shouldAutofillCategory = options?.forceAutofillCategory || !isCategoryUserModified || !category;
+              if (mRule.category && shouldAutofillCategory) {
                   setCategory(mRule.category);
               }
-              if (mRule.defaultDescription) {
-                  const shouldAutofill = options?.forceAutofillDesc || !isDescriptionUserModified || !descText || !descText.trim() || descText.toLowerCase() === merchantName.toLowerCase();
-                  if (shouldAutofill) {
-                      setDescription(mRule.defaultDescription);
-                      setIsDescriptionUserModified(false);
+              const shouldAutofillDesc = options?.forceAutofillDesc || !isDescriptionUserModified || !descText || !descText.trim() || descText.toLowerCase() === merchantName.toLowerCase();
+              if (mRule.defaultDescription && shouldAutofillDesc) {
+                  setDescription(mRule.defaultDescription);
+                  setIsDescriptionUserModified(false);
+              }
+              const shouldAutofillLocation = options?.forceAutofillLocation || !isLocationUserModified || !address || !address.trim();
+              if (shouldAutofillLocation) {
+                  if (mRule.locations && mRule.locations.length > 0) {
+                      const primaryBranch = mRule.locations.find(l => l.isPrimary) || mRule.locations[0];
+                      if (primaryBranch) {
+                          setAddress(primaryBranch.address);
+                          setPlaceName(primaryBranch.placeName || '');
+                          setStreet(primaryBranch.street || '');
+                          setCity(primaryBranch.city || '');
+                          setPostalCode(primaryBranch.postalCode || '');
+                          setStateRegion(primaryBranch.state || '');
+                          setCountry(primaryBranch.country || '');
+                          setLatitude(primaryBranch.latitude);
+                          setLongitude(primaryBranch.longitude);
+                          setLocationLabel(primaryBranch.label || '');
+                          setShowDetails(true);
+                      }
+                  } else if (mRule.address) {
+                      setAddress(mRule.address);
+                      setPlaceName(mRule.placeName || '');
+                      setStreet(mRule.street || '');
+                      setCity(mRule.city || '');
+                      setPostalCode(mRule.postalCode || '');
+                      setStateRegion(mRule.state || '');
+                      setCountry(mRule.country || '');
+                      setLatitude(mRule.latitude);
+                      setLongitude(mRule.longitude);
+                      setLocationLabel(mRule.placeName || '');
+                      setShowDetails(true);
                   }
               }
               if (merchantName && merchantName !== merchant) {
                   setMerchant(merchantName);
               }
-              if (mRule.category || mRule.defaultDescription) return;
+              if (mRule.category || mRule.defaultDescription || mRule.address || mRule.locations?.length) return;
           }
       }
 
@@ -385,7 +552,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
       const result = applyTransactionRulesToFields(rawTx, merchantRules, transactionRules);
 
-      if (result.category) {
+      if (result.category && (options?.forceAutofillCategory || !isCategoryUserModified || !category)) {
           setCategory(result.category);
       }
       if (result.merchant && result.merchant !== merchantName) {
@@ -403,14 +570,21 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         currentMerchant = description;
         setMerchant(currentMerchant);
     }
-    applyRules(currentMerchant, description, amount);
+    applyRules(currentMerchant, description, amount, {
+        forceAutofillCategory: !isCategoryUserModified,
+        forceAutofillLocation: !isLocationUserModified
+    });
   };
 
   const handleMerchantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setMerchant(val);
       if (val.length >= 2) {
-          applyRules(val, description, amount, { forceAutofillDesc: !isDescriptionUserModified });
+          applyRules(val, description, amount, { 
+              forceAutofillDesc: !isDescriptionUserModified,
+              forceAutofillCategory: !isCategoryUserModified,
+              forceAutofillLocation: !isLocationUserModified
+          });
       }
   };
 
@@ -421,14 +595,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         let amountToSet = String(Math.abs(transactionToEdit.amount));
         setTagIds(transactionToEdit.tagIds || []);
         
-        if (transactionToEdit.city && transactionToEdit.country) {
-            setLocationString(`${transactionToEdit.city}, ${transactionToEdit.country}`);
-            setLocationData({
-                city: transactionToEdit.city,
-                country: transactionToEdit.country,
-                lat: transactionToEdit.latitude,
-                lon: transactionToEdit.longitude
-            });
+        if (transactionToEdit.address || transactionToEdit.city || transactionToEdit.country) {
+            setAddress(transactionToEdit.address || [transactionToEdit.city, transactionToEdit.country].filter(Boolean).join(', '));
+            setPlaceName(transactionToEdit.placeName || '');
+            setStreet(transactionToEdit.street || '');
+            setCity(transactionToEdit.city || '');
+            setPostalCode(transactionToEdit.postalCode || '');
+            setStateRegion(transactionToEdit.state || '');
+            setCountry(transactionToEdit.country || '');
+            setLatitude(transactionToEdit.latitude);
+            setLongitude(transactionToEdit.longitude);
+            setLocationLabel(transactionToEdit.locationLabel || '');
             setShowDetails(true);
         }
         
@@ -592,12 +769,18 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
     }
 
-    const hasLocation = Boolean(locationString?.trim());
+    const hasLocation = Boolean(address?.trim() || city?.trim() || country?.trim());
     const locationProps = {
-        city: hasLocation ? (locationData.city || locationString.trim()) : undefined,
-        country: hasLocation ? locationData.country : undefined,
-        latitude: hasLocation ? locationData.lat : undefined,
-        longitude: hasLocation ? locationData.lon : undefined,
+        address: hasLocation ? (address?.trim() || undefined) : undefined,
+        placeName: hasLocation ? (placeName?.trim() || undefined) : undefined,
+        street: hasLocation ? (street?.trim() || undefined) : undefined,
+        city: hasLocation ? (city?.trim() || undefined) : undefined,
+        postalCode: hasLocation ? (postalCode?.trim() || undefined) : undefined,
+        state: hasLocation ? (stateRegion?.trim() || undefined) : undefined,
+        country: hasLocation ? (country?.trim() || undefined) : undefined,
+        latitude: hasLocation && latitude !== undefined && !isNaN(latitude) ? latitude : undefined,
+        longitude: hasLocation && longitude !== undefined && !isNaN(longitude) ? longitude : undefined,
+        locationLabel: hasLocation ? (locationLabel?.trim() || undefined) : undefined,
     };
 
     if (isNowTransfer) {
@@ -892,7 +1075,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                     {filteredSuggestions.map((item, index) => {
                                                         const logoUrl = getMerchantLogoUrl(item.name, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 48, height: 48 });
                                                         const isSelected = index === activeSuggestionIndex;
-
                                                         return (
                                                             <button
                                                                 key={item.name}
@@ -901,7 +1083,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                                                 onClick={() => {
                                                                     setMerchant(item.name);
                                                                     setIsDescriptionUserModified(false);
-                                                                    applyRules(item.name, description, amount, { forceAutofillDesc: true });
+                                                                    setIsCategoryUserModified(false);
+                                                                    setIsLocationUserModified(false);
+                                                                    applyRules(item.name, description, amount, { 
+                                                                        forceAutofillDesc: true,
+                                                                        forceAutofillCategory: true,
+                                                                        forceAutofillLocation: true
+                                                                    });
                                                                     setShowMerchantSuggestions(false);
                                                                     setActiveSuggestionIndex(-1);
                                                                 }}
@@ -943,6 +1131,52 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Multiple Branches Quick Suggestion Banner */}
+                                    {merchantBranches.length > 1 && (
+                                        <div className="mt-2.5 p-2.5 bg-primary-500/[0.04] dark:bg-primary-500/[0.06] rounded-xl border border-primary-500/20 space-y-1.5 animate-fade-in">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider flex items-center gap-1">
+                                                    <Icon name="marker_pin" className="text-[10px] text-primary-500" />
+                                                    <span>Multiple branches for {merchant}: Select branch</span>
+                                                </p>
+                                                {address && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearLocation}
+                                                        className="text-[9px] font-bold text-red-500 hover:underline cursor-pointer"
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                {merchantBranches.map(branch => {
+                                                    const isSelected = address === branch.address || (locationLabel && locationLabel === branch.label);
+                                                    return (
+                                                        <button
+                                                            key={branch.id}
+                                                            type="button"
+                                                            onClick={() => handleSelectMerchantBranch(branch)}
+                                                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                                                isSelected
+                                                                    ? 'bg-primary-500 text-white shadow-xs'
+                                                                    : 'bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 text-light-text dark:text-dark-text hover:border-primary-500/50 hover:text-primary-500'
+                                                            }`}
+                                                            title={branch.address}
+                                                        >
+                                                            <span>📍 {branch.label || branch.city || branch.placeName}</span>
+                                                            {branch.isPrimary && (
+                                                                <span className={`text-[8px] px-1 py-0.2 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-primary-500/10 text-primary-500'}`}>
+                                                                    Primary
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1103,68 +1337,267 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                     <div className="lg:col-span-5 space-y-4">
                         <div className="bg-light-fill/30 dark:bg-dark-fill/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 space-y-4 h-full flex flex-col justify-between">
                             <div className="space-y-4">
-                                <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 mb-1">
-                                    <Icon name="style" className="text-primary-500 text-base pointer-events-none" />
-                                    Metadata & Context
-                                </h3>
+                                <div className="flex items-center justify-between mb-1">
+                                    <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                        <Icon name="tune" className="text-primary-500 text-base pointer-events-none" />
+                                        Metadata & Context
+                                    </h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDetails(prev => !prev)}
+                                        className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <span>{showDetails ? 'Hide' : 'Expand'}</span>
+                                        <Icon name={showDetails ? 'expand_less' : 'expand_more'} className="text-sm" />
+                                    </button>
+                                </div>
 
-                                {/* Beautiful direct visual tags select list */}
-                                <div>
-                                    <label className={labelStyle}>Categorical Tags</label>
-                                    {tags.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto p-2 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-                                            {tags.map(tag => {
-                                                const isSelected = tagIds.includes(tag.id);
-                                                return (
+                                {showDetails && (
+                                    <div className="space-y-4 animate-fade-in-up">
+                                        {/* Tags Selector */}
+                                        <div className="relative" ref={tagSelectorRef}>
+                                            <label className={labelStyle}>Categorical Tags</label>
+                                            <div 
+                                                onClick={() => setIsTagSelectorOpen(prev => !prev)}
+                                                className={`${INPUT_BASE_STYLE} min-h-[42px] py-1.5 px-2.5 flex flex-wrap gap-1.5 items-center cursor-pointer`}
+                                            >
+                                                {tagIds.length === 0 ? (
+                                                    <span className="text-gray-400 text-xs font-medium">Select tags...</span>
+                                                ) : (
+                                                    tagIds.map(tid => {
+                                                        const tag = (tags || []).find(t => t.id === tid);
+                                                        if (!tag) return null;
+                                                        return (
+                                                            <span 
+                                                                key={tid}
+                                                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20"
+                                                            >
+                                                                <span>{tag.name}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setTagIds(prev => prev.filter(id => id !== tid));
+                                                                    }}
+                                                                    className="hover:text-red-500 cursor-pointer"
+                                                                >
+                                                                    <Icon name="close" className="text-[10px]" />
+                                                                </button>
+                                                            </span>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+
+                                            {isTagSelectorOpen && (
+                                                <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-50 p-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {(!tags || tags.length === 0) ? (
+                                                        <p className="text-xs text-light-text-secondary text-center py-2">No tags available</p>
+                                                    ) : (
+                                                        <div className="space-y-1">
+                                                            {(tags || []).map(tag => {
+                                                                const isSelected = tagIds.includes(tag.id);
+                                                                return (
+                                                                    <button
+                                                                        key={tag.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setTagIds(prev => isSelected ? prev.filter(id => id !== tag.id) : [...prev, tag.id]);
+                                                                        }}
+                                                                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between cursor-pointer ${isSelected ? 'bg-primary-500/15 text-primary-600 dark:text-primary-400' : 'hover:bg-black/5 dark:hover:bg-white/5 text-light-text dark:text-dark-text'}`}
+                                                                    >
+                                                                        <span>{tag.name}</span>
+                                                                        {isSelected && <Icon name="check" className="text-xs text-primary-500" />}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Location & Physical Address */}
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className={labelStyle}>Location & Physical Address</label>
+                                                {address && (
                                                     <button
-                                                        key={tag.id}
                                                         type="button"
-                                                        onClick={() => handleTagToggle(tag.id)}
-                                                        className={`px-2 py-1 rounded-lg text-[11px] font-black tracking-wider transition-all border ${
-                                                            isSelected 
-                                                                ? 'scale-[1.02] shadow-sm' 
-                                                                : 'border-transparent bg-gray-200/50 dark:bg-gray-800/10 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800/20'
-                                                        }`}
-                                                        style={isSelected ? { backgroundColor: `${tag.color}20`, color: tag.color, borderColor: tag.color } : {}}
+                                                        onClick={() => setShowManualLocation(prev => !prev)}
+                                                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 cursor-pointer"
                                                     >
-                                                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ backgroundColor: tag.color }} />
-                                                        {tag.name}
+                                                        <Icon name="tune" className="text-[10px]" />
+                                                        <span>{showManualLocation ? 'Hide coordinates' : 'Fine-tune'}</span>
                                                     </button>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-2.5 border border-dashed border-black/10 dark:border-white/10 rounded-xl text-gray-400 text-[11px] font-bold tracking-widest">
-                                            No Tags Defined
-                                        </div>
-                                    )}
-                                </div>
+                                                )}
+                                            </div>
 
-                                <div>
-                                    <label className={labelStyle}>Geographic Location</label>
-                                    <LocationAutocomplete
-                                        value={locationString}
-                                        onChange={(val, data) => {
-                                            setLocationString(val);
-                                            if (data) {
-                                                setLocationData({
-                                                    city: data.city,
-                                                    country: data.country,
-                                                    lat: data.lat,
-                                                    lon: data.lon
-                                                });
-                                            } else if (!val.trim()) {
-                                                setLocationData({});
-                                            } else {
-                                                const parsed = parseLocationString(val);
-                                                setLocationData({
-                                                    city: parsed.city,
-                                                    country: parsed.country
-                                                });
-                                            }
-                                        }}
-                                    />
-                                </div>
+                                            {/* Online Service Indicator if Merchant is Online Business */}
+                                            {activeMerchantRule?.isOnline && (
+                                                <div className="mb-2 p-2 bg-blue-500/[0.04] dark:bg-blue-500/[0.06] rounded-xl border border-blue-500/20 flex items-center justify-between">
+                                                    <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                                        <span>🌐</span>
+                                                        <span>{merchant} is registered as an Online / Digital Business</span>
+                                                    </p>
+                                                    {!address && (
+                                                        <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                            Location optional
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Quick Merchant Branch Chips */}
+                                            {merchantBranches.length > 0 && (
+                                                <div className="mb-2 p-2 bg-primary-500/[0.04] dark:bg-primary-500/[0.06] rounded-xl border border-primary-500/20 space-y-1.5">
+                                                    <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider flex items-center gap-1">
+                                                        <Icon name="marker_pin" className="text-[10px] text-primary-500" />
+                                                        <span>Known Branches for {merchant}:</span>
+                                                    </p>
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        {merchantBranches.map(branch => {
+                                                            const isSelected = address === branch.address || (locationLabel && locationLabel === branch.label);
+                                                            return (
+                                                                <button
+                                                                    key={branch.id}
+                                                                    type="button"
+                                                                    onClick={() => handleSelectMerchantBranch(branch)}
+                                                                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                                                                        isSelected
+                                                                            ? 'bg-primary-500 text-white shadow-xs'
+                                                                            : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-light-text dark:text-dark-text hover:border-primary-500/40 hover:text-primary-500'
+                                                                    }`}
+                                                                    title={branch.address}
+                                                                >
+                                                                    <span>📍 {branch.label || branch.city || branch.placeName}</span>
+                                                                    {branch.isPrimary && <span className="text-[8px] opacity-80">(Primary)</span>}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <AddressAutocomplete
+                                                value={address}
+                                                onChange={handleAddressChange}
+                                                placeholder="Search address, store, or city..."
+                                            />
+
+                                            {/* Resolved Location Preview Card */}
+                                            {address && (
+                                                <div className="mt-2 p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-black/5 dark:border-white/10 space-y-2">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                                                            <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0 mt-0.5">
+                                                                <Icon name="marker_pin" className="text-sm" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <p className="text-xs font-bold text-light-text dark:text-dark-text leading-snug">
+                                                                        {locationLabel || placeName || street || address}
+                                                                    </p>
+                                                                    {country && (
+                                                                        <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                                            {country}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5 leading-normal">
+                                                                    {address}
+                                                                </p>
+                                                                {(latitude !== undefined && longitude !== undefined) && (
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-primary-600 dark:text-primary-400">
+                                                                            📍 {latitude.toFixed(4)}°, {longitude.toFixed(4)}°
+                                                                        </span>
+                                                                        <a
+                                                                            href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="text-[9px] font-bold text-primary-500 hover:underline inline-flex items-center gap-0.5"
+                                                                        >
+                                                                            <span>Open in Maps</span>
+                                                                            <Icon name="open_in_new" className="text-[8px]" />
+                                                                        </a>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleClearLocation}
+                                                            className="text-[10px] font-black tracking-widest text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors shrink-0 cursor-pointer"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Fine-tune Coordinates */}
+                                                    {showManualLocation && (
+                                                        <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 grid grid-cols-2 gap-2 animate-fade-in-up">
+                                                            <div>
+                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">Location / Branch Name</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={locationLabel}
+                                                                    onChange={e => {
+                                                                        setLocationLabel(e.target.value);
+                                                                        setIsLocationUserModified(true);
+                                                                    }}
+                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
+                                                                    placeholder="e.g. Downtown Branch"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">City</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={city}
+                                                                    onChange={e => {
+                                                                        setCity(e.target.value);
+                                                                        setIsLocationUserModified(true);
+                                                                    }}
+                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
+                                                                    placeholder="e.g. Brussels"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">Latitude</label>
+                                                                <input
+                                                                    type="number"
+                                                                    step="any"
+                                                                    value={latitude ?? ''}
+                                                                    onChange={e => {
+                                                                        setLatitude(e.target.value ? parseFloat(e.target.value) : undefined);
+                                                                        setIsLocationUserModified(true);
+                                                                    }}
+                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs font-mono`}
+                                                                    placeholder="50.8503"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">Longitude</label>
+                                                                <input
+                                                                    type="number"
+                                                                    step="any"
+                                                                    value={longitude ?? ''}
+                                                                    onChange={e => {
+                                                                        setLongitude(e.target.value ? parseFloat(e.target.value) : undefined);
+                                                                        setIsLocationUserModified(true);
+                                                                    }}
+                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs font-mono`}
+                                                                    placeholder="4.3517"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="pt-2">

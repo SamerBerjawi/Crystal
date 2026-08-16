@@ -71,8 +71,38 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
             <DetailRow label="Category" value={tx.category} />
             <DetailRow label="Account" value={account?.name || 'Unknown'} />
             <DetailRow label="Type" value={<span className="capitalize">{tx.type}</span>} />
-            {(tx.city || tx.country) && (
-                <DetailRow label="Location" value={[tx.city, tx.country].filter(Boolean).join(', ')} />
+            {(tx.address || tx.city || tx.country || tx.latitude !== undefined) && (
+                <DetailRow 
+                    label="Location" 
+                    value={
+                        <div className="flex flex-col items-end gap-1">
+                            <span className="font-semibold text-xs text-light-text dark:text-dark-text">
+                                {tx.locationLabel || tx.placeName || tx.address || [tx.city, tx.country].filter(Boolean).join(', ')}
+                            </span>
+                            {tx.address && tx.address !== tx.locationLabel && tx.address !== tx.placeName && (
+                                <span className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary max-w-[280px]">
+                                    {tx.address}
+                                </span>
+                            )}
+                            {(tx.latitude !== undefined && tx.longitude !== undefined) && (
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-primary-600 dark:text-primary-400">
+                                        📍 {tx.latitude.toFixed(4)}°, {tx.longitude.toFixed(4)}°
+                                    </span>
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${tx.latitude},${tx.longitude}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-[10px] font-bold text-primary-500 hover:underline inline-flex items-center gap-0.5"
+                                    >
+                                        <span>Open in Maps</span>
+                                        <Icon name="open_in_new" className="text-[9px]" />
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    } 
+                />
             )}
             {tx.tagIds && tx.tagIds.length > 0 && (
                 <DetailRow 

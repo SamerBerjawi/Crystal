@@ -464,6 +464,15 @@ export const ICON_NAME_MAP: Record<string, keyof typeof UntitleduiIcons> = {
   'smart-fetcher-price': 'Zap',
   thumb_down: 'ThumbsDown',
   thumb_up: 'ThumbsUp',
+  magic_wand: 'MagicWand01',
+  sparkles: 'Stars01',
+  bank: 'Bank',
+  institution: 'Bank',
+  aggr_volume: 'CoinsStacked01',
+  alert_triangle: 'AlertTriangle',
+  code_snippet: 'Code02',
+  eye: 'Eye',
+  eye_off: 'EyeOff',
 };
 
 export interface IconProps extends React.SVGProps<SVGSVGElement> {

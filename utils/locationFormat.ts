@@ -5,6 +5,11 @@ export interface LocationMeta {
   flag: string;
   city: string;
   country: string;
+  address?: string;
+  placeName?: string;
+  locationLabel?: string;
+  latitude?: number;
+  longitude?: number;
   formatted: string; // e.g. "🇧🇪 Brussels"
   fullDisplay: string; // e.g. "Brussels, Belgium"
   hasLocation: boolean;
@@ -118,7 +123,7 @@ export function formatTransactionLocation(tx?: Partial<Transaction> | null, _use
   }
 
   // If transaction has no explicit location set, do not invent one
-  if (!city && !country) {
+  if (!city && !country && !tx.address && tx.latitude === undefined) {
     return {
       flag: '',
       city: '',
@@ -149,13 +154,19 @@ export function formatTransactionLocation(tx?: Partial<Transaction> | null, _use
 
   const { flag, countryName } = getCountryCodeAndFlag(country);
   const finalCountry = countryName || country;
-  const formatted = flag ? `${flag} ${city}` : city;
-  const fullDisplay = finalCountry ? (city ? `${city}, ${finalCountry}` : finalCountry) : city;
+  const mainLabel = tx.locationLabel || tx.placeName || city;
+  const formatted = flag ? `${flag} ${mainLabel}` : mainLabel;
+  const fullDisplay = tx.address || (finalCountry ? (city ? `${city}, ${finalCountry}` : finalCountry) : city);
 
   return {
     flag: flag || '📍',
     city,
     country: finalCountry,
+    address: tx.address,
+    placeName: tx.placeName,
+    locationLabel: tx.locationLabel,
+    latitude: tx.latitude,
+    longitude: tx.longitude,
     formatted,
     fullDisplay,
     hasLocation: true,
