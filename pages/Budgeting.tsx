@@ -287,8 +287,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     <Icon name="chevron_left" className="text-lg leading-none group-hover:-translate-x-1 transition-transform" />
                 </button>
                 <div className="flex flex-col items-center px-6 min-w-[140px]">
-                    <span className="text-[10px] font-bold tracking-[0.2em] opacity-40 leading-none mb-1">Active cycle</span>
-                    <span className="text-xs font-bold tracking-widest leading-none">{monthName}</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider opacity-60 leading-none mb-1">Active cycle</span>
+                    <span className="text-xs font-bold leading-none">{monthName}</span>
                 </div>
                 <button onClick={() => handleMonthChange(1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
                     <Icon name="chevron_right" className="text-lg leading-none group-hover:translate-x-1 transition-transform" />
@@ -303,7 +303,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
                     >
                         <Icon name="zap" className="text-lg text-primary-500 group-hover/btn:scale-125 transition-transform" />
-                        <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap">Quick budget</span>
+                        <span className="text-xs font-semibold tracking-wide whitespace-nowrap">Quick budget</span>
                     </button>
                     <div className="w-[1px] bg-black/5 dark:bg-white/10"></div>
                     <button
@@ -325,11 +325,11 @@ const Budgeting: React.FC<BudgetingProps> = ({
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-[10px] font-bold tracking-[0.3em] text-white/40 mb-2 block">Available Liquidity</h2>
-                            <h2 className="text-4xl font-bold tracking-tighter leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
+                            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/60 mb-2 block">Available Liquidity</h2>
+                            <h2 className="text-4xl font-bold tracking-tight leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${totalRemaining >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'} animate-pulse`}></div>
-                                <span className={`text-[10px] font-black  tracking-[0.1em] ${totalRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                <span className={`text-xs font-semibold ${totalRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {totalRemaining >= 0 ? 'Surplus Projection' : 'Deficit Expected'}
                                 </span>
                             </div>
@@ -344,11 +344,11 @@ const Budgeting: React.FC<BudgetingProps> = ({
 
                 <div className="relative z-10 grid grid-cols-2 gap-8 mt-6 bg-white/5 p-4 rounded-xl border border-white/5 backdrop-blur-md">
                      <div>
-                        <p className="text-white/30 text-[10px] font-bold tracking-[0.2em] mb-1">Total budgeted</p>
+                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">Total budgeted</p>
                         <p className="text-xl font-bold tracking-tight">{formatCurrency(totalBudgeted, 'EUR')}</p>
                      </div>
                      <div>
-                        <p className="text-white/30 text-[10px] font-bold tracking-[0.2em] mb-1">Total spent</p>
+                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">Total spent</p>
                         <p className="text-xl font-bold tracking-tight opacity-100">{formatCurrency(totalSpent, 'EUR')}</p>
                      </div>
                 </div>
@@ -362,16 +362,16 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     </div>
                      <div className="flex justify-between items-center mt-3">
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-bold tracking-[0.2em] text-white/40">Utilization</span>
-                             <span className="text-[13px] font-bold tracking-tight">{overallProgress.toFixed(0)}%</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-white/60">Utilization</span>
+                             <span className="text-sm font-bold tracking-tight">{overallProgress.toFixed(0)}%</span>
                         </div>
                         {daysRemaining > 0 ? (
                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold tracking-[0.2em] text-white/40">Active range</span>
-                                <span className="text-[13px] font-bold tracking-tight">{daysRemaining} DAYS REMAINING</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-white/60">Active range</span>
+                                <span className="text-xs font-bold tracking-wide">{daysRemaining} DAYS REMAINING</span>
                            </div>
                         ) : (
-                           <span className="text-[10px] font-bold tracking-[0.2em] text-white/40">Cycle closed</span>
+                           <span className="text-xs font-semibold uppercase tracking-wider text-white/60">Cycle closed</span>
                         )}
                     </div>
                 </div>
@@ -383,10 +383,10 @@ const Budgeting: React.FC<BudgetingProps> = ({
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
                         <Icon name="coins_stacked" className="text-2xl" />
                   </div>
-                  <p className="text-[10px] font-bold tracking-[0.2em] opacity-40 mb-1">Daily safe spend</p>
-                  <h3 className="text-3xl font-bold tracking-tighter text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
+                  <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-1">Daily safe spend</p>
+                  <h3 className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
                   <div className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-                    <p className="text-[8px] font-bold tracking-[0.2em] opacity-60 leading-none">
+                    <p className="text-xs font-medium opacity-70 leading-none">
                         Available per day / {daysRemaining}d
                     </p>
                   </div>
@@ -401,8 +401,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     <Icon name="layout_alt" className="text-xl" />
                  </div>
                  <div>
-                    <h3 className="text-base font-bold tracking-tight text-light-text dark:text-dark-text">Control Center</h3>
-                    <p className="text-[9px] font-black  tracking-[0.2em] opacity-40 leading-none">Category Allocation & Performance</p>
+                    <h3 className="text-base font-semibold tracking-tight text-light-text dark:text-dark-text">Control Center</h3>
+                    <p className="text-xs font-semibold uppercase tracking-wider opacity-60 leading-none">Category Allocation & Performance</p>
                  </div>
               </div>
 
@@ -434,8 +434,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     <div className="w-20 h-20 rounded-[2rem] bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 mx-auto mb-6 flex items-center justify-center shadow-lg">
                         <Icon name="savings" className="text-4xl opacity-20" />
                     </div>
-                    <p className="text-xs font-black  tracking-[0.2em] mb-2 opacity-60">No financial guardrails detected</p>
-                    <p className="text-[11px] font-bold opacity-30 max-w-[240px] mx-auto text-center">Your spending categories are currently unmapped. Initialize them in settings to start tracking.</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider mb-2 opacity-60">No financial guardrails detected</p>
+                    <p className="text-xs font-normal opacity-50 max-w-[240px] mx-auto text-center">Your spending categories are currently unmapped. Initialize them in settings to start tracking.</p>
                  </div>
               )}
           </div>
@@ -446,8 +446,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                   
                   <div className="flex items-center justify-between mb-6 relative z-10">
                     <div>
-                        <p className="text-[10px] font-black  tracking-[0.2em] opacity-40 mb-0.5">Portfolio</p>
-                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text leading-none">Allocation</h3>
+                        <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-0.5">Portfolio</p>
+                        <h3 className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text leading-none">Allocation</h3>
                     </div>
                     <Icon name="pie_chart" className="opacity-20 group-hover:rotate-45 transition-transform text-lg" />
                   </div>
@@ -470,10 +470,10 @@ const Budgeting: React.FC<BudgetingProps> = ({
                       <PieCenter defaultLabel="Total">
                         {({ value, label, isHovered }) => (
                           <div className="flex flex-col items-center justify-center text-center">
-                            <span className="text-[8px] font-black tracking-[0.2em] opacity-40 uppercase leading-none mb-1">
+                            <span className="text-xs font-semibold uppercase tracking-wider opacity-60 leading-none mb-1">
                               {label}
                             </span>
-                            <span className="text-sm font-black tracking-tighter leading-none">
+                            <span className="text-sm font-bold tracking-tight leading-none">
                               {formatCurrency(isHovered ? value : totalBudgeted, 'EUR')}
                             </span>
                           </div>
@@ -484,9 +484,9 @@ const Budgeting: React.FC<BudgetingProps> = ({
                   
                   <div className="grid grid-cols-2 gap-2 mt-4 relative z-10">
                        {allocationData.slice(0, 4).map(item => (
-                            <div key={item.name} className="flex items-center gap-1.5 font-bold">
-                                <div className="w-1 h-1 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                <span className="text-[8px] font-black  tracking-wider opacity-40 truncate">{item.name}</span>
+                            <div key={item.name} className="flex items-center gap-1.5 font-semibold">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }}></div>
+                                <span className="text-xs font-medium opacity-70 truncate">{item.name}</span>
                             </div>
                        ))}
                   </div>
@@ -495,8 +495,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
               <Card className="!p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-2xl relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                        <p className="text-[10px] font-black  tracking-[0.2em] opacity-40 mb-0.5">Critical</p>
-                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text leading-none">Watchlist</h3>
+                        <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-0.5">Critical</p>
+                        <h3 className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text leading-none">Watchlist</h3>
                     </div>
                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
                   </div>
@@ -515,10 +515,10 @@ const Budgeting: React.FC<BudgetingProps> = ({
                                 const isOver = pct > 100;
                                 return (
                                     <div key={b.id} className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 hover:scale-[1.01] transition-transform duration-300">
-                                        <span className="text-[10px] font-black  tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
+                                        <span className="text-xs font-semibold tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
                                         <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-600' : 'bg-amber-500/10 text-amber-600'}`}>
-                                            <span className="text-[10px] font-black tracking-tighter leading-none">{pct.toFixed(0)}</span>
-                                            <span className="text-[7px] font-black opacity-30">%</span>
+                                            <span className="text-xs font-bold tracking-tight leading-none">{pct.toFixed(0)}</span>
+                                            <span className="text-xs font-normal opacity-50">%</span>
                                         </div>
                                     </div>
                                 );
@@ -526,7 +526,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                       ) : (
                           <div className="text-center py-6 opacity-30 flex flex-col items-center gap-2">
                               <Icon name="verified_user" className="text-2xl" />
-                              <p className="text-[9px] font-black  tracking-[0.2em]">Safely within limits</p>
+                              <p className="text-xs font-semibold uppercase tracking-wider">Safely within limits</p>
                           </div>
                       )}
                   </div>

@@ -39,7 +39,7 @@ const NetBalanceCard: React.FC<NetBalanceCardProps> = ({ netBalance, totalIncome
             style={{ width: `${progress}%` }}
           ></div>
         </div>
-        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-2 font-medium text-right  tracking-wide opacity-70">{duration}</p>
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2 font-medium text-right tracking-wide opacity-70">{duration}</p>
       </div>
     </Card>
   );

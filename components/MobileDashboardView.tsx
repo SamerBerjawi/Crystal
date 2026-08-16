@@ -397,10 +397,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
         {/* 1. iOS Large Title Navigation Header with Funnel Filter Button */}
         <div className="sticky top-0 z-20 pt-2 pb-2.5 bg-light-bg/85 dark:bg-dark-bg/85 backdrop-blur-xl -mx-4 px-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between transition-all">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               {todayDateStr}
             </p>
-            <h1 className="text-2xl font-black text-light-text dark:text-white tracking-tight flex items-center gap-1.5">
+            <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight flex items-center gap-1.5">
               <span>{greeting}</span>
               {isSyncingBanks && <Icon name="sync" className="text-primary-500 animate-spin text-sm" />}
             </h1>
@@ -423,7 +423,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             >
               <Icon name="filter_alt" className="text-lg" />
               {selectedAccountIds.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-gray-900 text-[9px] font-black flex items-center justify-center border border-white dark:border-dark-card">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-gray-900 text-2xs font-bold flex items-center justify-center border border-white dark:border-dark-card">
                   {selectedAccountIds.length}
                 </span>
               )}
@@ -452,10 +452,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                     <Icon name="star" className="text-xs text-amber-300" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-white/70 block">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-white/70 block">
                       Main Account
                     </span>
-                    <p className="text-xs font-black text-white truncate max-w-[180px]">
+                    <p className="text-xs font-bold text-white truncate max-w-[180px]">
                       {primaryAccount.name}
                     </p>
                   </div>
@@ -466,7 +466,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                   onClick={() => {
                     if (onSyncBanks) onSyncBanks();
                   }}
-                  className="px-3 py-1 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-black shadow-md shadow-emerald-500/20 border border-emerald-400/30 flex items-center gap-1.5 touch-feedback transition-all shrink-0"
+                  className="px-3 py-1 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-emerald-500/20 border border-emerald-400/30 flex items-center gap-1.5 touch-feedback transition-all shrink-0"
                   aria-label="Sync Banks"
                 >
                   <Icon name="sync" className={`text-xs ${isSyncingBanks ? 'animate-spin' : ''}`} />
@@ -483,10 +483,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           {/* SECONDARY SECTION: Net Portfolio Value & Assets/Liabilities Breakdown */}
           <div className="pt-2.5 border-t border-white/15 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-white/70">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/70">
                 Net Portfolio Value (All Accounts)
               </span>
-              <span className="text-base font-black text-white privacy-blur">
+              <span className="text-base font-bold text-white privacy-blur">
                 {netWorthFormatted}
               </span>
             </div>
@@ -494,10 +494,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-0.5">
               <div className="bg-emerald-500/15 rounded-xl p-2 border border-emerald-500/25 flex items-center justify-between">
                 <div>
-                  <span className="text-[9px] font-extrabold uppercase text-emerald-300 block">
+                  <span className="text-2xs font-semibold uppercase tracking-wider text-emerald-300 block">
                     Total Assets
                   </span>
-                  <span className="text-xs font-black text-emerald-400 privacy-blur truncate block mt-0.5">
+                  <span className="text-xs font-bold text-emerald-400 privacy-blur truncate block mt-0.5">
                     {assetsFormatted}
                   </span>
                 </div>
@@ -506,10 +506,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
               <div className="bg-rose-500/15 rounded-xl p-2 border border-rose-500/25 flex items-center justify-between">
                 <div>
-                  <span className="text-[9px] font-extrabold uppercase text-rose-300 block">
+                  <span className="text-2xs font-semibold uppercase tracking-wider text-rose-300 block">
                     Total Liabilities
                   </span>
-                  <span className="text-xs font-black text-rose-400 privacy-blur truncate block mt-0.5">
+                  <span className="text-xs font-bold text-rose-400 privacy-blur truncate block mt-0.5">
                     {debtFormatted}
                   </span>
                 </div>
@@ -523,17 +523,17 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
         <div className="bg-white/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-[22px] p-3.5 sm:p-4 border border-black/5 dark:border-white/10 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 block">
+              <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 block">
                 30D Trend & 30D Forecast
               </span>
-              <p className="text-xs font-black text-light-text dark:text-white mt-0.5 privacy-blur">
+              <p className="text-xs font-bold text-light-text dark:text-white mt-0.5 privacy-blur">
                 Projected 30D: {formatCurrency(projected30DVal, curr)}
               </p>
             </div>
 
             <div className="text-right">
               <span
-                className={`text-xs font-black privacy-blur inline-flex items-center gap-0.5 ${
+                className={`text-xs font-bold privacy-blur inline-flex items-center gap-0.5 ${
                   change30DVal >= 0
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-rose-600 dark:text-rose-400'
@@ -567,10 +567,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               <Icon name="zap" className="text-lg" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Daily Safe Spend • {daysRemaining} days left
               </p>
-              <p className="text-base sm:text-lg font-black text-light-text dark:text-white privacy-blur">
+              <p className="text-base sm:text-lg font-bold text-light-text dark:text-white privacy-blur">
                 {formatCurrency(convertCurrency(dailySafeSpendEur, 'EUR', preferredCurrency, conversionRates), curr)}{' '}
                 <span className="text-xs font-semibold opacity-60">/ day</span>
               </p>
@@ -578,7 +578,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           </div>
 
           <div className="text-right shrink-0">
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+            <span className="text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
               {budgetSpentPercent}% Spent
             </span>
           </div>
@@ -588,10 +588,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
         {bklitPieData.length > 0 && (
           <div className="bg-white/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-[22px] p-3.5 sm:p-4 border border-black/5 dark:border-white/10 shadow-xs space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Category Spending (Last 30D)
               </span>
-              <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Selected Accounts
               </span>
             </div>
@@ -618,10 +618,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                   <PieCenter defaultLabel="Total Spent">
                     {({ value, label, isHovered }) => (
                       <div className="flex flex-col items-center justify-center text-center">
-                        <span className="text-light-text-secondary dark:text-gray-300 text-[9px] tracking-widest font-black uppercase">
+                        <span className="text-light-text-secondary dark:text-gray-300 text-2xs tracking-wider font-semibold uppercase">
                           {label}
                         </span>
-                        <span className="text-xs font-black text-light-text dark:text-white tracking-tight privacy-blur">
+                        <span className="text-xs font-bold text-light-text dark:text-white tracking-tight privacy-blur">
                           {formatCurrency(value, curr)}
                         </span>
                       </div>
@@ -640,7 +640,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                       />
                       <span className="truncate">{cat.label}</span>
                     </span>
-                    <span className="privacy-blur text-light-text-secondary dark:text-dark-text-secondary text-[11px] shrink-0">
+                    <span className="privacy-blur text-light-text-secondary dark:text-dark-text-secondary text-xs shrink-0 font-medium">
                       {formatCurrency(cat.value, curr)}
                     </span>
                   </div>
@@ -653,7 +653,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
         {/* 6. Linked Accounts Horizontal Carousel */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               Accounts ({accounts.length})
             </span>
             <span className="text-xs font-bold text-primary-500">Swipe →</span>
@@ -707,7 +707,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                       )}
                     </div>
                     <span
-                      className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                      className={`text-2xs font-semibold uppercase px-1.5 py-0.5 rounded ${
                         isSelected ? 'bg-primary-500 text-white' : 'bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary'
                       }`}
                     >
@@ -715,10 +715,10 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                     </span>
                   </div>
 
-                  <p className="text-xs font-extrabold text-light-text dark:text-white truncate">
+                  <p className="text-xs font-bold text-light-text dark:text-white truncate">
                     {acc.name}
                   </p>
-                  <p className="text-xs font-black text-primary-600 dark:text-primary-400 privacy-blur mt-0.5">
+                  <p className="text-xs font-bold text-primary-600 dark:text-primary-400 privacy-blur mt-0.5">
                     {formattedBal}
                   </p>
                 </div>
@@ -731,7 +731,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
         {recentTransactions.length > 0 && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Recent Activity
               </span>
             </div>
@@ -751,17 +751,17 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-extrabold text-light-text dark:text-white truncate">
+                        <p className="text-xs font-bold text-light-text dark:text-white truncate">
                           {tx.merchant || tx.description}
                         </p>
-                        <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.2">
+                        <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
                           {tx.category || 'Uncategorized'} • {tx.date}
                         </p>
                       </div>
 
                       <div className="text-right shrink-0">
                         <p
-                          className={`text-xs font-black privacy-blur ${
+                          className={`text-xs font-bold privacy-blur ${
                             isExpense
                               ? 'text-light-text dark:text-white'
                               : 'text-emerald-600 dark:text-emerald-400'

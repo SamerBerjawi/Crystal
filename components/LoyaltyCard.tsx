@@ -118,13 +118,13 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                 <div className="flex flex-col">
                     <h3 className="font-bold text-xl leading-none drop-shadow-lg tracking-tight">{membership.provider}</h3>
                     {membership.tier && (
-                        <span className="text-[10px] font-black  tracking-[0.2em] text-white/60 mt-1">{membership.category || 'Membership'}</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-white/60 mt-1">{membership.category || 'Membership'}</span>
                     )}
                 </div>
              </div>
              
              {membership.tier && (
-                <div className="px-3 py-1 rounded-xl text-[9px] font-black  tracking-widest bg-white/20 backdrop-blur-xl border border-white/10 shadow-lg group-hover:bg-white transition-colors group-hover:text-black">
+                <div className="px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-xl border border-white/10 shadow-lg group-hover:bg-white transition-colors group-hover:text-black">
                     {membership.tier}
                 </div>
              )}
@@ -136,13 +136,13 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                 onClick={handleCopyId}
                 className="group/id inline-flex flex-col text-left hover:bg-white/10 p-2 -ml-2 rounded-2xl transition-all duration-300 relative w-fit"
              >
-                <span className="text-[9px] font-black  tracking-widest text-white/50 mb-1">Asset ID</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-1">Asset ID</span>
                 <div className="flex items-center gap-4">
                     <span className="font-mono text-2xl font-bold tracking-[0.15em] drop-shadow-xl text-white">
                         {membership.memberId}
                     </span>
                     <div className={`flex items-center justify-center w-6 h-6 rounded-xl transition-all duration-300 ${copied ? 'bg-emerald-400 text-black scale-110' : 'bg-white/20 text-white scale-90 opacity-0 group-hover/id:opacity-100'}`}>
-                        <Icon name={copied ? 'check' : 'content_copy'} className="text-[10px] font-black" />
+                        <Icon name={copied ? 'check' : 'content_copy'} className="text-xs font-bold" />
                     </div>
                 </div>
             </div>
@@ -151,12 +151,12 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
         {/* Bottom Details Grid */}
         <div className="grid grid-cols-2 gap-6 pt-4 border-t border-white/10">
              <div className="flex flex-col gap-1">
-                <span className="text-[8px] font-black  tracking-widest text-white/40">Holder</span>
-                <span className="text-xs font-black tracking-tight truncate">{membership.holderName || 'Card Holder'}</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Holder</span>
+                <span className="text-xs font-bold tracking-tight truncate">{membership.holderName || 'Card Holder'}</span>
              </div>
              <div className="flex flex-col gap-1 text-right">
-                <span className="text-[8px] font-black  tracking-widest text-white/40">Status / Balance</span>
-                <span className="text-xs font-black tracking-tight text-white tabular-nums">
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/40">Status / Balance</span>
+                <span className="text-xs font-bold tracking-tight text-white tabular-nums">
                     {membership.points || (isExpired ? 'EXPIRED' : formattedExpiry !== 'Never' ? `VAL: ${formattedExpiry}` : 'ACTIVE')}
                 </span>
              </div>

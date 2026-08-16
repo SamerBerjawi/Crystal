@@ -913,21 +913,21 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                                 <th key={h} className="p-1 align-top font-normal">
                                     <div className="relative">
                                         {h === 'date' ? (
-                                            <button onClick={() => setActivePopover(h)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1.5 text-left w-full flex justify-between items-center`}>
+                                            <button onClick={() => setActivePopover(h)} className={`${INPUT_BASE_STYLE} !text-xs py-1.5 text-left w-full flex justify-between items-center`}>
                                                 <span className="truncate">{filters[h] ? `${filters[h].type}: ${filters[h].value}` : 'Filter...'}</span>
                                                 <Icon name="filter_list" className="text-sm" />
                                             </button>
                                         ) : (h === 'amount' || h === 'balance') ? (
                                             <div className="flex h-8 sm:h-9">
-                                                <select value={filters[h]?.type || 'eq'} onChange={e => handleFilterChange(h, e.target.value, filters[h]?.value || '')} className={`${SELECT_STYLE} !text-[10px] sm:text-xs py-1 rounded-r-none w-[45%]`}>
+                                                <select value={filters[h]?.type || 'eq'} onChange={e => handleFilterChange(h, e.target.value, filters[h]?.value || '')} className={`${SELECT_STYLE} !text-xs py-1 rounded-r-none w-[45%]`}>
                                                     <option value="eq">=</option>
                                                     <option value="gt">&gt;</option>
                                                     <option value="lt">&lt;</option>
                                                 </select>
-                                                <input type="number" placeholder="Val" value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, filters[h]?.type || 'eq', e.target.value)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1 rounded-l-none w-[55%]`} />
+                                                <input type="number" placeholder="Val" value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, filters[h]?.type || 'eq', e.target.value)} className={`${INPUT_BASE_STYLE} !text-xs py-1 rounded-l-none w-[55%]`} />
                                             </div>
                                         ) : (
-                                            <input type="text" placeholder={`Filter...`} value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} !text-[10px] sm:text-xs py-1.5`} />
+                                            <input type="text" placeholder={`Filter...`} value={filters[h]?.value || ''} onChange={e => handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} !text-xs py-1.5`} />
                                         )}
                                         {activePopover === h && h === 'date' && <DateFilterPopover header={h} />}
                                     </div>
@@ -948,7 +948,7 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                                             <input 
                                                 value={row[header]} 
                                                 onChange={e => handleCellChange(row.originalIndex, header, e.target.value)} 
-                                                className={`w-full h-full p-3 bg-transparent focus:outline-none focus:bg-primary-500/10 text-[11px] sm:text-sm font-medium ${hasError ? 'bg-red-500/10 text-red-800 dark:text-red-200' : 'text-light-text dark:text-dark-text'}`} 
+                                                className={`w-full h-full p-3 bg-transparent focus:outline-none focus:bg-primary-500/10 text-xs sm:text-sm font-medium ${hasError ? 'bg-red-500/10 text-red-800 dark:text-red-200' : 'text-light-text dark:text-dark-text'}`} 
                                                 title={hasError || ''} 
                                             />
                                         </td>

@@ -45,7 +45,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
             {title}
           </h3>
           {badge && (
-            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${badgeColor}`}>
+            <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 ${badgeColor}`}>
               {badge}
             </span>
           )}
@@ -114,11 +114,11 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 {user.email}
               </p>
               <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[10px] font-bold border border-primary-500/20">
+                <span className="px-2.5 py-0.5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-semibold border border-primary-500/20">
                   {user.role}
                 </span>
-                <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 flex items-center gap-1">
-                  <Icon name="check_circle" className="text-[12px]" />
+                <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/20 flex items-center gap-1">
+                  <Icon name="check_circle" className="text-xs" />
                   Verified Account
                 </span>
               </div>
@@ -261,7 +261,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       {/* Footer Info */}
       <div className="flex justify-center items-center gap-4 pt-8">
         <div className="h-px bg-black/5 dark:bg-white/5 flex-grow max-w-[100px]"></div>
-        <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-50">
+        <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider opacity-60">
           Crystal Edition v1.0.0
         </p>
         <div className="h-px bg-black/5 dark:bg-white/5 flex-grow max-w-[100px]"></div>

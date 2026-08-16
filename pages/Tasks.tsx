@@ -243,7 +243,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                         <select 
                             value={sortBy} 
                             onChange={e => setSortBy(e.target.value as any)} 
-                            className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-5 py-4 text-[10px] font-black  tracking-widest appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+                            className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-4 py-3 text-xs font-semibold appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
                         >
                             <option value="manual">Manual Sequence</option>
                             <option value="priority-desc">Priority Sift</option>
@@ -260,7 +260,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
             <section className="space-y-6">
                 <div className="flex items-center gap-3 px-2">
                     <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
-                    <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Temporal Density</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Temporal Density</h3>
                 </div>
                 <div className="w-full overflow-x-auto flex justify-center py-2">
                     <TasksHeatmap tasks={tasks} />
@@ -291,10 +291,10 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                             <header className="flex justify-between items-center px-4">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-2 h-2 rounded-full ${statusColorMap[status]}`}></div>
-                                    <h3 className="text-[11px] font-bold tracking-[0.2em] text-light-text dark:text-dark-text opacity-80">
+                                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">
                                         {status}
                                     </h3>
-                                    <span className="text-[10px] font-black bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-lg opacity-40">
+                                    <span className="text-xs font-semibold bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-lg text-light-text-secondary dark:text-dark-text-secondary">
                                         {tasksInColumn.length}
                                     </span>
                                 </div>
@@ -309,7 +309,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                                 {tasksInColumn.length === 0 ? (
                                     <div className="h-40 border-2 border-dashed border-black/5 dark:border-white/5 rounded-[2rem] flex flex-col items-center justify-center gap-2 opacity-20">
                                         <Icon name="task_alt" className="text-3xl" />
-                                        <span className="text-[10px] font-black  tracking-widest">Queue Clear</span>
+                                        <span className="text-xs font-semibold uppercase tracking-wider">Queue Clear</span>
                                     </div>
                                 ) : (
                                     tasksInColumn.map(task => {

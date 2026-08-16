@@ -96,18 +96,18 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
                 </span>
               )}
               {isNearingLimit && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                   Nearing Limit
                 </span>
               )}
               {isOverBudget && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                   Over Limit
                 </span>
               )}
             </div>
             {showPercentage && (
-              <span className={`font-black tracking-tight ${textColor}`}>
+              <span className={`font-bold tracking-tight ${textColor}`}>
                 {percentage.toFixed(0)}%
               </span>
             )}
@@ -124,7 +124,7 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
         </div>
 
         {showValues && (
-          <div className="flex justify-between text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="flex justify-between text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
             <span>{formatCurrency(spent, currency)} spent</span>
             <span className={remaining < 0 ? 'text-rose-500 font-bold' : ''}>
               {formatCurrency(budgeted, currency)} cap
@@ -148,18 +148,18 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
               </h4>
             )}
             <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeBg}`}>
-                <Icon name={statusIcon} className="text-[13px] leading-none" />
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${badgeBg}`}>
+                <Icon name={statusIcon} className="text-xs leading-none" />
                 {statusText}
               </span>
             </div>
           </div>
 
           <div className="text-right space-y-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider opacity-50 block leading-none">
+            <span className="text-xs font-semibold uppercase tracking-wider opacity-60 block leading-none">
               {remaining >= 0 ? 'Remaining' : 'Exceeded By'}
             </span>
-            <span className={`text-base font-black tracking-tight privacy-blur leading-none ${remaining >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            <span className={`text-base font-bold tracking-tight privacy-blur leading-none ${remaining >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {formatCurrency(Math.abs(remaining), currency)}
             </span>
           </div>
@@ -197,10 +197,10 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
       </div>
 
       {/* Bottom Metrics Row */}
-      <div className="flex justify-between items-center text-[10px] font-bold tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
+      <div className="flex justify-between items-center text-xs font-semibold tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
           <span className="opacity-60">Utilized:</span>
-          <span className={`font-black ${textColor}`}>{percentage.toFixed(0)}%</span>
+          <span className={`font-bold ${textColor}`}>{percentage.toFixed(0)}%</span>
         </div>
 
         <div className="flex items-center gap-2">

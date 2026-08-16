@@ -222,12 +222,12 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       {confirmingDelete && (
           <Modal onClose={() => setConfirmingDelete(null)} title="Confirm Deletion">
               <div className="space-y-6">
-                  <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm font-bold opacity-60 leading-relaxed  tracking-widest">
+                  <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm font-normal leading-relaxed">
                       Irreversible Operation Detected. Primary and secondary category nodes will be excised. Proceed?
                   </p>
                   <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                      <button type="button" onClick={() => setConfirmingDelete(null)} className="px-5 py-2.5 rounded-xl text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">Abort</button>
-                      <button type="button" onClick={executeDelete} className="px-5 py-2.5 rounded-xl text-[10px] font-black  tracking-widest text-white bg-red-500 hover:bg-red-600 shadow-xl shadow-red-500/20 transition-colors">Execute Deletion</button>
+                      <button type="button" onClick={() => setConfirmingDelete(null)} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-light-text dark:text-dark-text bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">Abort</button>
+                      <button type="button" onClick={executeDelete} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-colors">Execute Deletion</button>
                   </div>
               </div>
           </Modal>
@@ -265,13 +265,13 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         <div className="flex bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl w-full sm:w-auto">
             <button 
                 onClick={() => setActiveTab('expense')} 
-                className={`flex-1 sm:flex-none px-8 py-3 rounded-xl text-[10px] font-black  tracking-widest transition-all duration-300 ${activeTab === 'expense' ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 ${activeTab === 'expense' ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
             >
                 Debit (Expenses)
             </button>
             <button 
                 onClick={() => setActiveTab('income')} 
-                className={`flex-1 sm:flex-none px-8 py-3 rounded-xl text-[10px] font-black  tracking-widest transition-all duration-300 ${activeTab === 'income' ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 ${activeTab === 'income' ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
             >
                 Credit (Income)
             </button>
@@ -285,7 +285,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
                 placeholder="Query taxonomy structure..." 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
-                className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold  tracking-widest placeholder:text-light-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-normal text-light-text dark:text-dark-text placeholder:text-light-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
              />
         </div>
       </div>
@@ -318,9 +318,9 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
               <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
                 <Icon name="folder" className="text-4xl opacity-20" />
               </div>
-              <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Schema Nullified</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Schema Nullified</p>
               {!searchTerm && (
-                  <button onClick={() => openModal('add', activeTab)} className="mt-8 px-8 py-4 bg-primary-500 text-white rounded-2xl text-[10px] font-black  tracking-widest shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
+                  <button onClick={() => openModal('add', activeTab)} className="mt-6 px-6 py-3 bg-primary-500 text-white rounded-2xl text-xs font-semibold tracking-wide shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
                       Initialize Root Category
                   </button>
               )}

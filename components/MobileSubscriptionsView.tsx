@@ -43,10 +43,10 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
         {/* Header */}
         <div className="flex items-center justify-between pt-1">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               Recurring Outflows
             </p>
-            <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">
               Subscriptions
             </h1>
           </div>
@@ -76,15 +76,15 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
 
             <div className="flex items-center justify-between pt-2 border-t border-white/10">
               <div>
-                <span className="text-[10px] font-semibold text-white/60 uppercase block">Annualized Expense</span>
-                <span className="text-xs font-black text-rose-300 privacy-blur">
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/60 block">Annualized Expense</span>
+                <span className="text-xs font-bold text-rose-300 privacy-blur">
                   {formatCurrency(totalAnnualCost, curr)} / yr
                 </span>
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] font-semibold text-white/60 uppercase block">Active Services</span>
-                <span className="text-xs font-black text-white">{subscriptions.length} Active</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-white/60 block">Active Services</span>
+                <span className="text-xs font-bold text-white">{subscriptions.length} Active</span>
               </div>
             </div>
           </div>
@@ -126,17 +126,17 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
                       <p className="text-xs font-bold text-light-text dark:text-white truncate">
                         {sub.description}
                       </p>
-                      <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
+                      <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
                         {sub.frequency} • Next: {sub.nextDueDate}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-extrabold text-rose-600 dark:text-rose-400 privacy-blur">
+                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
                       {formatCurrency(sub.amount, subCurrency)}
                     </p>
-                    <span className="text-[9px] font-bold text-gray-400 block mt-0.5 uppercase">
+                    <span className="text-2xs font-semibold text-gray-400 block mt-0.5 uppercase tracking-wider">
                       {sub.category || 'Recurring'}
                     </span>
                   </div>

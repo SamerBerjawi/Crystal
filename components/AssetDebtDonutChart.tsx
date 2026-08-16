@@ -55,10 +55,10 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
           <PieCenter defaultLabel="Net Worth">
             {({ value, label, isHovered }) => (
               <div className="flex flex-col items-center justify-center text-center">
-                <span className="text-light-text-secondary dark:text-gray-300 text-[10px] tracking-widest font-black uppercase">
+                <span className="text-light-text-secondary dark:text-gray-300 text-xs tracking-wider font-semibold uppercase">
                   {label}
                 </span>
-                <span className="text-lg sm:text-xl font-black text-light-text dark:text-white tracking-tight">
+                <span className="text-lg sm:text-xl font-bold text-light-text dark:text-white tracking-tight">
                   {formatCurrency(isHovered ? value : netWorth, 'EUR')}
                 </span>
               </div>

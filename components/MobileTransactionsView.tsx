@@ -302,12 +302,12 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
         {/* Badge overlay for special types */}
         {tx.isTransfer && (
           <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-xs border border-white dark:border-gray-900">
-            <Icon name="sync" className="text-[10px]" />
+            <Icon name="sync" className="text-2xs" />
           </div>
         )}
         {!tx.isTransfer && tx.recurringSourceId && (
           <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-xs border border-white dark:border-gray-900">
-            <Icon name="repeat" className="text-[10px]" />
+            <Icon name="repeat" className="text-2xs" />
           </div>
         )}
       </div>
@@ -321,14 +321,14 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
         <div className="sticky top-0 z-20 pt-2 pb-3 bg-light-bg/85 dark:bg-dark-bg/85 backdrop-blur-xl -mx-4 px-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between transition-all">
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="text-2xl font-black text-light-text dark:text-white tracking-tight">
+              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">
                 Activity
               </h1>
               {isSyncingBanks && (
                 <Icon name="sync" className="text-primary-500 animate-spin text-sm" />
               )}
             </div>
-            <p className="text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               {filteredTransactions.length} transaction{filteredTransactions.length === 1 ? '' : 's'}
             </p>
           </div>
@@ -354,31 +354,31 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
           <div className="grid grid-cols-3 divide-x divide-black/5 dark:divide-white/10 text-center">
             {/* Income */}
             <div className="pr-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Income
               </p>
-              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 privacy-blur mt-0.5">
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 privacy-blur mt-0.5">
                 +{formatCurrency(totalIncome, curr)}
               </p>
             </div>
 
             {/* Expenses */}
             <div className="px-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Spent
               </p>
-              <p className="text-sm font-black text-rose-600 dark:text-rose-400 privacy-blur mt-0.5">
+              <p className="text-sm font-bold text-rose-600 dark:text-rose-400 privacy-blur mt-0.5">
                 -{formatCurrency(totalExpense, curr)}
               </p>
             </div>
 
             {/* Net Flow */}
             <div className="pl-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Net Cash
               </p>
               <p
-                className={`text-sm font-black privacy-blur mt-0.5 ${
+                className={`text-sm font-bold privacy-blur mt-0.5 ${
                   netFlow >= 0
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : 'text-rose-600 dark:text-rose-400'
@@ -428,9 +428,9 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                 <button
                   key={pill.id}
                   onClick={() => setTypeFilter(pill.id as any)}
-                  className={`flex-1 py-1.5 rounded-xl text-[11px] font-bold transition-all text-center touch-feedback ${
+                  className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all text-center touch-feedback ${
                     isActive
-                      ? 'bg-white dark:bg-gray-700 text-light-text dark:text-white shadow-xs font-black'
+                      ? 'bg-white dark:bg-gray-700 text-light-text dark:text-white shadow-xs font-bold'
                       : 'text-light-text-secondary dark:text-dark-text-secondary opacity-70 hover:opacity-100'
                   }`}
                 >
@@ -451,11 +451,11 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
               <div key={group.dateStr} className="space-y-1.5">
                 {/* Section Date Header */}
                 <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
-                  <p className="text-[12px] font-bold tracking-tight text-gray-500 dark:text-gray-400">
+                  <p className="text-xs font-semibold tracking-tight text-gray-500 dark:text-gray-400">
                     {group.displayTitle}
                   </p>
                   {hasGroupNet && (
-                    <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500">
+                    <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
                       {isNegativeNet ? '-' : '+'}
                       {formatCurrency(Math.abs(group.dayNet), curr)}
                     </p>
@@ -524,24 +524,24 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                                   }`}
                                   title={tx.isTransfer ? 'Internal Transfer' : tx.type === 'income' ? 'Income' : 'Expense'}
                                 />
-                                <p className="text-[14.5px] font-extrabold text-light-text dark:text-white truncate tracking-tight">
+                                <p className="text-sm font-bold text-light-text dark:text-white truncate tracking-tight">
                                   {tx.merchant || tx.description}
                                 </p>
 
                                 {tx.isSplitParent && (
-                                  <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-extrabold uppercase shrink-0 border border-amber-500/20">
+                                  <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-2xs font-semibold uppercase tracking-wider shrink-0 border border-amber-500/20">
                                     Split ({tx.subItemCount})
                                   </span>
                                 )}
 
                                 {tx.isCombinedParent && (
-                                  <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-extrabold uppercase shrink-0 border border-indigo-500/20">
+                                  <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-2xs font-semibold uppercase tracking-wider shrink-0 border border-indigo-500/20">
                                     Combined ({tx.subItemCount})
                                   </span>
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-75 truncate">
+                              <div className="flex items-center gap-1.5 mt-0.5 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-75 truncate">
                                 <span className="truncate max-w-[90px]">{accountName}</span>
                                 <span>•</span>
                                 <div className="inline-flex items-center gap-1 truncate max-w-[110px]">
@@ -557,12 +557,12 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                             {/* Right: Amount & Sub-toggle */}
                             <div className="text-right shrink-0 flex flex-col items-end">
                               <p
-                                className={`text-[14.5px] font-black privacy-blur tracking-tight ${
+                                className={`text-sm font-bold privacy-blur tracking-tight ${
                                   tx.isTransfer
-                                    ? 'text-blue-600 dark:text-blue-400 font-extrabold'
+                                    ? 'text-blue-600 dark:text-blue-400 font-semibold'
                                     : isExpense
-                                    ? 'text-light-text dark:text-white font-extrabold'
-                                    : 'text-emerald-600 dark:text-emerald-400 font-black'
+                                    ? 'text-light-text dark:text-white font-semibold'
+                                    : 'text-emerald-600 dark:text-emerald-400 font-bold'
                                 }`}
                               >
                                 {tx.isTransfer ? '' : isExpense ? '-' : isIncome ? '+' : ''}
@@ -570,14 +570,14 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                               </p>
 
                               {tx.spareChangeAmount ? (
-                                <span className="mt-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5">
-                                  <Icon name="savings" className="text-[10px]" />
+                                <span className="mt-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                                  <Icon name="savings" className="text-xs" />
                                   +{formatCurrency(Math.abs(tx.spareChangeAmount), curr)}
                                 </span>
                               ) : tx.subItemCount ? (
                                 <button
                                   onClick={(e) => toggleExpandParent(tx.id, e)}
-                                  className="mt-0.5 text-[10px] font-bold text-primary-500 inline-flex items-center gap-0.5 hover:underline"
+                                  className="mt-0.5 text-xs font-semibold text-primary-500 inline-flex items-center gap-0.5 hover:underline"
                                 >
                                   <span>{isExpanded ? 'Hide' : 'Show'} items</span>
                                   <Icon
@@ -734,7 +734,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                 <div className="w-5 h-5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center">
                   <Icon name="calendar_today" className="text-xs" />
                 </div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
                   Date Interval
                 </h4>
               </div>
@@ -745,7 +745,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                     setStartDate('');
                     setEndDate('');
                   }}
-                  className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:opacity-60 transition-opacity"
+                  className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:opacity-60 transition-opacity"
                 >
                   Clear Date
                 </button>
@@ -819,7 +819,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
             {/* iOS Calendar Inputs */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase px-1">
+                <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase px-1">
                   From
                 </label>
                 <div className="relative">
@@ -833,7 +833,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase px-1">
+                <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase px-1">
                   To
                 </label>
                 <div className="relative">

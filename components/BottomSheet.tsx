@@ -138,12 +138,12 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 {/* Center Title */}
                 <div className="text-center flex-1 px-2">
                   {title && (
-                    <h3 className="text-[15px] font-bold text-light-text dark:text-white tracking-tight leading-tight">
+                    <h3 className="text-base font-bold text-light-text dark:text-white tracking-tight leading-tight">
                       {title}
                     </h3>
                   )}
                   {subtitle && (
-                    <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                    <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                       {subtitle}
                     </p>
                   )}

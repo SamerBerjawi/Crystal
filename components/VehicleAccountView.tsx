@@ -68,23 +68,23 @@ const LicensePlate: React.FC<{ plate?: string; countryCode?: string }> = ({ plat
   const displayCountry = (countryCode || 'EU').toUpperCase().trim().slice(0, 3);
   
   return (
-    <div className="inline-flex items-center bg-[#FDFDFD] border-[1.5px] border-slate-950 dark:border-slate-800 rounded-[6px] overflow-hidden shadow-md font-mono text-slate-900 select-none h-11 px-0.5 relative shrink-0" style={{ minWidth: '160px' }}>
+    <div className="inline-flex items-center bg-[#FDFDFD] border border-slate-950 dark:border-slate-800 rounded-md overflow-hidden shadow-md font-mono text-slate-900 select-none h-11 px-0.5 relative shrink-0" style={{ minWidth: '160px' }}>
       {/* EU Blue strip on left */}
       <div className="w-6 h-full bg-[#003399] flex flex-col items-center justify-between py-1 text-white shrink-0">
-        <div className="text-[6px] text-yellow-300 leading-none font-bold origin-center select-none scale-90">
+        <div className="text-2xs text-yellow-300 leading-none font-bold origin-center select-none scale-75">
           ★
         </div>
-        <span className="text-[9px] font-black leading-none tracking-tighter">{displayCountry}</span>
+        <span className="text-2xs font-bold leading-none tracking-tighter">{displayCountry}</span>
       </div>
       
       {/* Plate characters */}
-      <div className="px-3 flex-grow flex items-center justify-center font-black tracking-widest text-sm md:text-base  text-[#141414] drop-shadow-[0.5px_0.5px_0px_rgba(255,255,255,0.8)] leading-none">
+      <div className="px-3 flex-grow flex items-center justify-center font-bold tracking-widest text-sm md:text-base text-[#141414] drop-shadow-[0.5px_0.5px_0px_rgba(255,255,255,0.8)] leading-none">
         {plate}
       </div>
       
       {/* Small sticker decals */}
       <div className="flex flex-col gap-0.5 mr-1.5 shrink-0 select-none">
-        <div className="w-3.5 h-3.5 rounded-full bg-amber-400 border border-amber-600/30 flex items-center justify-center text-[6.5px] font-bold text-amber-950 leading-none shadow-sm">
+        <div className="w-3.5 h-3.5 rounded-full bg-amber-400 border border-amber-600/30 flex items-center justify-center text-2xs font-bold text-amber-950 leading-none shadow-sm scale-75">
           26
         </div>
       </div>
@@ -119,16 +119,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                          {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
                 <h4 className="text-2xl font-semibold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[11px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -272,9 +272,9 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className="text-[10px] font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Vehicle asset</span>
-                       <span className="text-[10px] font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                       <span className="text-[10px] font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.licensePlate || 'Fleet Member'}</span>
+                       <span className="text-xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Vehicle asset</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.licensePlate || 'Fleet Member'}</span>
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
@@ -304,7 +304,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                   Add Log
               </button>
               {!isClosed && onCloseAsset && (
-                    <button onClick={() => onCloseAsset()} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
+                    <button onClick={() => onCloseAsset()} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-xs tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
                         <Icon name="event_busy" className="text-sm" />
                         Retire Vehicle
                     </button>
@@ -354,65 +354,65 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                    
                    <div className="relative z-10 text-white flex-grow flex flex-col justify-between">
                          <div className="flex justify-between items-start mb-6">
-                             <div className="flex flex-col gap-3">
-                                 <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold tracking-wider border border-white/10 w-fit">
-                                     {account.ownership || 'Private'} • {account.fuelType}
-                                 </span>
-                                 {brandLogoUrl && (
-                                     <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
-                                         <img 
-                                             src={brandLogoUrl} 
-                                             alt={account.make || 'Car Brand'} 
-                                             className="w-full h-full object-cover"
-                                             onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
-                                             referrerPolicy="no-referrer"
-                                         />
-                                     </div>
-                                 )}
-                             </div>
-                             <div className="text-right">
-                                  <p className="text-[10px] font-semibold tracking-wider text-slate-300 mb-1">Odometer</p>
-                                  <p className="text-3xl font-semibold tabular-nums text-cyan-400">{currentMileage.toLocaleString()} km</p>
-                             </div>
-                        </div>
-                        
-                        <div className="my-2">
-                            <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Estimated Market Value</p>
-                            <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm">
-                                {formatCurrency(account.balance, account.currency)}
-                            </h2>
-                        </div>
+                              <div className="flex flex-col gap-3">
+                                  <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold tracking-wider border border-white/10 w-fit">
+                                      {account.ownership || 'Private'} • {account.fuelType}
+                                  </span>
+                                  {brandLogoUrl && (
+                                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                                          <img 
+                                              src={brandLogoUrl} 
+                                              alt={account.make || 'Car Brand'} 
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
+                                              referrerPolicy="no-referrer"
+                                          />
+                                      </div>
+                                  )}
+                              </div>
+                              <div className="text-right">
+                                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Odometer</p>
+                                   <p className="text-3xl font-semibold tabular-nums text-cyan-400">{currentMileage.toLocaleString()} km</p>
+                              </div>
+                         </div>
+                         
+                         <div className="my-2">
+                             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Estimated Market Value</p>
+                             <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm">
+                                 {formatCurrency(account.balance, account.currency)}
+                             </h2>
+                         </div>
 
-                        {/* Redesigned License Plate attached into the card */}
-                        <div className="my-4 flex flex-col items-start">
-                            <p className="text-[10px] font-semibold tracking-wider text-slate-400 mb-2">Registered Plate</p>
-                            <LicensePlate plate={account.licensePlate} countryCode={account.registrationCountryCode} />
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                                 <motion.div 
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${Math.min(100, (currentMileage / (leaseStats?.totalAllowance || 150000)) * 100)}%` }}
-                                    className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-                                 />
-                            </div>
-                            <p className="text-[10px] font-semibold tracking-wider text-slate-400 text-center">
-                                {isLeased 
-                                    ? `Lease Mileage: ${currentMileage.toLocaleString()} of ${(leaseStats?.totalAllowance || 0).toLocaleString()} km budget (${Math.min(100, (currentMileage / (leaseStats?.totalAllowance || 1)) * 100).toFixed(0)}%)`
-                                    : `Milestone: ${currentMileage.toLocaleString()} of 150,000 km target lifespan (${Math.min(100, (currentMileage / 150000) * 100).toFixed(0)}%)`
-                                }
-                            </p>
-                        </div>
-                   </div>
+                         {/* Redesigned License Plate attached into the card */}
+                         <div className="my-4 flex flex-col items-start">
+                             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Registered Plate</p>
+                             <LicensePlate plate={account.licensePlate} countryCode={account.registrationCountryCode} />
+                         </div>
+                         
+                         <div className="space-y-4">
+                             <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                                  <motion.div 
+                                     initial={{ width: 0 }}
+                                     animate={{ width: `${Math.min(100, (currentMileage / (leaseStats?.totalAllowance || 150000)) * 100)}%` }}
+                                     className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+                                  />
+                             </div>
+                             <p className="text-xs font-medium text-slate-300 text-center">
+                                 {isLeased 
+                                     ? `Lease Mileage: ${currentMileage.toLocaleString()} of ${(leaseStats?.totalAllowance || 0).toLocaleString()} km budget (${Math.min(100, (currentMileage / (leaseStats?.totalAllowance || 1)) * 100).toFixed(0)}%)`
+                                     : `Milestone: ${currentMileage.toLocaleString()} of 150,000 km target lifespan (${Math.min(100, (currentMileage / 150000) * 100).toFixed(0)}%)`
+                                 }
+                             </p>
+                         </div>
+                    </div>
 
-                   <div className="relative z-10 pt-6 mt-6 border-t border-white/5 grid grid-cols-2 gap-8 shrink-0">
-                       <div>
-                           <p className="text-[10px] tracking-wider text-slate-400 font-bold mb-1">Model Year</p>
-                           <p className="font-black text-xl text-white tabular-nums">{account.year || '—'}</p>
-                       </div>
-                       <div>
-                           <p className="text-[10px] tracking-wider text-slate-300 font-bold mb-1">Ownership</p>
+                    <div className="relative z-10 pt-6 mt-6 border-t border-white/5 grid grid-cols-2 gap-8 shrink-0">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Model Year</p>
+                            <p className="font-black text-xl text-white tabular-nums">{account.year || '—'}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Ownership</p>
                            <p className="font-black text-xl text-cyan-400 tabular-nums">{account.ownership}</p>
                        </div>
                    </div>
@@ -513,19 +513,19 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden shadow-sm">
-                     <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
+                     <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Infrastructure Configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                               <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Asset Genesis</span>
-                               <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tight">{account.purchaseDate ? parseLocalDate(account.purchaseDate).toLocaleDateString() : '—'}</span>
+                               <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Asset Genesis</span>
+                               <span className="text-sm font-semibold text-light-text dark:text-dark-text tracking-tight">{account.purchaseDate ? parseLocalDate(account.purchaseDate).toLocaleDateString() : '—'}</span>
                           </div>
                           <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                               <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Settlement Engine</span>
-                               <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tight">{account.currency}</span>
+                               <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Settlement Engine</span>
+                               <span className="text-sm font-semibold text-light-text dark:text-dark-text tracking-tight">{account.currency}</span>
                           </div>
                           <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                               <span className="text-xs font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Logical Serial</span>
-                               <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tight font-mono opacity-80 break-all">{account.id.slice(0, 8)}</span>
+                               <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Logical Serial</span>
+                               <span className="text-sm font-semibold text-light-text dark:text-dark-text tracking-tight font-mono opacity-80 break-all">{account.id.slice(0, 8)}</span>
                           </div>
                      </div>
                 </div>
@@ -545,7 +545,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                 return (
                                     <div key={log.id} className="p-5 rounded-2xl bg-black/5 dark:bg-white/10 border border-transparent hover:border-black/10 dark:hover:border-white/20 transition-all group/item">
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="text-xs font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary">
+                                            <span className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                                                 {parseLocalDate(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </span>
                                             <div className="flex gap-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
@@ -558,9 +558,9 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-end">
-                                            <p className="text-2xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{log.reading.toLocaleString()} <span className="text-xs opacity-60 ml-1">km</span></p>
+                                            <p className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{log.reading.toLocaleString()} <span className="text-xs opacity-60 ml-1">km</span></p>
                                             {diff > 0 && (
-                                                <span className="text-[11px] font-black text-emerald-500 tabular-nums">+{diff.toLocaleString()} km</span>
+                                                <span className="text-xs font-semibold text-emerald-500 tabular-nums">+{diff.toLocaleString()} km</span>
                                             )}
                                         </div>
                                     </div>
@@ -569,7 +569,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-8">
                                  <Icon name="auto_stories" className="text-4xl mb-2 text-light-text-secondary/20 font-light" />
-                                 <p className="text-[10px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/60 ">No Logs recorded</p>
+                                 <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/60 ">No Logs recorded</p>
                             </div>
                         )}
                     </div>
@@ -585,14 +585,14 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Lease Monitoring</h3>
                                 <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">{account.leaseProvider || 'Agreement Terms'}</p>
                             </div>
-                            <div className={`px-4 py-2 rounded-xl border font-black text-[10px] tracking-widest ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                            <div className={`px-4 py-2 rounded-xl border font-semibold text-xs tracking-wider ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
                                 {leaseStats.mileageStatus}
                             </div>
                          </div>
                          
                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
                             <div className="space-y-4">
-                                <div className="flex justify-between text-[10px] font-bold tracking-wider text-slate-500">
+                                <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
                                     <span>Contract Evolution</span>
                                     <span>{leaseStats.progress.toFixed(0)}%</span>
                                 </div>
@@ -603,19 +603,19 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                         className="h-full bg-amber-500"
                                      />
                                 </div>
-                                <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 text-center">{leaseStats.daysRemaining} days left</p>
+                                <p className="text-xs font-medium text-light-text-secondary/40 dark:text-dark-text-secondary/50 text-center">{leaseStats.daysRemaining} days left</p>
                             </div>
                             
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 font-bold">Allowance Variance</p>
-                                <p className={`text-2xl font-black tabular-nums ${leaseStats.mileageDiff > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Allowance Variance</p>
+                                <p className={`text-2xl font-bold tabular-nums ${leaseStats.mileageDiff > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                                     {leaseStats.mileageDiff > 0 ? '−' : '+'}{Math.abs(Math.round(leaseStats.mileageDiff)).toLocaleString()} km
                                 </p>
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 font-bold">Projected Final</p>
-                                <p className="text-2xl font-black text-light-text dark:text-dark-text tabular-nums">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Projected Final</p>
+                                <p className="text-2xl font-bold text-light-text dark:text-dark-text tabular-nums">
                                     {Math.round(leaseStats.projectedMileage).toLocaleString()} km
                                 </p>
                             </div>
@@ -624,15 +624,15 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                 )}
                 
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group shadow-sm">
-                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Technical Configuration</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Technical Configuration</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                         <div className="space-y-1">
-                             <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 font-bold">VIN / Serial</p>
-                             <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight font-mono truncate">{account.vin || '—'}</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">VIN / Serial</p>
+                             <p className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight font-mono truncate">{account.vin || '—'}</p>
                         </div>
                         <div className="space-y-1">
-                             <p className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary  font-bold">Make / Model</p>
-                             <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">{account.make} {account.model}</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Make / Model</p>
+                             <p className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">{account.make} {account.model}</p>
                         </div>
                     </div>
                     <div className="h-64 mt-12 bg-black/[0.02] dark:bg-white/[0.01] rounded-3xl p-6">

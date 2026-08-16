@@ -24,7 +24,7 @@ const CurrentBalanceCard: React.FC<CurrentBalanceCardProps> = ({ balance, curren
         <p className="text-2xl font-extrabold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(balance, currency)}</p>
       </div>
       <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5">
-        <p className="text-[10px] font-bold  tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
             Live Estimate
         </p>

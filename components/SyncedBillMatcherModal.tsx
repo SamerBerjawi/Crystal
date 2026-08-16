@@ -66,7 +66,7 @@ const SuggestionItemRow: React.FC<{
             {/* Synced Bank Transaction */}
             <div className="space-y-1 bg-white/70 dark:bg-white/5 p-3 rounded-xl border border-black/5 dark:border-white/5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
                   Synced Bank Transaction
                 </span>
                 <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary truncate">
@@ -94,7 +94,7 @@ const SuggestionItemRow: React.FC<{
             {/* Planned Scheduled Item */}
             <div className="space-y-1 bg-white/70 dark:bg-white/5 p-3 rounded-xl border border-black/5 dark:border-white/5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
+                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
                   {suggestion.itemType === 'recurring' ? 'Planned Recurring' : 'Planned One-Time Bill'}
                 </span>
                 <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">

@@ -372,12 +372,12 @@ function AnimatedNode({
   });
 
   const nameClass = labelLayouts.isInside
-    ? "fill-white font-bold text-[11px] drop-shadow-sm"
-    : "fill-gray-900 dark:fill-gray-100 font-bold text-[12px]";
+    ? "fill-white font-bold text-xs drop-shadow-sm"
+    : "fill-gray-900 dark:fill-gray-100 font-bold text-xs";
 
   const valueClass = labelLayouts.isInside
-    ? "fill-white/90 font-medium text-[10px]"
-    : "fill-gray-600 dark:fill-gray-400 font-semibold text-[11px]";
+    ? "fill-white/90 font-medium text-2xs"
+    : "fill-gray-600 dark:fill-gray-400 font-semibold text-xs";
 
   return (
     <motion.g

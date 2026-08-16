@@ -89,8 +89,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <Icon name={item.icon} className={`text-[22px] transition-all duration-300 relative z-10 ${isActive ? 'scale-110 ' : 'scale-100'}`} />
-                <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
+                <Icon name={item.icon} className={`text-xl transition-all duration-300 relative z-10 ${isActive ? 'scale-110 ' : 'scale-100'}`} />
+                <span className="text-xs font-medium tracking-tight relative z-10 mt-0.5">
                   {item.label}
                 </span>
               </button>
@@ -113,8 +113,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-[22px] transition-all duration-300 relative z-10 ${isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100'}`} />
-            <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
+            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-xl transition-all duration-300 relative z-10 ${isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100'}`} />
+            <span className="text-xs font-medium tracking-tight relative z-10 mt-0.5">
               {isMoreOpen ? 'Close' : 'More'}
             </span>
           </button>
@@ -151,8 +151,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               {/* Sheet Header */}
               <div className="flex items-center justify-between px-6 py-2 border-b border-black/5 dark:border-white/5">
                 <div>
-                  <h3 className="text-base font-bold text-light-text dark:text-dark-text">All Pages</h3>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Navigate anywhere in Crystal</p>
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">All Pages</h3>
+                  <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Navigate anywhere in Crystal</p>
                 </div>
                 <button
                   onClick={() => setIsMoreOpen(false)}
@@ -166,7 +166,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               <div className="overflow-y-auto px-5 py-4 space-y-6 scroll-touch">
                 {NAV_CATEGORIES.map((category) => (
                   <div key={category.title} className="space-y-2">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50 px-1">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/60 px-1">
                       {category.title}
                     </h4>
                     <div className="grid grid-cols-2 gap-2">

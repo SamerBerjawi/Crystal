@@ -854,7 +854,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <div onClick={() => setActiveSegment('all')} className="cursor-pointer group/nw">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Icon name="candlestick_chart" className="text-primary-500 text-sm" />
-                                    <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Assets</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Assets</span>
                                 </div>
                                 <div className="flex items-baseline gap-2">
                                     <h2 className="text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
@@ -889,7 +889,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className={`text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                                <span className={`text-xs font-semibold ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
                                                 <span className={`text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
                                                     {formatCurrency(val, 'EUR')}
                                                 </span>
@@ -911,7 +911,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             <Icon name={detail.icon} className="text-base text-primary-500/70" />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">{detail.label}</span>
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70">{detail.label}</span>
                                             <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
                                         </div>
                                      </div>
@@ -920,7 +920,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         </AnimatePresence>
 
                         <div className="flex items-center gap-3 flex-wrap">
-                             <label className="flex items-center gap-2 text-[10px] bg-light-fill dark:bg-dark-fill px-4 h-9 rounded-xl font-bold  tracking-widest text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                             <label className="flex items-center gap-2 text-xs bg-light-fill dark:bg-dark-fill px-4 h-9 rounded-xl font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                 <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                                 <span>Inactive</span>
                             </label>
@@ -954,7 +954,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-white dark:bg-dark-card">
-                                        <tr className="text-[10px] font-bold text-gray-400  tracking-[0.2em] border-b border-black/5 dark:border-white/5">
+                                        <tr className="text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-black/5 dark:border-white/5">
                                             <th className="py-4 pl-4 sm:pl-6">Instrument</th>
                                             <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
                                             <th className="py-4 text-right hidden lg:table-cell">Qty</th>
@@ -974,7 +974,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         ) : (
                                             holdingsByType.flatMap(([typeName, holdings]) => ([
                                                 <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
-                                                    <td colSpan={7} className="py-2 pl-6 text-[10px] font-black  tracking-widest text-primary-600 dark:text-primary-400">
+                                                    <td colSpan={7} className="py-2 pl-6 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
                                                         {typeName}
                                                     </td>
                                                 </tr>,
@@ -1025,7 +1025,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
                                                                             <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{acc.name}</p>
-                                                                            <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                            <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
                                                                         </div>
                                                                     </div>
                                                                 </td>
@@ -1042,7 +1042,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(acc.balance, acc.currency)}</span>
                                                                 </td>
                                                                 <td className="py-4 text-right">
-                                                                    <div className={`text-[10px] font-bold ${badgeColorClass} px-2 py-0.5 rounded-full inline-block`}>
+                                                                    <div className={`text-xs font-semibold ${badgeColorClass} px-2 py-0.5 rounded-full inline-block`}>
                                                                         {badgeLabel}
                                                                     </div>
                                                                 </td>
@@ -1094,7 +1094,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     </div>
                                                                     <div className="min-w-0 flex-1">
                                                                         <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
-                                                                        <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                        <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -1114,7 +1114,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                                     {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
                                                                 </div>
-                                                                <div className="text-[10px] text-gray-400 privacy-blur hidden sm:block">
+                                                                <div className="text-xs text-gray-400 privacy-blur hidden sm:block">
                                                                     {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                                                                 </div>
                                                             </td>
@@ -1168,12 +1168,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${item.type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : item.type === 'SELL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${item.type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : item.type === 'SELL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'}`}>
                                             {item.type.substring(0, 1)}
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">{item.symbol}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold  tracking-widest">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
+                                            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
                                         </div>
                                     </div>
                                     <div className="text-right flex items-center gap-6">
@@ -1204,7 +1204,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
-                            <button className="text-[10px] font-bold text-primary-500  tracking-widest hover:underline">Analysis</button>
+                            <button className="text-xs font-semibold text-primary-500 uppercase tracking-wider hover:underline">Analysis</button>
                         </div>
                         <div className="h-48 relative mb-6 flex items-center justify-center">
                             <BklitPieChart
@@ -1224,7 +1224,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <PieCenter defaultLabel="Total">
                                     {({ value, label, isHovered }) => (
                                         <div className="flex flex-col items-center justify-center text-center">
-                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold tracking-widest uppercase">
+                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wider uppercase">
                                                 {label}
                                             </span>
                                             <span className="text-base font-bold text-light-text dark:text-dark-text privacy-blur">
@@ -1261,10 +1261,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 .map((h, i) => (
                                     <div key={h.symbol} className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black text-light-text-secondary/50 dark:text-dark-text-secondary/50 w-4">{i + 1}</span>
+                                            <span className="text-xs font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50 w-4">{i + 1}</span>
                                             <div>
                                                 <p className="text-xs font-bold text-light-text dark:text-dark-text">{h.symbol}</p>
-                                                <p className="text-[10px] text-gray-400 font-medium">{h.name}</p>
+                                                <p className="text-xs text-gray-400 font-medium">{h.name}</p>
                                             </div>
                                         </div>
                                         <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -1282,18 +1282,18 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <Icon name="workspace_premium" className="text-primary-500 text-lg" />
                                 <span>Realized Return</span>
                             </h3>
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">
+                            <span className="text-xs font-semibold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded">
                                 {realizedPerformance.winsCount}W - {realizedPerformance.lossesCount}L
                             </span>
                         </div>
 
                         <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.03] mb-6">
-                            <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70 ">Total Realized Returns</span>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70">Total Realized Returns</span>
                             <div className="flex items-baseline gap-2 mt-1">
                                 <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(realizedPerformance.totalRealizedGain, 'EUR')}
                                 </h4>
-                                <span className="text-[10px] text-gray-400 font-bold ">
+                                <span className="text-xs text-gray-400 font-medium">
                                     {realizedPerformance.winsCount + realizedPerformance.lossesCount} closed trades
                                 </span>
                             </div>
@@ -1312,19 +1312,19 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             <div>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-bold text-xs text-light-text dark:text-dark-text">{sale.symbol}</span>
-                                                    <span className="text-[9px] text-gray-400 font-medium font-mono">({sale.quantity.toLocaleString()} units)</span>
+                                                    <span className="text-xs text-gray-400 font-medium font-mono">({sale.quantity.toLocaleString()} units)</span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                                    <span className="text-[9px] text-gray-400">Buy: {formatCurrency(sale.buyPrice, 'EUR')}</span>
-                                                    <span className="text-[9px] text-gray-400">•</span>
-                                                    <span className="text-[9px] text-gray-400">Sell: {formatCurrency(sale.sellPrice, 'EUR')}</span>
+                                                    <span className="text-xs text-gray-400">Buy: {formatCurrency(sale.buyPrice, 'EUR')}</span>
+                                                    <span className="text-xs text-gray-400">•</span>
+                                                    <span className="text-xs text-gray-400">Sell: {formatCurrency(sale.sellPrice, 'EUR')}</span>
                                                 </div>
                                             </div>
                                             <div className="text-right">
                                                 <p className={`text-xs font-black ${isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                     {isWin ? '+' : ''}{formatCurrency(sale.gain, 'EUR')}
                                                 </p>
-                                                <p className={`text-[9px] font-bold ${isWin ? 'text-green-500/80' : 'text-red-500/80'}`}>
+                                                <p className={`text-xs font-semibold ${isWin ? 'text-green-500/80' : 'text-red-500/80'}`}>
                                                     {isWin ? '▲' : '▼'} {Math.abs(sale.gainPercent).toFixed(1)}%
                                                 </p>
                                             </div>

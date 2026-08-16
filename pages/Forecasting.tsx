@@ -61,7 +61,7 @@ const CACHE_KEYS = {
 const MetricCard: React.FC<{ title: string; value: string; subValue?: string; icon: string; colorClass: string; trend?: 'up' | 'down' | 'neutral' }> = ({ title, value, subValue, icon, colorClass, trend }) => (
     <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full relative overflow-hidden group">
         <div className="flex justify-between items-start mb-3 relative z-10">
-            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">{title}</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{title}</span>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClass} bg-opacity-10 dark:bg-opacity-20 group-hover:scale-110 transition-transform duration-300`}>
                 <Icon name={icon} className="text-xl" />
             </div>
@@ -993,36 +993,36 @@ const Forecasting: React.FC = () => {
                                         onChange={(e) => setAssumptions(prev => ({ ...prev, savingsRateAdjustment: parseInt(e.target.value) }))}
                                         className="w-full accent-primary-500"
                                     />
-                                    <p className="text-[10px] text-light-text-secondary font-bold">Increase all recurring savings by this percentage.</p>
-                                </div>
+                                    <p className="text-xs text-light-text-secondary font-medium">Increase all recurring savings by this percentage.</p>
+                                 </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-sm font-bold text-light-text dark:text-dark-text tracking-wider">Market Return</label>
-                                        <span className="text-sm font-bold text-emerald-600">{assumptions.marketReturn}%</span>
-                                    </div>
-                                    <input 
-                                        type="range" min="-10" max="15" step="1" 
-                                        value={assumptions.marketReturn} 
-                                        onChange={(e) => setAssumptions(prev => ({ ...prev, marketReturn: parseInt(e.target.value) }))}
-                                        className="w-full accent-emerald-500"
-                                    />
-                                    <p className="text-[10px] text-light-text-secondary font-bold">Estimated annual return on investment accounts.</p>
-                                </div>
+                                 <div className="space-y-4">
+                                     <div className="flex justify-between items-center">
+                                         <label className="text-sm font-bold text-light-text dark:text-dark-text tracking-wider">Market Return</label>
+                                         <span className="text-sm font-bold text-emerald-600">{assumptions.marketReturn}%</span>
+                                     </div>
+                                     <input 
+                                         type="range" min="-10" max="15" step="1" 
+                                         value={assumptions.marketReturn} 
+                                         onChange={(e) => setAssumptions(prev => ({ ...prev, marketReturn: parseInt(e.target.value) }))}
+                                         className="w-full accent-emerald-500"
+                                     />
+                                     <p className="text-xs text-light-text-secondary font-medium">Estimated annual return on investment accounts.</p>
+                                 </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-sm font-bold text-light-text dark:text-dark-text tracking-wider">Inflation</label>
-                                        <span className="text-sm font-bold text-rose-600">{assumptions.inflationRate}%</span>
-                                    </div>
-                                    <input 
-                                        type="range" min="0" max="10" step="0.5" 
-                                        value={assumptions.inflationRate} 
-                                        onChange={(e) => setAssumptions(prev => ({ ...prev, inflationRate: parseFloat(e.target.value) }))}
-                                        className="w-full accent-rose-500"
-                                    />
-                                    <p className="text-[10px] text-light-text-secondary font-bold">Annual inflation impact on expenses.</p>
-                                </div>
+                                 <div className="space-y-4">
+                                     <div className="flex justify-between items-center">
+                                         <label className="text-sm font-bold text-light-text dark:text-dark-text tracking-wider">Inflation</label>
+                                         <span className="text-sm font-bold text-rose-600">{assumptions.inflationRate}%</span>
+                                     </div>
+                                     <input 
+                                         type="range" min="0" max="10" step="0.5" 
+                                         value={assumptions.inflationRate} 
+                                         onChange={(e) => setAssumptions(prev => ({ ...prev, inflationRate: parseFloat(e.target.value) }))}
+                                         className="w-full accent-rose-500"
+                                     />
+                                     <p className="text-xs text-light-text-secondary font-medium">Annual inflation impact on expenses.</p>
+                                 </div>
                             </div>
                         </Card>
                     </motion.div>
@@ -1043,19 +1043,19 @@ const Forecasting: React.FC = () => {
                                     <Icon name="line_chart_up" className="text-lg" />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <p className="text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Wealth Projection</p>
-                                    <p className="text-[10px] font-bold text-light-text-secondary/60">{forecastDuration} horizon</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Wealth Projection</p>
+                                    <p className="text-xs font-medium text-light-text-secondary/60">{forecastDuration} horizon</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 pt-1">
-                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                                     <Icon name="trending_up" className="text-xs" />
                                     {((endBalance / startBalance - 1) * 100).toFixed(1)}% Growth
                                 </div>
                                 <div className="h-3 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
                                 <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary privacy-blur">
                                     {formatCurrency(endBalance - startBalance, 'EUR', { showPlusSign: true })} 
-                                    <span className="text-[9px] ml-1 opacity-40">Delta</span>
+                                    <span className="text-xs ml-1 opacity-50">Delta</span>
                                 </p>
                             </div>
                         </div>
@@ -1065,7 +1065,7 @@ const Forecasting: React.FC = () => {
                                 <h2 className="text-4xl font-bold tracking-tighter privacy-blur leading-none">
                                     {formatCurrency(endBalance, 'EUR')}
                                 </h2>
-                                <p className="text-[10px] font-bold tracking-widest text-light-text-secondary dark:text-dark-text-secondary ml-1 opacity-60">Estimated Liquid Value</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 opacity-60">Estimated Liquid Value</p>
                             </div>
                         </div>
                     </div>
@@ -1078,7 +1078,7 @@ const Forecasting: React.FC = () => {
                 <Card className="relative overflow-hidden group flex flex-col justify-between !p-4 sm:!p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[160px] sm:min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60">Portfolio Shift</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Portfolio Shift</p>
                             <h2 className={`text-4xl font-bold tracking-tight privacy-blur ${netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, 'EUR')}
                             </h2>
@@ -1091,18 +1091,18 @@ const Forecasting: React.FC = () => {
                         <div className="flex items-center gap-2">
                              <div className="flex -space-x-1.5">
                                 {selectedAccounts.slice(0, 3).map((acc, i) => (
-                                    <div key={acc.id} className="w-5 h-5 rounded-full border border-white dark:border-dark-card bg-gray-100 dark:bg-white/10 flex items-center justify-center text-[7px] font-bold" style={{ zIndex: 10 - i }}>
+                                    <div key={acc.id} className="w-5 h-5 rounded-full border border-white dark:border-dark-card bg-gray-100 dark:bg-white/10 flex items-center justify-center text-xs font-bold" style={{ zIndex: 10 - i }}>
                                         {acc.name.charAt(0)}
                                     </div>
                                 ))}
                              </div>
-                             <span className="text-[9px] font-bold tracking-wider text-light-text-secondary opacity-60">
+                             <span className="text-xs font-medium text-light-text-secondary opacity-70">
                                 {selectedAccounts.length} Account{selectedAccounts.length !== 1 ? 's' : ''}
                              </span>
                         </div>
                         <div className="pt-2.5 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
-                            <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-40">Term: {forecastDuration}</p>
-                            <span className="text-[9px] font-bold text-emerald-500 tracking-widest">Active</span>
+                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">Term: {forecastDuration}</p>
+                            <span className="text-xs font-semibold text-emerald-500">Active</span>
                         </div>
                     </div>
                 </Card>
@@ -1111,7 +1111,7 @@ const Forecasting: React.FC = () => {
                 <Card className="relative overflow-hidden group flex flex-col justify-between !p-4 sm:!p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[160px] sm:min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60">Global Performance</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Global Performance</p>
                             <h2 className="text-3xl font-bold tracking-tight text-primary-500">
                                 {goalProgress.toFixed(0)}%
                             </h2>
@@ -1124,7 +1124,7 @@ const Forecasting: React.FC = () => {
                     <div className="space-y-2 mt-4">
                         {/* Savings Progress */}
                         <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[8px] font-bold tracking-wider">
+                            <div className="flex justify-between items-center text-xs font-medium">
                                 <span className="text-primary-500">Savings</span>
                                 <span className="text-light-text dark:text-dark-text">{savingsProgress.toFixed(0)}%</span>
                             </div>
@@ -1135,7 +1135,7 @@ const Forecasting: React.FC = () => {
 
                         {/* Income Progress */}
                         <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[8px] font-bold tracking-wider">
+                            <div className="flex justify-between items-center text-xs font-medium">
                                 <span className="text-emerald-500">Income</span>
                                 <span className="text-light-text dark:text-dark-text">{incomeProgress.toFixed(0)}%</span>
                             </div>
@@ -1146,7 +1146,7 @@ const Forecasting: React.FC = () => {
 
                         {/* Expense Progress */}
                         <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[8px] font-bold tracking-wider">
+                            <div className="flex justify-between items-center text-xs font-medium">
                                 <span className="text-rose-500">Expenses</span>
                                 <span className="text-light-text dark:text-dark-text">{expenseProgress.toFixed(0)}%</span>
                             </div>
@@ -1165,7 +1165,7 @@ const Forecasting: React.FC = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div>
                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Cash Flow Forecast</h3>
-                        <p className="text-[10px] font-bold tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                        <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                             {formatCurrency(startBalance, 'EUR')} → {formatCurrency(endBalance, 'EUR')}
                         </p>
                     </div>
@@ -1187,16 +1187,14 @@ const Forecasting: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="h-6 w-px bg-black/10 dark:bg-white/10 hidden sm:block"></div>
-
-                        <label className="flex items-center gap-2 px-3 py-1.5 bg-light-fill dark:bg-dark-fill rounded-xl cursor-pointer select-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <div className="h-6 w-px bg-black/10 dark:bg-white/10 hidden sm:block"></div>                        <label className="flex items-center gap-2 px-3 py-1.5 bg-light-fill dark:bg-dark-fill rounded-xl cursor-pointer select-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                             <input 
                                 type="checkbox" 
                                 checked={showGoalLines} 
                                 onChange={(e) => setShowGoalLines(e.target.checked)} 
                                 className={CHECKBOX_STYLE} 
                             />
-                            <span className="text-[12px] font-bold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Goals</span>
+                            <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Goals</span>
                         </label>
                     </div>
                 </div>
@@ -1222,10 +1220,10 @@ const Forecasting: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <label className="flex items-center gap-2 text-xs cursor-pointer select-none hover:text-primary-500 transition-colors bg-white dark:bg-white/5 px-4 py-2 rounded-full border border-black/5 dark:border-white/10">
                             <input type="checkbox" checked={filterGoalsByAccount} onChange={(e) => setFilterGoalsByAccount(e.target.checked)} className={CHECKBOX_STYLE} />
-                            <span className="text-light-text-secondary dark:text-dark-text-secondary font-bold tracking-widest">Filter by Account</span>
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary font-semibold uppercase tracking-wider">Filter by Account</span>
                         </label>
                         <div className="h-4 w-px bg-black/10 dark:bg-white/10"></div>
-                        <button onClick={handleToggleAllDisplayed} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline transition-colors tracking-widest">
+                        <button onClick={handleToggleAllDisplayed} className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline transition-colors uppercase tracking-wider">
                             {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
                         </button>
                         <div className="flex items-center gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl h-10">
@@ -1234,14 +1232,14 @@ const Forecasting: React.FC = () => {
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <Icon name="grid_view" className="text-xl" />
-                                <span className="text-xs font-bold  tracking-wider">Grid</span>
+                                <span className="text-xs font-semibold tracking-wide">Grid</span>
                             </button>
                             <button 
                                 onClick={() => setViewMode('table')}
                                 className={`px-3 h-8 rounded-lg flex items-center gap-2 transition-all select-none ${viewMode === 'table' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
                             >
                                 <Icon name="table_rows" className="text-xl" />
-                                <span className="text-xs font-bold  tracking-wider">Table</span>
+                                <span className="text-xs font-semibold tracking-wide">Table</span>
                             </button>
                         </div>
                     </div>
@@ -1253,17 +1251,17 @@ const Forecasting: React.FC = () => {
                         {/* Monthly Target Schedule Summary */}
                         <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
                             <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10 flex justify-between items-center">
-                                <h2 className="text-xs font-bold tracking-tight text-primary-500">Monthly Target Schedule</h2>
+                                <h2 className="text-xs font-semibold uppercase tracking-wider text-primary-500">Monthly Target Schedule</h2>
                                 <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
                                     <button 
                                         onClick={() => setScheduleMode('account')}
-                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+                                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
                                     >
                                         Account
                                     </button>
                                     <button 
                                         onClick={() => setScheduleMode('date')}
-                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+                                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
                                     >
                                         Date
                                     </button>
@@ -1283,7 +1281,7 @@ const Forecasting: React.FC = () => {
                                                 <div key={account.id} className="space-y-3 group/account text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className={`w-2 h-2 rounded-full ${accColor}`} />
-                                                        <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text  group-hover/account:text-primary-500 transition-colors">{account.name}</p>
+                                                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text group-hover/account:text-primary-500 transition-colors">{account.name}</p>
                                                     </div>
                                                     
                                                     <div className="space-y-1">
@@ -1292,24 +1290,24 @@ const Forecasting: React.FC = () => {
                                                             const monthName = date.toLocaleDateString('default', { month: 'short', year: 'numeric' });
                                                             return (
                                                                 <div key={monthKey} className="flex justify-between items-center py-2.5 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                                                                    <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors ">{monthName}</span>
+                                                                    <span className="text-xs font-semibold text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors">{monthName}</span>
                                                                     <div className="flex items-center gap-4">
                                                                         {breakdown.income > 0 && (
                                                                             <div className="flex flex-col items-end">
-                                                                                <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5  tracking-tighter">Income</span>
-                                                                                <span className="text-[13px] font-black text-emerald-500 tracking-tighter tabular-nums">{formatCurrency(breakdown.income, account.currency)}</span>
+                                                                                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500/70 leading-none mb-0.5">Income</span>
+                                                                                <span className="text-xs font-mono font-bold text-emerald-500 tracking-tight tabular-nums">{formatCurrency(breakdown.income, account.currency)}</span>
                                                                             </div>
                                                                         )}
                                                                         {breakdown.savings > 0 && (
                                                                             <div className="flex flex-col items-end">
-                                                                                <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5  tracking-tighter">Savings</span>
-                                                                                <span className="text-[13px] font-black text-primary-500 tracking-tighter tabular-nums">{formatCurrency(breakdown.savings, account.currency)}</span>
+                                                                                <span className="text-xs font-semibold uppercase tracking-wider text-primary-500/70 leading-none mb-0.5">Savings</span>
+                                                                                <span className="text-xs font-mono font-bold text-primary-500 tracking-tight tabular-nums">{formatCurrency(breakdown.savings, account.currency)}</span>
                                                                             </div>
                                                                         )}
                                                                         {breakdown.expense > 0 && (
                                                                             <div className="flex flex-col items-end">
-                                                                                <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5  tracking-tighter">Expense</span>
-                                                                                <span className="text-[13px] font-black text-rose-500 tracking-tighter tabular-nums">{formatCurrency(breakdown.expense, account.currency)}</span>
+                                                                                <span className="text-xs font-semibold uppercase tracking-wider text-rose-500/70 leading-none mb-0.5">Expense</span>
+                                                                                <span className="text-xs font-mono font-bold text-rose-500 tracking-tight tabular-nums">{formatCurrency(breakdown.expense, account.currency)}</span>
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -1325,30 +1323,30 @@ const Forecasting: React.FC = () => {
                                             <div key={month.monthKey} className="space-y-3 group/date text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-30" />
-                                                    <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text  group-hover/date:text-primary-500 transition-colors">{month.monthName}</p>
+                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text group-hover/date:text-primary-500 transition-colors">{month.monthName}</p>
                                                 </div>
                                                 
                                                 <div className="space-y-1">
                                                     {month.accounts.map((account) => (
                                                         <div key={account.id} className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                                                            <span className="text-[11px] font-black tracking-widest text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors ">{account.name}</span>
+                                                            <span className="text-xs font-semibold text-light-text-secondary dark:text-neutral-300 group-hover/item:text-light-text dark:group-hover/item:text-dark-text transition-colors">{account.name}</span>
                                                             <div className="flex items-center gap-4">
                                                                 {account.income > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[8px] font-black text-emerald-500/60 leading-none mb-0.5  tracking-tighter">Income</span>
-                                                                        <span className="text-[13px] font-black text-emerald-500 tracking-tighter tabular-nums">{formatCurrency(account.income, account.currency)}</span>
+                                                                        <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500/70 leading-none mb-0.5">Income</span>
+                                                                        <span className="text-xs font-mono font-bold text-emerald-500 tracking-tight tabular-nums">{formatCurrency(account.income, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.savings > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[8px] font-black text-primary-500/60 leading-none mb-0.5  tracking-tighter">Savings</span>
-                                                                        <span className="text-[13px] font-black text-primary-500 tracking-tighter tabular-nums">{formatCurrency(account.savings, account.currency)}</span>
+                                                                        <span className="text-xs font-semibold uppercase tracking-wider text-primary-500/70 leading-none mb-0.5">Savings</span>
+                                                                        <span className="text-xs font-mono font-bold text-primary-500 tracking-tight tabular-nums">{formatCurrency(account.savings, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.expense > 0 && (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-[8px] font-black text-rose-500/60 leading-none mb-0.5  tracking-tighter">Expense</span>
-                                                                        <span className="text-[13px] font-black text-rose-500 tracking-tighter tabular-nums">{formatCurrency(account.expense, account.currency)}</span>
+                                                                        <span className="text-xs font-semibold uppercase tracking-wider text-rose-500/70 leading-none mb-0.5">Expense</span>
+                                                                        <span className="text-xs font-mono font-bold text-rose-500 tracking-tight tabular-nums">{formatCurrency(account.expense, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1360,7 +1358,7 @@ const Forecasting: React.FC = () => {
                                     )}
                                     {monthlyPaymentBreakdown.length === 0 && (
                                         <div className="py-6 text-center">
-                                            <p className="text-[10px] opacity-40 text-light-text-secondary">No upcoming goal targets found for the selected accounts.</p>
+                                            <p className="text-xs opacity-60 text-light-text-secondary">No upcoming goal targets found for the selected accounts.</p>
                                         </div>
                                     )}
                                 </div>
@@ -1376,14 +1374,14 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Total Income Target</span>
-                                            <p className="text-3xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Total Income Target</span>
+                                            <p className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                 {formatCurrency(globalIncomeGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-sm font-black tabular-nums">{globalIncomeGoalTarget > 0 ? ((globalIncomeGoalCurrent / globalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span>
-                                            <p className="text-[11px] font-black opacity-50 tracking-widest ">of {formatCurrency(globalIncomeGoalTarget, 'EUR')}</p>
+                                            <span className="text-sm font-bold tabular-nums">{globalIncomeGoalTarget > 0 ? ((globalIncomeGoalCurrent / globalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span>
+                                            <p className="text-xs font-medium opacity-70">of {formatCurrency(globalIncomeGoalTarget, 'EUR')}</p>
                                         </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
@@ -1398,14 +1396,14 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Total Savings Target</span>
-                                            <p className="text-3xl font-black tracking-tighter text-primary-500 tabular-nums">
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Total Savings Target</span>
+                                            <p className="text-3xl font-bold tracking-tight text-primary-500 tabular-nums">
                                                 {formatCurrency(globalSavingsGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-sm font-black tabular-nums">{globalSavingsGoalTarget > 0 ? ((globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span>
-                                            <p className="text-[11px] font-black opacity-50 tracking-widest ">of {formatCurrency(globalSavingsGoalTarget, 'EUR')}</p>
+                                            <span className="text-sm font-bold tabular-nums">{globalSavingsGoalTarget > 0 ? ((globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span>
+                                            <p className="text-xs font-medium opacity-70">of {formatCurrency(globalSavingsGoalTarget, 'EUR')}</p>
                                         </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
@@ -1420,14 +1418,14 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Total Expense Target</span>
-                                            <p className="text-3xl font-black tracking-tighter text-rose-600 dark:text-rose-400 tabular-nums">
+                                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Total Expense Target</span>
+                                            <p className="text-3xl font-bold tracking-tight text-rose-600 dark:text-rose-400 tabular-nums">
                                                 {formatCurrency(globalExpenseGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-sm font-black tabular-nums">{globalExpenseGoalTarget > 0 ? ((globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100).toFixed(0) : 0}%</span>
-                                            <p className="text-[11px] font-black opacity-50 tracking-widest ">of {formatCurrency(globalExpenseGoalTarget, 'EUR')}</p>
+                                            <span className="text-sm font-bold tabular-nums">{globalExpenseGoalTarget > 0 ? ((globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100).toFixed(0) : 0}%</span>
+                                            <p className="text-xs font-medium opacity-70">of {formatCurrency(globalExpenseGoalTarget, 'EUR')}</p>
                                         </div>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
@@ -1441,8 +1439,8 @@ const Forecasting: React.FC = () => {
                                 {/* Account Specific Section */}
                                 <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[12px] font-black tracking-widest text-light-text dark:text-dark-text ">Account Breakdown</p>
-                                        <p className="text-[11px] font-black text-primary-500 tracking-widest ">Global</p>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Account Breakdown</p>
+                                        <p className="text-xs font-semibold text-primary-500">Global</p>
                                     </div>
                                     <div className="space-y-6">
                                         {globalAccountBreakdown.map((accGroup, index) => {
@@ -1463,12 +1461,12 @@ const Forecasting: React.FC = () => {
                                                 <div key={accGroup.id} className="space-y-3 group/acc border-l-2 border-black/5 dark:border-white/5 pl-3">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`w-2.5 h-2.5 rounded-full ${accColor}`} />
-                                                        <span className="text-[12px] font-black text-light-text dark:text-dark-text tracking-widest truncate ">{accGroup.name}</span>
+                                                        <span className="text-xs font-semibold text-light-text dark:text-dark-text truncate">{accGroup.name}</span>
                                                     </div>
 
                                                     {hasIncome && (
                                                         <div className="space-y-1">
-                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">
+                                                            <div className="flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
                                                                 <span className="opacity-60">Income</span>
                                                                 <span>{formatCurrency(accGroup.income.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.income.target, accGroup.currency)}</span></span>
                                                             </div>
@@ -1483,7 +1481,7 @@ const Forecasting: React.FC = () => {
 
                                                     {hasSavings && (
                                                         <div className="space-y-1">
-                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">
+                                                            <div className="flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
                                                                 <span className="opacity-60">Savings</span>
                                                                 <span>{formatCurrency(accGroup.savings.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.savings.target, accGroup.currency)}</span></span>
                                                             </div>
@@ -1498,7 +1496,7 @@ const Forecasting: React.FC = () => {
 
                                                     {hasExpense && (
                                                         <div className="space-y-1">
-                                                            <div className="flex justify-between items-center text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary ">
+                                                            <div className="flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
                                                                 <span className="opacity-60">Expenses</span>
                                                                 <span>{formatCurrency(accGroup.expense.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.expense.target, accGroup.currency)}</span></span>
                                                             </div>
@@ -1514,7 +1512,7 @@ const Forecasting: React.FC = () => {
                                             );
                                         })}
                                         {globalAccountBreakdown.length === 0 && (
-                                            <p className="text-[10px] italic text-center opacity-40 py-4">No account-specific goals tracked.</p>
+                                            <p className="text-xs italic text-center opacity-60 py-4">No account-specific goals tracked.</p>
                                         )}
                                     </div>
                                 </div>
@@ -1591,11 +1589,11 @@ const Forecasting: React.FC = () => {
                         </div>
                     </div>
                      <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-                         <div className="flex items-center gap-2 text-[12px] font-black bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-full border border-red-100 dark:border-red-900/30  tracking-widest">
+                         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-full border border-red-100 dark:border-red-900/30">
                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                             Global Lowest
                         </div>
-                        <div className="flex items-center gap-2 text-[12px] font-black bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-4 py-2 rounded-full border border-amber-100 dark:border-amber-900/30  tracking-widest">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-4 py-2 rounded-full border border-amber-100 dark:border-amber-900/30">
                             <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                             Monthly Lowest
                         </div>
@@ -1605,7 +1603,7 @@ const Forecasting: React.FC = () => {
                 <Card className="overflow-hidden border-0 shadow-xl bg-white dark:bg-dark-card !p-0">
                     <div className="overflow-x-auto max-h-[700px] no-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
-                             <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-[12px] font-bold tracking-widest text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
+                             <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
                                 <tr>
                                     <th className="px-6 py-4">Date</th>
                                     <th className="px-6 py-4">Origin/Account</th>
@@ -1621,11 +1619,11 @@ const Forecasting: React.FC = () => {
                                         <tr className="bg-light-fill/50 dark:bg-dark-fill/30 sticky top-[53px] z-20 backdrop-blur-sm">
                                             <td colSpan={6} className="px-6 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-[14px] font-black text-primary-600 dark:text-primary-400  tracking-tighter">
+                                                    <span className="text-sm font-semibold text-primary-600 dark:text-primary-400 tracking-tight">
                                                         {group.monthName} {group.year}
                                                     </span>
                                                     <div className="h-px flex-1 bg-gradient-to-r from-primary-500/20 to-transparent"></div>
-                                                    <span className="text-[12px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">
+                                                    <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
                                                         {group.rows.length} Events
                                                     </span>
                                                 </div>
@@ -1640,8 +1638,8 @@ const Forecasting: React.FC = () => {
                                             else if (isMonthlyLowest) rowClass += ' bg-amber-500/[0.02]';
 
                                             const amountClass = row.amount >= 0 
-                                                ? 'text-emerald-600 dark:text-emerald-400 font-black' 
-                                                : 'text-light-text dark:text-dark-text font-bold opacity-80';
+                                                ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                                                : 'text-light-text dark:text-dark-text font-medium opacity-80';
 
                                             const getIcon = (type: string) => {
                                                 switch (type) {
@@ -1659,7 +1657,7 @@ const Forecasting: React.FC = () => {
                                                 >
                                                     <td className="px-6 py-2 whitespace-nowrap">
                                                         <div className="flex flex-col">
-                                                            <span className="font-mono text-[12px] font-bold text-light-text dark:text-dark-text">
+                                                            <span className="font-mono text-xs font-medium text-light-text dark:text-dark-text">
                                                                 {parseLocalDate(row.date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
                                                             </span>
                                                         </div>
@@ -1673,19 +1671,19 @@ const Forecasting: React.FC = () => {
                                                             }`}>
                                                                 <Icon name={getIcon(row.type)} className="text-sm" />
                                                             </div>
-                                                            <span className="font-bold text-[12px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
+                                                            <span className="font-semibold text-xs text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-2">
-                                                        <span className="truncate block max-w-[280px] text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
+                                                        <span className="truncate block max-w-[280px] text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
                                                     </td>
-                                                    <td className={`px-6 py-2 text-right font-mono text-[12px] ${amountClass}`}>
+                                                    <td className={`px-6 py-2 text-right font-mono text-xs ${amountClass}`}>
                                                         {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
                                                     </td>
-                                                    <td className={`px-6 py-2 text-right font-mono text-[12px] ${isLowest ? 'text-red-600 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
+                                                    <td className={`px-6 py-2 text-right font-mono text-xs ${isLowest ? 'text-red-600 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-semibold text-light-text dark:text-dark-text'}`}>
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             {isMonthlyLowest && !isLowest && (
-                                                                <Icon name="arrow_downward" className="text-[14px] text-amber-500 font-bold" title="Monthly Lowest Balance" />
+                                                                <Icon name="arrow_downward" className="text-sm text-amber-500 font-bold" title="Monthly Lowest Balance" />
                                                             )}
                                                             {formatCurrency(row.balance, 'EUR')}
                                                         </div>
@@ -1697,7 +1695,7 @@ const Forecasting: React.FC = () => {
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-2 text-center">
-                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border ${
+                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold tracking-wide border ${
                                                             row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' :
                                                             row.type === 'Bill/Payment' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800' :
                                                             'bg-primary-50 text-primary-700 border-primary-200 dark:bg-primary-900/40 dark:text-primary-400 dark:border-primary-800'

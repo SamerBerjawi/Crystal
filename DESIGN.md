@@ -24,7 +24,7 @@ colors:
   dark-text: "#FFFFFF"
 typography:
   sans:
-    fontFamily: Inter, sans-serif
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'SF Pro', system-ui, sans-serif"
 rounded:
   xl: 16px
 spacing:
@@ -45,9 +45,17 @@ The application relies on highly visible interaction endpoints and crystal clear
 - **Dark Theme Framework:** Near-absolute darkness (`#050505`) with high-contrast bright text (`#FFFFFF`), tailored specifically for power-user financial reviews.
 - **Semantic Suite:** Core status reflections (Red: `#FF3B30`, Green: `#34C759`) directly model real-world financial signals and accounting practices.
 
-## Typography
+## Typography (Apple HIG Hierarchy)
 
-Utilizes **Inter** exclusively across the interface. It brings journalistic and numeric clarity critical for a finance application, retaining highly legible figures in data-rich tables, dashboards, and charts.
+Crystal adheres to **Apple's Human Interface Guidelines (HIG)** typography hierarchy, leveraging Apple's native San Francisco system font stack (`-apple-system`, `SF Pro Display`, `SF Pro Text`):
+- **Large Title / Title 1 (H1):** `text-2xl md:text-4xl font-bold tracking-tight leading-tight` (Page headers)
+- **Title 2 (H2):** `text-xl md:text-2xl font-semibold tracking-tight leading-snug` (Section headers, modal titles)
+- **Title 3 (H3):** `text-lg font-semibold leading-snug` (Card titles, widget headers)
+- **Headline / Subsection (H4):** `text-base font-semibold leading-snug` (Subsection headers)
+- **Subhead / Subtitle:** `text-sm md:text-base font-normal leading-normal text-light-text-secondary dark:text-dark-text-secondary`
+- **Body:** `text-base font-normal leading-relaxed text-light-text dark:text-dark-text` (or `text-sm` for compact UI data)
+- **Footnote / Caption:** `text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary`
+- **Kicker / Eyebrow:** `text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary`
 
 ## Structure and Geometry
 

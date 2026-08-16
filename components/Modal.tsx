@@ -80,7 +80,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
         </div>
 
         <header className="flex items-center justify-between p-4 sm:p-5 border-b border-light-separator dark:border-dark-separator shrink-0">
-          <h2 className="text-base sm:text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate pr-2">{title}</h2>
+          <h2 className="text-lg sm:text-xl font-semibold text-light-text dark:text-dark-text tracking-tight truncate pr-2">{title}</h2>
           <button 
             onClick={handleClose} 
             className="touch-feedback text-light-text-secondary dark:text-dark-text-secondary w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-colors shrink-0"

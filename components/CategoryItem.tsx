@@ -97,7 +97,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
                 </span>
                 
                 {!isSubCategory && hasSubCategories && (
-                    <span className="bg-black/5 dark:bg-white/10 text-[10px] px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary font-medium ml-2">
+                    <span className="bg-black/5 dark:bg-white/10 text-xs px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary font-semibold ml-2">
                         {category.subCategories.length}
                     </span>
                 )}

@@ -58,13 +58,13 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
           <div className="flex items-center gap-2.5 overflow-hidden">
             {icon && (
                <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-10 h-10 rounded-xl'} bg-primary-100 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/10`}>
-                  <Icon name={icon} className={`${isCompact ? 'text-[18px]' : 'text-[18px]'}`} />
+                  <Icon name={icon} className="text-lg" />
                </div>
             )}
             <div className="overflow-hidden">
               <h2 className={`${isCompact ? 'text-xs' : 'text-base'} font-bold text-light-text dark:text-dark-text tracking-tight`}>{title}</h2>
               {subtitle && (
-                <p className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70`}>{subtitle}</p>
+                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">{subtitle}</p>
               )}
             </div>
           </div>
@@ -75,7 +75,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
                 <select 
                   value={currentWidth} 
                   onChange={(e) => onWidthChange(Number(e.target.value))}
-                  className="bg-transparent text-[10px] font-bold  tracking-tighter px-1 outline-none cursor-pointer text-light-text-secondary dark:text-dark-text-secondary"
+                  className="bg-transparent text-xs font-bold px-1 outline-none cursor-pointer text-light-text-secondary dark:text-dark-text-secondary"
                 >
                   {widthOptions.map(opt => (
                     <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800 text-light-text dark:text-dark-text">{opt.label}</option>

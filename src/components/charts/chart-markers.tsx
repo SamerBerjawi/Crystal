@@ -54,7 +54,7 @@ export function MarkerTooltipContent({ markers }: { markers: ChartMarker[] }) {
           <div>
             <div className="font-bold text-neutral-800 dark:text-neutral-100">{marker.title}</div>
             {marker.description && (
-              <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+              <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                 {marker.description}
               </div>
             )}
@@ -114,7 +114,7 @@ export function ChartMarkers({
               transform="rotate(-90)"
               textAnchor="end"
               fill={strokeColor}
-              className="text-[10px] font-extrabold tracking-wider pointer-events-auto cursor-pointer select-none"
+              className="text-2xs font-extrabold uppercase tracking-wider pointer-events-auto cursor-pointer select-none"
               onClick={marker.onClick}
             >
               <title>{`${marker.title}${marker.description ? ` - ${marker.description}` : ""}`}</title>

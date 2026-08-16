@@ -253,13 +253,13 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             {formatCurrency(convertCurrency(displayBalance, account.currency, preferredCurrency, conversionRates), preferredCurrency)}
                         </p>
                          {account.currency !== preferredCurrency && (
-                            <p className="text-[10px] sm:text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-widest  opacity-40">
+                            <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary tabular-nums tracking-wider opacity-60">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>
                         )}
                     </div>
                     <button onClick={handleEditClick} className="sm:opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary/40 hover:text-primary-500 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 ml-auto sm:ml-0">
-                        <Icon name="edit" className="text-[18px] sm:text-[20px]" />
+                        <Icon name="edit" className="text-lg sm:text-xl" />
                     </button>
                 </div>
             </Card>

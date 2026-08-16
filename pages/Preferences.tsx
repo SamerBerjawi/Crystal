@@ -124,9 +124,9 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <Icon name="sliders" className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Interface Theme</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Interface Theme</h3>
               </div>
-              <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Visual mode synchronization settings</p>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Visual mode synchronization settings</p>
             </div>
             
             <div className="p-8">
@@ -144,14 +144,14 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
                   <Icon name="coins_stacked" className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Financial Context</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Financial Context</h3>
               </div>
-              <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Currency & Calculation Standards</p>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Currency & Calculation Standards</p>
             </div>
             
             <div className="p-8 space-y-6">
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] ml-1">Base Denomination</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1">Base Denomination</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary z-10">
                     <Icon name="coins_stacked" className="text-lg" />
@@ -160,7 +160,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                     name="currency" 
                     value={preferences.currency} 
                     onChange={handleChange} 
-                    className="w-full h-14 pl-12 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-2xl font-black text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
+                    className="w-full h-14 pl-12 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-2xl font-semibold text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
                   >
                     {CURRENCY_OPTIONS.map(c => <option key={c} value={c} className="bg-white dark:bg-dark-card">{c}</option>)}
                   </select>
@@ -174,7 +174,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                   <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
                     <Icon name="zap" className="text-sm" />
                   </div>
-                  <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 leading-normal">
+                  <p className="text-xs font-normal text-primary-600 dark:text-primary-400 leading-normal">
                       Crystal automatically synchronizes language, date-strings, and temporal offsets via your browser environment for atomic precision.
                   </p>
               </div>
@@ -190,15 +190,15 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
                   <Icon name="zap" className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Operational Defaults</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Operational Defaults</h3>
               </div>
-              <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Workflow Optimization & Smart Logic</p>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Workflow Optimization & Smart Logic</p>
             </div>
             
             <div className="p-8 space-y-8 divide-y divide-black/5 dark:divide-white/5">
                 <SettingRow label="Dashboard Lookback" description="The default analytical window for your main intelligence views.">
                   <div className="relative group">
-                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-black text-[11px]  tracking-widest text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
+                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-medium text-xs text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
                       {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
@@ -213,7 +213,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       name="defaultForecastPeriod"
                       value={preferences.defaultForecastPeriod || '1Y'}
                       onChange={handleChange}
-                      className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-black text-[11px]  tracking-widest text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
+                      className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-medium text-xs text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
                     >
                       {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
@@ -225,7 +225,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
 
                 <SettingRow label="Ledger Prioritization" description="Determination logic for sorting financial vehicles.">
                   <div className="relative group">
-                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-black text-[11px]  tracking-widest text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
+                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-medium text-xs text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
                       {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
@@ -243,8 +243,8 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                         <Icon name={preferences.excludeTransfersFromAnalytics ? 'visibility_off' : 'visibility'} className="text-sm" />
                       </div>
                       <div>
-                        <p className={`text-[11px] font-black  tracking-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Transfers</p>
-                        <p className={`text-[10px] font-bold leading-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>Excluded from charts</p>
+                        <p className={`text-xs font-semibold tracking-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Transfers</p>
+                        <p className={`text-xs font-normal leading-normal ${preferences.excludeTransfersFromAnalytics ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-75'}`}>Excluded from charts</p>
                       </div>
                    </button>
 
@@ -256,8 +256,8 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                         <Icon name={preferences.showBalanceAdjustments ? 'check_circle' : 'cancel'} className="text-sm" />
                       </div>
                       <div>
-                        <p className={`text-[11px] font-black  tracking-tight ${preferences.showBalanceAdjustments ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Adjustments</p>
-                        <p className={`text-[10px] font-bold leading-tight ${preferences.showBalanceAdjustments ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>Include manual state changes</p>
+                        <p className={`text-xs font-semibold tracking-tight ${preferences.showBalanceAdjustments ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Adjustments</p>
+                        <p className={`text-xs font-normal leading-normal ${preferences.showBalanceAdjustments ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-75'}`}>Include manual state changes</p>
                       </div>
                    </button>
                 </div>

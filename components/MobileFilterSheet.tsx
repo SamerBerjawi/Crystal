@@ -69,7 +69,7 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
               <Icon name={section.icon} className="text-xs" />
             </div>
           )}
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
             {section.title}
           </h4>
         </div>
@@ -108,21 +108,21 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
               <Icon name={section.icon} className="text-xs" />
             </div>
           )}
-          <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
             {section.title}
           </h4>
         </div>
 
         <div className="flex items-center gap-2">
           {activeCount > 0 && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-500/15 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary-500/15 text-primary-600 dark:text-primary-400 border border-primary-500/20">
               {activeCount} selected
             </span>
           )}
           {section.onSelectAll && (
             <button
               onClick={section.onSelectAll}
-              className="text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:underline active:opacity-60 transition-opacity"
+              className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline active:opacity-60 transition-opacity"
             >
               All
             </button>
@@ -130,7 +130,7 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
           {section.onClearAll && activeCount > 0 && (
             <button
               onClick={section.onClearAll}
-              className="text-[11px] font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:opacity-60 transition-opacity"
+              className="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:opacity-60 transition-opacity"
             >
               Clear
             </button>
@@ -147,7 +147,7 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
             placeholder={section.searchPlaceholder || `Search ${section.title.toLowerCase()}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8 pr-7 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 text-[11px] font-medium text-light-text dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            className="w-full h-8 pl-8 pr-7 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 text-xs font-medium text-light-text dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
           />
           {searchQuery && (
             <button
@@ -183,7 +183,7 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
             {chip.isActive && <Icon name="check" className="text-xs text-white" />}
             {chip.badge !== undefined && (
               <span
-                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                className={`text-2xs font-bold px-1.5 py-0.5 rounded-full ${
                   chip.isActive
                     ? 'bg-white/20 text-white'
                     : 'bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400'
@@ -334,7 +334,7 @@ export const FilterTriggerButton: React.FC<{
     <Icon name="tune" className={`text-base ${activeCount > 0 ? 'text-primary-500' : 'text-gray-500 dark:text-gray-400'}`} />
     <span>{label}</span>
     {activeCount > 0 && (
-      <span className="ml-0.5 px-1.5 py-0.5 min-w-[20px] h-5 rounded-full bg-primary-500 text-white text-[10px] font-black flex items-center justify-center shadow-xs shadow-primary-500/40">
+      <span className="ml-0.5 px-1.5 py-0.5 min-w-[20px] h-5 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center shadow-xs shadow-primary-500/40">
         {activeCount}
       </span>
     )}

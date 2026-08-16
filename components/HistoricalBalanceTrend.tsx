@@ -247,10 +247,10 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 px-5 py-3 rounded-2xl">
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 tracking-widest">6-Mo Net Change</p>
+            <p className="text-2xs font-semibold uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wider">6-Mo Net Change</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <Icon name={isPositiveTrend ? 'arrow_upward' : 'arrow_downward'} className={`text-sm font-bold ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`} />
-              <span className={`text-base font-black font-mono tracking-tight ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
+              <span className={`text-base font-bold font-mono tracking-tight ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
                 {formatCurrency(Math.abs(netChange), account.currency)}
               </span>
               <span className={`text-xs font-bold font-mono opacity-80 ${isPositiveTrend ? 'text-emerald-500' : 'text-rose-500'}`}>
@@ -262,7 +262,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
           <div className="w-px h-8 bg-black/10 dark:bg-white/10 hidden sm:block" />
 
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 tracking-widest">3-Mo Projected</p>
+            <p className="text-2xs font-semibold uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wider">3-Mo Projected</p>
             <p className={`text-sm font-bold font-mono mt-0.5 ${endProjectedBalance >= todayBalance ? 'text-emerald-500' : 'text-rose-500'}`}>
               {formatCurrency(endProjectedBalance, account.currency)}
             </p>
@@ -271,7 +271,7 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
           <div className="w-px h-8 bg-black/10 dark:bg-white/10 hidden sm:block" />
 
           <div>
-            <p className="text-[9px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/50 tracking-widest">Start Balance</p>
+            <p className="text-2xs font-semibold uppercase text-light-text-secondary/60 dark:text-dark-text-secondary/70 tracking-wider">Start Balance</p>
             <p className="text-sm font-bold font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
               {formatCurrency(startBalance, account.currency)}
             </p>

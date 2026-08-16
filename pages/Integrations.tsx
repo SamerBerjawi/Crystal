@@ -55,7 +55,7 @@ const ApiKeyCard = ({
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass} shadow-md group-hover:scale-105 transition-transform duration-300`}>
                     <Icon name={icon} className="text-2xl" />
                 </div>
-                <div className={`px-3 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1.5 border ${
+                <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border ${
                   isConfigured 
                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
                     : 'bg-black/5 text-gray-500 dark:bg-white/5 dark:text-gray-400 border-black/5 dark:border-white/10'
@@ -66,7 +66,7 @@ const ApiKeyCard = ({
             </div>
             
             <div className="mb-6 flex-grow">
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-1 tracking-tight">{title}</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-1 tracking-tight">{title}</h3>
                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-70">{description}</p>
             </div>
 

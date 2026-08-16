@@ -51,16 +51,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                        <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                        <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                         {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
                 <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -160,9 +160,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Auto-Savings</span>
-                            <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                            <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">Linked: {sourceAccount?.name || 'External'}</span>
+                            <span className="text-xs font-semibold text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">Auto-Savings</span>
+                            <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                            <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">Linked: {sourceAccount?.name || 'External'}</span>
                         </div>
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                             {account.name}
@@ -206,7 +206,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                         <div className="relative z-10 flex flex-col md:flex-row justify-between gap-12 h-full">
                             <div className="flex-grow flex flex-col justify-between">
                                 <div>
-                                    <p className="text-[10px] font-bold text-cyan-100/80 mb-2">Automated micro-savings</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-cyan-100/80 mb-2">Automated micro-savings</p>
                                     <h2 className="text-6xl md:text-8xl font-bold tracking-tighter tabular-nums drop-shadow-lg">
                                         {formatCurrency(account.balance, account.currency)}
                                     </h2>
@@ -214,11 +214,11 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
 
                                 <div className="flex gap-10 mt-8">
                                     <div className="ios-regular px-6 py-4">
-                                        <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">Total round-ups</p>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-100/70 mb-1">Total round-ups</p>
                                         <p className="font-bold text-2xl text-white">{totalRoundUps}</p>
                                     </div>
                                     <div className="ios-regular px-6 py-4 rounded-[2rem] border border-white/10 dark:border-white/5 !bg-white/10 dark:!bg-white/[0.05]">
-                                        <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">MTD intake</p>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-100/70 mb-1">MTD intake</p>
                                         <p className="font-bold text-2xl text-white">+{formatCurrency(thisMonthSaved, account.currency)}</p>
                                     </div>
                                 </div>
@@ -232,9 +232,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                                     </div>
                                 </div>
                                 <h3 className="text-xl font-bold text-white">Coffee index</h3>
-                                <p className="text-[10px] font-bold text-cyan-200/80 tracking-wide mt-2">Saved value in caffeine</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/80 mt-2">Saved value in caffeine</p>
                                 <p className="text-5xl font-bold text-orange-400 mt-4 tabular-nums drop-shadow-sm">{coffeesSaved}</p>
-                                <p className="text-[10px] font-bold text-orange-400/80 tracking-wide mt-1">Venti units</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-orange-400/80 mt-1">Venti units</p>
                             </div>
                         </div>
                     </motion.div>
@@ -265,7 +265,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                     <div className="bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden">
                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-10 flex justify-between items-center relative z-10">
                             Accumulation Pulse
-                            <span className="text-[10px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/60">Monthly Savings Velocity</span>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Monthly Savings Velocity</span>
                         </h3>
 
                         <div className="h-64 w-full relative z-10">
@@ -310,7 +310,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                 <div className="lg:col-span-4 space-y-8">
                     {/* Infrastructure Configuration */}
                     <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                        <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Infrastructure Configuration</h3>
                         <div className="space-y-6">
                             {[
                                 { label: 'Source Account', value: sourceAccount?.name || 'External Link' },
@@ -321,8 +321,8 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                                 { label: 'Logical Serial', value: account.accountNumber, isMono: true }
                             ].filter(i => i.value).map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                    <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
-                                    <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">{item.label}</p>
+                                    <p className={`text-xs font-semibold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                         {item.value}
                                     </p>
                                 </div>
@@ -334,7 +334,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                                 <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-500 flex items-center justify-center">
                                     <Icon name="settings_suggest" className="text-lg" />
                                 </div>
-                                <p className="text-[10px] font-bold text-cyan-500 tracking-wider">Automation Active</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-cyan-500">Automation Active</p>
                             </div>
                             <p className="text-xs font-medium text-light-text-secondary/70 dark:text-dark-text-secondary/90 leading-relaxed">
                                 Spare change is automatically funneled from {sourceAccount?.name || 'the source account'} on every qualifying expenditure.

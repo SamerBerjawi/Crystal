@@ -145,8 +145,8 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                         <div className={`w-8 h-8 rounded-lg bg-white/50 dark:bg-white/5 flex items-center justify-center transition-colors group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 border border-black/5 dark:border-white/5`}>
                              <Icon name="expand_more" className={`transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
-                        <h3 className="text-m font-bold text-light-text dark:text-dark-text tracking-[0.2em]">{title}</h3>
-                        <span className="bg-primary-100 dark:bg-primary-900/30 text-[10px] font-black px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
+                        <h3 className="text-base font-semibold text-light-text dark:text-dark-text tracking-tight">{title}</h3>
+                        <span className="bg-primary-100 dark:bg-primary-900/30 text-xs font-semibold px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
                     </div>
                     <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4 mr-4"></div>
                     {showCollapseAll && groupOrder.length > 1 && (

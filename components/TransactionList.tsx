@@ -248,42 +248,42 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           }`}
                           title={isTransfer ? 'Internal Transfer' : tx.type === 'income' ? 'Income' : 'Expense'}
                         />
-                        <p className={`${density === 'high' ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'} font-bold text-light-text dark:text-dark-text truncate tracking-tight`}>
+                        <p className={`${density === 'high' ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} font-bold text-light-text dark:text-dark-text truncate tracking-tight`}>
                             {description}
                         </p>
                         {tx.isSplitParent && (
-                          <span className="text-[8px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
+                          <span className="text-2xs font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
                             SPLIT
                           </span>
                         )}
                         {tx.isCombinedParent && (
-                          <span className="text-[8px] font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md shrink-0 border border-indigo-500/20">
+                          <span className="text-2xs font-extrabold uppercase bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md shrink-0 border border-indigo-500/20">
                             COMBINED
                           </span>
                         )}
                         {tx.isMarketAdjustment && (
-                          <span className="text-[8px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md shrink-0 border border-blue-500/20">
+                          <span className="text-2xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md shrink-0 border border-blue-500/20">
                             MARKET
                           </span>
                         )}
                         {tx.recurringSourceId && (
-                          <Icon name="clock" className="text-[13px] text-purple-500 shrink-0" title="Recurring Transaction" />
+                          <Icon name="clock" className="text-xs text-purple-500 shrink-0" title="Recurring Transaction" />
                         )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden flex-wrap">
                         <span 
-                          className="text-[10px] font-bold tracking-wider truncate"
+                          className="text-xs font-bold tracking-wider truncate"
                           style={{ color: isTransfer ? '#64748B' : categoryColor }}
                         >
                             {tx.category || 'Uncategorized'}
                         </span>
                         {tx.accountName && (
-                            <span className="text-[10px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight truncate max-w-[90px]">
+                            <span className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight truncate max-w-[90px]">
                                 • {tx.accountName}
                             </span>
                         )}
                         {formattedDate && (
-                            <span className="text-[10px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight shrink-0">
+                            <span className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight shrink-0">
                                 • {formattedDate}
                             </span>
                         )}
@@ -292,7 +292,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                             {txTags.slice(0, 2).map(tag => (
                               <span 
                                 key={tag.id}
-                                className="inline-flex items-center text-[9px] font-semibold px-1.5 py-0.2 rounded-md bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary"
+                                className="inline-flex items-center text-2xs font-semibold px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary"
                                 style={tag.color ? { backgroundColor: `${tag.color}18`, color: tag.color } : undefined}
                               >
                                 #{tag.name}
@@ -301,7 +301,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                           </div>
                         )}
                         {tx.notes && (
-                          <Icon name="FileText01" className="text-[12px] text-primary-500/60 shrink-0" title={tx.notes} />
+                          <Icon name="FileText01" className="text-xs text-primary-500/60 shrink-0" title={tx.notes} />
                         )}
                     </div>
                   </div>
@@ -309,7 +309,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 <div className="flex items-center gap-2 sm:gap-4 text-right shrink-0 relative z-10 pl-2">
                   <div className="flex flex-col items-end">
                     <p
-                      className={`${density === 'high' ? 'text-[14px] sm:text-[15px]' : 'text-[15px] sm:text-[16px]'} font-extrabold tracking-tight privacy-blur ${
+                      className={`${density === 'high' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} font-extrabold tracking-tight privacy-blur ${
                         isTransfer 
                           ? 'text-light-text dark:text-dark-text' 
                           : (tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-light-text dark:text-dark-text')
@@ -319,8 +319,8 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     </p>
                     {spareAmountEur && (
                       <div className="flex items-center gap-0.5 mt-0.5">
-                        <Icon name="coins_stacked" className="text-[10px] text-emerald-500" />
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
+                        <Icon name="coins_stacked" className="text-xs text-emerald-500" />
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
                       </div>
                     )}
                   </div>

@@ -62,7 +62,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
         {/* Animated Counter Badge */}
         {notificationCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-black shadow-lg shadow-rose-500/50 animate-pulse border-2 border-white dark:border-dark-card">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-500/50 animate-pulse border-2 border-white dark:border-dark-card">
             {notificationCount}
           </span>
         )}
@@ -85,10 +85,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   <Icon name="event_upcoming" className="text-lg" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm tracking-tight text-light-text dark:text-dark-text leading-none">
+                  <h3 className="font-semibold text-sm tracking-tight text-light-text dark:text-dark-text leading-none">
                     Bill Alerts
                   </h3>
-                  <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                  <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                     Due in 3 days or less
                   </p>
                 </div>
@@ -97,7 +97,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               {notificationCount > 0 && (
                 <button
                   onClick={onClearAll}
-                  className="text-[10px] font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors uppercase"
+                  className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors uppercase"
                 >
                   Clear All
                 </button>
@@ -111,8 +111,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
                     <Icon name="verified" className="text-2xl" />
                   </div>
-                  <p className="text-xs font-bold text-light-text dark:text-dark-text">No Upcoming Bill Alerts</p>
-                  <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary max-w-[220px] mx-auto opacity-70">
+                  <p className="text-xs font-semibold text-light-text dark:text-dark-text">No Upcoming Bill Alerts</p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-[220px] mx-auto opacity-70">
                     All recurring bills for the next 3 days are settled or clear.
                   </p>
                 </div>
@@ -121,7 +121,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   {/* Urgent / Overdue & Today Section */}
                   {overdueOrToday.length > 0 && (
                     <div className="space-y-2">
-                      <div className="px-2 text-[10px] font-bold text-rose-500 uppercase tracking-widest flex items-center gap-1">
+                      <div className="px-2 text-xs font-semibold text-rose-500 uppercase tracking-wider flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
                         Action Required ({overdueOrToday.length})
                       </div>
@@ -139,7 +139,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   {/* Due in 1 to 3 Days Section */}
                   {dueSoon.length > 0 && (
                     <div className="space-y-2 pt-1">
-                      <div className="px-2 text-[10px] font-bold text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                      <div className="px-2 text-xs font-semibold text-amber-500 uppercase tracking-wider flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                         Due in 1-3 Days ({dueSoon.length})
                       </div>
@@ -207,11 +207,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
           </div>
 
           <div className="min-w-0">
-            <h4 className="font-bold text-xs text-light-text dark:text-dark-text truncate leading-tight">
+            <h4 className="font-semibold text-xs text-light-text dark:text-dark-text truncate leading-tight">
               {item.description}
             </h4>
             <span
-              className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[9px] font-extrabold ${
+              className={`inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-semibold ${
                 isUrgent ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
               }`}
             >
@@ -230,14 +230,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
       </div>
 
       <div className="flex justify-between items-center pt-1 border-t border-black/5 dark:border-white/5 text-xs">
-        <span className="font-black tracking-tight text-light-text dark:text-dark-text privacy-blur">
+        <span className="font-bold tracking-tight text-light-text dark:text-dark-text privacy-blur">
           {formatCurrency(item.amount, item.currency)}
         </span>
 
         {onProcessItem && (
           <button
             onClick={() => onProcessItem(item.originalItem)}
-            className={`px-3 py-1 rounded-xl text-[10px] font-bold transition-all active:scale-95 ${
+            className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
               isUrgent
                 ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/20'
                 : 'bg-primary-500 text-white hover:bg-primary-600 shadow-md shadow-primary-500/20'

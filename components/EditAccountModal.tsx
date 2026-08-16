@@ -401,7 +401,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
     onClose();
   };
   
-  const labelStyle = "block text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-2";
+  const labelStyle = "block text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-2";
   
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
 
@@ -449,13 +449,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div className="flex flex-wrap justify-center md:justify-start gap-4">
                         <div className="px-4 py-2 bg-black/5 dark:bg-white/5 rounded-full border border-black/10 dark:border-white/10 flex items-center gap-2">
                              <span className={`w-2 h-2 rounded-full ${account.status === 'closed' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'}`} />
-                             <span className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary">
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                                 {account.status === 'closed' ? 'Inactive' : 'Live Integration'}
                              </span>
                         </div>
                         <div className="px-4 py-2 bg-black/5 dark:bg-white/5 rounded-full border border-black/10 dark:border-white/10 flex items-center gap-2">
                              <Icon name="fingerprint" className="text-xs text-gray-400" />
-                             <span className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary">
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                                 ID: {account.id.split('-')[0].toUpperCase()}
                              </span>
                         </div>
@@ -468,7 +468,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             
             {/* 1. Core Identification Card */}
             <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                     <Icon name="settings_input_component" className="text-primary-500 text-lg" />
                     Node Identification
                 </h4>
@@ -500,30 +500,30 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
                     {type !== 'Loan' && type !== 'Lending' && (
                         <div className="space-y-4">
-                          <label className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Fair Market Value' : 'Liquid Assets (Balance)'}</label>
-                          <div className="relative flex group/balance">
+                          <label htmlFor="account-balance" className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Fair Market Value' : 'Liquid Assets (Balance)'}</label>
+                          <div className="relative flex">
                             <input
+                              id="account-balance"
                               type="number"
                               step="0.01"
                               value={balance}
                               onChange={(e) => setBalance(e.target.value)}
-                              className={`${INPUT_BASE_STYLE} h-16 !text-3xl font-black tabular-nums rounded-r-none border-r-0 focus:ring-0 ${isComputedAccount ? 'bg-black/5 dark:bg-white/5 opacity-50' : 'bg-transparent'}`}
+                              className={`${INPUT_BASE_STYLE} rounded-r-none border-r-0 h-16 font-black !text-2xl tabular-nums ${isComputedAccount ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-white/5' : ''}`}
+                              disabled={isComputedAccount}
                               required
-                              readOnly={isComputedAccount}
                             />
                             <div className={`${SELECT_WRAPPER_STYLE} w-32`}>
                                 <select
                                   value={currency}
                                   onChange={(e) => setCurrency(e.target.value as Currency)}
-                                  className={`${SELECT_STYLE} h-16 rounded-l-none bg-black/5 dark:bg-white/5 border-l border-black/10 dark:border-white/10 font-black tracking-tighter`}
-                                  disabled={isComputedAccount}
+                                  className={`${SELECT_STYLE} rounded-l-none bg-gray-50/50 dark:bg-white/5 border-l border-black/10 dark:border-white/10 h-16 font-black`}
                                 >
                                   {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                                  <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                             </div>
                           </div>
-                          {isComputedAccount && <p className="text-[10px] font-black text-primary-500  tracking-widest text-center animate-pulse mt-2">Sync-Driven: Calculated from holdings</p>}
+                          {isComputedAccount && <p className="text-xs font-semibold uppercase text-primary-500 tracking-wider text-center animate-pulse mt-2">Sync-Driven: Calculated from holdings</p>}
                         </div>
                     )}
                 </div>
@@ -535,7 +535,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                         <div className="flex items-center gap-2 mb-2">
                             <Icon name="account_balance" className="text-primary-500" />
-                            <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Banking Architecture</h4>
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Banking Architecture</h4>
                         </div>
                         
                         <div className="grid grid-cols-1 gap-6">
@@ -583,8 +583,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 <Icon name="credit_card" className="text-2xl" />
                             </div>
                             <div className="flex flex-col">
-                                <h4 className={`text-[10px] font-bold tracking-tight ${hasCard ? 'text-primary-600' : 'text-gray-500'}`}>Payment Instrument</h4>
-                                <span className="text-[10px] font-bold text-gray-400">Physical shell or virtual node</span>
+                                <h4 className={`text-xs font-semibold tracking-tight ${hasCard ? 'text-primary-600' : 'text-gray-500'}`}>Payment Instrument</h4>
+                                <span className="text-xs font-medium text-gray-400">Physical shell or virtual node</span>
                             </div>
                         </div>
                         <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasCard ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
@@ -632,7 +632,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
                     <div className="flex items-center gap-2 mb-2">
                         <Icon name="trending_up" className="text-primary-500" />
-                        <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Market Strategy</h4>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Market Strategy</h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-black/20 p-6 rounded-2xl border border-black/5 dark:border-white/5">
                         <div>
@@ -664,7 +664,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 {type === 'Other Assets' && (
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-500 flex items-center gap-2">
                                 <Icon name="category" className="text-lg" />
                                 Asset Specifications
                             </h4>
@@ -701,7 +701,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 {type === 'Other Liabilities' && (
                      <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-rose-500 flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-500 flex items-center gap-2">
                                 <Icon name="money_off" className="text-lg" />
                                 Liability Metrics
                             </h4>
@@ -737,15 +737,15 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 {(type === 'Loan' || type === 'Lending') && (
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-500 flex items-center gap-2">
                                 <Icon name="request_quote" className="text-lg" />
                                 Financial Obligation
                             </h4>
                         </div>
                         
                         <div className="bg-primary-500/5 p-4 rounded-2xl border border-primary-500/10 mb-2">
-                            <p className="text-[10px] font-black text-primary-600 dark:text-primary-400  tracking-widest mb-1 italic">Computational Logic Active</p>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">Input any dual values; the tertiary will resolve automatically.</p>
+                            <p className="text-xs font-semibold uppercase text-primary-600 dark:text-primary-400 tracking-wider mb-1">Computational Logic Active</p>
+                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">Input any dual values; the tertiary will resolve automatically.</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -775,7 +775,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-6">
                             <div className="flex items-center gap-2">
                                  <Icon name="event_repeat" className="text-primary-500" />
-                                 <h5 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Amortization Schedule</h5>
+                                 <h5 className="text-xs font-semibold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Amortization Schedule</h5>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -810,7 +810,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             </div>
                             {type === 'Loan' && (
                                 <div>
-                                    <label htmlFor="linkedAssetId" className={labelStyle}>Collateral Asset Association</label>
+                                    <label htmlFor="linkedAssetId" className={labelStyle}>Collateral Asset Link</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
                                         <select id="linkedAssetId" value={linkedAssetId} onChange={e => setLinkedAssetId(e.target.value)} className={`${SELECT_STYLE} h-14 font-black`}>
                                             <option value="">Unsecured</option>
@@ -830,7 +830,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                  {type === 'Vehicle' && (
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8 animate-fade-in-up">
                       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-500 flex items-center gap-2">
                                 <Icon name="directions_car" className="text-lg" />
                                 Automotive Registry
                             </h4>
@@ -846,7 +846,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                   <>
                                     <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <p className="text-white text-[10px] font-black  tracking-widest text-center">Replace Profile Image</p>
+                                        <p className="text-white text-xs font-semibold uppercase tracking-wider text-center">Replace Profile Image</p>
                                     </div>
                                   </>
                               ) : (
@@ -855,8 +855,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                           <Icon name="add_a_photo" className="text-3xl text-primary-500" />
                                       </div>
                                       <div className="text-center">
-                                          <p className="text-[10px] font-black text-light-text dark:text-dark-text  tracking-widest">Asset Visualization</p>
-                                          <p className="text-[10px] font-bold text-gray-400">Secure image upload</p>
+                                          <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Asset Visualization</p>
+                                          <p className="text-xs font-medium text-gray-400">Secure image upload</p>
                                       </div>
                                   </div>
                               )}
@@ -897,7 +897,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                         key={o} 
                                         type="button" 
                                         onClick={() => setVehicleOwnership(o)} 
-                                        className={`flex-1 py-3 rounded-xl text-[10px] font-black  tracking-[0.2em] transition-all duration-300 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-xl text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                        className={`flex-1 py-3 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-xl text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                                      >
                                         {o}
                                      </button>
@@ -945,7 +945,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
                        {/* Interactive Mileage Logs Dashboard */}
                        <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                            <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Mileage Journal Logs</label>
+                            <label className="text-xs font-semibold uppercase tracking-wider text-primary-600 block mb-2">Mileage Journal Logs</label>
                             <div className="space-y-4 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                                 {mileageLogs.length > 0 ? (
                                     mileageLogs.map((log, index) => (
@@ -964,7 +964,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-[10px] text-gray-400  font-bold text-center py-4">No logged history</p>
+                                    <p className="text-xs text-gray-400 font-medium text-center py-4">No logged history</p>
                                 )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-black/5 dark:border-white/5">
@@ -1007,7 +1007,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                  {type === 'Property' && (
                     <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8 animate-fade-in-up">
                        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-500 flex items-center gap-2">
                                 <Icon name="home" className="text-lg" />
                                 Real Estate Specifications
                             </h4>
@@ -1025,7 +1025,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             </div>
                              <div><label htmlFor="purchasePrice" className={labelStyle}>Acquisition Capital</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} disabled={isLoanForPropertyLinked} /></div>
                           </div>
-                          <div><label htmlFor="address" className={labelStyle}>Geospatial Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black placeholder-black/20 dark:placeholder-white/20  text-xs`} placeholder="STREET, CITY, ZIP" /></div>
+                          <div><label htmlFor="address" className={labelStyle}>Geospatial Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black placeholder-black/20 dark:placeholder-white/20 text-xs`} placeholder="STREET, CITY, ZIP" /></div>
                           
                           <div className="grid grid-cols-3 gap-6">
                              <div><label htmlFor="propertySize" className={labelStyle}>Internal (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums text-center`} /></div>
@@ -1045,7 +1045,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasBasement ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
                                 <Icon name={hasBasement ? 'check_box' : 'check_box_outline_blank'} />
-                                <span className="text-[10px] font-black  tracking-widest leading-none">Basement</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider leading-none">Basement</span>
                              </button>
                              <button 
                                 type="button" 
@@ -1053,7 +1053,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${hasAttic ? 'bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
                                 <Icon name={hasAttic ? 'check_box' : 'check_box_outline_blank'} />
-                                <span className="text-[10px] font-black  tracking-widest leading-none">Attic</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider leading-none">Attic</span>
                              </button>
                           </div>
 
@@ -1069,7 +1069,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasGarden ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
                                 <Icon name={hasGarden ? 'psychology' : 'check_box_outline_blank'} />
-                                <span className="text-[10px] font-black  tracking-widest leading-none">Garden Zone</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider leading-none">Garden Zone</span>
                              </button>
                              <div>
                                 <label htmlFor="gardenSize" className={labelStyle}>Exterior Area (m²)</label>
@@ -1084,7 +1084,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 className={`flex items-center gap-4 p-4 rounded-2xl border transition-all h-14 ${hasTerrace ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400' : 'bg-black/5 dark:bg-white/5 border-transparent text-gray-400'}`}
                              >
                                 <Icon name={hasTerrace ? 'deck' : 'check_box_outline_blank'} />
-                                <span className="text-[10px] font-black  tracking-widest leading-none">Terrace / Balcony</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider leading-none">Terrace / Balcony</span>
                              </button>
                              <div>
                                 <label htmlFor="terraceSize" className={labelStyle}>Refined Exterior (m²)</label>
@@ -1122,13 +1122,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                        <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-8">
                             <div className="flex items-center gap-2">
                                  <Icon name="sync_alt" className="text-primary-500" />
-                                 <h4 className="text-[10px] font-bold text-light-text dark:text-dark-text tracking-tight">Recurring Obligations & Cashflow</h4>
+                                 <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Recurring Obligations & Cashflow</h4>
                             </div>
                             
                             <div className="space-y-8">
                                 {/* Property Tax */}
                                 <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                                    <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Municipal Assessments</label>
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-primary-600 block mb-2">Municipal Assessments</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div><label htmlFor="propTaxAmt" className={labelStyle}>Annual Assessment</label><input id="propTaxAmt" type="number" step="0.01" value={propertyTaxAmount} onChange={e=>setPropertyTaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black text-rose-500`} placeholder="0.00" /></div>
                                         <div><label htmlFor="propTaxDate" className={labelStyle}>Ordinal Maturity Date</label><input id="propTaxDate" type="date" value={propertyTaxDate} onChange={e=>setPropertyTaxDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
@@ -1137,7 +1137,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
                                  {/* Home Insurance */}
                                  <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                                    <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Asset Indemnity</label>
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-primary-600 block mb-2">Asset Indemnity</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div><label htmlFor="insProvider" className={labelStyle}>Underwriting Entity</label><input id="insProvider" type="text" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black`} /></div>
                                         <div><label htmlFor="insPolicy" className={labelStyle}>Policy Instrument No.</label><input id="insPolicy" type="text" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tracking-widest`} /></div>
@@ -1159,7 +1159,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 
                                 {/* HOA Fees */}
                                  <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                                    <label className="text-[10px] font-black  tracking-widest text-primary-600 block mb-2">Commonhold Contribution</label>
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-primary-600 block mb-2">Commonhold Contribution</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div><label htmlFor="hoaAmount" className={labelStyle}>Levy Amount</label><input id="hoaAmount" type="number" step="0.01" value={hoaFeeAmount} onChange={e=>setHoaFeeAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-14 font-black tabular-nums`} /></div>
                                         <div>
@@ -1182,8 +1182,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                                 <Icon name="real_estate_agent" />
                                             </div>
                                             <div className="flex flex-col">
-                                                <h4 className={`text-[10px] font-bold tracking-tight ${isRental ? 'text-emerald-600' : 'text-gray-500'}`}>Rental Monetization</h4>
-                                                <span className="text-[10px] font-bold text-gray-400">Generate inward cashflow</span>
+                                                <h4 className={`text-xs font-semibold tracking-tight ${isRental ? 'text-emerald-600' : 'text-gray-500'}`}>Rental Monetization</h4>
+                                                <span className="text-xs font-medium text-gray-400">Generate inward cashflow</span>
                                             </div>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -1214,7 +1214,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                  {type === 'Credit Card' && (
                    <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6 animate-fade-in-up">
                         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-4">
-                             <h4 className="text-[10px] font-bold tracking-[0.2em] text-primary-500 flex items-center gap-2">
+                             <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-500 flex items-center gap-2">
                                  <Icon name="credit_card" className="text-lg" />
                                  Credit Architecture
                              </h4>
@@ -1271,8 +1271,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             <Icon name="stars" className="text-lg" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Master Nexus</p>
-                            <p className="text-[10px] font-bold text-gray-400">Primary anchor</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Master Nexus</p>
+                            <p className="text-xs font-medium text-gray-400">Primary anchor</p>
                         </div>
                     </div>
                     <div className={`w-8 h-4 rounded-full relative transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
@@ -1290,8 +1290,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             <Icon name="analytics" className="text-lg" />
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Analytics Sync</p>
-                            <p className="text-[10px] font-bold text-gray-400">Include in reports</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Analytics Sync</p>
+                            <p className="text-xs font-medium text-gray-400">Include in reports</p>
                         </div>
                     </div>
                     <div className={`w-8 h-4 rounded-full relative transition-colors ${includeInAnalytics ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
@@ -1314,7 +1314,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 <button 
                     type="button" 
                     onClick={handleToggleStatus} 
-                    className={`h-12 px-6 flex items-center gap-2 text-[10px] font-black  tracking-widest rounded-xl transition-all border border-black/10 dark:border-white/10 ${
+                    className={`h-12 px-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all border border-black/10 dark:border-white/10 ${
                         account.status === 'closed' 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                         : 'bg-white dark:bg-dark-fill text-amber-600 hover:bg-amber-50'
@@ -1329,13 +1329,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 <button 
                     type="button" 
                     onClick={onClose} 
-                    className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}
+                    className={`${BTN_SECONDARY_STYLE} h-12 px-8 text-xs font-semibold uppercase tracking-wider`}
                 >
                     Retract
                 </button>
                 <button 
                     type="submit" 
-                    className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}
+                    className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow text-xs font-semibold uppercase tracking-wider`}
                 >
                     Commit Changes
                     <Icon name="save" className="text-lg transition-transform group-hover:translate-x-1" />

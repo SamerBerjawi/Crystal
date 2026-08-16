@@ -238,16 +238,16 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                 <div className={SELECT_WRAPPER_STYLE}>
                     <select value={updatedValues.category} onChange={e => handleChange('category', e.target.value)} className={`${SELECT_STYLE} h-11 pl-4 cursor-pointer`} >
                          <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="" disabled>Select a category</option>
-                         <optgroup className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-[10px]  tracking-[0.2em] h-10" label="Outgoing"></optgroup>
+                         <optgroup className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-xs uppercase tracking-wider h-10" label="Outgoing"></optgroup>
                          <CategoryOptions categories={expenseCategories} />
-                         <optgroup className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-[10px]  tracking-[0.2em] h-10" label="Incoming"></optgroup>
+                         <optgroup className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-semibold text-xs uppercase tracking-wider h-10" label="Incoming"></optgroup>
                          <CategoryOptions categories={incomeCategories} />
                     </select>
                     <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                 </div>
                  <div className="flex gap-2.5 items-start mt-4 p-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
-                     <Icon name="warning" className="text-[18px] text-orange-600 dark:text-orange-400 mt-0.5" />
-                     <p className="text-[11px] text-orange-800 dark:text-orange-300 leading-relaxed font-bold  tracking-tight">Type conversion alert: Categorizing as income will flip expense amounts to positive.</p>
+                     <Icon name="warning" className="text-base text-orange-600 dark:text-orange-400 mt-0.5" />
+                     <p className="text-xs text-orange-800 dark:text-orange-300 leading-relaxed font-semibold">Type conversion alert: Categorizing as income will flip expense amounts to positive.</p>
                  </div>
             </CheckboxField>
             
@@ -260,7 +260,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                     >
                         {selectedTags.length > 0 ? (
                             selectedTags.map(tag => (
-                                <span key={tag.id} className="flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full border border-black/5 dark:border-white/10 font-bold" style={{ backgroundColor: `${tag.color}25`, color: tag.color }}>
+                                <span key={tag.id} className="flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full border border-black/5 dark:border-white/10 font-semibold" style={{ backgroundColor: `${tag.color}25`, color: tag.color }}>
                                     {tag.name}
                                     <button
                                         type="button"
@@ -287,12 +287,12 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                                         className={CHECKBOX_STYLE}
                                     />
                                     <div className="flex-1 flex justify-between items-center">
-                                       <span className="text-sm font-semibold text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors  tracking-tight">{tag.name}</span>
+                                       <span className="text-sm font-semibold text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors tracking-tight">{tag.name}</span>
                                        <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: tag.color }} />
                                     </div>
                                 </label>
                             )) : (
-                              <div className="p-4 text-center text-xs font-bold text-gray-400  tracking-widest leading-loose">No tags found.<br/>Create one in Settings first.</div>
+                              <div className="p-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider leading-loose">No tags found.<br/>Create one in Settings first.</div>
                             )}
                         </div>
                     )}
@@ -323,7 +323,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                         }}
                         placeholder="Search address or business (leave empty to clear)"
                     />
-                    <p className="text-[11px] text-gray-400 mt-1 pl-1">Leave empty to remove location from all selected transactions.</p>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 pl-1">Leave empty to remove location from all selected transactions.</p>
                 </div>
             </CheckboxField>
 

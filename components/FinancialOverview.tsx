@@ -42,20 +42,20 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                         <div className="flex-1">
                              <div className="flex items-center gap-2 mb-1">
                                 <Icon name="Bank" className="text-primary-500 text-sm" />
-                                 <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Net worth</span>
+                                 <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Net worth</span>
                             </div>
                             <h2 className="text-3xl sm:text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter privacy-blur truncate leading-tight">
                                 {formatCurrency(netWorth, currency as Currency)}
                             </h2>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                <p className="text-[9px] font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80 tracking-wider">Verified balance</p>
+                                <p className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80 tracking-wider">Verified balance</p>
                             </div>
                         </div>
 
                         <div className={`px-3 py-2 rounded-2xl border backdrop-blur-xl flex flex-col items-center justify-center min-w-[75px] shadow-sm self-end sm:self-auto ${isPositiveNet ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
                             <span className="text-xl font-semibold leading-none">{Math.abs(savingsRate).toFixed(0)}%</span>
-                            <span className="text-[8px] font-semibold tracking-wider mt-1 opacity-80 whitespace-nowrap">
+                            <span className="text-2xs font-semibold uppercase tracking-wider mt-1 opacity-80 whitespace-nowrap">
                                 {savingsRate >= 0 ? 'Savings' : 'Burn'} rate
                             </span>
                         </div>
@@ -66,22 +66,22 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                  <div className="grid grid-cols-3 divide-x divide-black/5 dark:divide-white/5 border-b border-black/5 dark:border-white/5 flex-grow min-h-[100px]">
                      {/* Flow */}
                      <div className="p-3 sm:p-4 flex flex-col justify-center">
-                         <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>
+                         <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5 block">Net flow</span>
                          <h3 className={`text-sm sm:text-xl font-bold tracking-tighter privacy-blur leading-none ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`}>
                              {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true, compact: true })}
                          </h3>
                          <div className="mt-2 flex items-center gap-1.5">
-                             <Icon name={isPositiveNet ? 'trending_up' : 'trending_down'} className={`text-[10px] sm:text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`} />
-                             <span className="text-[7px] sm:text-[8px] font-semibold tracking-wider opacity-40">{isPositiveNet ? 'Surplus' : 'Deficit'}</span>
+                             <Icon name={isPositiveNet ? 'trending_up' : 'trending_down'} className={`text-xs ${isPositiveNet ? 'text-emerald-500' : 'text-rose-500'}`} />
+                             <span className="text-2xs font-semibold uppercase tracking-wider opacity-60">{isPositiveNet ? 'Surplus' : 'Deficit'}</span>
                          </div>
                      </div>
                      
                      {/* Income */}
                      <div className="p-3 sm:p-4 flex flex-col justify-center group/stat hover:bg-emerald-500/[0.02] transition-colors relative overflow-hidden">
                         <div className="flex justify-between items-center mb-1.5 relative z-10">
-                             <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Revenue</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Revenue</span>
                         </div>
-                        <p className="text-sm sm:text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
+                        <p className="text-sm sm:text-xl font-bold text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
                             {formatCurrency(income, currency as Currency, { compact: true })}
                         </p>
                         <div className="h-4 sm:h-6 w-full mt-2 sm:mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
@@ -96,9 +96,9 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                      {/* Expenses */}
                      <div className="p-3 sm:p-4 flex flex-col justify-center group/stat hover:bg-rose-500/[0.02] transition-colors relative overflow-hidden">
                         <div className="flex justify-between items-center mb-1.5 relative z-10">
-                             <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Outflow</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Outflow</span>
                         </div>
-                        <p className="text-sm sm:text-xl font-black text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
+                        <p className="text-sm sm:text-xl font-bold text-light-text dark:text-dark-text privacy-blur relative z-10 leading-none">
                             {formatCurrency(expenses, currency as Currency, { compact: true })}
                         </p>
                         <div className="h-4 sm:h-6 w-full mt-2 sm:mt-3 opacity-30 group-hover/stat:opacity-80 transition-opacity">
@@ -115,11 +115,11 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 <div className="px-6 py-4 bg-black/[0.02] dark:bg-white/[0.01]">
                     <div className="flex justify-between items-center mb-2">
                          <div className="flex items-center gap-2">
-                             <span className="text-[9px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Burn intensity</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90">Burn intensity</span>
                              <div className="w-1 h-1 rounded-full bg-light-text-secondary/20"></div>
-                             <span className={`text-[9px] font-semibold ${flowIntensity > 100 ? 'text-rose-500' : 'text-primary-500'}`}>{flowIntensity.toFixed(0)}%</span>
+                             <span className={`text-xs font-semibold ${flowIntensity > 100 ? 'text-rose-500' : 'text-primary-500'}`}>{flowIntensity.toFixed(0)}%</span>
                          </div>
-                         <span className="text-[8px] font-semibold text-light-text-secondary/40 tracking-wider">Relative to income</span>
+                         <span className="text-xs font-semibold text-light-text-secondary/60 tracking-wider">Relative to income</span>
                     </div>
                     <div className="h-2 w-full bg-black/5 dark:bg-black/20 rounded-full overflow-hidden flex border border-black/5 dark:border-white/5 p-0.5">
                         <div 

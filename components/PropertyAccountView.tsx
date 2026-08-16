@@ -50,16 +50,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                          {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
                 <h4 className="text-2xl font-semibold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[10px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -147,9 +147,9 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className="text-[10px] font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Real estate asset</span>
-                       <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                       <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.address || 'Global Portfolio'}</span>
+                       <span className="text-xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Real estate asset</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.address || 'Global Portfolio'}</span>
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
@@ -172,7 +172,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                     </button>
               )}
               {!isClosed && onCloseAsset && (
-                    <button onClick={onCloseAsset} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-[10px] tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
+                    <button onClick={onCloseAsset} className="h-12 px-6 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-semibold text-xs tracking-wider transition-all shadow-lg shadow-rose-500/5 flex items-center gap-2">
                         <Icon name="sell" className="text-sm" />
                         Record Sale
                     </button>
@@ -217,16 +217,16 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                    
                    <div className="relative z-10">
                         <div className="flex justify-between items-start mb-12">
-                             <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold tracking-wider border border-white/10">
+                             <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold tracking-wider border border-white/10">
                                  {account.propertyType || 'Residential'}
                              </span>
                              <div className="text-right">
-                                  <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Equity ownership</p>
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Equity ownership</p>
                                   <p className="text-3xl font-semibold tabular-nums text-emerald-400">{ownershipPercent.toFixed(0)}%</p>
                              </div>
                         </div>
                         
-                        <p className="text-[10px] font-black tracking-wider text-slate-400 mb-2">Estimated market value</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Estimated market value</p>
                         <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(currentMarketValue, account.currency)}
                         </h2>
@@ -240,7 +240,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                                 />
                                 <div className="absolute inset-y-0 right-0 w-px bg-white/40 h-full"></div>
                             </div>
-                            <div className="flex justify-between items-center text-[10px] font-semibold tracking-wider">
+                            <div className="flex justify-between items-center text-xs font-semibold tracking-wider">
                                 <div className="flex items-center gap-2">
                                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                      <span className="text-slate-400">Net equity:</span>
@@ -257,11 +257,11 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
 
                    <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                        <div>
-                           <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Purchase cost</p>
+                           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Purchase cost</p>
                            <p className="font-semibold text-xl text-white tabular-nums">{formatCurrency(purchasePrice, account.currency)}</p>
                        </div>
                        <div>
-                           <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Internal IRR</p>
+                           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Internal IRR</p>
                            <p className="font-semibold text-xl text-emerald-400 tabular-nums">+{appreciationPercent.toFixed(1)}%</p>
                        </div>
                    </div>
@@ -360,23 +360,23 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
            {/* Detailed Specs */}
            <div className="xl:col-span-8 space-y-8">
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group">
-                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Property architecture</h3>
+                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Property architecture</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
                         <div className="space-y-1">
-                             <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Lot size</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Lot size</p>
                              <p className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">{account.propertySize ? `${account.propertySize} m²` : '—'}</p>
                         </div>
                         <div className="space-y-1">
-                             <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Year built</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Year built</p>
                              <p className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">{account.yearBuilt || '—'}</p>
                         </div>
                         <div className="space-y-1">
-                             <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Floors</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Floors</p>
                              <p className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">{account.floors || '—'}</p>
                         </div>
                         <div className="space-y-1">
-                             <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Bed/bath</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Bed/bath</p>
                              <p className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">{account.bedrooms || '0'}/{account.bathrooms || '0'}</p>
                         </div>
                     </div>
@@ -386,7 +386,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                             {features.map((f, i) => (
                                 <div key={i} className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white dark:bg-dark-fill border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow group/chip">
                                     <Icon name={f.icon} className="text-primary-500 font-light group-hover/chip:scale-110 transition-transform" />
-                                    <span className="text-xs font-bold tracking-wider text-light-text dark:text-dark-text">{f.label}</span>
+                                    <span className="text-xs font-semibold tracking-wider text-light-text dark:text-dark-text">{f.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -397,19 +397,19 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
            {/* Debt & Cashflow Column */}
            <div className="xl:col-span-4 space-y-8">
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-8 group overflow-hidden">
-                     <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
+                     <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Infrastructure Configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                              <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">Asset Genesis</span>
-                              <span className="text-xs font-black text-light-text dark:text-dark-text tracking-tight">{account.purchaseDate ? parseLocalDate(account.purchaseDate).toLocaleDateString() : '—'}</span>
+                              <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Asset Genesis</span>
+                              <span className="text-xs font-semibold text-light-text dark:text-dark-text tracking-tight">{account.purchaseDate ? parseLocalDate(account.purchaseDate).toLocaleDateString() : '—'}</span>
                          </div>
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                              <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">Settlement Engine</span>
-                              <span className="text-xs font-black text-light-text dark:text-dark-text tracking-tight">{account.currency}</span>
+                              <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Settlement Engine</span>
+                              <span className="text-xs font-semibold text-light-text dark:text-dark-text tracking-tight">{account.currency}</span>
                          </div>
                          <div className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                              <span className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">Logical Serial</span>
-                              <span className="text-xs font-black text-light-text dark:text-dark-text tracking-tight font-mono opacity-60 break-all">{account.id.slice(0, 8)}</span>
+                              <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80 ">Logical Serial</span>
+                              <span className="text-xs font-semibold text-light-text dark:text-dark-text tracking-tight font-mono opacity-60 break-all">{account.id.slice(0, 8)}</span>
                          </div>
                      </div>
                 </div>
@@ -422,8 +422,8 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                          <div className="flex justify-between items-start mb-8">
                              <div>
                                  <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Active mortgage</h3>
-                                 <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
-                                     Loan profile <Icon name="arrow_forward" className="text-[12px]" />
+                                 <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
+                                     Loan profile <Icon name="arrow_forward" className="text-xs" />
                                  </button>
                              </div>
                              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
@@ -432,15 +432,15 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                          </div>
                          <div className="space-y-6">
                               <div className="flex justify-between items-center">
-                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Principal owed</span>
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Principal owed</span>
                                   <span className="font-semibold text-rose-500 tabular-nums">{formatCurrency(outstandingLoanBalance, linkedLoan.currency)}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Rate</span>
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Rate</span>
                                   <span className="font-semibold text-light-text dark:text-dark-text tabular-nums">{linkedLoan.interestRate}% APR</span>
                               </div>
                               <div className="flex justify-between items-center pt-6 border-t border-black/5 dark:border-white/5">
-                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Monthly impact</span>
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Monthly impact</span>
                                   <span className="font-semibold text-light-text dark:text-dark-text tabular-nums">{linkedLoan.monthlyPayment ? formatCurrency(linkedLoan.monthlyPayment, linkedLoan.currency) : 'N/A'}</span>
                               </div>
                          </div>
@@ -448,7 +448,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                 ) : (
                     <div className="h-full min-h-[200px] rounded-[2.5rem] border-4 border-dashed border-black/5 dark:border-white/5 flex flex-col items-center justify-center text-center p-8 grayscale opacity-40">
                          <Icon name="account_balance" className="text-4xl mb-2 font-light" />
-                         <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">No Mortgage Link</p>
+                         <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">No Mortgage Link</p>
                     </div>
                 )}
            </div>

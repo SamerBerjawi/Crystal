@@ -14,36 +14,36 @@ const CategoryBadge: React.FC<{ category: AddressData['category'] }> = ({ catego
   switch (category) {
     case 'business':
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
-          <Icon name="shopping_bag" className="text-[10px]" />
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
+          <Icon name="shopping_bag" className="text-xs" />
           <span>Business</span>
         </span>
       );
     case 'building':
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
-          <Icon name="home" className="text-[10px]" />
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0">
+          <Icon name="home" className="text-xs" />
           <span>Building</span>
         </span>
       );
     case 'street':
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-          <Icon name="marker_pin" className="text-[10px]" />
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+          <Icon name="marker_pin" className="text-xs" />
           <span>Street</span>
         </span>
       );
     case 'city':
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
-          <Icon name="globe" className="text-[10px]" />
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+          <Icon name="globe" className="text-xs" />
           <span>City</span>
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
-          <Icon name="map" className="text-[10px]" />
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+          <Icon name="map" className="text-xs" />
           <span>Area</span>
         </span>
       );
@@ -229,15 +229,15 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                       {item.title}
                     </p>
                     {item.country && (
-                      <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 shrink-0">
+                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 shrink-0">
                         • {item.country}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 opacity-80 leading-normal">
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 opacity-80 leading-normal">
                     {item.subtitle}
                   </p>
-                  <p className="text-[9px] font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-50 mt-0.5">
+                  <p className="text-xs font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-50 mt-0.5">
                     {item.lat.toFixed(4)}°, {item.lon.toFixed(4)}°
                   </p>
                 </div>

@@ -45,7 +45,7 @@ export const RuleSimulator: React.FC<RuleSimulatorProps> = ({ rule, sampleTransa
 
       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
         Matched <span className="font-bold text-primary-500">{matches.length}</span> transaction(s) out of {sampleTransactions.length} sample records.{' '}
-        <span className="font-mono text-[10px] bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500">{logic} logic</span>
+        <span className="font-mono text-2xs uppercase tracking-wider bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500 font-semibold">{logic} logic</span>
       </p>
 
       {matches.length > 0 && (

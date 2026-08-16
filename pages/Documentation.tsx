@@ -26,7 +26,7 @@ const sections: Section[] = [
         iconColor: 'text-blue-500',
         content: (
             <div className="space-y-6">
-                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
                     Crystal operates as a high-fidelity financial telemetry system. Initialization allows you to establish a secure data perimeter and define your primary currency standards.
                 </p>
                 
@@ -35,15 +35,15 @@ const sections: Section[] = [
                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                             <Icon name="lock" className="text-xl" />
                         </div>
-                        <h4 className="font-bold text-[10px] tracking-tight opacity-40">Security Protocol</h4>
-                        <p className="text-xs font-bold leading-relaxed">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Security Protocol</h4>
+                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">Establish a baseline using <strong>Demo Mode</strong> to simulate ledger operations, or register a persistent cloud node for live data tracking.</p>
                     </div>
                     <div className="bg-black/[0.02] dark:bg-white/[0.02] p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
                             <Icon name="database" className="text-xl" />
                         </div>
-                        <h4 className="font-bold text-[10px] tracking-tight opacity-40">Local Persistence</h4>
-                        <p className="text-xs font-bold leading-relaxed">By default, all telemetry resides within your browser's encrypted sandbox. No data leaves your secure perimeter unless explicitly synchronized.</p>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Local Persistence</h4>
+                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">By default, all telemetry resides within your browser's encrypted sandbox. No data leaves your secure perimeter unless explicitly synchronized.</p>
                     </div>
                 </div>
             </div>
@@ -56,7 +56,7 @@ const sections: Section[] = [
         iconColor: 'text-purple-500',
         content: (
             <div className="space-y-6">
-                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
                     The Dashboard serves as your multi-dimensional Command Center. It provides real-time visualization of your financial state through a modular, widget-based architecture.
                 </p>
                 <div className="space-y-4">
@@ -66,10 +66,10 @@ const sections: Section[] = [
                         { title: 'Heatmap Telemetry', desc: 'Visualize spending density through geographic and categorical heatmaps for instant pattern recognition.' }
                     ].map((item, i) => (
                         <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                            <div className="w-8 h-8 rounded-lg bg-purple-500 text-white flex items-center justify-center font-black text-[10px] shrink-0">0{i+1}</div>
+                            <div className="w-8 h-8 rounded-lg bg-purple-500 text-white flex items-center justify-center font-semibold text-xs shrink-0">0{i+1}</div>
                             <div>
-                                <h4 className="text-[11px] font-bold tracking-tight mb-1">{item.title}</h4>
-                                <p className="text-xs font-bold opacity-60 leading-relaxed">{item.desc}</p>
+                                <h4 className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text mb-1">{item.title}</h4>
+                                <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{item.desc}</p>
                             </div>
                         </div>
                     ))}
@@ -84,17 +84,17 @@ const sections: Section[] = [
         iconColor: 'text-orange-500',
         content: (
             <div className="space-y-6">
-                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
                     Organize your data using two distinct logical layers: Hierarchical Categories (Taxonomy) and Flat Labels (Semantics).
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold tracking-tight text-primary-500">Taxonomy (Categories)</h4>
-                        <p className="text-xs font-bold leading-relaxed opacity-70">Strict parent-child relationships. Use for primary structure like "Housing &gt; Rent" or "Transportation &gt; Fuel".</p>
+                        <h4 className="text-sm font-semibold tracking-tight text-primary-600 dark:text-primary-400">Taxonomy (Categories)</h4>
+                        <p className="text-xs font-normal leading-relaxed text-light-text-secondary dark:text-dark-text-secondary">Strict parent-child relationships. Use for primary structure like "Housing &gt; Rent" or "Transportation &gt; Fuel".</p>
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold tracking-tight text-orange-500">Semantics (Tags)</h4>
-                        <p className="text-xs font-bold leading-relaxed opacity-70">Multi-dimensional overlays. Apply #vacation, #business, or #trip-2024 to cluster data across different taxonomic branches.</p>
+                        <h4 className="text-sm font-semibold tracking-tight text-orange-600 dark:text-orange-400">Semantics (Tags)</h4>
+                        <p className="text-xs font-normal leading-relaxed text-light-text-secondary dark:text-dark-text-secondary">Multi-dimensional overlays. Apply #vacation, #business, or #trip-2024 to cluster data across different taxonomic branches.</p>
                     </div>
                 </div>
             </div>
@@ -107,7 +107,7 @@ const sections: Section[] = [
         iconColor: 'text-indigo-500',
         content: (
             <div className="space-y-6">
-                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
                     Crystal identifies and profiles transaction entities automatically. It builds a history of interaction with specific merchants to provide better categorization and recurring payment detection.
                 </p>
                 <div className="bg-black/5 dark:bg-white/5 p-6 rounded-3xl">
@@ -118,8 +118,8 @@ const sections: Section[] = [
                             { icon: 'zap', text: 'Recurring Pattern Signal' },
                             { icon: 'sliders', text: 'Custom Aggregation Rules' }
                         ].map((item, i) => (
-                            <li key={i} className="flex items-center gap-3 text-xs font-bold  tracking-widest opacity-80">
-                                <Icon name={item.icon} className="text-[18px] opacity-40" />
+                            <li key={i} className="flex items-center gap-3 text-xs font-medium text-light-text dark:text-dark-text">
+                                <Icon name={item.icon} className="text-lg opacity-60" />
                                 {item.text}
                             </li>
                         ))}
@@ -135,17 +135,17 @@ const sections: Section[] = [
         iconColor: 'text-emerald-500',
         content: (
             <div className="space-y-6">
-                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
                     Total control over your data nodes. Crystal provides granular tools for exporting and restoring your financial history.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                        <h4 className="text-[10px] font-bold tracking-tight opacity-40">Granular Export</h4>
-                        <p className="text-xs font-bold leading-relaxed">Extract specific vectors: Accounts, Transactions, Budgets, or Schema patterns. Available in high-density JSON or interoperable CSV formats.</p>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Granular Export</h4>
+                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">Extract specific vectors: Accounts, Transactions, Budgets, or Schema patterns. Available in high-density JSON or interoperable CSV formats.</p>
                     </div>
                     <div className="p-6 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
-                        <h4 className="text-[10px] font-bold tracking-tight opacity-40">Merge Restorations</h4>
-                        <p className="text-xs font-bold leading-relaxed">Import data without data loss. Use the "Merge" protocol to combine external backup nodes with your current state, resolving conflicts through ID matching.</p>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">Merge Restorations</h4>
+                        <p className="text-sm font-normal leading-relaxed text-light-text dark:text-dark-text">Import data without data loss. Use the "Merge" protocol to combine external backup nodes with your current state, resolving conflicts through ID matching.</p>
                     </div>
                 </div>
             </div>
@@ -158,7 +158,7 @@ const sections: Section[] = [
         iconColor: 'text-blue-600',
         content: (
             <div className="space-y-6">
-                <p className="text-[14px] leading-relaxed opacity-80 font-medium">
+                <p className="text-base leading-relaxed text-light-text-secondary dark:text-dark-text-secondary font-normal">
                     The Action Board is a telemetric task management system designed to track operational chores, follow-ups, and systemic obligations.
                 </p>
                 <div className="space-y-4">
@@ -168,10 +168,10 @@ const sections: Section[] = [
                         { title: 'Priority Signals', desc: 'Assign "High", "Medium", or "Low" priority signals to ensure critical latency items are addressed first.' }
                     ].map((item, i) => (
                         <div key={i} className="flex gap-4 p-4 rounded-2xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5">
-                            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shrink-0">0{i+1}</div>
+                            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-semibold text-xs shrink-0">0{i+1}</div>
                             <div>
-                                <h4 className="text-[11px] font-bold tracking-tight mb-1">{item.title}</h4>
-                                <p className="text-xs font-bold opacity-60 leading-relaxed">{item.desc}</p>
+                                <h4 className="text-sm font-semibold tracking-tight text-light-text dark:text-dark-text mb-1">{item.title}</h4>
+                                <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{item.desc}</p>
                             </div>
                         </div>
                     ))}
@@ -237,7 +237,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                 {/* Sticky Navigation Sidebar */}
                 <aside className="hidden lg:block w-72 flex-shrink-0">
                     <div className="sticky top-24 space-y-2 p-2 bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl border border-black/5 dark:border-white/5">
-                        <p className="px-4 py-4 text-[9px] font-black  tracking-[0.2em] opacity-40">
+                        <p className="px-4 py-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                             Manual Index
                         </p>
                         {sections.map(section => (
@@ -251,7 +251,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                 }`}
                             >
                                 <Icon name={section.icon} className={`text-xl transition-all ${activeSection === section.id ? 'scale-110' : 'opacity-40 scale-90'}`} />
-                                <span className="text-[11px] font-black  tracking-widest">{section.title}</span>
+                                <span className="text-xs font-semibold tracking-wide">{section.title}</span>
                             </button>
                         ))}
                     </div>
@@ -263,7 +263,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                         <button
                             key={section.id}
                             onClick={() => scrollToSection(section.id)}
-                            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black  tracking-widest whitespace-nowrap transition-all ${
+                            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-xs font-semibold tracking-wide whitespace-nowrap transition-all ${
                                 activeSection === section.id
                                     ? 'bg-primary-500 text-white shadow-xl shadow-primary-500/20'
                                     : 'bg-black/5 dark:bg-white/5 text-light-text-secondary'
@@ -289,7 +289,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                         <Icon name={section.icon} className="text-3xl" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold tracking-[0.2em] text-light-text dark:text-dark-text">{section.title}</h2>
+                                        <h2 className="text-xl md:text-2xl font-semibold tracking-tight leading-snug text-light-text dark:text-dark-text">{section.title}</h2>
                                         <div className="h-1 w-12 bg-primary-500 mt-2 rounded-full transform origin-left group-hover:scale-x-150 transition-transform"></div>
                                     </div>
                                 </div>
@@ -303,7 +303,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                     <div className="flex justify-center pt-8">
                         <button 
                             onClick={handleBackToTop}
-                            className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-[11px] font-black  tracking-widest shadow-sm"
+                            className="group flex items-center gap-4 px-10 py-5 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider shadow-sm"
                         >
                             <Icon name="arrow_upward" className="group-hover:-translate-y-1 transition-transform" />
                             Scroll to Origin

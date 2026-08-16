@@ -44,12 +44,12 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
     <div className="flex flex-col h-full justify-between">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80">Survival runway</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Survival runway</span>
           <h2 className="text-4xl font-semibold text-light-text dark:text-dark-text mt-1">
             {runway >= 99 ? '∞' : runway.toFixed(1)} <span className="text-lg font-medium opacity-40">Months</span>
           </h2>
         </div>
-        <div className={`px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider flex items-center gap-1.5 ${status.color} shadow-sm`}>
+        <div className={`px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider flex items-center gap-1.5 ${status.color} shadow-sm`}>
           <Icon name={status.icon} className="text-sm" />
           {status.label}
         </div>
@@ -74,14 +74,14 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
               className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 transition-all duration-1000 rounded-full"
             ></div>
           </div>
-          <div className="flex justify-between text-[9px] font-semibold tracking-wider text-gray-400 dark:text-gray-500">
+          <div className="flex justify-between text-2xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             <span>Critical (0m)</span>
             <span>Stable (12m+)</span>
           </div>
         </div>
       </div>
       
-      <p className="text-[10px] leading-tight text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-4 font-medium italic">
+      <p className="text-xs leading-normal text-light-text-secondary dark:text-dark-text-secondary mt-4 font-normal italic">
         Based on your current burn rate, this is how long you can maintain your lifestyle without any new income.
       </p>
     </div>

@@ -109,12 +109,12 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
                 <div className={`absolute inset-0 bg-gradient-to-b ${styles.bg} opacity-50`}></div>
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl"></div>
 
-                {/* Icon Medal */}
+                 {/* Icon Medal */}
                 <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${styles.iconBg} text-white shadow-md transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
                     <Icon name={badge.icon} className="text-3xl drop-shadow-md" />
                     <div className="absolute -bottom-2 -right-2 bg-white dark:bg-dark-card rounded-full p-1 shadow-sm">
                          <div className="bg-green-500 rounded-full w-5 h-5 flex items-center justify-center">
-                            <Icon name="check" className="text-[12px] font-bold text-white" />
+                            <Icon name="check" className="text-xs font-bold text-white" />
                          </div>
                     </div>
                 </div>
@@ -130,7 +130,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
                     <div className="w-full h-1.5 bg-gray-100 dark:bg-black/20 rounded-full overflow-hidden">
                         <div className={`h-full ${styles.iconBg} w-full`}></div>
                     </div>
-                     <p className={`text-[9px] font-bold  tracking-wider text-center mt-1.5 ${styles.text}`}>Completed</p>
+                     <p className={`text-xs font-semibold uppercase tracking-wider text-center mt-1.5 ${styles.text}`}>Completed</p>
                 </div>
             </div>
         );
@@ -154,7 +154,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
 
             {/* Progress Bar */}
              <div className="w-full mt-4 opacity-50 group-hover:opacity-80 transition-opacity">
-                <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 mb-1  tracking-wide">
+                <div className="flex justify-between text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">
                     <span>Locked</span>
                     <span>{Math.round(Math.min(100, badge.progress))}%</span>
                 </div>
@@ -287,7 +287,7 @@ const PersonalBestLeaderboard: React.FC<{
                          </div>
                      ))}
                  </div>
-                 <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-4">
+                 <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-4">
                     Records are calculated from analytics-enabled accounts, rolling backward from today for up to 60 months.
                  </p>
              </div>
@@ -321,7 +321,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
         <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md group`}>
             {isDefeated && (
                 <div className="absolute inset-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center animate-fade-in-up">
-                    <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-black text-xl  tracking-widest">
+                    <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-bold text-lg tracking-wide">
                         Defeated!
                     </div>
                 </div>
@@ -335,15 +335,15 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                             <Icon name={boss.icon} className="text-2xl" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-base text-light-text dark:text-dark-text leading-tight line-clamp-1">{boss.name}</h3>
-                            <span className={`text-[10px] font-bold  tracking-wider text-${config.color}-600 dark:text-${config.color}-400 mt-1 block`}>
+                            <h3 className="font-semibold text-base text-light-text dark:text-dark-text leading-tight line-clamp-1">{boss.name}</h3>
+                            <span className={`text-xs font-semibold text-${config.color}-600 dark:text-${config.color}-400 mt-1 block`}>
                                 Lvl {boss.level} {config.label}
                             </span>
                         </div>
                     </div>
                     <div className="text-right">
-                         <span className="block text-2xl font-black text-light-text dark:text-dark-text leading-none">{healthPercent.toFixed(0)}%</span>
-                         <span className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary">HP Left</span>
+                         <span className="block text-2xl font-bold text-light-text dark:text-dark-text leading-none">{healthPercent.toFixed(0)}%</span>
+                         <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">HP Left</span>
                     </div>
                 </div>
 
@@ -354,7 +354,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                         style={{ width: `${Math.min(100, healthPercent)}%` }}
                     ></div>
                 </div>
-                <div className="flex justify-between text-[10px] font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                <div className="flex justify-between text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary">
                     <span>{formatCurrency(boss.currentHp, currency)}</span>
                     <span>{formatCurrency(boss.maxHp, currency)}</span>
                 </div>
@@ -365,7 +365,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                 <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">Recent Hits</span>
                 <div className="flex gap-1">
                      {boss.hits.slice(0, 3).map((hit, idx) => (
-                        <span key={idx} className="bg-white dark:bg-black/20 border border-black/5 dark:border-white/10 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                        <span key={idx} className="bg-white dark:bg-black/20 border border-black/5 dark:border-white/10 px-1.5 py-0.5 rounded text-xs font-mono">
                             -{formatCurrency(hit.amount, currency)}
                         </span>
                     ))}
@@ -376,31 +376,40 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
     );
 };
 
-// --- Mastery Card ---
-const MasteryCard: React.FC<{ 
-    categoryName: string; 
-    spent: number; 
-    budget: number; 
-    level: number; 
-    title: string; 
+interface CategoryMasteryProps {
+    categoryName: string;
     icon: string;
+    spent: number;
+    budget: number;
+    level: number;
     categoryColor: string;
-}> = ({ categoryName, spent, budget, level, title, icon, categoryColor }) => {
+}
+
+const CategoryMasteryCard: React.FC<CategoryMasteryProps> = ({
+    categoryName,
+    icon,
+    spent,
+    budget,
+    level,
+    categoryColor
+}) => {
+    const isOverBudget = spent > budget && budget > 0;
     const ratio = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
-    const isMaster = level === 4;
-    const isOverBudget = spent > budget;
+    const isMaster = level >= 5;
 
-    // Define styles based on level
-    const levelStyles = [
-        { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700', text: 'text-gray-500', shadow: '' }, // Lvl 0
-        { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', text: 'text-blue-600', shadow: 'shadow-blue-500/10' }, // Lvl 1
-        { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-200 dark:border-indigo-800', text: 'text-indigo-600', shadow: 'shadow-indigo-500/20' }, // Lvl 2
-        { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-600', shadow: 'shadow-amber-500/20' }, // Lvl 3
-        { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', text: 'text-purple-600', shadow: 'shadow-purple-500/20' }, // Lvl 4
-    ];
+    // Visual Style by Tier
+    const getLevelStyle = () => {
+        if (level === 1) return { border: 'border-amber-700/20 dark:border-amber-700/30', bg: 'bg-gradient-to-b from-amber-700/5 to-transparent', text: 'text-amber-800 dark:text-amber-600', shadow: 'shadow-amber-900/5' };
+        if (level === 2) return { border: 'border-slate-400/20 dark:border-slate-400/30', bg: 'bg-gradient-to-b from-slate-400/5 to-transparent', text: 'text-slate-600 dark:text-slate-300', shadow: 'shadow-slate-500/5' };
+        if (level === 3) return { border: 'border-yellow-500/30 dark:border-yellow-500/40', bg: 'bg-gradient-to-b from-yellow-500/10 to-transparent', text: 'text-yellow-600 dark:text-yellow-400', shadow: 'shadow-yellow-500/10' };
+        if (level === 4) return { border: 'border-cyan-400/30 dark:border-cyan-400/40', bg: 'bg-gradient-to-b from-cyan-400/10 to-transparent', text: 'text-cyan-600 dark:text-cyan-400', shadow: 'shadow-cyan-500/10' };
+        return { border: 'border-purple-500/40 dark:border-purple-500/50', bg: 'bg-gradient-to-b from-purple-500/15 to-transparent', text: 'text-purple-600 dark:text-purple-400', shadow: 'shadow-purple-500/20' };
+    };
 
-    const style = levelStyles[level] || levelStyles[0];
-    const ringColor = isOverBudget ? '#ef4444' : categoryColor;
+    const style = getLevelStyle();
+    const ringColor = isOverBudget ? '#ef4444' : categoryColor || '#3b82f6';
+    const titles = ['Novice', 'Apprentice', 'Adept', 'Expert', 'Master'];
+    const title = titles[Math.min(titles.length - 1, Math.max(0, level - 1))];
 
     return (
         <div className={`relative overflow-hidden rounded-3xl p-6 border ${style.border} ${style.bg} ${style.shadow} transition-all duration-500 hover:scale-[1.02] hover:shadow-lg group flex flex-col items-center`}>
@@ -408,7 +417,7 @@ const MasteryCard: React.FC<{
             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 pointer-events-none"></div>
             
             {/* Level Badge */}
-            <div className={`absolute top-4 right-4 text-[10px] font-black  tracking-widest px-2 py-1 rounded-full bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md ${style.text}`}>
+            <div className={`absolute top-4 right-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md ${style.text}`}>
                 Lvl {level}
             </div>
 
@@ -442,24 +451,24 @@ const MasteryCard: React.FC<{
                 </div>
 
                 {isMaster && (
-                    <div className="absolute -bottom-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-20 flex items-center gap-1">
-                        <Icon name="stars" className="text-[10px]" /> MAX
+                    <div className="absolute -bottom-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full shadow-sm z-20 flex items-center gap-1">
+                        <Icon name="stars" className="text-xs" /> MAX
                     </div>
                 )}
             </div>
 
             {/* Title & Stats */}
-            <h3 className="font-bold text-lg text-light-text dark:text-dark-text mb-1 text-center">{categoryName}</h3>
-            <p className={`text-xs font-bold  tracking-wider mb-4 ${style.text}`}>{title}</p>
+            <h3 className="font-semibold text-lg text-light-text dark:text-dark-text mb-1 text-center">{categoryName}</h3>
+            <p className={`text-xs font-semibold tracking-wider mb-4 ${style.text}`}>{title}</p>
             
             <div className="w-full bg-white/50 dark:bg-black/20 rounded-xl p-3 flex justify-between items-center text-sm">
                 <div className="text-left">
-                    <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary ">Spent</span>
+                    <span className="block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">Spent</span>
                     <span className={`font-mono font-bold ${isOverBudget ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(spent, 'EUR')}</span>
                 </div>
                 <div className="h-8 w-px bg-black/5 dark:bg-white/10 mx-2"></div>
                 <div className="text-right">
-                     <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary ">Limit</span>
+                     <span className="block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">Limit</span>
                     <span className="font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(budget, 'EUR')}</span>
                 </div>
             </div>
@@ -933,7 +942,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                       <button
                           key={item.id}
                           onClick={() => setActiveSection(item.id as ChallengeSection)}
-                          className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black  tracking-widest transition-all duration-300 whitespace-nowrap flex-1 justify-center
+                          className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 whitespace-nowrap flex-1 justify-center
                               ${isActive 
                                   ? 'bg-white dark:bg-gray-800 text-primary-500 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] dark:shadow-black/50 scale-[1.02]' 
                                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 opacity-60'
@@ -1017,10 +1026,11 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           )}
 
           {activeSection === 'sprints' && (
-               <div className="space-y-8 animate-fade-in-up">
+               <div className="space-y-10 animate-fade-in-up">
+                   {/* Active Sprints */}
                    {processedSprints.length > 0 && (
                        <div>
-                           <h3 className="text-sm font-bold tracking-tight text-cyan-600 dark:text-cyan-400 mb-4 border-b border-cyan-200 dark:border-cyan-900/30 pb-2">Active Sprints</h3>
+                           <h3 className="text-sm font-semibold tracking-tight text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Active Protocols</h3>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                {processedSprints.map(s => (
                                    <Card key={s.id} className="relative overflow-hidden border border-cyan-200 dark:border-cyan-800">
@@ -1030,8 +1040,8 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                                     <Icon name={s.icon} className="text-xl" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-light-text dark:text-dark-text">{s.title}</h4>
-                                                    <span className={`text-[10px] font-bold  px-2 py-0.5 rounded-full ${s.status === 'failed' ? 'bg-red-100 text-red-600' : s.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{s.status}</span>
+                                                    <h4 className="font-semibold text-light-text dark:text-dark-text">{s.title}</h4>
+                                                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${s.status === 'failed' ? 'bg-red-100 text-red-600' : s.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{s.status}</span>
                                                 </div>
                                             </div>
                                        </div>
@@ -1055,18 +1065,18 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                    )}
                    
                    <div>
-                       <h3 className="text-sm font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Available Challenges</h3>
+                       <h3 className="text-sm font-semibold tracking-tight text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Available Challenges</h3>
                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                            {SAVINGS_SPRINTS.filter(s => !activeSprints.some(a => a.id === s.id)).map(sprint => (
                                <Card key={sprint.id} className="hover:shadow-md transition-shadow group cursor-pointer" onClick={() => handleStartSprint(sprint.id)}>
                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white mb-4 shadow-md bg-${sprint.color}-500 group-hover:scale-110 transition-transform`}>
                                        <Icon name={sprint.icon} className="text-2xl" />
                                    </div>
-                                   <h4 className="font-bold text-light-text dark:text-dark-text mb-1">{sprint.title}</h4>
+                                   <h4 className="font-semibold text-light-text dark:text-dark-text mb-1">{sprint.title}</h4>
                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-2">{sprint.description}</p>
                                    <div className="flex justify-between items-center mt-auto pt-3 border-t border-black/5 dark:border-white/5">
-                                       <span className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary">{sprint.durationDays} Days</span>
-                                       <span className="text-xs font-bold text-primary-500">Start</span>
+                                       <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">{sprint.durationDays} Days</span>
+                                       <span className="text-xs font-semibold text-primary-500">Start</span>
                                    </div>
                                </Card>
                            ))}

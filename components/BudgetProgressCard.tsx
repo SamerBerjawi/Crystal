@@ -29,9 +29,9 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
               }} />
           </div>
           <div>
-            <h4 className="font-bold text-[13px] tracking-tight text-light-text dark:text-dark-text leading-none mb-1">{category.name}</h4>
-            <div className="flex items-center gap-1.5 opacity-40">
-                <span className="text-[9px] font-bold tracking-wider leading-none">Spending Plan</span>
+            <h4 className="font-bold text-sm tracking-tight text-light-text dark:text-dark-text leading-none mb-1">{category.name}</h4>
+            <div className="flex items-center gap-1.5 opacity-60">
+                <span className="text-2xs font-semibold uppercase tracking-wider leading-none">Spending Plan</span>
             </div>
           </div>
         </div>
@@ -60,13 +60,13 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
           />
         ) : (
           <div className="text-center bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 group-hover:bg-white dark:group-hover:bg-neutral-800 transition-colors">
-            <p className="text-[9px] font-bold tracking-wider opacity-50 dark:opacity-70 mb-2 leading-none">Unscheduled Spending</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-2 leading-none">Unscheduled Spending</p>
             <div className="flex items-center justify-center gap-1">
-                <span className="text-2xl font-black tracking-tighter text-light-text dark:text-dark-text privacy-blur leading-none">€{spent.toLocaleString()}</span>
+                <span className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text privacy-blur leading-none">€{spent.toLocaleString()}</span>
             </div>
             <button 
                 onClick={onEdit}
-                className="mt-3 text-[8px] font-bold tracking-wider text-primary-500 hover:text-primary-600 transition-colors"
+                className="mt-3 text-xs font-bold tracking-wide text-primary-500 hover:text-primary-600 transition-colors"
             >
                 + Set Budget Guide
             </button>

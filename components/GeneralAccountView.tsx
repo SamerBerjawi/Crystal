@@ -80,16 +80,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                          {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary mb-1">{label}</p>
                 <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur">{value}</h4>
-                {subValue && <p className="text-[11px] font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -288,9 +288,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className="text-[10px] font-bold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">{account.type} Asset</span>
-                       <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                       <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
+                       <span className="text-xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">{account.type} Asset</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
                   </div>
                   <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
@@ -333,12 +333,12 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                   )}
                              </div>
                              <div className="text-right">
-                                  <p className="text-[9px] sm:text-[10px] font-bold tracking-wider text-white/60 mb-1">{account.financialInstitution || 'Crystal'}</p>
-                                  <p className="text-[10px] sm:text-xs font-semibold text-white/90 tracking-widest">{account.accountNumber ? `•••• ${account.accountNumber.slice(-4)}` : 'Active'}</p>
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60 mb-1">{account.financialInstitution || 'Crystal'}</p>
+                                  <p className="text-xs font-semibold text-white/90 tracking-wider">{account.accountNumber ? `•••• ${account.accountNumber.slice(-4)}` : 'Active'}</p>
                              </div>
                         </div>
                         
-                        <p className="text-[9px] sm:text-[10px] font-black text-white/70 mb-1 sm:mb-2  tracking-wider">Managed Capital</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-1 sm:mb-2">Managed Capital</p>
                         <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter tabular-nums drop-shadow-lg privacy-blur truncate">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
@@ -346,16 +346,16 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 
                    <div className="relative z-10 pt-6 sm:pt-10 border-t border-white/5 flex justify-between items-end">
                        <div>
-                           <p className="text-[10px] sm:text-[11px] tracking-wider text-white/50 font-bold mb-1 ">Verified Holder</p>
-                           <p className="font-semibold text-xs sm:text-sm text-white tracking-widest truncate max-w-[150px]">{account.cardholderName || account.name}</p>
+                           <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-1">Verified Holder</p>
+                           <p className="font-semibold text-xs sm:text-sm text-white tracking-wider truncate max-w-[150px]">{account.cardholderName || account.name}</p>
                        </div>
-                       <span className="text-[9px] sm:text-[10px] font-bold bg-white/10 px-2 py-1 rounded-lg border border-white/10">{account.currency}</span>
+                       <span className="text-xs font-semibold bg-white/10 px-2 py-1 rounded-lg border border-white/10">{account.currency}</span>
                    </div>
                </div>
 
                {/* Infrastructure Configuration (Integrated with Card Context) */}
                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 group overflow-hidden">
-                   <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8">Infrastructure Configuration</h3>
+                   <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-6 sm:mb-8">Infrastructure Configuration</h3>
                    <div className="space-y-4 sm:space-y-6">
                        {[
                            { label: 'Clearing Institution', value: account.financialInstitution },
@@ -367,8 +367,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                            { label: 'Yield Maturity', value: account.apy ? `${account.apy}% APY` : '—' }
                        ].filter(i => i.value).map((item, idx) => (
                            <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-3 sm:pb-4 last:border-0 last:pb-0">
-                               <p className="text-[9px] sm:text-[10px] font-bold tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
-                               <p className={`text-xs sm:text-sm font-black text-light-text dark:text-dark-text tracking-tight shrink-0 ml-4 ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                               <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">{item.label}</p>
+                               <p className={`text-xs sm:text-sm font-semibold text-light-text dark:text-dark-text tracking-tight shrink-0 ml-4 ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                    {item.value}
                                </p>
                            </div>
@@ -421,8 +421,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-full min-h-[600px]">
                     <div className="py-2 px-6 sm:px-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1">Account Ledger</h3>
-                            <p className="text-[9px] sm:text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest ">Complete history of financial flows</p>
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-1">Account Ledger</h3>
+                            <p className="text-xs font-normal text-light-text-secondary/60 dark:text-dark-text-secondary/70">Complete history of financial flows</p>
                         </div>
                     </div>
                     <div className="flex-grow overflow-hidden">
@@ -441,18 +441,18 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
            <div className="xl:col-span-4 flex flex-col gap-8">
                 {/* Upcoming Obligations */}
                 <div className="bg-white dark:bg-dark-card rounded-[2rem] sm:rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-10 group relative overflow-hidden">
-                    <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8">Upcoming Obligations</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-6 sm:mb-8">Upcoming Obligations</h3>
                     <div className="space-y-6">
                         {upcomingPayments.length > 0 ? (
                             upcomingPayments.map((p, idx) => (
                                 <div key={idx} className="flex items-center gap-4 group/item">
                                     <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center border border-transparent group-hover/item:border-primary-500/20 transition-all">
-                                        <span className="text-[9px] font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80 leading-none mb-1">{new Date(p.date).toLocaleString(undefined, { month: 'short' })}</span>
+                                        <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80 leading-none mb-1">{new Date(p.date).toLocaleString(undefined, { month: 'short' })}</span>
                                         <span className="text-lg font-bold leading-none">{new Date(p.date).getDate()}</span>
                                     </div>
                                     <div className="flex-grow min-w-0">
-                                        <p className="text-sm font-bold text-light-text dark:text-dark-text truncate">{p.description}</p>
-                                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest">{p.isRecurring ? 'Recurring' : 'One-time'}</p>
+                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{p.description}</p>
+                                        <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/60">{p.isRecurring ? 'Recurring' : 'One-time'}</p>
                                     </div>
                                     <p className="text-sm font-bold text-rose-500 tabular-nums">-{formatCurrency(p.amount, account.currency)}</p>
                                 </div>
@@ -460,7 +460,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         ) : (
                                 <div className="py-20 flex flex-col items-center justify-center text-center opacity-30">
                                     <Icon name="event_available" className="text-5xl mb-2" />
-                                    <p className="text-[10px] font-semibold tracking-widest">Clear Horizon</p>
+                                    <p className="text-xs font-semibold tracking-wider">Clear Horizon</p>
                                 </div>
                         )}
                     </div>
@@ -469,15 +469,15 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 {/* Interconnected Assets */}
                 {(linkedCreditCards.length > 0 || linkedGoals.length > 0) && (
                     <div className="bg-white dark:bg-dark-card rounded-[2rem] sm:rounded-[2.5rem] border border-black/5 dark:border-white/5 p-6 sm:p-10 group overflow-hidden">
-                        <h3 className="text-[10px] sm:text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-6 sm:mb-8">Interconnected Assets</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-6 sm:mb-8">Interconnected Assets</h3>
                         <div className="space-y-4">
                             {linkedCreditCards.map(c => (
                                 <button key={c.id} onClick={() => setViewingAccountId(c.id)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">
                                     <div className="flex items-center gap-4">
                                         <Icon name="credit_card" className="text-rose-500" />
                                         <div className="text-left">
-                                            <p className="text-sm font-bold text-light-text dark:text-dark-text">{c.name}</p>
-                                            <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60">Liable Shield</p>
+                                            <p className="text-sm font-semibold text-light-text dark:text-dark-text">{c.name}</p>
+                                            <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/60">Liable Shield</p>
                                         </div>
                                     </div>
                                     <Icon name="chevron_right" className="text-light-text-secondary/20 group-hover/link:translate-x-1 transition-transform" />
@@ -489,8 +489,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                         <div className="flex items-center gap-4">
                                             <Icon name="target" className="text-emerald-500" />
                                             <div className="text-left">
-                                                <p className="text-sm font-bold text-light-text dark:text-dark-text">{g.name}</p>
-                                                <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60">Capital Target</p>
+                                                <p className="text-sm font-semibold text-light-text dark:text-dark-text">{g.name}</p>
+                                                <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/60">Capital Target</p>
                                             </div>
                                         </div>
                                         <p className="text-xs font-bold text-emerald-500">{((g.currentAmount / g.amount) * 100).toFixed(0)}%</p>

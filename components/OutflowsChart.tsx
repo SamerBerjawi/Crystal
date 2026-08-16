@@ -64,7 +64,7 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
                       className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 shadow-2xs"
                       style={{ backgroundColor: `${itemColor}20`, color: itemColor }}
                     >
-                      <Icon name={item.icon} className="text-[13px]" />
+                      <Icon name={item.icon} className="text-xs" />
                     </div>
                   ) : (
                     <div
@@ -78,7 +78,7 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] font-medium text-tertiary">
+                  <span className="text-xs font-medium text-tertiary">
                     {percent.toFixed(1)}%
                   </span>
                   <span className="font-mono font-bold text-primary">

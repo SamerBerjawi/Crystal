@@ -132,8 +132,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Icon & Label */}
           <div className={`flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3.5 min-w-0'}`}>
-            <Icon name={item.icon} className={`text-[20px] sm:text-[22px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_10px_currentColor]' : 'group-hover:scale-110 opacity-70'}`} />
-            <span className={`whitespace-nowrap text-[13.5px] font-medium tracking-tight truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden invisible' : 'w-auto opacity-100'}`}>
+            <Icon name={item.icon} className={`text-xl flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_10px_currentColor]' : 'group-hover:scale-110 opacity-70'}`} />
+            <span className={`whitespace-nowrap text-sm font-medium tracking-tight truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden invisible' : 'w-auto opacity-100'}`}>
               {item.name}
             </span>
           </div>
@@ -204,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div key={group.title} className={index > 0 ? 'mt-3' : ''}>
                       {!isSidebarCollapsed && (
                         <div className="px-6 mb-2">
-                          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-[0.2em] uppercase">
+                          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">
                             {group.title}
                           </span>
                         </div>
@@ -232,7 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isPrivacyMode ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400 shadow-lg shadow-primary-500/20' : 'text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/10'}`}
                   title={isPrivacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
                 >
-                  <Icon name={isPrivacyMode ? 'visibility_off' : 'visibility'} className="text-[19px]" />
+                  <Icon name={isPrivacyMode ? 'visibility_off' : 'visibility'} className="text-lg" />
                 </button>
 
                 {/* Theme Toggle */}
@@ -246,7 +246,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300"
                   title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                 >
-                  <Icon name={isSidebarCollapsed ? 'ChevronRight' : 'ChevronLeft'} className="text-[19px]" />
+                  <Icon name={isSidebarCollapsed ? 'ChevronRight' : 'ChevronLeft'} className="text-lg" />
                 </button>
               )}
             </div>
@@ -265,14 +265,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                     >
-                      <Icon name="person" className="text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors" />
+                      <Icon name="person" className="text-lg text-gray-400 group-hover:text-primary-500 transition-colors" />
                       <span className="font-semibold">My Account</span>
                     </button>
                     <button
                       onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                     >
-                      <Icon name="settings" className="text-[19px] text-gray-400 group-hover:text-primary-500 transition-colors" />
+                      <Icon name="settings" className="text-lg text-gray-400 group-hover:text-primary-500 transition-colors" />
                       <span className="font-semibold">Preferences</span>
                     </button>
                     <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-3"></div>
@@ -280,7 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onClick={onLogout}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all duration-200"
                     >
-                      <Icon name="logout" className="text-[19px]" />
+                      <Icon name="logout" className="text-lg" />
                       <span className="font-semibold">Sign Out</span>
                     </button>
                   </motion.div>
@@ -303,16 +303,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className={`flex-grow text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>
                   <p className="font-bold text-sm text-gray-900 dark:text-white truncate tracking-tight">{user.firstName} {user.lastName}</p>
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 truncate tracking-widest uppercase">{user.role}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate tracking-wide uppercase">{user.role}</p>
                 </div>
 
                 {!isSidebarCollapsed && (
-                  <Icon name="unfold_more" className="text-gray-400 text-[18px] mr-1" />
+                  <Icon name="unfold_more" className="text-gray-400 text-lg mr-1" />
                 )}
               </button>
             </div>
             {!isSidebarCollapsed && (
-              <div className="pt-2 text-[10px] font-mono font-bold text-gray-400 dark:text-gray-500 tracking-widest text-center select-none opacity-70">
+              <div className="pt-2 text-xs font-mono font-medium text-gray-400 dark:text-gray-500 tracking-wide text-center select-none opacity-70">
                 {APP_VERSION}
               </div>
             )}

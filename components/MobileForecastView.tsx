@@ -274,14 +274,14 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
         {/* ================================================================= */}
         <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
               Forward Cash & Wealth
             </p>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight leading-tight">
+              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
                 Forecasting
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
                 AI Model
               </span>
@@ -372,7 +372,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
             <Icon name="flag" className="text-sm text-amber-500" />
             <span>Goals</span>
             {topLevelGoals.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400">
+              <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400">
                 {topLevelGoals.length}
               </span>
             )}
@@ -405,7 +405,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                     <Icon name="trending_up" className="text-sm text-cyan-400" />
                     <span>Projected Liquidity ({forecastDuration})</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold">
                     {preferredCurrency}
                   </span>
                 </div>
@@ -416,7 +416,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   </h2>
                   <div className="flex items-center gap-2 mt-2">
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                         netChange >= 0
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                           : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
@@ -426,7 +426,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                       {growthPercent >= 0 ? '+' : ''}
                       {growthPercent.toFixed(1)}% ({formatCurrency(netChange, curr, { showPlusSign: true })})
                     </span>
-                    <span className="text-[11px] text-white/50 font-medium">
+                    <span className="text-xs text-white/60 font-medium">
                       from {formatCurrency(startBalance, curr)}
                     </span>
                   </div>
@@ -436,16 +436,16 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10">
                   <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-bold text-cyan-200/90 uppercase tracking-wider">
+                      <span className="text-xs font-semibold text-cyan-200/90 uppercase tracking-wider">
                         Lowest Point
                       </span>
                       <Icon name="warning" className="text-xs text-amber-400" />
                     </div>
-                    <p className="text-sm font-black text-white privacy-blur">
+                    <p className="text-sm font-bold text-white privacy-blur">
                       {formatCurrency(lowestPoint?.value || 0, curr)}
                     </p>
                     {lowestPoint?.date && (
-                      <p className="text-[10px] text-white/60 font-medium mt-0.5">
+                      <p className="text-xs text-white/60 font-medium mt-0.5">
                         on {parseLocalDate(lowestPoint.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </p>
                     )}
@@ -453,15 +453,15 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
 
                   <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-bold text-cyan-200/90 uppercase tracking-wider">
+                      <span className="text-xs font-semibold text-cyan-200/90 uppercase tracking-wider">
                         Cash Runway
                       </span>
                       <Icon name="hourglass_top" className="text-xs text-emerald-400" />
                     </div>
-                    <p className="text-sm font-black text-emerald-400">
+                    <p className="text-sm font-bold text-emerald-400">
                       {runwayMonths >= 36 ? '36+ Months' : `${runwayMonths.toFixed(1)} Months`}
                     </p>
-                    <p className="text-[10px] text-white/60 font-medium mt-0.5">
+                    <p className="text-xs text-white/60 font-medium mt-0.5">
                       at current trajectory
                     </p>
                   </div>
@@ -484,7 +484,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                     <p className="text-xs font-bold text-amber-900 dark:text-amber-300">
                       Active Scenario Adjustments
                     </p>
-                    <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
                       Savings +{assumptions.savingsRateAdjustment}% • Return {assumptions.marketReturn}% • Infl {assumptions.inflationRate}%
                     </p>
                   </div>
@@ -498,7 +498,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                       inflationRate: 0,
                     })
                   }
-                  className="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-bold shadow-xs active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-xs font-semibold shadow-xs active:scale-95"
                 >
                   Reset
                 </button>
@@ -512,7 +512,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white tracking-tight">
                     Cash Flow Trajectory
                   </h3>
-                  <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                  <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                     Tap any point on the curve to inspect daily events
                   </p>
                 </div>
@@ -521,7 +521,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowIndividualLines(false)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
                       !showIndividualLines
                         ? 'bg-white dark:bg-[#2c2d30] text-primary-600 dark:text-primary-400 shadow-xs'
                         : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'
@@ -532,7 +532,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowIndividualLines(true)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
                       showIndividualLines
                         ? 'bg-white dark:bg-[#2c2d30] text-primary-600 dark:text-primary-400 shadow-xs'
                         : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'
@@ -568,7 +568,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <span>Show Financial Goals</span>
                 </label>
 
-                <span className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-50">
+                <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-50">
                   {combinedChartData.length} timeline points
                 </span>
               </div>
@@ -581,7 +581,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <h3 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                     Horizon Checkpoints
                   </h3>
-                  <span className="text-[10px] font-bold text-primary-500">Min. Liquidity</span>
+                  <span className="text-xs font-bold text-primary-500">Min. Liquidity</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -600,7 +600,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                         }`}
                       >
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-[11px] font-black uppercase tracking-wider opacity-70">
+                          <span className="text-xs font-bold uppercase tracking-wider opacity-70">
                             {item.period}
                           </span>
                           <Icon
@@ -608,10 +608,10 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                             className="text-xs"
                           />
                         </div>
-                        <p className="text-sm font-black text-light-text dark:text-white privacy-blur">
+                        <p className="text-sm font-bold text-light-text dark:text-white privacy-blur">
                           {formatCurrency(item.lowestBalance, curr)}
                         </p>
-                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
                           {parseLocalDate(item.date).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -771,12 +771,12 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                                 {goal.name}
                               </h4>
                               {goal.isBucket && (
-                                <span className="px-1.5 py-0.2 rounded-md text-[9px] font-extrabold bg-primary-500/10 text-primary-500 border border-primary-500/20">
+                                <span className="px-1.5 py-0.5 rounded-md text-2xs font-semibold uppercase bg-primary-500/10 text-primary-500 border border-primary-500/20">
                                   Bucket ({subGoals.length})
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                               {categoryMeta.label}
                               {goal.date
                                 ? ` • Target: ${parseLocalDate(goal.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
@@ -802,7 +802,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
 
                       {/* Progress Bar & Amounts */}
                       <div className="space-y-1.5 pt-1">
-                        <div className="flex justify-between items-center text-xs font-extrabold">
+                        <div className="flex justify-between items-center text-xs font-bold">
                           <span className="text-light-text dark:text-white">
                             {formatCurrency(goal.currentAmount, goal.currency)}
                             <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-50 font-medium">
@@ -839,7 +839,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                             />
                           </button>
                         ) : (
-                          <span className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                          <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                             {goal.type === 'one-time' ? 'One-time target' : 'Recurring target'}
                           </span>
                         )}
@@ -849,7 +849,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onAddGoal(goal.id)}
-                              className="text-[11px] font-bold text-primary-500 hover:underline"
+                              className="text-xs font-bold text-primary-500 hover:underline"
                             >
                               + Sub-goal
                             </button>
@@ -857,14 +857,14 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onEditGoal(goal)}
-                            className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
+                            className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => onDeleteGoal(goal)}
-                            className="text-[11px] font-bold text-rose-500 hover:underline"
+                            className="text-xs font-bold text-rose-500 hover:underline"
                           >
                             Delete
                           </button>
@@ -889,7 +889,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                                   <p className="text-xs font-bold text-light-text dark:text-white truncate">
                                     {sub.name}
                                   </p>
-                                  <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                     {formatCurrency(sub.currentAmount, sub.currency)} /{' '}
                                     {formatCurrency(sub.amount, sub.currency)} ({subProgress.toFixed(0)}%)
                                   </p>
@@ -900,7 +900,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                                     e.stopPropagation();
                                     onDeleteGoal(sub);
                                   }}
-                                  className="text-xs text-rose-500 p-1"
+                                  className="text-light-text-secondary hover:text-rose-500 p-1"
                                 >
                                   <Icon name="delete" className="text-xs" />
                                 </button>
@@ -941,7 +941,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white">
                     Target Allocation Schedule
                   </h3>
-                  <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                  <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                     Monthly breakdown of expected goal contributions
                   </p>
                 </div>
@@ -950,7 +950,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setScheduleMode('account')}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
                       scheduleMode === 'account'
                         ? 'bg-white dark:bg-[#2c2d30] text-primary-500 shadow-xs'
                         : 'text-light-text-secondary opacity-60'
@@ -961,7 +961,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setScheduleMode('date')}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all ${
                       scheduleMode === 'date'
                         ? 'bg-white dark:bg-[#2c2d30] text-primary-500 shadow-xs'
                         : 'text-light-text-secondary opacity-60'
@@ -1063,11 +1063,11 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 <h3 className="text-sm font-bold text-light-text dark:text-white">
                   Forecast Timeline Ledger
                 </h3>
-                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                   Tap any entry to modify or inspect daily projections
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-primary-500/10 text-primary-500">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-primary-500/10 text-primary-500">
                 {groupedTableData.reduce((sum, g) => sum + g.rows.length, 0)} Events
               </span>
             </div>
@@ -1082,10 +1082,10 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                   >
                     {/* Month Header Banner */}
                     <div className="px-4 py-2.5 bg-black/[0.03] dark:bg-white/[0.04] border-b border-black/5 dark:border-white/5 flex items-center justify-between">
-                      <span className="text-xs font-black text-primary-600 dark:text-primary-400">
+                      <span className="text-xs font-bold text-primary-600 dark:text-primary-400">
                         {group.monthName} {group.year}
                       </span>
-                      <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                      <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                         {group.rows.length} Events • Min: {formatCurrency(group.minBalance, curr)}
                       </span>
                     </div>
@@ -1123,10 +1123,10 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
 
                             {/* Date Badge */}
                             <div className="w-11 text-center shrink-0">
-                              <span className="block text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary">
+                              <span className="block text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                                 {parseLocalDate(row.date).toLocaleDateString('en-US', { weekday: 'short' })}
                               </span>
-                              <span className="block text-sm font-black text-light-text dark:text-white">
+                              <span className="block text-sm font-bold text-light-text dark:text-white">
                                 {parseLocalDate(row.date).getDate()}
                               </span>
                             </div>
@@ -1137,12 +1137,12 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                                 {row.description}
                               </p>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
                                   {row.accountName}
                                 </span>
-                                <span className="text-[10px] opacity-40">•</span>
+                                <span className="text-xs opacity-40">•</span>
                                 <span
-                                  className={`px-1.5 py-0.2 rounded-md text-[9px] font-bold ${
+                                  className={`px-1.5 py-0.5 rounded-md text-2xs font-semibold uppercase tracking-wider ${
                                     row.type === 'Financial Goal'
                                       ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                       : row.type === 'Bill/Payment'
@@ -1162,7 +1162,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                             {/* Right Amounts */}
                             <div className="text-right shrink-0">
                               <p
-                                className={`text-xs font-extrabold ${
+                                className={`text-xs font-bold ${
                                   isPositive
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : 'text-light-text dark:text-white'
@@ -1170,7 +1170,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                               >
                                 {formatCurrency(row.amount, curr, { showPlusSign: true })}
                               </p>
-                              <p className="text-[10px] font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                              <p className="text-xs font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                                 Proj: {formatCurrency(row.balance, curr)}
                               </p>
                             </div>
@@ -1251,13 +1251,13 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                         <p className="text-xs font-bold text-light-text dark:text-white truncate">
                           {acc.name}
                         </p>
-                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                           {acc.type}
                         </p>
                       </div>
                     </div>
 
-                    <span className="text-xs font-extrabold text-light-text dark:text-white shrink-0">
+                    <span className="text-xs font-bold text-light-text dark:text-white shrink-0">
                       {convertedBal}
                     </span>
                   </div>
@@ -1291,7 +1291,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 <span className="text-xs font-bold text-light-text dark:text-white">
                   Savings Boost
                 </span>
-                <span className="text-xs font-black text-primary-500">
+                <span className="text-xs font-bold text-primary-500">
                   +{assumptions.savingsRateAdjustment}%
                 </span>
               </div>
@@ -1309,7 +1309,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 }
                 className="w-full accent-primary-500 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
               />
-              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Increases all recurring monthly savings and investments.
               </p>
             </div>
@@ -1320,7 +1320,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 <span className="text-xs font-bold text-light-text dark:text-white">
                   Annual Market Return
                 </span>
-                <span className="text-xs font-black text-emerald-500">
+                <span className="text-xs font-bold text-emerald-500">
                   {assumptions.marketReturn}%
                 </span>
               </div>
@@ -1338,7 +1338,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 }
                 className="w-full accent-emerald-500 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
               />
-              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Estimated compounded return across investment accounts.
               </p>
             </div>
@@ -1349,7 +1349,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 <span className="text-xs font-bold text-light-text dark:text-white">
                   Annual Inflation
                 </span>
-                <span className="text-xs font-black text-rose-500">
+                <span className="text-xs font-bold text-rose-500">
                   {assumptions.inflationRate}%
                 </span>
               </div>
@@ -1367,7 +1367,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                 }
                 className="w-full accent-rose-500 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
               />
-              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Projects compounding increase on all recurring expenses.
               </p>
             </div>

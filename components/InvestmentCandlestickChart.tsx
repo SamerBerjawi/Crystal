@@ -59,11 +59,11 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
   return (
     <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 text-xs space-y-2.5 min-w-[220px] select-none">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-2">
-        <span className="font-bold text-gray-500 dark:text-gray-400 text-[10px] tracking-wider uppercase">
+        <span className="font-semibold text-gray-500 dark:text-gray-400 text-xs tracking-wider uppercase">
           {formattedDate} {granularity === 'weekly' ? '(Week End)' : '(Logged Entry)'}
         </span>
         <span
-          className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
+          className={`px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
             isPositive
               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
               : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
@@ -74,26 +74,26 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[11px]">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-xs">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-[10px] font-semibold">Open</span>
+          <span className="text-gray-400 font-sans text-xs font-medium">Open</span>
           <span className="font-bold text-light-text dark:text-dark-text">{formatCurrency(open, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-[10px] font-semibold">High</span>
+          <span className="text-gray-400 font-sans text-xs font-medium">High</span>
           <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(high, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-[10px] font-semibold">Low</span>
+          <span className="text-gray-400 font-sans text-xs font-medium">Low</span>
           <span className="font-bold text-rose-600 dark:text-rose-400">{formatCurrency(low, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 font-sans text-[10px] font-semibold">Close</span>
+          <span className="text-gray-400 font-sans text-xs font-medium">Close</span>
           <span className="font-black text-primary-500">{formatCurrency(close, currency)}</span>
         </div>
       </div>
 
-      <div className="pt-1.5 border-t border-black/5 dark:border-white/5 flex justify-between items-center font-mono text-[10px]">
+      <div className="pt-1.5 border-t border-black/5 dark:border-white/5 flex justify-between items-center font-mono text-xs">
         <span className="text-gray-400 font-sans">{granularity === 'weekly' ? 'Weekly Return' : 'Log Return'}</span>
         <span className={`font-bold ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
           {isPositive ? '+' : ''}{formatCurrency(diff, currency)}
@@ -381,7 +381,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             <button
               type="button"
               onClick={() => setGranularity('raw')}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'raw'
                   ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm scale-105'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -392,7 +392,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             <button
               type="button"
               onClick={() => setGranularity('weekly')}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'weekly'
                   ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm scale-105'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -409,7 +409,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
                 key={tf}
                 type="button"
                 onClick={() => setTimeframe(tf)}
-                className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black tracking-wider transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                   timeframe === tf
                     ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm scale-105'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -427,36 +427,36 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3.5 bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl mb-5">
           <div className="flex flex-col">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black tracking-widest text-gray-400 uppercase">Period Start</span>
-              <span className="text-[9px] font-bold text-gray-400">{startDateFormatted}</span>
+              <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Period Start</span>
+              <span className="text-2xs font-semibold text-gray-400">{startDateFormatted}</span>
             </div>
             <span className="text-sm font-bold font-mono text-light-text dark:text-dark-text privacy-blur">
               {formatCurrency(stats.open, currency)}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] font-black tracking-widest text-emerald-500 uppercase">Period High</span>
+            <span className="text-2xs font-semibold tracking-wider text-emerald-500 uppercase">Period High</span>
             <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 privacy-blur">
               {formatCurrency(stats.high, currency)}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] font-black tracking-widest text-rose-500 uppercase">Period Low</span>
+            <span className="text-2xs font-semibold tracking-wider text-rose-500 uppercase">Period Low</span>
             <span className="text-sm font-bold font-mono text-rose-600 dark:text-rose-400 privacy-blur">
               {formatCurrency(stats.low, currency)}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] font-black tracking-widest text-primary-500 uppercase">Latest Close</span>
-            <span className="text-sm font-black font-mono text-primary-600 dark:text-primary-400 privacy-blur">
+            <span className="text-2xs font-semibold tracking-wider text-primary-500 uppercase">Latest Close</span>
+            <span className="text-sm font-bold font-mono text-primary-600 dark:text-primary-400 privacy-blur">
               {formatCurrency(stats.close, currency)}
             </span>
           </div>
           <div className="col-span-2 sm:col-span-1 flex flex-col justify-center">
-            <span className="text-[9px] font-black tracking-widest text-gray-400 uppercase">Total Return</span>
+            <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Total Return</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span
-                className={`text-xs font-black font-mono px-2 py-0.5 rounded-lg ${
+                className={`text-xs font-bold font-mono px-2 py-0.5 rounded-lg ${
                   stats.change >= 0
                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                     : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'

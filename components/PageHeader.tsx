@@ -65,8 +65,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 
             <div className="flex flex-col gap-1 min-w-0">
               {markerIcon && markerLabel && (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 tracking-wide">
-                  <Icon name={markerIcon} className="text-base leading-none" />
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wider uppercase">
+                  <Icon name={markerIcon} className="text-sm leading-none" />
                   <span className="leading-none">{markerLabel}</span>
                 </div>
               )}
@@ -75,14 +75,14 @@ const PageHeader: React.FC<PageHeaderProps> = ({
               <h1
                 className={`font-bold tracking-tight leading-tight text-light-text dark:text-dark-text transition-all duration-200 ease-out ${isCompact
                     ? 'text-lg md:text-3xl'
-                    : 'text-2xl md:text-3xl'
+                    : 'text-2xl md:text-4xl'
                   }`}
               >
                 {title}
               </h1>
 
               {subtitle && !isCompact && (
-                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary max-w-3xl opacity-70 leading-relaxed">
+                <p className="text-sm md:text-base font-normal text-light-text-secondary dark:text-dark-text-secondary max-w-3xl leading-normal">
                   {subtitle}
                 </p>
               )}
@@ -102,7 +102,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 >
                   <Icon name="search" className="text-base" />
                   <span>Search</span>
-                  <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-mono leading-none">⌘K</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-xs font-mono leading-none">⌘K</kbd>
                 </button>
                 <button
                   onClick={onOpenSearch}

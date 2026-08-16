@@ -29,7 +29,7 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                         <Icon name={iconName} className="text-xl" />
                     </div>
                         <div className="text-right">
-                        <p className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
                         <h3 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</h3>
                     </div>
                 </div>
@@ -46,7 +46,7 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                                 style={{
                                     width: `${percentage}%`,
                                     backgroundColor: item.color,
-                                }}
+                                    }}
                                 title={`${item.name}: ${percentage.toFixed(1)}%`}
                             />
                         );
@@ -60,12 +60,12 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                     const percentage = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
                     if (percentage < 1) return null;
                     return (
-                        <div key={item.name} className="flex items-center justify-between text-[10px] group">
+                        <div key={item.name} className="flex items-center justify-between text-xs group">
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
                                 <span className="text-light-text-secondary dark:text-gray-300 truncate group-hover:text-light-text dark:group-hover:text-white transition-colors max-w-[60px]">{item.name}</span>
                             </div>
-                            <span className="font-bold text-light-text dark:text-white shrink-0">{percentage.toFixed(0)}%</span>
+                            <span className="font-semibold text-light-text dark:text-white shrink-0">{percentage.toFixed(0)}%</span>
                         </div>
                     );
                 })}

@@ -52,13 +52,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
             
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black  tracking-widest border border-black/5 dark:border-white/5 shadow-sm ${priorityStyle.bg} ${priorityStyle.text}`}>
+                    <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider border border-black/5 dark:border-white/5 shadow-sm ${priorityStyle.bg} ${priorityStyle.text}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${priorityStyle.dot} shadow-sm`}></div>
                         {task.priority}
                     </div>
                     {task.status === 'Done' && (
                         <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                             <Icon name="check" className="text-[16px] font-bold" />
+                             <Icon name="check" className="text-base font-bold" />
                         </div>
                     )}
                 </div>
@@ -68,24 +68,24 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
                 </h4>
                 
                 {task.description && (
-                    <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 line-clamp-2 mb-4 leading-relaxed">
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-75 line-clamp-2 mb-4 leading-relaxed">
                         {task.description}
                     </p>
                 )}
 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                     {dateInfo ? (
-                        <div className={`flex items-center gap-2 text-[9px] font-black  tracking-widest ${dateInfo.color}`}>
-                            <Icon name="calendar_today" className="text-[14px] opacity-40" />
+                        <div className={`flex items-center gap-2 text-xs font-semibold tracking-wider ${dateInfo.color}`}>
+                            <Icon name="calendar_today" className="text-sm opacity-40" />
                             <span>{dateInfo.text}</span>
                         </div>
                     ) : (
-                        <span className="text-[9px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-30">No Temporal Limit</span>
+                        <span className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-40">No Temporal Limit</span>
                     )}
                     
                     {task.reminderDate && (
                          <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">
-                              <Icon name="notifications" className="text-[16px]" />
+                              <Icon name="notifications" className="text-base" />
                          </div>
                     )}
                 </div>

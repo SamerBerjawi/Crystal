@@ -87,16 +87,16 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                     </div>
                     <div className="flex justify-between items-end">
                         <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Due Date</span>
-                        <span className={`text-[13px] font-semibold ${title.includes("Current") ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{data.dueDate}</span>
+                        <span className={`text-xs font-semibold ${title.includes("Current") ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{data.dueDate}</span>
                     </div>
                 </div>
                 {title.includes("Current") && hasPreviousStatement && (
                      <div className="mt-2 pt-1.5 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2 text-[10px]">
+                        <div className="flex items-center gap-2 text-xs">
                             <span className="text-light-text-secondary dark:text-dark-text-secondary">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
                             {isPaid && (
-                                <span className="flex items-center gap-1 font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded scale-90 origin-left">
-                                    <Icon name="check" className="text-[10px]" /> Paid
+                                <span className="flex items-center gap-1 font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded text-xs">
+                                    <Icon name="check" className="text-xs" /> Paid
                                 </span>
                             )}
                         </div>
@@ -113,14 +113,14 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
             <div className={`flex flex-col justify-center ${isWide ? 'w-1/3 border-r pr-3' : 'border-b pb-2'} border-black/5 dark:border-white/5`}>
                 <div className="flex items-center gap-3 mb-0.5">
                     <div className="w-6 h-6 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-                        <Icon name="credit_card" className="text-[14px]" />
+                        <Icon name="credit_card" className="text-sm" />
                     </div>
-                    <h3 className="font-semibold text-[14px] text-light-text dark:text-dark-text truncate">{accountName}</h3>
+                    <h3 className="font-semibold text-sm text-light-text dark:text-dark-text truncate">{accountName}</h3>
                 </div>
                 
                 {creditLimit && creditLimit > 0 && (
                     <div className="mt-0.5">
-                        <div className="flex justify-between text-[9px] font-medium mb-0.5">
+                        <div className="flex justify-between text-xs font-medium mb-0.5">
                             <span className="text-light-text-secondary dark:text-dark-text-secondary">Used</span>
                             <span className="text-light-text dark:text-dark-text">{usedPercentage.toFixed(0)}%</span>
                         </div>

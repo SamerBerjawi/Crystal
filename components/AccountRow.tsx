@@ -288,11 +288,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             {account.name}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-                            <p className="text-[11px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
                                 {account.financialInstitution || account.type}
                             </p>
                             {account.last4 && (
-                                <span className="text-[10px] font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-40 shrink-0">
+                                <span className="text-xs font-mono text-light-text-secondary dark:text-dark-text-secondary opacity-40 shrink-0">
                                     • {account.last4}
                                 </span>
                             )}
@@ -317,17 +317,17 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 {/* Right Section: Balance and Trend */}
                 <div className="flex items-center gap-3 shrink-0 text-right pr-1">
                     <div className="flex flex-col items-end">
-                        <p className="text-sm sm:text-base font-black text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur truncate leading-none">
+                        <p className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur truncate leading-none">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         <div className="flex items-center gap-1.5 mt-1">
                             {account.currency !== 'EUR' && (
-                                <p className="text-[10px] font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-40">
+                                <p className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-40">
                                     {formatCurrency(displayBalance, account.currency)}
                                 </p>
                             )}
                             {transactions.length > 0 && Math.abs(trend) > 0 && (
-                                <div className="flex items-center gap-0.5 text-[10px] font-bold shrink-0">
+                                <div className="flex items-center gap-0.5 text-xs font-semibold shrink-0">
                                     <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                                         {isPositiveTrend ? '▲' : '▼'}
                                     </span>
@@ -352,14 +352,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         title="Adjust Balance"
                         disabled={isComputedAccount}
                     >
-                        <Icon name="tune" className="text-[15px]" />
+                        <Icon name="tune" className="text-sm" />
                     </button>
                     <button 
                         onClick={handleEditClick} 
                         className="w-7 h-7 flex items-center justify-center rounded-md bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
                         title="Edit Account"
                     >
-                        <Icon name="edit" className="text-[15px]" />
+                        <Icon name="edit" className="text-sm" />
                     </button>
                 </div>
             </div>
@@ -438,7 +438,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             )}
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[9px] sm:text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate ">
+                            <p className="text-xs font-semibold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider opacity-60 mb-0.5 truncate ">
                                 {account.financialInstitution || account.type}
                             </p>
                             <h3 className="text-lg sm:text-xl font-bold text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
@@ -448,11 +448,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     </div>
 
                     <div className="space-y-0.5">
-                        <p className="text-2xl sm:text-3xl md:text-4xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums privacy-blur truncate">
+                        <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur truncate">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         {account.currency !== 'EUR' && (
-                            <p className="text-[10px] sm:text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-50">
+                            <p className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-50">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>
                         )}
@@ -463,21 +463,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     <div className="flex flex-col">
                         {/* Trend Badge - Now part of the flow instead of absolute */}
                         {transactions.length > 0 && Math.abs(trend) > 0 && (
-                            <div className="flex items-center gap-1 text-[12px] font-bold">
+                            <div className="flex items-center gap-1 text-xs font-semibold">
                                 <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                                     {isPositiveTrend ? '▲' : '▼'}
                                 </span>
                                 <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono">
                                     {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}
                                 </span>
-                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 ">
+                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 ">
                                     90d
                                 </span>
                             </div>
                         )}
 
                         {account.last4 && (
-                            <span className="text-[10px] font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-50">
+                            <span className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-50">
                                 •••• {account.last4}
                             </span>
                         )}

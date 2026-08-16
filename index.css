@@ -3,7 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: Inter, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", system-ui, sans-serif;
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+  --text-2xs--letter-spacing: 0.01em;
 
   --color-primary-50: var(--primary-50, #fef8f0);
   --color-primary-100: var(--primary-100, #fdeed9);
@@ -215,6 +218,66 @@
   --tw-ring-color: var(--primary-600, #fa9a1d);
 }
 
+/* ─── Apple HIG Typography Utilities ─── */
+@utility typo-h1 {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  @media (min-width: 768px) {
+    font-size: var(--text-4xl);
+  }
+}
+@utility typo-h2 {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  @media (min-width: 768px) {
+    font-size: var(--text-2xl);
+  }
+}
+@utility typo-h3 {
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+  font-weight: 600;
+}
+@utility typo-h4 {
+  font-size: var(--text-base);
+  line-height: var(--leading-snug);
+  font-weight: 600;
+}
+@utility typo-subhead {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  font-weight: 400;
+  @media (min-width: 768px) {
+    font-size: var(--text-base);
+  }
+}
+@utility typo-body {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  font-weight: 400;
+}
+@utility typo-body-sm {
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  font-weight: 400;
+}
+@utility typo-caption {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  font-weight: 500;
+}
+@utility typo-kicker {
+  font-size: var(--text-xs);
+  line-height: var(--leading-none);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
@@ -312,6 +375,10 @@
 html {
   background-color: #FAFAFA;
   color: #2D2D2D;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 html.dark {
@@ -322,6 +389,7 @@ html.dark {
 body {
   background-color: inherit;
   color: inherit;
+  font-family: inherit;
   min-height: 100vh;
 }
 

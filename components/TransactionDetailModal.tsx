@@ -80,23 +80,23 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                                 {tx.locationLabel || tx.placeName || tx.address || [tx.city, tx.country].filter(Boolean).join(', ')}
                             </span>
                             {tx.address && tx.address !== tx.locationLabel && tx.address !== tx.placeName && (
-                                <span className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary max-w-[280px]">
+                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-[280px]">
                                     {tx.address}
                                 </span>
                             )}
                             {(tx.latitude !== undefined && tx.longitude !== undefined) && (
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-primary-600 dark:text-primary-400">
+                                    <span className="text-2xs font-mono font-semibold bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-primary-600 dark:text-primary-400">
                                         📍 {tx.latitude.toFixed(4)}°, {tx.longitude.toFixed(4)}°
                                     </span>
                                     <a
                                         href={`https://www.google.com/maps/search/?api=1&query=${tx.latitude},${tx.longitude}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-[10px] font-bold text-primary-500 hover:underline inline-flex items-center gap-0.5"
+                                        className="text-xs font-semibold text-primary-500 hover:underline inline-flex items-center gap-0.5"
                                     >
                                         <span>Open in Maps</span>
-                                        <Icon name="open_in_new" className="text-[9px]" />
+                                        <Icon name="open_in_new" className="text-xs" />
                                     </a>
                                 </div>
                             )}
@@ -113,7 +113,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                                 const tag = tags.find(t => t.id === id);
                                 if (!tag) return null;
                                 return (
-                                    <span key={id} className="px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm border border-black/5 dark:border-white/10" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
+                                    <span key={id} className="px-2 py-0.5 rounded-lg text-xs font-semibold shadow-sm border border-black/5 dark:border-white/10" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
                                         {tag.name}
                                     </span>
                                 );

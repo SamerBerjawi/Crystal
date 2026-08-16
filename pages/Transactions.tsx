@@ -62,12 +62,12 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
           <div className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
             <Icon name={icon} className="text-lg" />
           </div>
-          <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+          <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
         </div>
 
         <div className="flex flex-col">
           <p className={`text-xl font-semibold tracking-tight ${colorClass}`}>{value}</p>
-          {subtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium opacity-60">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium opacity-60">{subtitle}</p>}
         </div>
       </div>
 
@@ -148,7 +148,7 @@ const ColumnHeaderFilter: React.FC<{
       >
         <Icon name="filter_alt" className="text-xs" />
         {activeCount && activeCount > 0 ? (
-          <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-primary-600 text-[8px] font-bold text-white flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 size-3.5 rounded-full bg-primary-600 text-xs font-bold text-white flex items-center justify-center leading-none">
             {activeCount}
           </span>
         ) : null}
@@ -1163,7 +1163,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             if (!group || group.length === 0) return null;
             return (
               <div key={type} className="mb-2">
-                <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">{type}</h4>
+                <h4 className="px-1.5 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">{type}</h4>
                 {group.map(acc => (
                   <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                     <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
@@ -1175,7 +1175,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           })}
           {closed.length > 0 && (
             <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-              <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Closed</h4>
+              <h4 className="px-1.5 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight">Closed</h4>
               {closed.map(acc => (
                 <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                   <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
@@ -1257,9 +1257,9 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               />
               <span className="text-base leading-none">{loc.flag}</span>
               <span className="truncate text-xs font-semibold text-primary">{loc.city}</span>
-              <span className="text-[10px] text-tertiary truncate">({loc.country})</span>
+              <span className="text-xs text-tertiary truncate">({loc.country})</span>
             </div>
-            <span className="text-[10px] font-medium text-quaternary shrink-0">
+            <span className="text-xs font-medium text-quaternary shrink-0">
               {loc.count}
             </span>
           </label>
@@ -1873,12 +1873,12 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
                     <Icon name="receipt" className="text-base sm:text-lg" />
                   </div>
-                  <p className="text-[9px] sm:text-[10px] font-semibold text-white/80">Total transactions</p>
+                  <p className="text-xs font-semibold text-white/80">Total transactions</p>
                 </div>
 
                 <div className="flex flex-col">
                   <p className="text-xl sm:text-2xl font-black tracking-tight">{filteredTransactions.length}</p>
-                  <p className="text-[9px] sm:text-[10px] text-white/70 mt-0.5 sm:mt-1 font-semibold">in selected period</p>
+                  <p className="text-xs text-white/70 mt-0.5 sm:mt-1 font-semibold">in selected period</p>
                 </div>
               </div>
 
@@ -1956,7 +1956,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                   <div className="col-span-2 md:col-span-2 flex items-end">
                     <button
                       onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                      className={`w-full h-[42px] flex items-center justify-center gap-2 rounded-2xl font-semibold text-[11px] tracking-wider transition-all ${isFiltersExpanded ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10'}`}
+                      className={`w-full h-[42px] flex items-center justify-center gap-2 rounded-2xl font-semibold text-xs tracking-wider transition-all ${isFiltersExpanded ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10'}`}
                     >
                       <Icon name={isFiltersExpanded ? 'keyboard_double_arrow_up' : 'tune'} className="text-lg" />
                       {isFiltersExpanded ? 'Collapse filters' : 'Advanced filters'}
@@ -1994,8 +1994,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                     <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max threshold</label><input id="max-amount" type="number" placeholder="No limit" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} /></div>
                   </div>
                   <div className="xl:col-span-4 flex justify-between items-center py-2">
-                    <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-40 tracking-wider">Fine-tune your activity feed</p>
-                    <button onClick={clearFilters} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors">Reset all parameters</button>
+                    <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-40 tracking-wider">Fine-tune your activity feed</p>
+                    <button onClick={clearFilters} className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors">Reset all parameters</button>
                   </div>
                 </div>
               )}
@@ -2208,7 +2208,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                                 <span className="text-xs font-semibold uppercase tracking-wider text-secondary">
                                   {item.formattedDate}
                                 </span>
-                                <span className="text-[11px] font-medium text-tertiary px-2 py-0.5 rounded-full bg-primary/80 border border-black/[0.04] dark:border-white/[0.05] shrink-0">
+                                <span className="text-xs font-medium text-tertiary px-2 py-0.5 rounded-full bg-primary/80 border border-black/[0.04] dark:border-white/[0.05] shrink-0">
                                   {item.count} {item.count === 1 ? 'record' : 'records'}
                                 </span>
                               </div>
@@ -2219,7 +2219,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                             <Table.Cell className="py-2" />
                             <Table.Cell className="py-2 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-1.5">
-                                <span className="text-[11px] font-medium uppercase tracking-wider text-quaternary">Daily Net</span>
+                                <span className="text-xs font-medium uppercase tracking-wider text-quaternary">Daily Net</span>
                                 <span className={cx(
                                   "text-xs font-semibold tracking-tight",
                                   item.totalEur > 0 ? "text-green-600 dark:text-green-400" : item.totalEur < 0 ? "text-primary" : "text-tertiary"

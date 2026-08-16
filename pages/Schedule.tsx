@@ -135,7 +135,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
                             <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
                                 {Math.round(ratio)}%
                             </span>
-                            <span className="text-[7px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary/60">ratio</span>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary/60">ratio</span>
                         </div>
                     </div>
 
@@ -143,9 +143,9 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                             <div className="flex items-center gap-1.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2.5 py-0.5 rounded-full">
                                 <Icon name="donut_large" className="text-sm" />
-                                <span className="text-[9px] font-black  tracking-widest">Commitment Index</span>
+                                <span className="text-xs font-semibold tracking-wider">Commitment Index</span>
                             </div>
-                            <div className={`px-2.5 py-0.5 rounded-full text-[9px] font-black  tracking-widest ${statusBg} ${statusColor}`}>
+                            <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wider ${statusBg} ${statusColor}`}>
                                 {statusText}
                             </div>
                         </div>
@@ -160,12 +160,12 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
 
                 <div className="w-full md:w-80 shrink-0 bg-black/5 dark:bg-black/20 p-5 rounded-[1.5rem] border border-black/5 dark:border-white/5 flex flex-col justify-between">
                     <div className="flex justify-between items-baseline mb-2">
-                        <span className="text-[10px] font-black  tracking-widest opacity-60">Distribution (30d)</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider opacity-60">Distribution (30d)</span>
                         <div className="text-right">
                             <span className="text-xs font-black tabular-nums text-light-text dark:text-dark-text">
                                 {formatCurrency(outflow, 'EUR')}
                             </span>
-                            <span className="text-[10px] opacity-40 italic"> of {formatCurrency(income, 'EUR')}</span>
+                            <span className="text-xs opacity-40 italic"> of {formatCurrency(income, 'EUR')}</span>
                         </div>
                     </div>
                     
@@ -184,7 +184,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
                         )}
                     </div>
 
-                    <div className="flex justify-between text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                    <div className="flex justify-between text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                         <span>{outflowCount} expected obligations</span>
                         <span className="text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatCurrency(remaining, 'EUR')} reserve</span>
                     </div>
@@ -226,7 +226,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
                             <h3 className={`text-base font-bold tracking-tight ${title === 'Overdue' ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
                                 {title}
                             </h3>
-                            <span className="text-[10px] font-black text-light-text-secondary/90 dark:text-dark-text-secondary/90 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full tabular-nums">
+                            <span className="text-xs font-semibold text-light-text-secondary/90 dark:text-dark-text-secondary/90 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full tabular-nums">
                                 {title === 'Overdue' ? displayItems.length : items.length}
                             </span>
                         </div>
@@ -234,7 +234,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
                 </div>
                 <div className="flex items-center gap-4">
                      <div className="text-right">
-                        <div className="text-[10px] font-black  tracking-widest text-light-text-secondary/90 dark:text-dark-text-secondary/90">Projected Delta</div>
+                        <div className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/90 dark:text-dark-text-secondary/90">Projected Delta</div>
                         <span className={`text-lg font-black tabular-nums tracking-tighter ${totalAmount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {formatCurrency(totalAmount, 'EUR', { showPlusSign: true })}
                         </span>
@@ -263,7 +263,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
                             }`}
                         >
                             <span>All Both</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${overdueFilter === 'all' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{items.length}</span>
+                            <span className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${overdueFilter === 'all' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{items.length}</span>
                         </button>
 
                         <button
@@ -277,7 +277,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
                         >
                             <Icon name="repeat" className="text-sm" />
                             <span>Recurring Only</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${overdueFilter === 'recurring' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{recurringCount}</span>
+                            <span className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${overdueFilter === 'recurring' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{recurringCount}</span>
                         </button>
 
                         <button
@@ -291,7 +291,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
                         >
                             <Icon name="receipt_long" className="text-sm" />
                             <span>One-Time Bills Only</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${overdueFilter === 'one-time' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{oneTimeCount}</span>
+                            <span className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${overdueFilter === 'one-time' ? 'bg-white/25 text-white' : 'bg-black/5 dark:bg-white/10'}`}>{oneTimeCount}</span>
                         </button>
                     </div>
                 </div>
@@ -994,17 +994,17 @@ const SchedulePage: React.FC = () => {
                             <div className="group/val cursor-pointer">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Icon name="credit_card" className="text-primary-500 text-sm" />
-                                    <span className="text-[10px] font-black tracking-[0.2em]  text-light-text-secondary dark:text-dark-text-secondary">Next 30 Days Outflow</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Next 30 Days Outflow</span>
                                 </div>
                                 <div className="flex items-baseline gap-3">
                                     <h2 className="text-5xl font-bold tracking-tighter text-light-text dark:text-dark-text transition-colors group-hover/val:text-primary-500">
                                         {formatCurrency(summaryMetrics.expense, 'EUR')}
                                     </h2>
                                     <motion.div layoutId="active-indicator-main" className="w-2 h-2 rounded-full bg-primary-500 shadow-[0_0_12px_rgba(99,102,241,1)]" />
-                                </div>
-                                <div className="flex items-center gap-3 mt-3 opacity-60">
-                                     <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.1em]">{summaryMetrics.expCount} Operations Pending</span>
-                                </div>
+                                 </div>
+                                 <div className="flex items-center gap-3 mt-3 opacity-60">
+                                      <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">{summaryMetrics.expCount} Operations Pending</span>
+                                 </div>
                             </div>
 
                             <div className="hidden lg:block w-px h-20 bg-black/5 dark:bg-white/10" />
@@ -1026,7 +1026,7 @@ const SchedulePage: React.FC = () => {
                                                 {isActive && <motion.div layoutId="active-dot" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className={`text-[10px] font-black  tracking-widest ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>{seg.label}</span>
+                                                <span className={`text-xs font-semibold uppercase tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>{seg.label}</span>
                                             </div>
                                         </div>
                                     )
@@ -1043,7 +1043,7 @@ const SchedulePage: React.FC = () => {
                                     <Icon name="arrow_downward" className="text-emerald-500/70" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Expected Income</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Expected Income</span>
                                     <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(summaryMetrics.income, 'EUR')}</span>
                                 </div>
                             </div>
@@ -1052,7 +1052,7 @@ const SchedulePage: React.FC = () => {
                                     <Icon name="warning" className="text-rose-500/70" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Overdue</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Overdue</span>
                                     <span className="text-base font-black text-rose-600 dark:text-rose-400 tabular-nums">{groupedItems['Overdue']?.length || 0}</span>
                                 </div>
                             </div>
@@ -1061,7 +1061,7 @@ const SchedulePage: React.FC = () => {
                                     <Icon name="event_repeat" className="text-primary-500/70" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black tracking-widest text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Active Rules</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Active Rules</span>
                                     <span className="text-base font-black text-light-text dark:text-dark-text tabular-nums">{recurringTransactions.length}</span>
                                 </div>
                             </div>
@@ -1089,8 +1089,8 @@ const SchedulePage: React.FC = () => {
 
                     <div className="md:col-span-4 bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm">
                          <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-s font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exp. Breakdown</h3>
-                            <span className="text-[11px] font-bold text-primary-500">30d Horizon</span>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Exp. Breakdown</h3>
+                            <span className="text-xs font-semibold text-primary-500">30d Horizon</span>
                         </div>
                         <div className="space-y-4">
                              {categoryBreakdown.length > 0 ? (
@@ -1099,7 +1099,7 @@ const SchedulePage: React.FC = () => {
                                     const color = PIE_COLORS[index % PIE_COLORS.length];
                                     return (
                                         <div key={cat.name} className="group cursor-default">
-                                            <div className="flex justify-between text-[11px] font-black  tracking-tight mb-2">
+                                            <div className="flex justify-between text-xs font-semibold tracking-tight mb-2">
                                                 <span className="text-light-text dark:text-dark-text opacity-70 truncate max-w-[140px]">{cat.name}</span>
                                                 <span className="tabular-nums">{formatCurrency(cat.value, 'EUR')}</span>
                                             </div>
@@ -1110,7 +1110,7 @@ const SchedulePage: React.FC = () => {
                                     )
                                 })
                             ) : (
-                                <div className="py-8 text-center text-s text-light-text-secondary/40 italic">No scheduled data</div>
+                                <div className="py-8 text-center text-xs text-light-text-secondary/40 italic">No scheduled data</div>
                             )}
                         </div>
                     </div>
@@ -1121,7 +1121,7 @@ const SchedulePage: React.FC = () => {
                         </div>
                         <div className="relative z-10 flex flex-col h-full justify-between">
                             <div className="space-y-2">
-                                <span className="text-s  font-black  tracking-widest text-emerald-600">Dominant Inflow</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">Dominant Inflow</span>
                                 {majorInflow ? (
                                     <>
                                         <h3 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
@@ -1133,11 +1133,11 @@ const SchedulePage: React.FC = () => {
                                         </div>
                                     </>
                                 ) : (
-                                    <p className="text-[11px] font-bold opacity-40 italic">No major inflow detected</p>
+                                    <p className="text-xs font-semibold opacity-40 italic">No major inflow detected</p>
                                 )}
                             </div>
                             <div className="pt-6">
-                                <div className="text-[10px] font-black text-emerald-600/60  tracking-widest">
+                                <div className="text-xs font-semibold text-emerald-600/60 uppercase tracking-wider">
                                     {majorInflow ? `Expected ${parseLocalDate(majorInflow.date).toLocaleDateString()}` : 'Forecast Clean'}
                                 </div>
                             </div>
@@ -1150,7 +1150,7 @@ const SchedulePage: React.FC = () => {
                         </div>
                         <div className="relative z-10 flex flex-col h-full justify-between">
                              <div className="space-y-2">
-                                <span className="text-s font-black  tracking-widest text-rose-600">Critical Outflow</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-rose-600">Critical Outflow</span>
                                 {majorOutflow ? (
                                     <>
                                         <h3 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
@@ -1162,11 +1162,11 @@ const SchedulePage: React.FC = () => {
                                         </div>
                                     </>
                                 ) : (
-                                    <p className="text-[11px] font-bold opacity-40 italic">No major outflow detected</p>
+                                    <p className="text-xs font-semibold opacity-40 italic">No major outflow detected</p>
                                 )}
                             </div>
                             <div className="pt-6">
-                                <div className="text-[10px] font-black text-rose-600/60  tracking-widest">
+                                <div className="text-xs font-semibold text-rose-600/60 uppercase tracking-wider">
                                     {majorOutflow ? `Due ${parseLocalDate(majorOutflow.date).toLocaleDateString()}` : 'Safe Horizon'}
                                 </div>
                             </div>
@@ -1258,17 +1258,17 @@ const SchedulePage: React.FC = () => {
                                                 </div>
                                                 <div className="min-w-0">
                                                     <h4 className="font-bold text-base truncate pr-8">{rt.description}</h4>
-                                                    <span className="text-[10px] font-black  tracking-widest text-light-text-secondary/60">{rt.frequency} cycle</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60">{rt.frequency} cycle</span>
                                                 </div>
                                             </div>
                                             {rt.isSynthetic && (
-                                                <span className="absolute top-6 right-6 text-[9px] font-black bg-primary-500/10 text-primary-500 px-2 py-0.5 rounded-full  tracking-widest">Synthetic</span>
+                                                <span className="absolute top-6 right-6 text-xs font-semibold bg-primary-500/10 text-primary-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Synthetic</span>
                                             )}
                                         </div>
 
                                         <div className="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
                                             <div className="flex flex-col">
-                                                <span className="text-[9px] font-black  tracking-widest text-light-text-secondary/40">Expected Value</span>
+                                                <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40">Expected Value</span>
                                                 <span className={`text-lg font-black tabular-nums ${rt.type === 'income' ? 'text-emerald-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(rt.amount, rt.currency)}</span>
                                             </div>
                                             <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1337,7 +1337,7 @@ const SchedulePage: React.FC = () => {
                                                             Account: {bill.accountId ? accountMap[bill.accountId] : 'External'}
                                                         </div>
                                                     </div>
-                                                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                                         EXPIRED
                                                     </span>
                                                 </div>
