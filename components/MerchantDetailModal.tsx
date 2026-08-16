@@ -1,14 +1,12 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import Modal from './Modal';
-import { Category, MerchantRule, MerchantLocation } from '../types';
+import { createPortal } from 'react-dom';
+import { Category, MerchantRule, MerchantLocation, Transaction } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
-import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
+import { BarChart, Bar, Grid, BarXAxis, YAxis, ChartTooltip } from '@/src/components/charts';
 import { getMerchantLogoUrl, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
-
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
 
@@ -21,13 +19,13 @@ interface MerchantDetailModalProps {
     onSave: (key: string, rule: MerchantRule) => void;
     incomeCategories: Category[];
     expenseCategories: Category[];
-    transactions: any[]; // Passed to show simple stats
+    transactions: Transaction[];
     brandfetchClientId?: string;
 }
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
     <>
-        <option value="">No Default</option>
+        <option value="">No Default Category</option>
         {categories.map(parentCat => (
             <optgroup key={parentCat.id} label={parentCat.name}>
                 <option value={parentCat.name}>{parentCat.name}</option>
@@ -41,6 +39,8 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
     </>
 );
 
+type ActiveTabType = 'rules' | 'locations' | 'branding' | 'telemetry';
+
 const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     isOpen,
     onClose,
@@ -53,13 +53,17 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     transactions,
     brandfetchClientId
 }) => {
-    const [activeTab, setActiveTab] = useState<'settings' | 'stats'>('settings');
+    const [isVisible, setIsVisible] = useState(false);
+    const [activeTab, setActiveTab] = useState<ActiveTabType>('rules');
+
+    // Rule Configuration State
     const [category, setCategory] = useState(initialRule?.category || '');
     const [website, setWebsite] = useState(initialRule?.website || '');
     const [logo, setLogo] = useState(initialRule?.logo || '');
     const [isHidden, setIsHidden] = useState(initialRule?.isHidden || false);
     const [defaultDescription, setDefaultDescription] = useState(initialRule?.defaultDescription || '');
     const [notes, setNotes] = useState(initialRule?.notes || '');
+    const [isOnline, setIsOnline] = useState(initialRule?.isOnline || false);
     const [refreshTimestamp, setRefreshTimestamp] = useState<number | undefined>(undefined);
 
     // Multi-Address & Branches State
@@ -97,6 +101,33 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Drawer entrance animation & Escape listener
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+            // Slight tick to trigger entrance animation
+            requestAnimationFrame(() => setIsVisible(true));
+        } else {
+            setIsVisible(false);
+        }
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                handleCloseDrawer();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.style.overflow = '';
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen]);
+
+    const handleCloseDrawer = () => {
+        setIsVisible(false);
+        setTimeout(onClose, 280);
+    };
 
     const isCustomUpload = logo.startsWith('data:image/') || logo.startsWith('http://') || logo.startsWith('https://');
     const canRefreshFromBrandfetch = isBrandfetchLogoRefreshable(merchantName, logo);
@@ -184,7 +215,6 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     const handleRemoveBranch = (id: string) => {
         setLocations(prev => {
             const next = prev.filter(l => l.id !== id);
-            // If the deleted branch was primary and other branches exist, set the first one as primary
             if (next.length > 0 && !next.some(l => l.isPrimary)) {
                 next[0].isPrimary = true;
             }
@@ -214,7 +244,6 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     // Initialize with smart guesses if rule doesn't exist
     useEffect(() => {
         if (!initialRule) {
-            // If no website set, try to guess from logo key if it looks like a domain
             if (logoKey.includes('.')) {
                 setWebsite(`https://${logoKey}`);
             }
@@ -230,6 +259,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
             website: website || undefined,
             logo: logo || undefined,
             isHidden,
+            isOnline,
             defaultDescription: defaultDescription || undefined,
             notes: notes || undefined,
             locations: locations.length > 0 ? locations : undefined,
@@ -244,19 +274,20 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
             latitude: primaryLoc?.latitude,
             longitude: primaryLoc?.longitude,
         });
-        onClose();
+        toast.success(`Saved protocol for "${merchantName}"`);
+        handleCloseDrawer();
     };
 
-    // Calculate basic stats for the merchant
-    const stats = useMemo(() => {
-        const merchantTxs = transactions.filter(t => t.merchant === merchantName);
-        const totalCount = merchantTxs.length;
-        const totalAmount = merchantTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-        const averageAmount = totalCount > 0 ? totalAmount / totalCount : 0;
+    // Calculate basic stats and recent transactions for the merchant
+    const { totalCount, totalAmount, averageAmount, chartData, recentMerchantTxs } = useMemo(() => {
+        const merchantTxs = (transactions || []).filter(t => t.merchant === merchantName);
+        const count = merchantTxs.length;
+        const total = merchantTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const avg = count > 0 ? total / count : 0;
 
         // Monthly trend (last 6 months)
         const today = new Date();
-        const chartData = [];
+        const trendData = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
             const monthKey = d.toLocaleString('default', { month: 'short' });
@@ -270,14 +301,30 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                 })
                 .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-            chartData.push({ name: monthKey, value: monthTotal });
+            trendData.push({ name: monthKey, value: monthTotal });
         }
 
-        return { totalCount, totalAmount, averageAmount, chartData };
+        // Sorted recent transactions
+        const sortedTxs = [...merchantTxs]
+            .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
+            .slice(0, 10);
+
+        return {
+            totalCount: count,
+            totalAmount: total,
+            averageAmount: avg,
+            chartData: trendData,
+            recentMerchantTxs: sortedTxs
+        };
     }, [transactions, merchantName]);
 
     const allCategories = [...expenseCategories, ...incomeCategories];
-    const previewLogoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, { [logoKey]: logo || logoKey }, { fallback: 'lettermark', type: 'icon', width: 80, height: 80, refreshTimestamp });
+    const previewLogoUrl = getMerchantLogoUrl(
+        merchantName, 
+        brandfetchClientId, 
+        { [logoKey]: logo || logoKey }, 
+        { fallback: 'lettermark', type: 'icon', width: 120, height: 120, refreshTimestamp }
+    );
 
     const handleRefreshBrandfetchLogo = () => {
         if (!canRefreshFromBrandfetch) return;
@@ -285,557 +332,893 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         toast.success(`Fetched latest logo from Brandfetch for "${merchantName}"!`);
     };
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
+    const labelStyle = "block text-[11px] font-extrabold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
 
-    return (
-        <Modal onClose={onClose} title="Merchant Details">
-            <div className="flex flex-col gap-6">
+    if (!isOpen && !isVisible) return null;
 
-                {/* Header */}
-                <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center bg-white dark:bg-white/10">
-                        {previewLogoUrl ? (
-                            <img src={previewLogoUrl} alt={merchantName} className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-2xl font-bold text-gray-400">{merchantName.charAt(0)}</span>
-                        )}
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{merchantName}</h2>
-                            {canRefreshFromBrandfetch && (
-                                <button
-                                    type="button"
-                                    onClick={handleRefreshBrandfetchLogo}
-                                    className="p-1 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                    title="Fetch latest logo from Brandfetch"
-                                >
-                                    <Icon name="refresh" className="text-sm" />
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                            {website && (
-                                <a href={website} target="_blank" rel="noreferrer" className="text-xs text-primary-500 hover:underline flex items-center gap-1">
-                                    {website.replace(/^https?:\/\//, '')} <Icon name="open_in_new" className="text-[10px]" />
-                                </a>
-                            )}
-                            {isHidden && <span className="text-[10px] bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-gray-500 font-bold  tracking-wide">Hidden</span>}
-                        </div>
-                    </div>
-                </div>
+    const drawerContent = (
+        <div className="fixed inset-0 z-[9999] overflow-hidden">
+            {/* Backdrop Blur Overlay */}
+            <div 
+                className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-300 ${
+                    isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={handleCloseDrawer}
+            />
 
-                {/* Tabs */}
-                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('settings')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'settings' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                    >
-                        Settings
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('stats')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'stats' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                    >
-                        History & Stats
-                    </button>
-                </div>
-
-                {activeTab === 'settings' ? (
-                    <form id="merchant-form" onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className={labelStyle}>Default Category</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select
-                                    value={category}
-                                    onChange={e => setCategory(e.target.value)}
-                                    className={SELECT_STYLE}
-                                >
-                                    <CategoryOptions categories={allCategories} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
+            {/* Right-Side Full Height Slide-out Drawer */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+                <div 
+                    className={`w-screen max-w-xl md:max-w-2xl h-screen bg-white dark:bg-[#12141a] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                        isVisible ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* 1. Header Section */}
+                    <div className="shrink-0 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                        {/* Top Action Ribbon */}
+                        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 bg-primary-500/10 px-2.5 py-1 rounded-full border border-primary-500/20">
+                                    <Icon name="Building02" className="text-xs" />
+                                    Entity Protocol
+                                </span>
+                                {isHidden && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                        <Icon name="eye_off" className="text-xs" />
+                                        Hidden
+                                    </span>
+                                )}
                             </div>
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                Automatically apply this category to future transactions from this merchant.
-                            </p>
-                        </div>
 
-                        <div>
-                            <label className={labelStyle}>Default Description</label>
-                            <input
-                                type="text"
-                                value={defaultDescription}
-                                onChange={e => setDefaultDescription(e.target.value)}
-                                className={INPUT_BASE_STYLE}
-                                placeholder="e.g. Monthly Subscription"
-                            />
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                Prefills the description field when creating a new transaction for this merchant.
-                            </p>
-                        </div>
-
-                        <div className="space-y-4 pt-2 border-t border-black/5 dark:border-white/5">
-                            <div className="flex justify-between items-center">
-                                <h4 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">Brand Identity</h4>
+                            <div className="flex items-center gap-2">
                                 {canRefreshFromBrandfetch && (
                                     <button
                                         type="button"
                                         onClick={handleRefreshBrandfetchLogo}
-                                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 bg-primary-500/10 px-2.5 py-1 rounded-lg transition-colors"
-                                        title="Fetch latest logo from Brandfetch"
+                                        className="p-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+                                        title="Fetch latest branding from Brandfetch"
                                     >
-                                        <Icon name="refresh" className="text-xs" />
-                                        <span>Refresh from Brandfetch</span>
+                                        <Icon name="magic_wand" className="text-base" />
                                     </button>
                                 )}
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {isCustomUpload ? (
-                                    <div className="flex flex-col justify-between p-4 bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl h-[100px]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-white flex items-center justify-center p-1 shrink-0">
-                                                <img src={logo} className="max-w-full max-h-full object-contain" alt="Custom logo" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-bold text-light-text dark:text-dark-text truncate">Custom Logo Loaded</p>
-                                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate">Using manual image asset</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setLogo('')}
-                                            className="text-[10px] font-black  tracking-widest text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 self-start transition-colors"
-                                        >
-                                            Remove Custom Logo
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <label className={labelStyle}>Brand Domain</label>
-                                        <input
-                                            type="text"
-                                            value={logo}
-                                            onChange={e => setLogo(e.target.value)}
-                                            className={INPUT_BASE_STYLE}
-                                            placeholder="e.g. netflix.com"
-                                        />
-                                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                            Auto-fetches matching telemetry from Brandfetch.
-                                        </p>
-                                    </div>
-                                )}
-
-                                {isCustomUpload ? (
-                                    <div className="flex flex-col justify-center">
-                                        <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">Logo Precedence</p>
-                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 leading-relaxed">
-                                            This custom logo overrides Brandfetch lookups and is synchronized globally across all of your telemetry reports.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all h-[100px] ${isDragging ? 'border-primary-500 bg-primary-500/5' : 'border-black/10 dark:border-white/10 hover:border-primary-500/40 hover:bg-black/[0.01] dark:hover:bg-white/[0.01]'}`}
-                                    >
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleFileChange}
-                                            className="hidden"
-                                        />
-                                        <Icon name="upload_file" className="text-xl text-light-text-secondary dark:text-dark-text-secondary mb-0.5" />
-                                        <p className="text-[10px] font-black  tracking-widest text-light-text dark:text-dark-text">Upload Custom Logo</p>
-                                        <p className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Drag-and-drop or click here</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className={labelStyle}>Website URL</label>
-                                <input
-                                    type="text"
-                                    value={website}
-                                    onChange={e => setWebsite(e.target.value)}
-                                    className={INPUT_BASE_STYLE}
-                                    placeholder="https://..."
-                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCloseDrawer}
+                                    className="p-2 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-all flex items-center gap-1 text-xs font-bold"
+                                    title="Close panel (Esc)"
+                                >
+                                    <Icon name="close" className="text-lg" />
+                                    <span className="hidden sm:inline text-[10px] text-gray-400 font-mono">ESC</span>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Multiple Physical Addresses & Branches */}
-                        <div className="space-y-3.5 pt-2 border-t border-black/5 dark:border-white/5">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
-                                            <Icon name="marker_pin" className="text-xs text-primary-500" />
-                                            <span>Addresses & Branches</span>
-                                        </h4>
-                                        <span className="px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[10px] font-bold">
-                                            {locations.length} {locations.length === 1 ? 'Branch' : 'Branches'}
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                                        Add multiple store locations or branch addresses for map telemetry.
-                                    </p>
+                        {/* Merchant Identity & Metrics Hero */}
+                        <div className="px-6 pb-5 space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="relative group w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 shadow-sm flex items-center justify-center">
+                                    {previewLogoUrl ? (
+                                        <img src={previewLogoUrl} alt={merchantName} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-2xl font-black text-primary-500">{merchantName.charAt(0).toUpperCase()}</span>
+                                    )}
                                 </div>
-                                {!isAddingBranch && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsAddingBranch(true)}
-                                        className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 bg-primary-500/10 hover:bg-primary-500/15 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-                                    >
-                                        <Icon name="add" className="text-xs" />
-                                        <span>Add Branch</span>
-                                    </button>
-                                )}
+
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <h2 className="text-xl sm:text-2xl font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
+                                            {merchantName}
+                                        </h2>
+                                        {isOnline && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+                                                🌐 Online Business
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                                        {website ? (
+                                            <a 
+                                                href={website} 
+                                                target="_blank" 
+                                                rel="noreferrer" 
+                                                className="text-xs font-bold text-primary-500 hover:underline flex items-center gap-1"
+                                            >
+                                                <span>{website.replace(/^https?:\/\/(www\.)?/, '')}</span>
+                                                <Icon name="open_in_new" className="text-[10px]" />
+                                            </a>
+                                        ) : (
+                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                No website linked
+                                            </span>
+                                        )}
+                                        {category && (
+                                            <span className="inline-flex items-center text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md border border-black/5 dark:border-white/5">
+                                                {category}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* List of Configured Branches */}
-                            {locations.length > 0 && (
-                                <div className="space-y-2.5">
-                                    {locations.map((loc, idx) => {
-                                        const isEditingThis = editingLocationId === loc.id;
-                                        return (
-                                            <div 
-                                                key={loc.id} 
-                                                className={`p-3.5 rounded-2xl border transition-all ${
-                                                    loc.isPrimary 
-                                                        ? 'bg-primary-500/[0.03] dark:bg-primary-500/[0.05] border-primary-500/30 dark:border-primary-500/20' 
-                                                        : 'bg-gray-50 dark:bg-white/[0.02] border-black/5 dark:border-white/10'
-                                                }`}
+                            {/* Stat Highlights Cards */}
+                            <div className="grid grid-cols-3 gap-2.5">
+                                <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
+                                    <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-0.5">
+                                        Volume
+                                    </p>
+                                    <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
+                                        {formatCurrency(totalAmount, 'EUR')}
+                                    </p>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
+                                    <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-0.5">
+                                        Avg Ticket
+                                    </p>
+                                    <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
+                                        {formatCurrency(averageAmount, 'EUR')}
+                                    </p>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
+                                    <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-0.5">
+                                        Activity
+                                    </p>
+                                    <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
+                                        {totalCount} Events
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Segmented Navigation Tabs */}
+                        <div className="px-6 flex gap-1 border-t border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01] overflow-x-auto no-scrollbar">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('rules')}
+                                className={`py-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                    activeTab === 'rules'
+                                        ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
+                                        : 'border-transparent text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                                }`}
+                            >
+                                <Icon name="code" className="text-sm" />
+                                <span>Rules & Routing</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('locations')}
+                                className={`py-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                    activeTab === 'locations'
+                                        ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
+                                        : 'border-transparent text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                                }`}
+                            >
+                                <Icon name="marker_pin" className="text-sm" />
+                                <span>Locations</span>
+                                {isOnline ? (
+                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                        🌐 Online
+                                    </span>
+                                ) : locations.length > 0 && (
+                                    <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-500">
+                                        {locations.length}
+                                    </span>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('branding')}
+                                className={`py-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                    activeTab === 'branding'
+                                        ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
+                                        : 'border-transparent text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                                }`}
+                            >
+                                <Icon name="magic_wand" className="text-sm" />
+                                <span>Branding & Logo</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('telemetry')}
+                                className={`py-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                                    activeTab === 'telemetry'
+                                        ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
+                                        : 'border-transparent text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                                }`}
+                            >
+                                <Icon name="coins_stacked" className="text-sm" />
+                                <span>Insights</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 2. Scrollable Body Content */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <form id="merchant-protocol-form" onSubmit={handleSubmit} className="space-y-6">
+                            {/* TAB 1: RULES & ROUTING */}
+                            {activeTab === 'rules' && (
+                                <div className="space-y-5 animate-fade-in">
+                                    {/* Default Classification Category */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className={labelStyle}>Default Category Classification</label>
+                                            <span className="text-[10px] text-primary-500 font-bold">Auto-Classification</span>
+                                        </div>
+                                        <div className={SELECT_WRAPPER_STYLE}>
+                                            <select
+                                                value={category}
+                                                onChange={e => setCategory(e.target.value)}
+                                                className={SELECT_STYLE}
                                             >
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                                                            loc.isPrimary ? 'bg-primary-500 text-white shadow-xs' : 'bg-black/5 dark:bg-white/10 text-primary-500'
-                                                        }`}>
-                                                            <Icon name="marker_pin" className="text-base" />
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="flex items-center gap-2 flex-wrap">
-                                                                <p className="text-xs font-bold text-light-text dark:text-dark-text leading-snug">
-                                                                    {loc.label || `Branch #${idx + 1}`}
-                                                                </p>
-                                                                {loc.isPrimary ? (
-                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                                                        ★ Primary Branch
-                                                                    </span>
-                                                                ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleSetPrimaryBranch(loc.id)}
-                                                                        className="text-[9px] font-bold text-gray-400 hover:text-primary-500 hover:underline transition-colors"
-                                                                    >
-                                                                        Set as Primary
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5 leading-normal">
-                                                                {loc.address}
-                                                            </p>
-                                                            {(loc.latitude !== undefined && loc.longitude !== undefined) && (
-                                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-primary-600 dark:text-primary-400">
-                                                                        📍 {loc.latitude.toFixed(4)}°, {loc.longitude.toFixed(4)}°
-                                                                    </span>
-                                                                    {loc.country && (
-                                                                        <span className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                                                                            {loc.country}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                                <CategoryOptions categories={allCategories} />
+                                            </select>
+                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
+                                        </div>
+                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                            Telemetry ingestion will automatically route new transactions from this merchant to this category.
+                                        </p>
+                                    </div>
 
-                                                    {/* Branch Actions */}
-                                                    <div className="flex items-center gap-1 shrink-0">
-                                                        {loc.latitude !== undefined && loc.longitude !== undefined && (
-                                                            <a
-                                                                href={`https://www.google.com/maps/search/?api=1&query=${loc.latitude},${loc.longitude}`}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                                                                title="Open in Google Maps"
-                                                            >
-                                                                <Icon name="open_in_new" className="text-xs" />
-                                                            </a>
-                                                        )}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setEditingLocationId(isEditingThis ? null : loc.id)}
-                                                            className={`p-1.5 rounded-lg transition-colors ${
-                                                                isEditingThis 
-                                                                    ? 'bg-primary-500/10 text-primary-500' 
-                                                                    : 'text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/10'
-                                                            }`}
-                                                            title="Fine-tune details & coordinates"
-                                                        >
-                                                            <Icon name="tune" className="text-xs" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveBranch(loc.id)}
-                                                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                                            title="Remove Branch"
-                                                        >
-                                                            <Icon name="delete" className="text-xs" />
-                                                        </button>
-                                                    </div>
+                                    {/* Default Description */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+                                        <label className={labelStyle}>Default Transaction Description</label>
+                                        <input
+                                            type="text"
+                                            value={defaultDescription}
+                                            onChange={e => setDefaultDescription(e.target.value)}
+                                            className={INPUT_BASE_STYLE}
+                                            placeholder="e.g. Monthly Software License"
+                                        />
+                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                            Prefills the description field whenever this merchant is selected during manual transaction logging.
+                                        </p>
+                                    </div>
+
+                                    {/* Internal Notes */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+                                        <label className={labelStyle}>Operational Notes & Reference</label>
+                                        <textarea
+                                            value={notes}
+                                            onChange={e => setNotes(e.target.value)}
+                                            className={`${INPUT_BASE_STYLE} min-h-[85px] resize-none`}
+                                            placeholder="Contract IDs, customer service contacts, account references, cancellation terms..."
+                                        />
+                                    </div>
+
+                                    {/* Visibility Toggle */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                        <label className="flex items-center justify-between cursor-pointer">
+                                            <div className="space-y-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon name={isHidden ? "eye_off" : "eye"} className="text-base text-primary-500" />
+                                                    <span className="text-xs font-bold text-light-text dark:text-dark-text">
+                                                        Hide from Merchant Pickers
+                                                    </span>
                                                 </div>
-
-                                                {/* Inline Editor for Branch Fine-tuning */}
-                                                {isEditingThis && (
-                                                    <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 space-y-2.5 animate-fade-in-up">
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Branch Name / Label</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={loc.label || ''}
-                                                                    onChange={e => handleUpdateBranchField(loc.id, 'label', e.target.value)}
-                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
-                                                                    placeholder="e.g. Zaventem Branch"
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-1">City / Municipality</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={loc.city || ''}
-                                                                    onChange={e => handleUpdateBranchField(loc.id, 'city', e.target.value)}
-                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
-                                                                    placeholder="e.g. Zaventem"
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Country</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={loc.country || ''}
-                                                                    onChange={e => handleUpdateBranchField(loc.id, 'country', e.target.value)}
-                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
-                                                                    placeholder="e.g. Belgium"
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Postal Code</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={loc.postalCode || ''}
-                                                                    onChange={e => handleUpdateBranchField(loc.id, 'postalCode', e.target.value)}
-                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
-                                                                    placeholder="e.g. 1930"
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Latitude</label>
-                                                                <input
-                                                                    type="number"
-                                                                    step="any"
-                                                                    value={loc.latitude ?? ''}
-                                                                    onChange={e => handleUpdateBranchField(loc.id, 'latitude', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs font-mono`}
-                                                                    placeholder="50.8717"
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Longitude</label>
-                                                                <input
-                                                                    type="number"
-                                                                    step="any"
-                                                                    value={loc.longitude ?? ''}
-                                                                    onChange={e => handleUpdateBranchField(loc.id, 'longitude', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                                                    className={`${INPUT_BASE_STYLE} !py-1 !text-xs font-mono`}
-                                                                    placeholder="4.4919"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex justify-end pt-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setEditingLocationId(null)}
-                                                                className="text-[10px] font-bold text-primary-500 hover:underline"
-                                                            >
-                                                                Done Editing
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                                    Hides this merchant from quick autocomplete pickers without affecting historical transaction data.
+                                                </p>
                                             </div>
-                                        );
-                                    })}
+                                            <input
+                                                type="checkbox"
+                                                checked={isHidden}
+                                                onChange={e => setIsHidden(e.target.checked)}
+                                                className={CHECKBOX_STYLE}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Add Branch Form */}
-                            {(isAddingBranch || locations.length === 0) && (
-                                <div className="p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-dashed border-primary-500/30 space-y-3 animate-fade-in-up">
-                                    <div className="flex items-center justify-between">
-                                        <h5 className="text-[11px] font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-                                            <Icon name="add" className="text-xs text-primary-500" />
-                                            <span>{locations.length === 0 ? 'Add Primary Location' : 'Add New Branch'}</span>
-                                        </h5>
-                                        {locations.length > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setIsAddingBranch(false);
-                                                    setNewBranchLabel('');
-                                                    setNewBranchAddress('');
-                                                    setNewBranchData(null);
-                                                }}
-                                                className="text-[10px] font-medium text-light-text-secondary hover:text-light-text dark:hover:text-dark-text"
-                                            >
-                                                Cancel
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-light-text-secondary mb-1">
-                                            Branch Label / Nickname (Optional)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={newBranchLabel}
-                                            onChange={e => setNewBranchLabel(e.target.value)}
-                                            className={`${INPUT_BASE_STYLE} !py-2 !text-xs`}
-                                            placeholder="e.g. Zaventem, Downtown Store, Headquarters..."
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-light-text-secondary mb-1">
-                                            Address / Location Search
-                                        </label>
-                                        <AddressAutocomplete
-                                            value={newBranchAddress}
-                                            onChange={handleNewAddressSelect}
-                                            placeholder="Search e.g. IKEA Zaventem or Weiveldlaan 19, 1930 Zaventem..."
-                                        />
-                                    </div>
-
-                                    {newBranchData && (
-                                        <div className="p-2.5 bg-primary-500/5 rounded-xl border border-primary-500/20 text-xs flex items-center justify-between">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-bold text-light-text dark:text-dark-text truncate">{newBranchData.title}</p>
-                                                <p className="text-[10px] text-light-text-secondary truncate">{newBranchData.formattedAddress}</p>
+                            {/* TAB 2: LOCATIONS & BRANCHES */}
+                            {activeTab === 'locations' && (
+                                <div className="space-y-5 animate-fade-in">
+                                    {/* Online Business Mode Toggle Card */}
+                                    <div className={`p-4.5 rounded-3xl border transition-all ${
+                                        isOnline 
+                                            ? 'bg-blue-500/[0.06] dark:bg-blue-500/[0.08] border-blue-500/30 dark:border-blue-500/20' 
+                                            : 'bg-gray-50/70 dark:bg-white/[0.02] border-black/5 dark:border-white/5'
+                                    }`}>
+                                        <label className="flex items-center justify-between cursor-pointer">
+                                            <div className="space-y-0.5 pr-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-base">🌐</span>
+                                                    <span className="text-xs font-bold text-light-text dark:text-dark-text">
+                                                        Online / Digital Business
+                                                    </span>
+                                                    {isOnline && (
+                                                        <span className="inline-flex items-center text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                                                            Active
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                                    Toggle on for web stores, SaaS platforms, streaming subscriptions, and cloud services (e.g. Amazon, Netflix, Spotify, Steam) with no physical storefront.
+                                                </p>
                                             </div>
-                                            <span className="text-[9px] font-mono text-primary-500 ml-2 shrink-0">
-                                                📍 {newBranchData.lat.toFixed(4)}°, {newBranchData.lon.toFixed(4)}°
-                                            </span>
+                                            <input
+                                                type="checkbox"
+                                                checked={isOnline}
+                                                onChange={e => setIsOnline(e.target.checked)}
+                                                className={CHECKBOX_STYLE}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Info banner when Online Business is enabled */}
+                                    {isOnline && (
+                                        <div className="p-4 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 animate-fade-in-up">
+                                            <Icon name="info" className="text-blue-500 text-base shrink-0 mt-0.5" />
+                                            <div className="text-xs space-y-1 text-light-text dark:text-dark-text">
+                                                <p className="font-bold">Digital / Web Service Protocol Enabled</p>
+                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                                                    Transactions for {merchantName} are classified as online digital orders and won't require physical map coordinates. You can still optionally add local pickup lockers or regional headquarters below if desired.
+                                                </p>
+                                            </div>
                                         </div>
                                     )}
 
-                                    <div className="flex justify-end gap-2 pt-1">
-                                        {locations.length > 0 && (
+                                    <div className="flex justify-between items-center pt-1">
+                                        <div>
+                                            <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
+                                                <Icon name="marker_pin" className="text-sm text-primary-500" />
+                                                <span>{isOnline ? 'Optional Fulfillment Centers & Pickups' : 'Configured Branches & Locations'}</span>
+                                            </h4>
+                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                                {isOnline ? 'Add optional physical pickup lockers, hub locations, or regional offices.' : 'Map multiple physical stores, warehouses, or office locations.'}
+                                            </p>
+                                        </div>
+                                        {!isAddingBranch && (
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setIsAddingBranch(false);
-                                                    setNewBranchLabel('');
-                                                    setNewBranchAddress('');
-                                                    setNewBranchData(null);
-                                                }}
-                                                className={`${BTN_SECONDARY_STYLE} !py-1.5 !px-3 !text-xs`}
+                                                onClick={() => setIsAddingBranch(true)}
+                                                className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 hover:bg-primary-500/15 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
                                             >
-                                                Cancel
+                                                <Icon name="add" className="text-sm" />
+                                                <span>Add Branch</span>
                                             </button>
                                         )}
-                                        <button
-                                            type="button"
-                                            onClick={handleAddBranch}
-                                            className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-4 !text-xs`}
+                                    </div>
+
+                                    {/* List of Configured Branches */}
+                                    {locations.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {locations.map((loc, idx) => {
+                                                const isEditingThis = editingLocationId === loc.id;
+                                                return (
+                                                    <div 
+                                                        key={loc.id} 
+                                                        className={`p-4 rounded-3xl border transition-all ${
+                                                            loc.isPrimary 
+                                                                ? 'bg-primary-500/[0.04] dark:bg-primary-500/[0.06] border-primary-500/30 dark:border-primary-500/20' 
+                                                                : 'bg-gray-50/70 dark:bg-white/[0.02] border-black/5 dark:border-white/10'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 ${
+                                                                    loc.isPrimary ? 'bg-primary-500 text-white shadow-sm' : 'bg-black/5 dark:bg-white/10 text-primary-500'
+                                                                }`}>
+                                                                    <Icon name="marker_pin" className="text-base" />
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <p className="text-xs font-bold text-light-text dark:text-dark-text leading-snug">
+                                                                            {loc.label || `Branch #${idx + 1}`}
+                                                                        </p>
+                                                                        {loc.isPrimary ? (
+                                                                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                                                                ★ Primary Branch
+                                                                            </span>
+                                                                        ) : (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleSetPrimaryBranch(loc.id)}
+                                                                                className="text-[9px] font-bold text-gray-400 hover:text-primary-500 hover:underline transition-colors"
+                                                                            >
+                                                                                Set as Primary
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 leading-normal">
+                                                                        {loc.address}
+                                                                    </p>
+                                                                    {(loc.latitude !== undefined && loc.longitude !== undefined) && (
+                                                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md text-primary-600 dark:text-primary-400">
+                                                                                📍 {loc.latitude.toFixed(4)}°, {loc.longitude.toFixed(4)}°
+                                                                            </span>
+                                                                            {loc.country && (
+                                                                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                                                    {loc.country}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Branch Quick Actions */}
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                {loc.latitude !== undefined && loc.longitude !== undefined && (
+                                                                    <a
+                                                                        href={`https://www.google.com/maps/search/?api=1&query=${loc.latitude},${loc.longitude}`}
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className="p-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                                                                        title="Open in Google Maps"
+                                                                    >
+                                                                        <Icon name="open_in_new" className="text-xs" />
+                                                                    </a>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setEditingLocationId(isEditingThis ? null : loc.id)}
+                                                                    className={`p-2 rounded-xl transition-colors ${
+                                                                        isEditingThis 
+                                                                            ? 'bg-primary-500/10 text-primary-500' 
+                                                                            : 'text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/10'
+                                                                    }`}
+                                                                    title="Fine-tune details & coordinates"
+                                                                >
+                                                                    <Icon name="tune" className="text-xs" />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveBranch(loc.id)}
+                                                                    className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                                                    title="Remove Branch"
+                                                                >
+                                                                    <Icon name="delete" className="text-xs" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Inline Fine-tuning Drawer */}
+                                                        {isEditingThis && (
+                                                            <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 space-y-3 animate-fade-in-up">
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Branch Name / Label</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={loc.label || ''}
+                                                                            onChange={e => handleUpdateBranchField(loc.id, 'label', e.target.value)}
+                                                                            className={`${INPUT_BASE_STYLE} !py-1.5 !text-xs`}
+                                                                            placeholder="e.g. Zaventem Branch"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">City / Municipality</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={loc.city || ''}
+                                                                            onChange={e => handleUpdateBranchField(loc.id, 'city', e.target.value)}
+                                                                            className={`${INPUT_BASE_STYLE} !py-1.5 !text-xs`}
+                                                                            placeholder="e.g. Zaventem"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Country</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={loc.country || ''}
+                                                                            onChange={e => handleUpdateBranchField(loc.id, 'country', e.target.value)}
+                                                                            className={`${INPUT_BASE_STYLE} !py-1.5 !text-xs`}
+                                                                            placeholder="e.g. Belgium"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Postal Code</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={loc.postalCode || ''}
+                                                                            onChange={e => handleUpdateBranchField(loc.id, 'postalCode', e.target.value)}
+                                                                            className={`${INPUT_BASE_STYLE} !py-1.5 !text-xs`}
+                                                                            placeholder="e.g. 1930"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Latitude</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="any"
+                                                                            value={loc.latitude ?? ''}
+                                                                            onChange={e => handleUpdateBranchField(loc.id, 'latitude', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                                                            className={`${INPUT_BASE_STYLE} !py-1.5 !text-xs font-mono`}
+                                                                            placeholder="50.8717"
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Longitude</label>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="any"
+                                                                            value={loc.longitude ?? ''}
+                                                                            onChange={e => handleUpdateBranchField(loc.id, 'longitude', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                                                            className={`${INPUT_BASE_STYLE} !py-1.5 !text-xs font-mono`}
+                                                                            placeholder="4.4919"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex justify-end pt-1">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingLocationId(null)}
+                                                                        className="text-xs font-bold text-primary-500 hover:underline"
+                                                                    >
+                                                                        Done Editing
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="p-8 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-dashed border-black/10 dark:border-white/10 text-center space-y-2">
+                                            <Icon name="marker_pin" className="text-3xl text-gray-400 mx-auto" />
+                                            <p className="text-xs font-bold text-light-text dark:text-dark-text">No Physical Locations Added</p>
+                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary max-w-sm mx-auto">
+                                                Add addresses or store branches to enable exact coordinate geolocation on your transaction maps.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Add Branch Form */}
+                                    {(isAddingBranch || locations.length === 0) && (
+                                        <div className="p-5 rounded-3xl bg-primary-500/[0.03] dark:bg-primary-500/[0.05] border border-dashed border-primary-500/30 space-y-3.5 animate-fade-in-up">
+                                            <div className="flex items-center justify-between">
+                                                <h5 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
+                                                    <Icon name="add" className="text-xs text-primary-500" />
+                                                    <span>{locations.length === 0 ? 'Add Primary Branch' : 'Add New Branch'}</span>
+                                                </h5>
+                                                {locations.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsAddingBranch(false);
+                                                            setNewBranchLabel('');
+                                                            setNewBranchAddress('');
+                                                            setNewBranchData(null);
+                                                        }}
+                                                        className="text-xs font-medium text-light-text-secondary hover:text-light-text"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-light-text-secondary mb-1">
+                                                    Branch Label / Nickname (Optional)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={newBranchLabel}
+                                                    onChange={e => setNewBranchLabel(e.target.value)}
+                                                    className={`${INPUT_BASE_STYLE} !py-2 !text-xs`}
+                                                    placeholder="e.g. Zaventem Flagship, Downtown Branch..."
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-light-text-secondary mb-1">
+                                                    Address / Public Map Search
+                                                </label>
+                                                <AddressAutocomplete
+                                                    value={newBranchAddress}
+                                                    onChange={handleNewAddressSelect}
+                                                    placeholder="Search address, store, or city..."
+                                                />
+                                            </div>
+
+                                            {newBranchData && (
+                                                <div className="p-3 bg-white dark:bg-dark-card rounded-2xl border border-primary-500/20 text-xs flex items-center justify-between shadow-2xs">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-bold text-light-text dark:text-dark-text truncate">{newBranchData.title}</p>
+                                                        <p className="text-[11px] text-light-text-secondary truncate">{newBranchData.formattedAddress}</p>
+                                                    </div>
+                                                    <span className="text-[10px] font-mono text-primary-500 ml-2 shrink-0">
+                                                        📍 {newBranchData.lat.toFixed(4)}°, {newBranchData.lon.toFixed(4)}°
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-end gap-2 pt-1">
+                                                {locations.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsAddingBranch(false);
+                                                            setNewBranchLabel('');
+                                                            setNewBranchAddress('');
+                                                            setNewBranchData(null);
+                                                        }}
+                                                        className={`${BTN_SECONDARY_STYLE} !py-1.5 !px-3.5 !text-xs`}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddBranch}
+                                                    className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-5 !text-xs`}
+                                                >
+                                                    Save Branch
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* TAB 3: BRANDING & ASSETS */}
+                            {activeTab === 'branding' && (
+                                <div className="space-y-5 animate-fade-in">
+                                    {/* Active Logo Asset Status */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
+                                        <label className={labelStyle}>Active Branding Asset</label>
+                                        <div className="flex items-center justify-between p-3.5 bg-white dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
+                                            <div className="flex items-center gap-3.5">
+                                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                    {previewLogoUrl ? (
+                                                        <img src={previewLogoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="font-bold text-lg text-gray-400">{merchantName.charAt(0)}</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-light-text dark:text-dark-text">
+                                                        {isCustomUpload ? 'Manual Image Upload' : (logo ? `Domain: ${logo}` : 'Automatic Telemetry Lookup')}
+                                                    </p>
+                                                    <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                        {isCustomUpload ? 'Overrides Brandfetch lookups globally' : 'Cached via Brandfetch CDN endpoint'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {isCustomUpload && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setLogo('')}
+                                                    className="text-[10px] font-black text-red-500 hover:text-red-600 transition-colors"
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Brandfetch Domain Input */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+                                        <label className={labelStyle}>Brand Domain Override</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={logo}
+                                                onChange={e => setLogo(e.target.value)}
+                                                className={INPUT_BASE_STYLE}
+                                                placeholder="e.g. apple.com, netflix.com, ikea.com"
+                                            />
+                                            {canRefreshFromBrandfetch && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRefreshBrandfetchLogo}
+                                                    className={`${BTN_SECONDARY_STYLE} shrink-0 !py-2 !px-3 text-xs flex items-center gap-1`}
+                                                >
+                                                    <Icon name="refresh" className="text-xs" />
+                                                    <span>Fetch</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                            Enter the official brand domain to automatically pull matching high-resolution logos and icons from Brandfetch.
+                                        </p>
+                                    </div>
+
+                                    {/* Custom Logo Upload Dropzone */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+                                        <label className={labelStyle}>Upload Custom Vector / Image</label>
+                                        <div
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                                                isDragging 
+                                                    ? 'border-primary-500 bg-primary-500/5' 
+                                                    : 'border-black/10 dark:border-white/10 hover:border-primary-500/40 hover:bg-black/[0.01] dark:hover:bg-white/[0.01]'
+                                            }`}
                                         >
-                                            Save Branch
-                                        </button>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                            <Icon name="upload_file" className="text-2xl text-light-text-secondary dark:text-dark-text-secondary mb-1" />
+                                            <p className="text-xs font-bold text-light-text dark:text-dark-text">Click or drag image here</p>
+                                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Supports PNG, SVG, JPG, WEBP</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Website URL */}
+                                    <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
+                                        <label className={labelStyle}>Official Website URL</label>
+                                        <input
+                                            type="text"
+                                            value={website}
+                                            onChange={e => setWebsite(e.target.value)}
+                                            className={INPUT_BASE_STYLE}
+                                            placeholder="https://www.example.com"
+                                        />
                                     </div>
                                 </div>
                             )}
-                        </div>
 
-                        <div>
-                            <label className={labelStyle}>Notes</label>
-                            <textarea
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
-                                className={INPUT_BASE_STYLE}
-                                rows={2}
-                                placeholder="Contract details, support number, etc."
-                            />
-                        </div>
+                            {/* TAB 4: TELEMETRY & INSIGHTS */}
+                            {activeTab === 'telemetry' && (
+                                <div className="space-y-6 animate-fade-in">
+                                    {/* 6-Month Spending Trend using bklit/bar-chart */}
+                                    <div className="p-5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
+                                                    <Icon name="coins_stacked" className="text-sm text-primary-500" />
+                                                    <span>6-Month Spending Trajectory</span>
+                                                </h4>
+                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                                    Historical monthly outflow aggregates for {merchantName}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">
+                                                    Period Volume: <span className="text-light-text dark:text-dark-text font-mono font-bold">{formatCurrency(totalAmount, 'EUR')}</span>
+                                                </span>
+                                            </div>
+                                        </div>
 
-                        <div className="pt-2">
-                            <label className="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
-                                <input
-                                    type="checkbox"
-                                    checked={isHidden}
-                                    onChange={e => setIsHidden(e.target.checked)}
-                                    className={CHECKBOX_STYLE}
-                                />
-                                <div className="flex items-center gap-2">
-                                    <Icon name={isHidden ? "eye_off" : "eye"} className="text-base text-gray-500 dark:text-gray-400" />
-                                    <span className="text-sm font-medium text-light-text dark:text-dark-text">Hide from merchant lists</span>
+                                        {chartData.some(d => d.value > 0) ? (
+                                            <div className="h-48 w-full pt-2">
+                                                <BarChart
+                                                    data={chartData}
+                                                    xDataKey="name"
+                                                    aspectRatio="auto"
+                                                    margin={{ top: 12, right: 16, left: 48, bottom: 24 }}
+                                                    className="w-full h-full"
+                                                    animationDuration={900}
+                                                >
+                                                    <Grid horizontal vertical={false} strokeOpacity={0.06} />
+                                                    <Bar 
+                                                        dataKey="value" 
+                                                        fill="#3B82F6" 
+                                                        lineCap="round" 
+                                                    />
+                                                    <BarXAxis showAllLabels maxLabels={6} />
+                                                    <YAxis 
+                                                        numTicks={4} 
+                                                        formatValue={(v: number) => formatCurrency(v, 'EUR', { compact: true })} 
+                                                    />
+                                                    <ChartTooltip
+                                                        valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
+                                                    />
+                                                </BarChart>
+                                            </div>
+                                        ) : (
+                                            <div className="h-40 w-full flex flex-col items-center justify-center p-6 text-center space-y-1.5 border border-dashed border-black/5 dark:border-white/5 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01]">
+                                                <Icon name="calendar" className="text-2xl text-gray-400" />
+                                                <p className="text-xs font-bold text-light-text dark:text-dark-text">No Recent Spending in Last 6 Months</p>
+                                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                    Transactions logged for this merchant will appear in this monthly spending trajectory.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Recent Observed Transactions */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">
+                                                Recent Observed Transactions ({recentMerchantTxs.length})
+                                            </h4>
+                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                Latest History
+                                            </span>
+                                        </div>
+
+                                        {recentMerchantTxs.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {recentMerchantTxs.map(tx => (
+                                                    <div 
+                                                        key={tx.id} 
+                                                        className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between gap-3 shadow-2xs"
+                                                    >
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-xs font-bold text-light-text dark:text-dark-text truncate">
+                                                                    {tx.description}
+                                                                </p>
+                                                                {tx.category && (
+                                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary">
+                                                                        {tx.category}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
+                                                                {parseLocalDate(tx.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                {tx.address && ` • 📍 ${tx.address}`}
+                                                            </p>
+                                                        </div>
+
+                                                        <p className={`font-mono font-bold text-xs tracking-tight ${
+                                                            tx.type === 'income' ? 'text-green-500' : 'text-light-text dark:text-dark-text'
+                                                        }`}>
+                                                            {formatCurrency(tx.amount, tx.currency)}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="p-6 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01] border border-dashed border-black/5 dark:border-white/5 text-center text-xs text-light-text-secondary">
+                                                No transactions logged for this merchant yet.
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </label>
-                        </div>
-                    </form>
-                ) : (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1">Lifetime</p>
-                                <p className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(stats.totalAmount, 'EUR')}</p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1">Avg Ticket</p>
-                                <p className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(stats.averageAmount, 'EUR')}</p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 text-center">
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1">Transactions</p>
-                                <p className="text-lg font-bold text-light-text dark:text-dark-text">{stats.totalCount}</p>
-                            </div>
-                        </div>
+                            )}
+                        </form>
+                    </div>
 
-                        <div className="h-48 w-full">
-                            <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-2">Spending Trend (6mo)</h4>
-                            <BarChart
-                                data={stats.chartData}
-                                xDataKey="name"
-                                aspectRatio="auto"
-                                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-                                className="w-full h-40"
+                    {/* 3. Sticky Drawer Footer */}
+                    <div className="shrink-0 p-5 border-t border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#12141a]/95 backdrop-blur-md flex items-center justify-between gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCategory('');
+                                setDefaultDescription('');
+                                setNotes('');
+                                setWebsite('');
+                                setLogo('');
+                                setIsHidden(false);
+                                setLocations([]);
+                                toast.info('Reset unsaved fields');
+                            }}
+                            className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors"
+                        >
+                            Reset Fields
+                        </button>
+
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={handleCloseDrawer}
+                                className={`${BTN_SECONDARY_STYLE} !py-2 !px-4 !text-xs`}
                             >
-                                <Grid horizontal vertical={false} strokeOpacity={0.06} />
-                                <Bar dataKey="value" fill="#3B82F6" lineCap="round" />
-                                <BarXAxis />
-                                <BarYAxis />
-                                <ChartTooltip
-                                    valueFormatter={(val: number) => formatCurrency(val, 'EUR')}
-                                />
-                            </BarChart>
+                                Dismiss
+                            </button>
+
+                            <button
+                                type="submit"
+                                form="merchant-protocol-form"
+                                className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 !text-xs flex items-center gap-1.5 shadow-md shadow-primary-500/20`}
+                            >
+                                <Icon name="check" className="text-xs" />
+                                <span>Save Protocol</span>
+                            </button>
                         </div>
                     </div>
-                )}
-
-                {activeTab === 'settings' && (
-                    <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-                        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                        <button type="submit" form="merchant-form" className={BTN_PRIMARY_STYLE}>Save Changes</button>
-                    </div>
-                )}
+                </div>
             </div>
-        </Modal>
+        </div>
     );
+
+    return createPortal(drawerContent, document.body);
 };
 
 export default MerchantDetailModal;

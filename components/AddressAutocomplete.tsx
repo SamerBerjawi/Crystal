@@ -53,7 +53,7 @@ const CategoryBadge: React.FC<{ category: AddressData['category'] }> = ({ catego
 const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   value,
   onChange,
-  placeholder = 'e.g. IKEA Zaventem or Weiveldlaan 19, 1930 Zaventem',
+  placeholder = 'Search address, business, or area...',
   disabled = false
 }) => {
   const [inputValue, setInputValue] = useState(value || '');

@@ -780,7 +780,15 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                 <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest">
                                     {entity.count} Observed Events
                                 </p>
-                                {entity.rule?.locations && entity.rule.locations.length > 1 ? (
+                                {entity.rule?.isOnline ? (
+                                    <span 
+                                        className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
+                                        title="Online / Digital Business (No physical storefront)"
+                                    >
+                                        <span>🌐</span>
+                                        <span className="truncate">Online</span>
+                                    </span>
+                                ) : entity.rule?.locations && entity.rule.locations.length > 1 ? (
                                     <span 
                                         className="inline-flex items-center gap-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
                                         title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
@@ -854,7 +862,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                  <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors tracking-tight truncate">{entity.name}</span>
                                                  {isHidden && <Icon name="visibility_off" className="text-sm text-gray-400 shrink-0" title="Hidden from merchant lists" />}
                                               </div>
-                                              {entity.rule?.locations && entity.rule.locations.length > 1 ? (
+                                              {entity.rule?.isOnline ? (
+                                                  <p className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" title="Online / Digital Business">
+                                                     <span>🌐</span>
+                                                     <span className="font-bold">Online Business</span>
+                                                  </p>
+                                               ) : entity.rule?.locations && entity.rule.locations.length > 1 ? (
                                                  <p 
                                                     className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
                                                     title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}

@@ -286,7 +286,7 @@ export interface Transaction {
   notes?: string;
   // Location & Physical Address data
   address?: string; // Full formatted address string
-  placeName?: string; // Business / POI / Building name (e.g. "IKEA Zaventem")
+  placeName?: string; // Business / POI / Building name
   street?: string; // Street name + house number
   city?: string;
   postalCode?: string; // Postal code / ZIP
@@ -501,6 +501,7 @@ export interface MerchantRule {
   logo?: string; // Custom logo override (e.g. 'amazon.com')
   notes?: string;
   isHidden?: boolean;
+  isOnline?: boolean; // Online / Digital business (e.g. Amazon, Netflix, Spotify)
   defaultDescription?: string;
   address?: string; // Full formatted address string (primary/fallback)
   placeName?: string; // Business / POI / Building name (e.g. 'IKEA')

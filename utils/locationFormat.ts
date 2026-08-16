@@ -11,7 +11,7 @@ export interface LocationMeta {
   latitude?: number;
   longitude?: number;
   formatted: string; // e.g. "🇧🇪 Brussels"
-  fullDisplay: string; // e.g. "Brussels, Belgium" or "IKEA Zaventem, Weiveldlaan 19"
+  fullDisplay: string; // e.g. "Brussels, Belgium"
   hasLocation: boolean;
 }
 
