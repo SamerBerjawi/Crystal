@@ -185,6 +185,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         const representative = group.transactions[0];
         const meta = getCountryMeta(representative.country);
         const cityName = representative.city || 'Unknown City';
+        const label = representative.locationLabel || representative.placeName || cityName;
         const countryName = meta.countryName || representative.country || '';
 
         // Equirectangular projection for percentage positioning
@@ -202,6 +203,8 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
           currency: representative.currency,
           description: representative.description,
           date: representative.date,
+          label,
+          address: representative.address,
           city: cityName,
           country: countryName,
           flagEmoji: meta.flagEmoji,
@@ -517,10 +520,10 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
               <span className="text-lg leading-none">{activeHoveredLocation.flagEmoji}</span>
               <div className="min-w-0">
                 <h4 className="font-bold text-xs leading-tight text-primary truncate">
-                  {activeHoveredLocation.city}
+                  {activeHoveredLocation.label || activeHoveredLocation.city}
                 </h4>
                 <p className="text-[10px] text-tertiary truncate">
-                  {activeHoveredLocation.country}
+                  {activeHoveredLocation.address || [activeHoveredLocation.city, activeHoveredLocation.country].filter(Boolean).join(', ')}
                 </p>
               </div>
             </div>
@@ -566,9 +569,10 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                   ? 'bg-primary-500 text-white border-primary-400/40 shadow-xs'
                   : 'bg-white/80 dark:bg-black/60 text-primary border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10'
               }`}
+              title={loc.address || `${loc.city}, ${loc.country}`}
             >
               <span>{loc.flagEmoji}</span>
-              <span>{loc.city}</span>
+              <span className="max-w-[130px] truncate">{loc.label || loc.city}</span>
               <span className={`text-[10px] font-mono font-medium ${
                 isSelected || isHovered ? 'text-white/90' : 'text-tertiary'
               }`}>

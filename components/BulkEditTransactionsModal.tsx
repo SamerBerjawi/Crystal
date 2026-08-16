@@ -2,7 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
-import LocationAutocomplete from './LocationAutocomplete';
+import AddressAutocomplete from './AddressAutocomplete';
+import { AddressData } from '../hooks/useAddressSearch';
 import { toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
 
@@ -92,7 +93,18 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     category: '',
     tagIds: [] as string[],
     locationString: '',
-    locationData: {} as {city?: string, country?: string, lat?: number, lon?: number},
+    locationData: {} as {
+        address?: string;
+        placeName?: string;
+        street?: string;
+        city?: string;
+        postalCode?: string;
+        state?: string;
+        country?: string;
+        lat?: number;
+        lon?: number;
+        locationLabel?: string;
+    },
   });
 
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
@@ -155,10 +167,16 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
       if (fieldsToUpdate.tags) updatedTx.tagIds = updatedValues.tagIds;
       if (fieldsToUpdate.location) {
         const hasLoc = Boolean(updatedValues.locationString?.trim());
+        updatedTx.address = hasLoc ? (updatedValues.locationData?.address || updatedValues.locationString.trim()) : undefined;
+        updatedTx.placeName = hasLoc ? updatedValues.locationData?.placeName : undefined;
+        updatedTx.street = hasLoc ? updatedValues.locationData?.street : undefined;
         updatedTx.city = hasLoc ? (updatedValues.locationData?.city || updatedValues.locationString.trim()) : undefined;
+        updatedTx.postalCode = hasLoc ? updatedValues.locationData?.postalCode : undefined;
+        updatedTx.state = hasLoc ? updatedValues.locationData?.state : undefined;
         updatedTx.country = hasLoc ? updatedValues.locationData?.country : undefined;
         updatedTx.latitude = hasLoc ? updatedValues.locationData?.lat : undefined;
         updatedTx.longitude = hasLoc ? updatedValues.locationData?.lon : undefined;
+        updatedTx.locationLabel = hasLoc ? updatedValues.locationData?.locationLabel : undefined;
       }
 
       if (fieldsToUpdate.category) {
@@ -283,21 +301,27 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
             
             <CheckboxField field="location" label="Update Location" isChecked={fieldsToUpdate.location} onToggle={handleToggle}>
                 <div>
-                    <LocationAutocomplete
+                    <AddressAutocomplete
                         value={updatedValues.locationString}
                         onChange={(val, data) => {
                             setUpdatedValues(prev => ({
                                 ...prev,
                                 locationString: val,
                                 locationData: data ? {
+                                    address: data.formattedAddress,
+                                    placeName: data.placeName,
+                                    street: data.street,
                                     city: data.city,
+                                    postalCode: data.postalCode,
+                                    state: data.state,
                                     country: data.country,
                                     lat: data.lat,
-                                    lon: data.lon
+                                    lon: data.lon,
+                                    locationLabel: data.placeName || data.title
                                 } : (val.trim() ? { city: val.trim() } : {})
                             }));
                         }}
-                        placeholder="City, Country (or leave empty to clear)"
+                        placeholder="Search address or business (leave empty to clear)"
                     />
                     <p className="text-[11px] text-gray-400 mt-1 pl-1">Leave empty to remove location from all selected transactions.</p>
                 </div>

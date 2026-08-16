@@ -284,11 +284,17 @@ export interface Transaction {
   interestAmount?: number;
   tagIds?: string[];
   notes?: string;
-  // Location data
+  // Location & Physical Address data
+  address?: string; // Full formatted address string
+  placeName?: string; // Business / POI / Building name (e.g. "IKEA Zaventem")
+  street?: string; // Street name + house number
   city?: string;
+  postalCode?: string; // Postal code / ZIP
+  state?: string; // State / Region / Province
   country?: string;
   latitude?: number;
   longitude?: number;
+  locationLabel?: string; // Branch name or nickname (e.g. "Zaventem Branch")
   // Investment helpers
   isMarketAdjustment?: boolean;
   isBalanceAdjustment?: boolean;
@@ -474,6 +480,21 @@ export interface ImportExportHistoryItem {
 
 export type DefaultAccountOrder = 'manual' | 'name' | 'balance';
 
+export interface MerchantLocation {
+  id: string; // Unique identifier for the branch
+  label?: string; // Branch nickname or label (e.g. "Zaventem", "Flagship Store", "Downtown")
+  address: string; // Full formatted address string
+  placeName?: string; // Business / POI / Building name (e.g. "IKEA")
+  street?: string; // Street name + house number
+  city?: string; // City / Municipality
+  postalCode?: string; // Postal code / ZIP
+  state?: string; // State / Region
+  country?: string; // Country name
+  latitude?: number; // Geocoded latitude
+  longitude?: number; // Geocoded longitude
+  isPrimary?: boolean; // Indicates the primary or default branch
+}
+
 export interface MerchantRule {
   category?: string;
   website?: string;
@@ -481,6 +502,16 @@ export interface MerchantRule {
   notes?: string;
   isHidden?: boolean;
   defaultDescription?: string;
+  address?: string; // Full formatted address string (primary/fallback)
+  placeName?: string; // Business / POI / Building name (e.g. 'IKEA')
+  street?: string; // Street name and house number (e.g. 'Weiveldlaan 19')
+  city?: string; // City / Town
+  postalCode?: string; // Postal code / ZIP
+  state?: string; // State / Province
+  country?: string; // Country name
+  latitude?: number; // Geocoded latitude
+  longitude?: number; // Geocoded longitude
+  locations?: MerchantLocation[]; // Multiple addresses / branches
 }
 
 export interface RegexCategorizationRule {

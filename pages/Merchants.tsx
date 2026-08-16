@@ -536,14 +536,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
            <div className="flex items-center gap-2">
              <HeaderButton
                variant="secondary"
-               icon="sliders"
+               icon="code"
                onClick={() => setIsRegexModalOpen(true)}
              >
                Regex Routing Rules
              </HeaderButton>
              <HeaderButton
                variant="primary"
-               icon="refresh"
+               icon="magic_wand"
                isLoading={isRefreshing}
                onClick={handleRefreshLogos}
              >
@@ -555,7 +555,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {!brandfetchClientId && (
           <div className="bg-amber-100/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl px-5 py-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-               <Icon name="building" className="text-xl" />
+               <Icon name="alert_triangle" className="text-xl" />
             </div>
             <p className="text-xs font-bold text-amber-800/80 dark:text-amber-200/80 leading-relaxed">
               Automatic branding enrichment is offline. Add a Brandfetch Access Key in Preferences to restore merchant telemetry.
@@ -582,14 +582,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
                 <HeaderButton
                     variant="secondary"
-                    icon="assignment_turned_in"
+                    icon="code"
                     onClick={() => setIsRegexModalOpen(true)}
                 >
                     Regex Rules
                 </HeaderButton>
                 <HeaderButton
                     variant="primary"
-                    icon="sync_saved_locally"
+                    icon="magic_wand"
                     isLoading={isRefreshing}
                     onClick={handleRefreshLogos}
                 >
@@ -633,8 +633,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {/* Metrics Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
-          <StatCard title="Institutions" value={stats.totalInstitutions} icon="hub" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Aggr. Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="equalizer" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
+          <StatCard title="Institutions" value={stats.totalInstitutions} icon="bank" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
+          <StatCard title="Aggr. Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
           <StatCard title="Ambiguous" value={stats.missingCount} icon="psychology_alt" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
       </div>
 
@@ -753,6 +753,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                         <Icon name="refresh" className="text-xs" />
                                     </button>
                                 )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => handleToggleHidden(entity, e)}
+                                    className="p-1 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                    title={isHidden ? "Show Merchant" : "Hide Merchant"}
+                                >
+                                    <Icon name={isHidden ? 'visibility' : 'visibility_off'} className="text-xs" />
+                                </button>
                                 <span className={`text-[9px] font-black  tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
                                     {entity.type === 'Institution' ? 'Core' : 'Merch'}
                                 </span>
@@ -768,9 +776,28 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     <div className="space-y-4">
                         <div>
                             <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest">
-                                {entity.count} Observed Events
-                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest">
+                                    {entity.count} Observed Events
+                                </p>
+                                {entity.rule?.locations && entity.rule.locations.length > 1 ? (
+                                    <span 
+                                        className="inline-flex items-center gap-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
+                                        title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
+                                    >
+                                        <Icon name="marker_pin" className="text-[9px] shrink-0" />
+                                        <span className="truncate">{entity.rule.locations.length} Branches</span>
+                                    </span>
+                                ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
+                                    <span 
+                                        className="inline-flex items-center gap-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
+                                        title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
+                                    >
+                                        <Icon name="marker_pin" className="text-[9px] shrink-0" />
+                                        <span className="truncate">{entity.rule?.city || entity.rule?.locations?.[0]?.city || entity.rule?.placeName || entity.rule?.address}</span>
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="pt-4 border-t border-black/5 dark:border-white/5">
@@ -822,9 +849,28 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                     <span className="font-black text-xs text-light-text-secondary/40">{initialLetter}</span>
                                                 )}
                                            </div>
-                                           <div className="flex items-center gap-2">
-                                              <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors  tracking-tight">{entity.name}</span>
-                                              {isHidden && <Icon name="visibility_off" className="text-sm text-gray-400" />}
+                                           <div className="min-w-0">
+                                              <div className="flex items-center gap-2">
+                                                 <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors tracking-tight truncate">{entity.name}</span>
+                                                 {isHidden && <Icon name="visibility_off" className="text-sm text-gray-400 shrink-0" title="Hidden from merchant lists" />}
+                                              </div>
+                                              {entity.rule?.locations && entity.rule.locations.length > 1 ? (
+                                                 <p 
+                                                    className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
+                                                    title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
+                                                 >
+                                                    <Icon name="marker_pin" className="text-[9px] text-primary-500 shrink-0" />
+                                                    <span className="truncate">{entity.rule.locations.length} Branches ({entity.rule.locations.map(l => l.city || l.label).filter(Boolean).slice(0, 2).join(', ')})</span>
+                                                 </p>
+                                              ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
+                                                 <p 
+                                                    className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
+                                                    title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
+                                                 >
+                                                    <Icon name="marker_pin" className="text-[9px] text-primary-500 shrink-0" />
+                                                    <span className="truncate">{entity.rule?.address || entity.rule?.locations?.[0]?.address}</span>
+                                                 </p>
+                                              )}
                                            </div>
                                       </div>
                                   </td>
@@ -865,9 +911,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                            <button 
                                                 onClick={(e) => handleToggleHidden(entity, e)}
                                                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 transition-all shadow-sm"
-                                                title={isHidden ? "Activate" : "Deactivate"}
+                                                title={isHidden ? "Show Merchant" : "Hide Merchant"}
                                             >
-                                                <Icon name={isHidden ? 'notifications_active' : 'notifications_off'} className="text-lg" />
+                                                <Icon name={isHidden ? 'visibility' : 'visibility_off'} className="text-lg" />
                                             </button>
                                            <button 
                                                 onClick={(e) => { e.stopPropagation(); setEditingEntity(entity); setIsDetailModalOpen(true); }}

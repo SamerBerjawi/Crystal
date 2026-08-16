@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
-import { Account, Category, Transaction, Tag, Currency, User } from '../types';
+import { Account, Category, Transaction, Tag, Currency, User, MerchantLocation } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
-import LocationAutocomplete from './LocationAutocomplete';
+import AddressAutocomplete from './AddressAutocomplete';
+import { AddressData } from '../hooks/useAddressSearch';
 import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
 import { parseLocationString } from '../utils/locationDetector';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { toast } from 'sonner';
 import Icon from './ui/Icon';
 
 interface AddTransactionModalProps {
@@ -34,7 +36,7 @@ interface AddTransactionModalProps {
     merchant?: string;
     tagIds?: string[];
     locationString?: string;
-    locationData?: { city?: string; country?: string; lat?: number; lon?: number };
+    locationData?: { city?: string; country?: string; lat?: number; lon?: number; address?: string; placeName?: string; street?: string; postalCode?: string; state?: string; locationLabel?: string };
     notes?: string;
   };
 }
@@ -115,22 +117,138 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [tagIds, setTagIds] = useState<string[]>(initialDetails?.tagIds || []);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
-  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString || userDefaultCity));
+  const [showDetails, setShowDetails] = useState(Boolean(initialDetails?.tagIds?.length || initialDetails?.locationString || initialDetails?.locationData?.address || userDefaultCity));
   
-  // Location fields: Default to User Profile's defaultCity when creating a new transaction
-  const [locationString, setLocationString] = useState(() => {
+  // Exact Location State
+  const [address, setAddress] = useState<string>(() => {
+    if (transactionToEdit?.address) return transactionToEdit.address;
+    if (initialDetails?.locationData?.address) return initialDetails.locationData.address;
     if (initialDetails?.locationString) return initialDetails.locationString;
     if (!isEditing && userDefaultCity) return userDefaultCity;
     return '';
   });
-  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>(() => {
-    if (initialDetails?.locationData) return initialDetails.locationData;
+  const [placeName, setPlaceName] = useState<string>(() => transactionToEdit?.placeName || initialDetails?.locationData?.placeName || '');
+  const [street, setStreet] = useState<string>(() => transactionToEdit?.street || initialDetails?.locationData?.street || '');
+  const [city, setCity] = useState<string>(() => {
+    if (transactionToEdit?.city) return transactionToEdit.city;
+    if (initialDetails?.locationData?.city) return initialDetails.locationData.city;
     if (!isEditing && userDefaultCity) {
       const parsed = parseLocationString(userDefaultCity);
-      return { city: parsed.city, country: parsed.country };
+      return parsed.city;
     }
-    return {};
+    return '';
   });
+  const [postalCode, setPostalCode] = useState<string>(() => transactionToEdit?.postalCode || initialDetails?.locationData?.postalCode || '');
+  const [stateRegion, setStateRegion] = useState<string>(() => transactionToEdit?.state || initialDetails?.locationData?.state || '');
+  const [country, setCountry] = useState<string>(() => {
+    if (transactionToEdit?.country) return transactionToEdit.country;
+    if (initialDetails?.locationData?.country) return initialDetails.locationData.country;
+    if (!isEditing && userDefaultCity) {
+      const parsed = parseLocationString(userDefaultCity);
+      return parsed.country || '';
+    }
+    return '';
+  });
+  const [latitude, setLatitude] = useState<number | undefined>(() => {
+    if (transactionToEdit?.latitude !== undefined) return transactionToEdit.latitude;
+    if (initialDetails?.locationData?.lat !== undefined) return initialDetails.locationData.lat;
+    return undefined;
+  });
+  const [longitude, setLongitude] = useState<number | undefined>(() => {
+    if (transactionToEdit?.longitude !== undefined) return transactionToEdit.longitude;
+    if (initialDetails?.locationData?.lon !== undefined) return initialDetails.locationData.lon;
+    return undefined;
+  });
+  const [locationLabel, setLocationLabel] = useState<string>(() => transactionToEdit?.locationLabel || initialDetails?.locationData?.locationLabel || '');
+  const [showManualLocation, setShowManualLocation] = useState(false);
+
+  // Active Merchant Rule & Branches
+  const activeMerchantRule = useMemo(() => {
+    if (!merchant || !merchantRules) return null;
+    const normalizedKey = normalizeMerchantKey(merchant);
+    return merchantRules[normalizedKey] || merchantRules[merchant.trim().toLowerCase()] || null;
+  }, [merchant, merchantRules]);
+
+  const merchantBranches = useMemo(() => {
+    if (!activeMerchantRule) return [] as MerchantLocation[];
+    if (activeMerchantRule.locations && activeMerchantRule.locations.length > 0) {
+      return activeMerchantRule.locations;
+    }
+    if (activeMerchantRule.address) {
+      return [{
+        id: 'loc-primary',
+        label: activeMerchantRule.placeName || 'Main Branch',
+        address: activeMerchantRule.address,
+        placeName: activeMerchantRule.placeName,
+        street: activeMerchantRule.street,
+        city: activeMerchantRule.city,
+        postalCode: activeMerchantRule.postalCode,
+        state: activeMerchantRule.state,
+        country: activeMerchantRule.country,
+        latitude: activeMerchantRule.latitude,
+        longitude: activeMerchantRule.longitude,
+        isPrimary: true
+      }] as MerchantLocation[];
+    }
+    return [] as MerchantLocation[];
+  }, [activeMerchantRule]);
+
+  const handleSelectMerchantBranch = (branch: MerchantLocation) => {
+    setAddress(branch.address);
+    setPlaceName(branch.placeName || '');
+    setStreet(branch.street || '');
+    setCity(branch.city || '');
+    setPostalCode(branch.postalCode || '');
+    setStateRegion(branch.state || '');
+    setCountry(branch.country || '');
+    setLatitude(branch.latitude);
+    setLongitude(branch.longitude);
+    setLocationLabel(branch.label || '');
+    toast.success(`Location set: ${branch.label || branch.address}`);
+  };
+
+  const handleAddressChange = (newVal: string, addressData?: AddressData) => {
+    setAddress(newVal);
+    if (addressData) {
+      setPlaceName(addressData.placeName || '');
+      setStreet(addressData.street || '');
+      setCity(addressData.city || '');
+      setPostalCode(addressData.postalCode || '');
+      setStateRegion(addressData.state || '');
+      setCountry(addressData.country || '');
+      setLatitude(addressData.lat);
+      setLongitude(addressData.lon);
+      setLocationLabel(addressData.placeName || '');
+      toast.success(`Location resolved: ${addressData.title}`);
+    } else if (!newVal) {
+      setPlaceName('');
+      setStreet('');
+      setCity('');
+      setPostalCode('');
+      setStateRegion('');
+      setCountry('');
+      setLatitude(undefined);
+      setLongitude(undefined);
+      setLocationLabel('');
+    } else {
+      const parsed = parseLocationString(newVal);
+      setCity(parsed.city);
+      setCountry(parsed.country || '');
+    }
+  };
+
+  const handleClearLocation = () => {
+    setAddress('');
+    setPlaceName('');
+    setStreet('');
+    setCity('');
+    setPostalCode('');
+    setStateRegion('');
+    setCountry('');
+    setLatitude(undefined);
+    setLongitude(undefined);
+    setLocationLabel('');
+  };
 
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState(initialDetails?.principal || '');
@@ -421,14 +539,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         let amountToSet = String(Math.abs(transactionToEdit.amount));
         setTagIds(transactionToEdit.tagIds || []);
         
-        if (transactionToEdit.city && transactionToEdit.country) {
-            setLocationString(`${transactionToEdit.city}, ${transactionToEdit.country}`);
-            setLocationData({
-                city: transactionToEdit.city,
-                country: transactionToEdit.country,
-                lat: transactionToEdit.latitude,
-                lon: transactionToEdit.longitude
-            });
+        if (transactionToEdit.address || transactionToEdit.city || transactionToEdit.country) {
+            setAddress(transactionToEdit.address || [transactionToEdit.city, transactionToEdit.country].filter(Boolean).join(', '));
+            setPlaceName(transactionToEdit.placeName || '');
+            setStreet(transactionToEdit.street || '');
+            setCity(transactionToEdit.city || '');
+            setPostalCode(transactionToEdit.postalCode || '');
+            setStateRegion(transactionToEdit.state || '');
+            setCountry(transactionToEdit.country || '');
+            setLatitude(transactionToEdit.latitude);
+            setLongitude(transactionToEdit.longitude);
+            setLocationLabel(transactionToEdit.locationLabel || '');
             setShowDetails(true);
         }
         
@@ -592,12 +713,18 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
     }
 
-    const hasLocation = Boolean(locationString?.trim());
+    const hasLocation = Boolean(address?.trim() || city?.trim() || country?.trim());
     const locationProps = {
-        city: hasLocation ? (locationData.city || locationString.trim()) : undefined,
-        country: hasLocation ? locationData.country : undefined,
-        latitude: hasLocation ? locationData.lat : undefined,
-        longitude: hasLocation ? locationData.lon : undefined,
+        address: hasLocation ? (address?.trim() || undefined) : undefined,
+        placeName: hasLocation ? (placeName?.trim() || undefined) : undefined,
+        street: hasLocation ? (street?.trim() || undefined) : undefined,
+        city: hasLocation ? (city?.trim() || undefined) : undefined,
+        postalCode: hasLocation ? (postalCode?.trim() || undefined) : undefined,
+        state: hasLocation ? (stateRegion?.trim() || undefined) : undefined,
+        country: hasLocation ? (country?.trim() || undefined) : undefined,
+        latitude: hasLocation && latitude !== undefined && !isNaN(latitude) ? latitude : undefined,
+        longitude: hasLocation && longitude !== undefined && !isNaN(longitude) ? longitude : undefined,
+        locationLabel: hasLocation ? (locationLabel?.trim() || undefined) : undefined,
     };
 
     if (isNowTransfer) {
@@ -1141,29 +1268,155 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 </div>
 
                                 <div>
-                                    <label className={labelStyle}>Geographic Location</label>
-                                    <LocationAutocomplete
-                                        value={locationString}
-                                        onChange={(val, data) => {
-                                            setLocationString(val);
-                                            if (data) {
-                                                setLocationData({
-                                                    city: data.city,
-                                                    country: data.country,
-                                                    lat: data.lat,
-                                                    lon: data.lon
-                                                });
-                                            } else if (!val.trim()) {
-                                                setLocationData({});
-                                            } else {
-                                                const parsed = parseLocationString(val);
-                                                setLocationData({
-                                                    city: parsed.city,
-                                                    country: parsed.country
-                                                });
-                                            }
-                                        }}
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className={labelStyle}>Location & Physical Address</label>
+                                        {address && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowManualLocation(prev => !prev)}
+                                                className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+                                            >
+                                                <Icon name="tune" className="text-[10px]" />
+                                                <span>{showManualLocation ? 'Hide coordinates' : 'Fine-tune'}</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Quick Merchant Branch Chips */}
+                                    {merchantBranches.length > 0 && (
+                                        <div className="mb-2 p-2 bg-primary-500/[0.04] dark:bg-primary-500/[0.06] rounded-xl border border-primary-500/20 space-y-1.5">
+                                            <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider flex items-center gap-1">
+                                                <Icon name="marker_pin" className="text-[10px] text-primary-500" />
+                                                <span>Known Branches for {merchant}:</span>
+                                            </p>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                {merchantBranches.map(branch => {
+                                                    const isSelected = address === branch.address || (locationLabel && locationLabel === branch.label);
+                                                    return (
+                                                        <button
+                                                            key={branch.id}
+                                                            type="button"
+                                                            onClick={() => handleSelectMerchantBranch(branch)}
+                                                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${
+                                                                isSelected
+                                                                    ? 'bg-primary-500 text-white shadow-xs'
+                                                                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-light-text dark:text-dark-text hover:border-primary-500/40 hover:text-primary-500'
+                                                            }`}
+                                                            title={branch.address}
+                                                        >
+                                                            <span>📍 {branch.label || branch.city || branch.placeName}</span>
+                                                            {branch.isPrimary && <span className="text-[8px] opacity-80">(Primary)</span>}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <AddressAutocomplete
+                                        value={address}
+                                        onChange={handleAddressChange}
+                                        placeholder="Search businesses, buildings, streets (e.g. IKEA Zaventem)..."
                                     />
+
+                                    {/* Resolved Location Preview Card */}
+                                    {address && (
+                                        <div className="mt-2 p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-black/5 dark:border-white/10 space-y-2">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-start gap-2 min-w-0 flex-1">
+                                                    <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0 mt-0.5">
+                                                        <Icon name="marker_pin" className="text-sm" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className="text-xs font-bold text-light-text dark:text-dark-text leading-snug">
+                                                                {locationLabel || placeName || street || address}
+                                                            </p>
+                                                            {country && (
+                                                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                                    {country}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5 leading-normal">
+                                                            {address}
+                                                        </p>
+                                                        {(latitude !== undefined && longitude !== undefined) && (
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded text-primary-600 dark:text-primary-400">
+                                                                    📍 {latitude.toFixed(4)}°, {longitude.toFixed(4)}°
+                                                                </span>
+                                                                <a
+                                                                    href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-[9px] font-bold text-primary-500 hover:underline inline-flex items-center gap-0.5"
+                                                                >
+                                                                    <span>Open in Maps</span>
+                                                                    <Icon name="open_in_new" className="text-[8px]" />
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleClearLocation}
+                                                    className="text-[10px] font-black tracking-widest text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors shrink-0"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+
+                                            {/* Fine-tune Coordinates */}
+                                            {showManualLocation && (
+                                                <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 grid grid-cols-2 gap-2 animate-fade-in-up">
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">Location / Branch Name</label>
+                                                        <input
+                                                            type="text"
+                                                            value={locationLabel}
+                                                            onChange={e => setLocationLabel(e.target.value)}
+                                                            className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
+                                                            placeholder="e.g. Zaventem Branch"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">City</label>
+                                                        <input
+                                                            type="text"
+                                                            value={city}
+                                                            onChange={e => setCity(e.target.value)}
+                                                            className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
+                                                            placeholder="e.g. Zaventem"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">Latitude</label>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            value={latitude ?? ''}
+                                                            onChange={e => setLatitude(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                                            className={`${INPUT_BASE_STYLE} !py-1 !text-xs font-mono`}
+                                                            placeholder="50.8717"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-0.5">Longitude</label>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            value={longitude ?? ''}
+                                                            onChange={e => setLongitude(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                                            className={`${INPUT_BASE_STYLE} !py-1 !text-xs font-mono`}
+                                                            placeholder="4.4919"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
