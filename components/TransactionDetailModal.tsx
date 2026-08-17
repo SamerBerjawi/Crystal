@@ -196,7 +196,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         <div className="absolute top-4 left-4 right-4 z-40 flex items-center justify-between pointer-events-none">
           {/* Location Badge (Apple Workout style, e.g. 🧭 Evere) */}
           <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white text-xs font-semibold shadow-md">
-            <span className="text-[#a3e635] text-xs">🧭</span>
+            <Icon name="marker_pin" className="text-[#a3e635] text-xs" />
             <span className="truncate max-w-[190px]">{cityName || locationSubtitle}</span>
           </div>
 
@@ -317,7 +317,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           {/* 2. APPLE CONTEXT WEATHER / METADATA PILLS */}
           <div className="px-5 sm:px-6 py-2.5 flex items-center gap-5 text-xs text-gray-300 border-b border-white/5 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-amber-400">🏷️</span>
+              <Icon name="loyalty" className="text-amber-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Category</span>
                 <span className="font-bold text-white text-xs">{primaryTx.category || 'General'}</span>
@@ -327,7 +327,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             <div className="h-6 w-px bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-sky-400">💳</span>
+              <Icon name="credit_card" className="text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Method</span>
                 <span className="font-bold text-white text-xs">{account?.type || 'Direct'}</span>
@@ -338,7 +338,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               <>
                 <div className="h-6 w-px bg-white/10 shrink-0" />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-emerald-400">✓</span>
+                  <Icon name="check_circle" className="text-emerald-400 text-sm shrink-0" />
                   <div className="flex flex-col">
                     <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Status</span>
                     <span className="font-bold text-white text-xs capitalize">{(primaryTx as any).status}</span>
@@ -457,17 +457,17 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               )}
 
               {/* Physical Location Card */}
-              {primaryTx.address && (
+              {(primaryTx.placeName || primaryTx.locationLabel || primaryTx.city || primaryTx.address) && (
                 <div className="pt-4 border-t border-white/5 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                      Physical Location
+                      Location
                     </p>
                     <a
                       href={
                         primaryTx.latitude !== undefined && primaryTx.longitude !== undefined
                           ? `https://www.google.com/maps/search/?api=1&query=${primaryTx.latitude},${primaryTx.longitude}`
-                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(primaryTx.address)}`
+                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(primaryTx.address || primaryTx.placeName || primaryTx.city || '')}`
                       }
                       target="_blank"
                       rel="noreferrer"
@@ -477,9 +477,18 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       <Icon name="open_in_new" className="text-2xs" />
                     </a>
                   </div>
-                  <div className="bg-black/30 p-3 rounded-2xl text-xs text-gray-300 border border-white/5 flex items-start gap-2.5">
-                    <Icon name="marker_pin" className="text-sm text-[#a3e635] shrink-0 mt-0.5" />
-                    <span className="leading-snug text-xs">{primaryTx.address}</span>
+                  <div className="bg-black/30 p-3 rounded-2xl text-xs text-gray-300 border border-white/5 flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon name="marker_pin" className="text-sm text-[#a3e635] shrink-0" />
+                      <span className="leading-snug text-xs font-semibold text-white truncate">
+                        {primaryTx.locationLabel || primaryTx.placeName || primaryTx.city || (primaryTx.address ? primaryTx.address.split(',')[0] : 'Storefront')}
+                      </span>
+                    </div>
+                    {primaryTx.city && primaryTx.city !== (primaryTx.locationLabel || primaryTx.placeName) && (
+                      <span className="text-2xs font-bold text-[#a3e635] bg-[#a3e635]/10 px-2 py-0.5 rounded-full shrink-0 border border-[#a3e635]/20">
+                        {primaryTx.city}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
