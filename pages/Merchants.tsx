@@ -9,6 +9,7 @@ import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useT
 import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import MerchantDetailModal from '../components/MerchantDetailModal';
+import MerchantOverviewModal from '../components/MerchantOverviewModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import RegexCategorizationModal from '../components/RegexCategorizationModal';
@@ -171,6 +172,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   
   const [editingEntity, setEditingEntity] = useState<EntityItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [overviewEntity, setOverviewEntity] = useState<EntityItem | null>(null);
+  const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
   
   // Advanced regex state & background task progress state
   const [isRegexModalOpen, setIsRegexModalOpen] = useState(false);
@@ -524,6 +527,26 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             brandfetchClientId={brandfetchClientId}
           />
       )}
+
+      {isOverviewModalOpen && overviewEntity && (
+          <MerchantOverviewModal
+            isOpen={isOverviewModalOpen}
+            onClose={() => setIsOverviewModalOpen(false)}
+            merchantName={overviewEntity.originalName}
+            logoKey={overviewEntity.logoKey}
+            rule={overviewEntity.rule}
+            entityType={overviewEntity.type}
+            totalValue={overviewEntity.totalValue}
+            count={overviewEntity.count}
+            lastActivity={overviewEntity.lastActivity}
+            transactions={transactions}
+            onEdit={() => {
+              setIsOverviewModalOpen(false);
+              setEditingEntity(overviewEntity);
+              setIsDetailModalOpen(true);
+            }}
+          />
+      )}
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
@@ -730,7 +753,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               return (
                 <div 
                     key={entity.id} 
-                    onClick={() => { setEditingEntity(entity); setIsDetailModalOpen(true); }}
+                    onClick={() => { setOverviewEntity(entity); setIsOverviewModalOpen(true); }}
+                    onContextMenu={(e) => { e.preventDefault(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
                     className={`relative group bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-3xl p-6 cursor-pointer hover:border-primary-500/20 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 ${isHidden ? 'opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
                 >
                     <div className="flex justify-between items-start mb-6">
@@ -843,7 +867,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                           return (
                               <tr 
                                 key={entity.id} 
-                                onClick={() => { setEditingEntity(entity); setIsDetailModalOpen(true); }}
+                                onClick={() => { setOverviewEntity(entity); setIsOverviewModalOpen(true); }}
+                                onContextMenu={(e) => { e.preventDefault(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
                                 className={`group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${isHidden ? 'opacity-40 grayscale' : ''}`}
                               >
                                   <td className="px-8 py-5">

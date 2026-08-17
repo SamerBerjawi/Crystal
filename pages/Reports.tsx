@@ -28,8 +28,8 @@ import {
 import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE } from '../constants';
-import { Category, Account, MerchantRule } from '../types';
-import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
+import { Category, Account, MerchantRule, Page } from '../types';
+import { convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
@@ -143,7 +143,11 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
   );
 });
 
-const Reports: React.FC = () => {
+interface ReportsProps {
+  setCurrentPage?: (page: Page) => void;
+}
+
+const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
   const defaultCurrency = usePreferencesSelector(p => p.currency || 'EUR');
@@ -920,18 +924,28 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex-1 w-full relative z-10 flex flex-col min-h-[320px] h-full">
+          <div className="flex-1 w-full relative z-10 flex flex-col" style={{ minHeight: 320 }}>
             <BklitLineChart
               data={velocityData}
-              xAxisDataKey="day"
-              lines={[
-                { dataKey: 'current', stroke: '#6366F1', name: 'Current Period', strokeWidth: 3 },
-                { dataKey: 'previous', stroke: '#94A3B8', name: 'Previous Period', strokeWidth: 2, strokeDasharray: '4 4' },
-              ]}
-              customTooltip={<ChartTooltip />}
-              height={320}
-              className="w-full flex-1"
-            />
+              xDataKey="date"
+              aspectRatio=""
+              className="w-full h-full"
+              style={{ minHeight: 320 }}
+              margin={{ top: 20, right: 20, bottom: 30, left: 20 }}
+              yDomainTween
+            >
+              <BklitGrid horizontal stroke="rgba(128,128,128,0.08)" />
+              <BklitXAxis
+                tickFormatter={(d: Date) => {
+                  const idx = velocityData.findIndex(v => v.date === d);
+                  return idx >= 0 ? `Day ${velocityData[idx].day}` : '';
+                }}
+              />
+              <BklitYAxis />
+              <BklitLine dataKey="current" stroke="#6366F1" strokeWidth={3} />
+              <BklitLine dataKey="previous" stroke="#94A3B8" strokeWidth={2} strokeDasharray="4,4" />
+              <BklitChartTooltip valueFormatter={(v) => `€${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+            </BklitLineChart>
           </div>
         </Card>
 
@@ -1062,31 +1076,37 @@ const Reports: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl p-8 relative overflow-hidden group">
+        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
 
-          <div className="mb-10 relative z-10">
-            <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant loyalty</h2>
-            <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <div>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant loyalty</h2>
+              <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
+            </div>
           </div>
 
-          <div className="space-y-5 relative z-10">
+          <div className="space-y-3 relative z-10">
             {merchantLoyalty.map((m, i) => {
               const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(m.label);
               return (
-                <div key={m.label} className="flex items-center justify-between p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-xl hover:shadow-black/5">
-                  <div className="flex items-center gap-4">
+                <div
+                  key={m.label}
+                  onClick={() => setCurrentPage?.('Merchants')}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-xl hover:shadow-black/5 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
                     <div className="text-xs font-bold opacity-20 group-hover/row:opacity-50 transition-opacity w-3">{i + 1}</div>
-                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                    <div className={`w-9 h-9 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
                       {showMerchantLogo && merchantLogoUrl ? (
                         <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
                       ) : (
-                        <span className="text-base font-bold">{merchantInitial}</span>
+                        <span className="text-sm font-bold">{merchantInitial}</span>
                       )}
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold tracking-tight truncate max-w-[150px] leading-none mb-1.5">{m.label}</h4>
-                      <div className="flex items-center gap-3">
+                      <h4 className="text-sm font-semibold tracking-tight truncate max-w-[150px] leading-none mb-1">{m.label}</h4>
+                      <div className="flex items-center gap-2">
                         <span className="text-xs font-medium opacity-60">{m.count} visits</span>
                         <span className="w-0.5 h-0.5 rounded-full bg-black/20 dark:bg-white/20" />
                         <span className="text-xs font-medium opacity-60">€{m.avgPerVisit.toFixed(0)} avg</span>
@@ -1101,8 +1121,12 @@ const Reports: React.FC = () => {
               );
             })}
           </div>
-          <div className="mt-10 relative z-10">
-            <button className="w-full py-4 rounded-2xl border border-dashed border-black/10 dark:border-white/10 text-xs font-semibold uppercase tracking-wider opacity-60 hover:opacity-100 hover:border-primary-500/50 hover:bg-primary-500/5 transition-all">
+          <div className="mt-auto pt-6 relative z-10">
+            <button
+              type="button"
+              onClick={() => setCurrentPage?.('Merchants')}
+              className="w-full py-3 rounded-2xl border border-dashed border-black/10 dark:border-white/10 text-xs font-semibold uppercase tracking-wider opacity-60 hover:opacity-100 hover:border-primary-500/50 hover:bg-primary-500/5 transition-all cursor-pointer"
+            >
               View detailed profile leaderboard
             </button>
           </div>

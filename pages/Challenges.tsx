@@ -1009,7 +1009,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           {activeSection === 'mastery' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in-up">
                   {categoryMastery.map((cat, idx) => (
-                      <MasteryCard key={idx} categoryName={cat.categoryName} spent={cat.spent} budget={cat.amount} level={cat.level} title={cat.title} icon={cat.icon} categoryColor={cat.categoryColor} />
+                      <CategoryMasteryCard key={idx} categoryName={cat.categoryName} spent={cat.spent} budget={cat.amount} level={cat.level} icon={cat.icon} categoryColor={cat.categoryColor} />
                   ))}
                   {categoryMastery.length === 0 && (
                       <div className="col-span-full text-center py-20 text-light-text-secondary dark:text-dark-text-secondary">
