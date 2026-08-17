@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AppPreferences, Theme, Page } from '../types';
+import { AppPreferences, Theme, Page, AppFont } from '../types';
 import Card from '../components/Card';
 import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
@@ -92,8 +92,74 @@ const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, se
   );
 });
 
+interface FontCardProps {
+  label: string;
+  font: AppFont;
+  currentFont: AppFont;
+  setFont: (font: AppFont) => void;
+  fontFamily: string;
+  description: string;
+}
+const FontCard = React.memo(function FontCard({ label, font, currentFont, setFont, fontFamily, description }: FontCardProps) {
+  const isSelected = currentFont === font;
+
+  return (
+    <button
+      type="button"
+      onClick={() => setFont(font)}
+      className={`flex-1 flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer group text-left relative overflow-hidden ${
+        isSelected 
+          ? 'border-primary-500 bg-primary-500/[0.06] dark:bg-primary-500/[0.12] shadow-md ring-1 ring-primary-500/30' 
+          : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/20 dark:hover:border-white/20'
+      }`}
+    >
+      <div className="w-full flex items-center justify-between mb-3">
+        <span 
+          className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text"
+          style={{ fontFamily }}
+        >
+          Aa
+        </span>
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
+          isSelected 
+            ? 'bg-primary-500 border-primary-500 text-white shadow-xs' 
+            : 'border-black/20 dark:border-white/20'
+        }`}>
+          {isSelected && <Icon name="check" className="text-sm font-bold" />}
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <h4 
+          className={`text-base font-bold tracking-tight ${
+            isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'
+          }`}
+          style={{ fontFamily }}
+        >
+          {label}
+        </h4>
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-75 leading-relaxed">
+          {description}
+        </p>
+      </div>
+
+      {/* Typography Preview Banner */}
+      <div 
+        className="w-full mt-3 pt-3 border-t border-black/5 dark:border-white/5 text-xs text-light-text dark:text-dark-text font-medium opacity-85 truncate"
+        style={{ fontFamily }}
+      >
+        The quick brown fox jumps over the lazy dog. 1234567890
+      </div>
+    </button>
+  );
+});
 
 const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {
+  const currentFont: AppFont = preferences.appFont || 'plus-jakarta-sans';
+
+  const handleFontChange = (newFont: AppFont) => {
+    setPreferences({ ...preferences, appFont: newFont });
+  };
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'defaultQuickCreatePeriod') {
@@ -124,9 +190,9 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <Icon name="sliders" className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Interface Theme</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Interface Theme</h3>
               </div>
-              <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Visual mode synchronization settings</p>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Visual mode synchronization settings</p>
             </div>
             
             <div className="p-8">
@@ -138,20 +204,54 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             </div>
           </section>
 
+          {/* Typography / Font Switcher */}
+          <section className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
+            <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <Icon name="edit" className="text-xl" />
+                </div>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Typography</h3>
+              </div>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Choose the primary typeface for your application</p>
+            </div>
+            
+            <div className="p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FontCard 
+                  label="Plus Jakarta Sans" 
+                  font="plus-jakarta-sans" 
+                  currentFont={currentFont} 
+                  setFont={handleFontChange} 
+                  fontFamily='"Plus Jakarta Sans", sans-serif'
+                  description="Modern geometric sans-serif with friendly curves and high legibility" 
+                />
+                <FontCard 
+                  label="Inter" 
+                  font="inter" 
+                  currentFont={currentFont} 
+                  setFont={handleFontChange} 
+                  fontFamily='"Inter", sans-serif'
+                  description="Precise, neutral Swiss-style neo-grotesque optimized for data & interfaces" 
+                />
+              </div>
+            </div>
+          </section>
+
           <section className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
             <div className="p-8 border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
                   <Icon name="coins_stacked" className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Financial Context</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Financial Context</h3>
               </div>
-              <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Currency & Calculation Standards</p>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Currency & Calculation Standards</p>
             </div>
             
             <div className="p-8 space-y-6">
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] ml-1">Base Denomination</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1">Base Denomination</label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary z-10">
                     <Icon name="coins_stacked" className="text-lg" />
@@ -160,7 +260,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                     name="currency" 
                     value={preferences.currency} 
                     onChange={handleChange} 
-                    className="w-full h-14 pl-12 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-2xl font-black text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
+                    className="w-full h-14 pl-12 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-2xl font-semibold text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
                   >
                     {CURRENCY_OPTIONS.map(c => <option key={c} value={c} className="bg-white dark:bg-dark-card">{c}</option>)}
                   </select>
@@ -174,7 +274,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                   <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
                     <Icon name="zap" className="text-sm" />
                   </div>
-                  <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 leading-normal">
+                  <p className="text-xs font-normal text-primary-600 dark:text-primary-400 leading-normal">
                       Crystal automatically synchronizes language, date-strings, and temporal offsets via your browser environment for atomic precision.
                   </p>
               </div>
@@ -190,15 +290,15 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
                   <Icon name="zap" className="text-xl" />
                 </div>
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Operational Defaults</h3>
+                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Operational Defaults</h3>
               </div>
-              <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Workflow Optimization & Smart Logic</p>
+              <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Workflow Optimization & Smart Logic</p>
             </div>
             
             <div className="p-8 space-y-8 divide-y divide-black/5 dark:divide-white/5">
                 <SettingRow label="Dashboard Lookback" description="The default analytical window for your main intelligence views.">
                   <div className="relative group">
-                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-black text-[11px]  tracking-widest text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
+                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-medium text-xs text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
                       {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
@@ -213,7 +313,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       name="defaultForecastPeriod"
                       value={preferences.defaultForecastPeriod || '1Y'}
                       onChange={handleChange}
-                      className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-black text-[11px]  tracking-widest text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
+                      className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-medium text-xs text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
                     >
                       {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
@@ -225,7 +325,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
 
                 <SettingRow label="Ledger Prioritization" description="Determination logic for sorting financial vehicles.">
                   <div className="relative group">
-                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-black text-[11px]  tracking-widest text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
+                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className="w-full h-12 px-4 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-xl font-medium text-xs text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer">
                       {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>)}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
@@ -243,8 +343,8 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                         <Icon name={preferences.excludeTransfersFromAnalytics ? 'visibility_off' : 'visibility'} className="text-sm" />
                       </div>
                       <div>
-                        <p className={`text-[11px] font-black  tracking-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Transfers</p>
-                        <p className={`text-[10px] font-bold leading-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>Excluded from charts</p>
+                        <p className={`text-xs font-semibold tracking-tight ${preferences.excludeTransfersFromAnalytics ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Transfers</p>
+                        <p className={`text-xs font-normal leading-normal ${preferences.excludeTransfersFromAnalytics ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-75'}`}>Excluded from charts</p>
                       </div>
                    </button>
 
@@ -256,8 +356,8 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                         <Icon name={preferences.showBalanceAdjustments ? 'check_circle' : 'cancel'} className="text-sm" />
                       </div>
                       <div>
-                        <p className={`text-[11px] font-black  tracking-tight ${preferences.showBalanceAdjustments ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Adjustments</p>
-                        <p className={`text-[10px] font-bold leading-tight ${preferences.showBalanceAdjustments ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>Include manual state changes</p>
+                        <p className={`text-xs font-semibold tracking-tight ${preferences.showBalanceAdjustments ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>Adjustments</p>
+                        <p className={`text-xs font-normal leading-normal ${preferences.showBalanceAdjustments ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-75'}`}>Include manual state changes</p>
                       </div>
                    </button>
                 </div>

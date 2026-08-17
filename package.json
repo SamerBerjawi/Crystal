@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.260816.17",
+  "version": "2.260816.37",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -17,6 +17,8 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@internationalized/date": "^3.12.2",
     "@number-flow/react": "^0.6.2",
     "@react-aria/i18n": "^3.13.1",

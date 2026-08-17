@@ -112,7 +112,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
             </div>
             <div className="flex-grow overflow-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                 <table className="w-full text-sm text-left relative border-collapse">
-                    <thead className="text-[10px] bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10 backdrop-blur-md">
+                    <thead className="text-xs uppercase tracking-wider bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10 backdrop-blur-md">
                         <tr>
                             <th className="p-4 whitespace-nowrap border-b border-black/5 dark:border-white/5 tracking-wider">#</th>
                             <th className="p-4 whitespace-nowrap border-b border-black/5 dark:border-white/5 tracking-wider">Date</th>
@@ -148,7 +148,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                 
                                 <td className="p-4 text-right font-mono text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.outstandingBalance, account.currency)}</td>
                                 <td className="p-4 text-center">
-                                    <span className={`px-3 py-1 text-[10px] font-semibold rounded-lg border ${
+                                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${
                                         payment.status === 'Paid' ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
                                         payment.status === 'Overdue' ? 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20' :
                                         'bg-slate-500/5 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-500/10'

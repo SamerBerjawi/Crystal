@@ -53,9 +53,9 @@ const MetricTile = ({ label, value, icon, subValue, colorClass = 'primary' }: {
                 ) : <div />}
             </div>
             <div className="mt-4 relative z-10">
-                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary mb-1">{label}</p>
                 <h4 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[10px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -145,11 +145,11 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
               </button>
                <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className={`text-[10px] font-semibold tracking-wider ${isLending ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'} px-2 py-0.5 rounded-lg border border-current/10`}>
+                       <span className={`text-xs font-semibold tracking-wider ${isLending ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'} px-2 py-0.5 rounded-lg border border-current/10`}>
                            {isLending ? 'Lending asset' : 'Liability engine'}
                        </span>
-                       <span className="text-[10px] font-medium text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                       <span className="text-[10px] font-medium tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.interestRate}% APR</span>
+                       <span className="text-xs font-medium text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-xs font-medium tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.interestRate}% APR</span>
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
@@ -181,18 +181,18 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                    
                    <div className="relative z-10">
                         <div className="flex justify-between items-start mb-12">
-                             <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-semibold tracking-wider border border-white/10">
+                             <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold tracking-wider border border-white/10">
                                  {account.duration} month term
                              </span>
                              <div className="text-right">
-                                  <p className="text-[10px] font-semibold tracking-widest text-slate-400 mb-1">Payoff progress</p>
+                                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Payoff progress</p>
                                   <p className={`text-3xl font-semibold tabular-nums ${isLending ? 'text-emerald-400' : 'text-rose-400'}`}>
                                       {((loanDetails.totalPaidPrincipal / (account.totalAmount || 1)) * 100).toFixed(0)}%
                                   </p>
                              </div>
                         </div>
                         
-                        <p className="text-[10px] font-semibold tracking-wider text-slate-400 mb-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                             {isLending ? 'Remaining receivable' : 'Total payoff balance'}
                         </p>
                         <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
@@ -207,7 +207,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                                     className={`h-full ${isLending ? 'bg-emerald-500' : 'bg-rose-500'} relative`}
                                 />
                             </div>
-                            <div className="flex justify-between items-center text-[10px] font-semibold tracking-wider">
+                            <div className="flex justify-between items-center text-xs font-semibold tracking-wider">
                                 <div className="flex items-center gap-2">
                                      <div className={`w-2 h-2 rounded-full ${isLending ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                                      <span className="text-slate-400">Principal:</span>
@@ -224,11 +224,11 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
 
                    <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                        <div>
-                           <p className="text-[10px] tracking-wider text-slate-500 font-semibold mb-1">Monthly cost</p>
+                           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Monthly cost</p>
                            <p className="font-semibold text-xl text-white tabular-nums">{formatCurrency(account.monthlyPayment || 0, account.currency)}</p>
                        </div>
                        <div>
-                           <p className="text-[10px] tracking-wider text-slate-500 font-semibold mb-1">Target end</p>
+                           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Target end</p>
                            <p className="font-semibold text-xl text-white tabular-nums">{loanDetails.payoffDate ? loanDetails.payoffDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A'}</p>
                        </div>
                    </div>
@@ -275,8 +275,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                     </div>
                     <div className="flex justify-between items-center mb-6 relative z-10">
                         <div>
-                             <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40">Amortization trajectory</h3>
-                             <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest  mt-1">Principal vs interest distribution</p>
+                             <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Amortization trajectory</h3>
+                             <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/60 tracking-wider mt-1">Principal vs interest distribution</p>
                         </div>
                     </div>
                     <div className="flex-grow w-full h-[300px] relative z-10">
@@ -295,8 +295,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
            <div className="xl:col-span-8 space-y-6">
                 <div className="flex justify-between items-center px-4">
                     <div>
-                        <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40">Upcoming Obligations</h3>
-                        <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest  mt-1">Structured repayment itinerary</p>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">Upcoming Obligations</h3>
+                        <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/60 tracking-wider mt-1">Structured repayment itinerary</p>
                     </div>
                 </div>
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden shadow-sm p-4">
@@ -321,9 +321,9 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                     >
                          <div className="flex justify-between items-start mb-8">
                              <div>
-                                 <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-2">Interconnected Assets</h3>
-                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
-                                     Asset portfolio <Icon name="arrow_forward" className="text-[12px]" />
+                                 <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-2">Interconnected Assets</h3>
+                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
+                                     Asset portfolio <Icon name="arrow_forward" className="text-xs" />
                                  </button>
                              </div>
                              <div className="w-12 h-12 rounded-2xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
@@ -332,17 +332,17 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                          </div>
                          <div className="space-y-6">
                               <div className="flex justify-between items-center">
-                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Market value</span>
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Market value</span>
                                   <span className="font-semibold text-light-text dark:text-dark-text tabular-nums">{formatCurrency(loanDetails.linkedAsset.balance, loanDetails.linkedAsset.currency)}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Market equity</span>
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Market equity</span>
                                   <span className={`font-semibold tabular-nums ${loanDetails.marketEquity >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                       {formatCurrency(loanDetails.marketEquity, account.currency)}
                                   </span>
                               </div>
                               <div className="pt-6 border-t border-black/5 dark:border-white/5">
-                                   <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50 mb-2">Original purchase</p>
+                                   <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70 mb-2">Original purchase</p>
                                    <p className="text-xl font-semibold text-light-text dark:text-dark-text">{formatCurrency(account.totalAmount || 0, account.currency)}</p>
                               </div>
                          </div>
@@ -350,18 +350,18 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                 )}
 
                 <div className="bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5">
-                     <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Loan configuration</h3>
+                     <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Loan configuration</h3>
                      <div className="space-y-6">
                          <div className="flex justify-between">
-                             <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Term length</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Term length</span>
                              <span className="text-xs font-semibold text-light-text dark:text-dark-text">{account.duration} mo</span>
                          </div>
                          <div className="flex justify-between">
-                             <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Started</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Started</span>
                              <span className="text-xs font-semibold text-light-text dark:text-dark-text">{account.loanStartDate ? parseLocalDate(account.loanStartDate).toLocaleDateString() : 'N/A'}</span>
                          </div>
                          <div className="flex justify-between">
-                             <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Down payment</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70">Down payment</span>
                              <span className="text-xs font-semibold text-light-text dark:text-dark-text">{formatCurrency(account.downPayment || 0, account.currency)}</span>
                          </div>
                      </div>

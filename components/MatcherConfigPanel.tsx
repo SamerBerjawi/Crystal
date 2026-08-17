@@ -36,7 +36,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onReset}
-            className={`${BTN_SECONDARY_STYLE} !py-1 !px-2.5 !text-[11px]`}
+            className={`${BTN_SECONDARY_STYLE} !py-1 !px-2.5 !text-xs`}
             title="Reset to default matching rules"
           >
             Reset Defaults
@@ -70,7 +70,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
             onChange={e => onChange({ amountVariancePercent: Number(e.target.value) })}
             className="w-full accent-emerald-600 cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
             <span>±1% (Strict)</span>
             <span>±25% (Relaxed)</span>
           </div>
@@ -93,7 +93,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
             onChange={e => onChange({ dateVarianceDays: Number(e.target.value) })}
             className="w-full accent-emerald-600 cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
             <span>±1 Day</span>
             <span>±7 Days</span>
           </div>
@@ -116,7 +116,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
             onChange={e => onChange({ lookbackDays: Number(e.target.value) })}
             className="w-full accent-emerald-600 cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
             <span>3 Days</span>
             <span>30 Days</span>
           </div>
@@ -139,7 +139,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
             onChange={e => onChange({ minMatchScore: Number(e.target.value) })}
             className="w-full accent-emerald-600 cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
             <span>30% (Show More)</span>
             <span>90% (Very Strict)</span>
           </div>
@@ -150,7 +150,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
       <div className="flex items-center justify-between bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
         <div className="space-y-0.5">
           <p className="text-xs font-bold text-light-text dark:text-dark-text">Require Name Similarity</p>
-          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary max-w-xs">
+          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-xs">
             When enabled, bill/recurring matches with low name similarity are suppressed even if amount and date match well.
           </p>
         </div>

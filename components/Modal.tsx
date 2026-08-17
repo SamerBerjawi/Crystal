@@ -52,14 +52,14 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
 
   const modalContent = (
     <div 
-      className={`fixed inset-0 flex items-end md:items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-md md:p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-end md:items-center justify-center bg-gray-900/50 dark:bg-black/80 backdrop-blur-md md:p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* Mobile: Full-height sheet from bottom | Desktop: Centered dialog */}
       <div 
         className={`
-          bg-white/95 dark:bg-gray-900/95 ios-regular shadow-modal w-full overflow-hidden
+          bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-modal w-full overflow-hidden
           transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)]
           
           /* Mobile: slide-up sheet */
@@ -80,7 +80,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
         </div>
 
         <header className="flex items-center justify-between p-4 sm:p-5 border-b border-light-separator dark:border-dark-separator shrink-0">
-          <h2 className="text-base sm:text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate pr-2">{title}</h2>
+          <h2 className="text-lg sm:text-xl font-semibold text-light-text dark:text-dark-text tracking-tight truncate pr-2">{title}</h2>
           <button 
             onClick={handleClose} 
             className="touch-feedback text-light-text-secondary dark:text-dark-text-secondary w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center transition-colors shrink-0"

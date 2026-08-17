@@ -129,7 +129,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
           >
             <Icon name={action.icon} className="text-lg mb-0.5" />
             {action.label && (
-              <span className="text-[10px] font-semibold tracking-tight">{action.label}</span>
+              <span className="text-xs font-semibold tracking-tight">{action.label}</span>
             )}
           </button>
         ))}

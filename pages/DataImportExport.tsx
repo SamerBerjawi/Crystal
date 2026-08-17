@@ -43,7 +43,7 @@ const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
 
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${bg} ${text}`}>
-            <Icon name={icon} className="text-[14px]" />
+            <Icon name={icon} className="text-xs" />
             {status}
         </span>
     );
@@ -431,19 +431,19 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                           <Icon name="table_chart" className="text-3xl" />
                       </div>
                       <div>
-                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text leading-tight">External Data Desk</h3>
-                          <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mt-1 opacity-60">CSV Ingress & Egress</p>
+                          <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight">External Data Desk</h3>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1 opacity-70">CSV Ingress & Egress</p>
                       </div>
                   </div>
-                  <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-80 mb-10">
+                  <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-80 mb-8">
                     Import transactions from bank statements or existing spreadsheets using the mapping engine.
                   </p>
                   <div className="mt-auto grid grid-cols-2 gap-4">
-                      <button onClick={() => setNewImportModalOpen(true)} className="px-6 py-4 rounded-2xl bg-blue-500 text-white text-[10px] font-black  tracking-widest shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                      <button onClick={() => setNewImportModalOpen(true)} className="px-5 py-3 rounded-2xl bg-blue-500 text-white text-xs font-semibold tracking-wide shadow-xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
                         <Icon name="add_circle" className="text-lg" />
                         Import
                       </button>
-                      <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className="px-6 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black  tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                      <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className="px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5 text-xs font-semibold tracking-wide hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                         <Icon name="download" className="text-lg" />
                         Export
                       </button>
@@ -460,19 +460,19 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                           <Icon name="terminal" className="text-3xl" />
                       </div>
                       <div>
-                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text leading-tight">System Snapshots</h3>
-                          <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mt-1 opacity-60">Full Environment State</p>
+                          <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight">System Snapshots</h3>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1 opacity-70">Full Environment State</p>
                       </div>
                   </div>
-                  <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-80 mb-10">
+                  <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary leading-relaxed opacity-80 mb-8">
                     Create atomic JSON backups of your entire configuration, including preferences, accounts, and histories.
                   </p>
                   <div className="mt-auto grid grid-cols-2 gap-4">
-                      <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className="px-6 py-4 rounded-2xl bg-indigo-500 text-white text-[10px] font-black  tracking-widest shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                      <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className="px-5 py-3 rounded-2xl bg-indigo-500 text-white text-xs font-semibold tracking-wide shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
                         <Icon name="backup" className="text-lg" />
                         Backup
                       </button>
-                      <button onClick={() => setRestoreModalOpen(true)} className="px-6 py-4 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black  tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                      <button onClick={() => setRestoreModalOpen(true)} className="px-5 py-3 rounded-2xl bg-black/5 dark:bg-white/5 text-xs font-semibold tracking-wide hover:bg-black/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                         <Icon name="restore" className="text-lg" />
                         Restore
                       </button>
@@ -489,11 +489,11 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                     <Icon name="history" />
                  </div>
                  <div>
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Audit Trail</h3>
-                    <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-widest">Chronological Operation Log</p>
+                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text tracking-tight">Audit Trail</h3>
+                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Chronological Operation Log</p>
                  </div>
               </div>
-              <div className="text-[10px] font-black text-primary-500 bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 rounded-lg  tracking-[0.2em]">
+              <div className="text-xs font-semibold text-primary-500 bg-primary-500/10 border border-primary-500/20 px-3 py-1 rounded-lg">
                   {sortedHistory.length} Registered Events
               </div>
           </div>
@@ -501,11 +501,11 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
             <table className="w-full text-left text-sm border-collapse">
                 <thead>
                     <tr className="bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/5 dark:border-white/5">
-                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Type</th>
-                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Identifier</th>
-                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Timestamp</th>
-                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em]">Status</th>
-                        <th className="px-8 py-4 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.2em] text-right">Control</th>
+                        <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Type</th>
+                        <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Identifier</th>
+                        <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Timestamp</th>
+                        <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Status</th>
+                        <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider text-right">Control</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -516,15 +516,15 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                                     <TypeBadge type={item.type} />
                                 </td>
                                 <td className="px-8 py-6">
-                                    <p className="font-black text-light-text dark:text-dark-text  tracking-tight">{item.fileName}</p>
-                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-widest opacity-60 mt-1">
+                                    <p className="font-semibold text-light-text dark:text-dark-text tracking-tight">{item.fileName}</p>
+                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
                                         Collection: {item.dataType}
                                         {item.details && (
                                             <span className="ml-2 text-primary-500">[{item.details}]</span>
                                         )}
                                     </p>
                                 </td>
-                                <td className="px-8 py-6 text-light-text-secondary dark:text-dark-text-secondary font-black text-[10px]  tracking-widest opacity-60">
+                                <td className="px-8 py-6 text-light-text-secondary dark:text-dark-text-secondary text-xs font-normal">
                                     {new Date(item.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                                 </td>
                                 <td className="px-8 py-6">
@@ -556,7 +556,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                             <td colSpan={5} className="px-8 py-20 text-center">
                                 <div className="flex flex-col items-center gap-3 opacity-20">
                                    <Icon name="inventory_2" className="text-5xl" />
-                                   <p className="text-[11px] font-black  tracking-[0.3em]">Vault Empty</p>
+                                   <p className="text-xs font-semibold uppercase tracking-wider">Vault Empty</p>
                                 </div>
                             </td>
                         </tr>
@@ -573,15 +573,15 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                     <Icon name="dangerous" className="text-3xl" />
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-red-600 dark:text-red-400 tracking-tighter">Factory Reset</h3>
-                    <p className="text-xs font-bold text-red-600/60 dark:text-red-400/60 mt-1 max-w-xl leading-relaxed">
+                    <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 tracking-tight">Factory Reset</h3>
+                    <p className="text-xs font-normal text-red-600/70 dark:text-red-400/70 mt-1 max-w-xl leading-relaxed">
                         Irreversible atomic wipe of all database records, configurations, and encrypted keys. This operation cannot be rolled back without a pre-existing System Snapshot.
                     </p>
                 </div>
             </div>
             <button 
                 onClick={() => setConfirmingAction({ type: 'reset' })}
-                className="px-8 py-4 bg-red-500 text-white rounded-2xl text-[10px] font-black  tracking-[0.2em] shadow-xl shadow-red-500/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
+                className="px-6 py-3 bg-red-500 text-white rounded-2xl text-xs font-semibold tracking-wide shadow-lg shadow-red-500/20 hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
             >
                 Execute Wipe
             </button>

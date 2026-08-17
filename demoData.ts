@@ -927,6 +927,7 @@ export const initialFinancialData: FinancialData = {
         defaultPeriod: 'MTD',
         defaultAccountOrder: 'name',
         country: 'Belgium',
+        appFont: 'plus-jakarta-sans',
         defaultForecastPeriod: '1Y',
         brandfetchClientId: '',
         twelveDataApiKey: '',

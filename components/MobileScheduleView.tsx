@@ -305,15 +305,15 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
         {/* ================================================================= */}
         <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
               Cashflow & Commitments
             </p>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight leading-tight">
+              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
                 Schedule & Bills
               </h1>
               {overdueItems.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                   {overdueItems.length} Overdue
                 </span>
@@ -369,7 +369,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                 <Icon name="credit_card" className="text-sm text-orange-400" />
                 <span>Next 30 Days Outflow</span>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold">
                 {preferredCurrency}
               </span>
             </div>
@@ -380,7 +380,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
               </h2>
               <div className="flex items-center gap-2 mt-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${commitmentBg} ${commitmentColor}`}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${commitmentBg} ${commitmentColor}`}
                 >
                   <Icon name="donut_large" className="text-xs" />
                   {Math.round(commitmentRatio)}% Commitment ({commitmentText})
@@ -391,20 +391,20 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
             {/* Inset Metrics Grid */}
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10">
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Income
                 </span>
-                <span className="text-xs font-black text-emerald-400 privacy-blur">
+                <span className="text-xs font-bold text-emerald-400 privacy-blur">
                   +{formatCurrency(summaryMetrics.income, curr)}
                 </span>
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Net Expected
                 </span>
                 <span
-                  className={`text-xs font-black privacy-blur ${
+                  className={`text-xs font-bold privacy-blur ${
                     summaryMetrics.net >= 0 ? 'text-emerald-400' : 'text-rose-400'
                   }`}
                 >
@@ -413,10 +413,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Pending
                 </span>
-                <span className="text-xs font-black text-orange-300">
+                <span className="text-xs font-bold text-orange-300">
                   {summaryMetrics.expCount} Payments
                 </span>
               </div>
@@ -506,21 +506,21 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
                           Overdue Obligations
                         </span>
-                        <span className="px-2 py-0.2 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-600 dark:text-rose-300">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-600 dark:text-rose-300">
                           {overdueItems.length}
                         </span>
                       </div>
-                      <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
                         Tap to {isOverdueExpanded ? 'collapse' : 'view overdue items & settle'}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-rose-600 dark:text-rose-400 privacy-blur">
+                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
                       -{formatCurrency(overdueTotal, curr)}
                     </span>
                     <Icon
@@ -608,8 +608,8 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                       <Icon name={categoryIcon} className="text-xl" />
                                     )}
                                   </div>
-                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[9px] shadow-xs">
-                                    <Icon name={item.isRecurring ? 'refresh' : 'receipt'} className="text-[10px]" />
+                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-2xs shadow-xs">
+                                    <Icon name={item.isRecurring ? 'refresh' : 'receipt'} className="text-2xs" />
                                   </div>
                                 </div>
 
@@ -620,17 +620,17 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                     {categoryName && (
                                       <span
-                                        className="px-1.5 py-0.2 rounded text-[9px] font-black text-white"
+                                        className="px-1.5 py-0.5 rounded text-2xs font-semibold uppercase text-white"
                                         style={{ backgroundColor: categoryColor }}
                                       >
                                         {categoryName}
                                       </span>
                                     )}
-                                    <span className="text-[10px] font-bold text-rose-500">
+                                    <span className="text-xs font-semibold text-rose-500">
                                       {dateRelative}
                                     </span>
                                     {accountName && (
-                                      <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
                                         • {accountName}
                                       </span>
                                     )}
@@ -639,10 +639,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                               </div>
 
                               <div className="text-right shrink-0">
-                                <p className="text-xs font-black text-rose-600 dark:text-rose-400 privacy-blur">
+                                <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
                                   -{formatCurrency(Math.abs(item.amount), curr)}
                                 </p>
-                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 inline-block mt-0.5">
+                                <span className="text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 inline-block mt-0.5">
                                   {frequency}
                                 </span>
                               </div>
@@ -672,11 +672,11 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                     <div className="px-4 py-2.5 bg-black/[0.03] dark:bg-white/[0.04] border-b border-black/5 dark:border-white/5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                        <span className="text-xs font-extrabold text-light-text dark:text-white">
+                        <span className="text-xs font-bold text-light-text dark:text-white">
                           {groupKey}
                         </span>
                       </div>
-                      <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                      <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                         {itemsInGroup.length} item{itemsInGroup.length !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -706,7 +706,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                               {
                                 icon: 'check',
                                 bgClass: 'bg-emerald-500',
-                                label: 'Pay Now',
+                                label: 'Mark Done',
                                 onAction: () => onProcessItem(item),
                               },
                             ]}
@@ -756,13 +756,13 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                     )}
                                   </div>
                                   <div
-                                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow-xs text-white ${
+                                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-2xs shadow-xs text-white ${
                                       isIncome ? 'bg-emerald-500' : 'bg-orange-500'
                                     }`}
                                   >
                                     <Icon
                                       name={item.isRecurring ? 'refresh' : 'receipt'}
-                                      className="text-[10px]"
+                                      className="text-2xs"
                                     />
                                   </div>
                                 </div>
@@ -774,17 +774,17 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                     {categoryName && (
                                       <span
-                                        className="px-1.5 py-0.2 rounded text-[9px] font-black text-white"
+                                        className="px-1.5 py-0.5 rounded text-2xs font-semibold uppercase text-white"
                                         style={{ backgroundColor: categoryColor }}
                                       >
                                         {categoryName}
                                       </span>
                                     )}
-                                    <span className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-80">
+                                    <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                       {dateRelative}
                                     </span>
                                     {accountName && (
-                                      <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
                                         • {accountName}
                                       </span>
                                     )}
@@ -794,7 +794,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
 
                               <div className="text-right shrink-0">
                                 <p
-                                  className={`text-xs font-black privacy-blur ${
+                                  className={`text-xs font-bold privacy-blur ${
                                     isIncome
                                       ? 'text-emerald-600 dark:text-emerald-400'
                                       : 'text-light-text dark:text-white'
@@ -803,7 +803,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                   {isIncome ? '+' : '-'}
                                   {formatCurrency(Math.abs(item.amount), curr)}
                                 </p>
-                                <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-md bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary inline-block mt-0.5">
+                                <span className="text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary inline-block mt-0.5">
                                   {frequency}
                                 </span>
                               </div>
@@ -840,7 +840,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                 <h3 className="text-sm font-bold text-light-text dark:text-white">
                   Active Recurring Rules
                 </h3>
-                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                   Salaries, subscriptions, and standing loan orders
                 </p>
               </div>
@@ -905,7 +905,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                             {rule.description}
                           </p>
                           {rule.isSynthetic && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <span className="px-1.5 py-0.5 rounded text-2xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400">
                               Auto-Sync
                             </span>
                           )}
@@ -913,13 +913,13 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                         <div className="flex items-center gap-1.5 mt-1">
                           {categoryName && (
                             <span
-                              className="px-1.5 py-0.2 rounded text-[9px] font-black text-white"
+                              className="px-1.5 py-0.5 rounded text-2xs font-semibold uppercase text-white"
                               style={{ backgroundColor: categoryColor }}
                             >
                               {categoryName}
                             </span>
                           )}
-                          <span className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate">
+                          <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate">
                             {rule.frequency}
                           </span>
                         </div>
@@ -928,7 +928,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
 
                     <div className="text-right shrink-0">
                       <p
-                        className={`text-xs font-extrabold privacy-blur ${
+                        className={`text-xs font-bold privacy-blur ${
                           isIncome ? 'text-emerald-500' : 'text-light-text dark:text-white'
                         }`}
                       >
@@ -955,11 +955,11 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white">
                     30-Day Cashflow Timeline
                   </h3>
-                  <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                     Upcoming inflows (+) and outflows (-)
                   </p>
                 </div>
-                <span className="text-xs font-black text-orange-500">
+                <span className="text-xs font-bold text-orange-500">
                   {formatCurrency(summaryMetrics.net, curr, { showPlusSign: true })}
                 </span>
               </div>
@@ -992,7 +992,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex items-center justify-center gap-6 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary pt-1">
+              <div className="flex items-center justify-center gap-6 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
                   <span>Incoming (+ Inflow)</span>
@@ -1053,10 +1053,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
             {majorInflow && (
               <div className="rounded-3xl bg-emerald-500/10 border border-emerald-500/20 p-4 shadow-sm flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase block">
+                  <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
                     Dominant Inflow
                   </span>
-                  <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
                     +{formatCurrency(majorInflow.amount, curr)}
                   </p>
                   <p className="text-xs text-light-text dark:text-white font-bold truncate mt-0.5">
@@ -1081,7 +1081,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                 <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">
                   Overdue Obligations ({overdueItems.length})
                 </h3>
-                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                   Bills and recurring entries past their scheduled due dates
                 </p>
               </div>
@@ -1125,13 +1125,13 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {categoryName && (
                             <span
-                              className="px-1.5 py-0.2 rounded text-[9px] font-black text-white"
+                              className="px-1.5 py-0.5 rounded text-2xs font-semibold uppercase text-white"
                               style={{ backgroundColor: categoryColor }}
                             >
                               {categoryName}
                             </span>
                           )}
-                          <span className="text-[10px] font-bold text-rose-500">
+                          <span className="text-xs font-semibold text-rose-500">
                             Due: {item.date}
                           </span>
                         </div>
@@ -1139,7 +1139,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <p className="text-xs font-black text-rose-600 dark:text-rose-400 privacy-blur">
+                      <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
                         -{formatCurrency(Math.abs(item.amount), curr)}
                       </p>
                       <button

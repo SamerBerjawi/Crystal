@@ -134,7 +134,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                     : 'bg-rose-500/10 border-rose-500/20 shadow-rose-500/5') 
                 : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10 shadow-black/5'
         }`}>
-            <span className={`${compact ? 'text-[9px]' : 'text-[11px]'} font-black tracking-[0.2em] transition-colors ${
+            <span className={`${compact ? 'text-2xs' : 'text-xs'} font-black tracking-[0.2em] transition-colors ${
                 isOverdue 
                     ? (item.isRecurring ? 'text-indigo-500 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400') 
                     : 'text-light-text-secondary/60 dark:text-dark-text-secondary/60'
@@ -168,8 +168,8 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                     <Icon name={categoryInfo.icon} className="text-xl" />
                 )}
             </div>
-            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow-xs text-white ${isIncome ? 'bg-emerald-500' : 'bg-orange-500'}`}>
-                <Icon name={item.isRecurring ? 'refresh' : 'receipt'} className="text-[10px]" />
+            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-2xs shadow-xs text-white ${isIncome ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                <Icon name={item.isRecurring ? 'refresh' : 'receipt'} className="text-xs" />
             </div>
         </div>
 
@@ -180,33 +180,33 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                 <div className="flex gap-1.5 items-center">
                     {categoryInfo.name && (
                         <span
-                            className="px-2 py-0.5 rounded text-[9px] font-black text-white"
+                            className="px-2 py-0.5 rounded text-2xs font-black text-white"
                             style={{ backgroundColor: categoryInfo.color }}
                         >
                             {categoryInfo.name}
                         </span>
                     )}
                     {item.isOverride && !isSkipped && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 tracking-widest border border-amber-500/10">MOD</span>
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 tracking-widest border border-amber-500/10">MOD</span>
                     )}
                     {isOverdue && item.isRecurring && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 tracking-wider border border-indigo-500/30 flex items-center gap-1 animate-pulse">
-                            <Icon name="refresh" className="text-[12px]" />
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 tracking-wider border border-indigo-500/30 flex items-center gap-1 animate-pulse">
+                            <Icon name="refresh" className="text-xs" />
                             RECURRING OVERDUE
                         </span>
                     )}
                     {isOverdue && !item.isRecurring && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 tracking-wider border border-rose-500/30 flex items-center gap-1 animate-pulse">
-                            <Icon name="receipt" className="text-[12px]" />
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 tracking-wider border border-rose-500/30 flex items-center gap-1 animate-pulse">
+                            <Icon name="receipt" className="text-xs" />
                             ONE-TIME OVERDUE
                         </span>
                     )}
                     {isSkipped && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 tracking-widest">SKIP</span>
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 tracking-widest">SKIP</span>
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-3 text-[11px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60 tracking-widest">
+            <div className="flex items-center gap-3 text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/60 tracking-wider">
                 <span>{weekday}</span>
                 <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
                 <span className="flex items-center gap-1.5 truncate">
@@ -230,7 +230,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-500 text-white hover:shadow-lg hover:shadow-emerald-500/30 active:scale-95 transition-all" 
                         title="Post Transaction"
                     >
-                        <Icon name="check" className="text-[18px]" />
+                        <Icon name="check" className="text-lg" />
                     </button>
                 )}
 
@@ -240,7 +240,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                         className="w-8 h-8 flex items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white active:scale-95 transition-all" 
                         title="Mark as Expired"
                     >
-                        <Icon name="archive" className="text-[18px]" />
+                        <Icon name="archive" className="text-lg" />
                     </button>
                 )}
 
@@ -249,7 +249,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                     className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-primary-500/10 active:scale-95 transition-all" 
                     title="Edit Recurrence"
                 >
-                    <Icon name="edit" className="text-[18px]" />
+                    <Icon name="edit" className="text-lg" />
                 </button>
                 
                 <button 
@@ -257,7 +257,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                     className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 hover:bg-rose-500/10 active:scale-95 transition-all" 
                     title="Delete"
                 >
-                    <Icon name="delete" className="text-[18px]" />
+                    <Icon name="delete" className="text-lg" />
                 </button>
              </div>
         </div>

@@ -130,10 +130,10 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
         <Card className={`relative overflow-hidden border ${cardBorder} transition-all hover:shadow-md group`}>
             <div className="flex justify-between items-start mb-4">
                 <div>
-                     <span className={`text-[10px] font-bold  tracking-wider px-2 py-0.5 rounded-full ${badgeStyle}`}>
+                     <span className={`text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeStyle}`}>
                          {typeLabel}
                      </span>
-                     <h3 className="font-bold text-lg mt-2 truncate max-w-[200px]" title={prediction.targetName}>{prediction.targetName}</h3>
+                     <h3 className="font-semibold text-lg mt-2 truncate max-w-[200px]" title={prediction.targetName}>{prediction.targetName}</h3>
                 </div>
                 
                 {/* Result Badge */}

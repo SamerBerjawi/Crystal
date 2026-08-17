@@ -102,14 +102,14 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                     </div>
 
                     <div className="p-8 pt-6 text-center">
-                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text leading-tight">{formData.firstName} {formData.lastName}</h2>
-                        <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-1  tracking-wider">{formData.email}</p>
+                        <h2 className="text-xl font-bold tracking-tight text-light-text dark:text-dark-text leading-tight">{formData.firstName} {formData.lastName}</h2>
+                        <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-1">{formData.email}</p>
 
                         <div className="flex flex-wrap justify-center gap-2 mt-6">
-                            <span className="px-3 py-1 rounded-lg bg-primary-500 text-white text-[10px] font-black  tracking-widest">
+                            <span className="px-2.5 py-0.5 rounded-lg bg-primary-500 text-white text-xs font-semibold">
                                 {formData.role}
                             </span>
-                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black  tracking-widest border ${
+                            <span className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${
                                 formData.status === 'Active' 
                                 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' 
                                 : 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 border-gray-100 dark:border-gray-800'
@@ -120,13 +120,13 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                     </div>
                     
                     <div className="px-8 pb-8 space-y-4">
-                        <div className="pt-6 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest opacity-60">
+                        <div className="pt-6 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
                             <span>Last Access</span>
-                            <span className="text-light-text dark:text-dark-text">{new Date(formData.lastLogin).toLocaleDateString()}</span>
+                            <span className="text-light-text dark:text-dark-text font-normal">{new Date(formData.lastLogin).toLocaleDateString()}</span>
                         </div>
-                         <div className="flex justify-between items-center text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest opacity-60">
+                         <div className="flex justify-between items-center text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
                             <span>Security Level</span>
-                            <span className="text-emerald-500">Tier 1</span>
+                            <span className="text-emerald-500 font-semibold">Tier 1</span>
                         </div>
                     </div>
                 </div>
@@ -136,8 +136,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                       <Icon name="shield" className="text-xl" />
                    </div>
                    <div>
-                      <h4 className="text-xs font-bold text-primary-600 dark:text-primary-400 tracking-tight">Privacy Mode</h4>
-                      <p className="text-[10px] font-bold text-primary-600/60 dark:text-primary-400/60 mt-0.5 leading-tight">Your sensitive data is encrypted and only visible to you.</p>
+                      <h4 className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-tight">Privacy Mode</h4>
+                      <p className="text-xs font-normal text-primary-600/70 dark:text-primary-400/70 mt-0.5 leading-normal">Your sensitive data is encrypted and only visible to you.</p>
                    </div>
                 </div>
             </div>
@@ -154,19 +154,19 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                             <Icon name="badge" className="text-2xl" />
                         </div>
                         <div>
-                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text leading-tight tracking-tight">Legal Identity</h3>
-                           <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Verification status: Level 1</p>
+                           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight tracking-tight">Legal Identity</h3>
+                           <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Verification status: Level 1</p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-2">
                             <label htmlFor="firstName" className={labelStyle}>Given Name</label>
-                            <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-bold px-4`} required />
+                            <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-medium px-4`} required />
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="lastName" className={labelStyle}>Family Name</label>
-                            <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-bold px-4`} required />
+                            <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-medium px-4`} required />
                         </div>
                     </div>
                 </div>
@@ -178,8 +178,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                             <Icon name="contact_mail" className="text-2xl" />
                         </div>
                         <div>
-                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text leading-tight tracking-tight">Reachability</h3>
-                           <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Communication & Notifications</p>
+                           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight tracking-tight">Reachability</h3>
+                           <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Communication & Notifications</p>
                         </div>
                     </div>
                     
@@ -188,17 +188,17 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                 <div className="space-y-2 md:col-span-1">
                                     <label htmlFor="email" className={labelStyle}>Email Protocol</label>
                                     <div className="relative group">
-                                        <input type="email" id="email" name="email" value={formData.email} readOnly className={`${INPUT_BASE_STYLE} h-12 pl-12 bg-gray-50/50 dark:bg-white/5 text-gray-500 cursor-not-allowed border-transparent font-bold`} />
+                                        <input type="email" id="email" name="email" value={formData.email} readOnly className={`${INPUT_BASE_STYLE} h-12 pl-12 bg-gray-50/50 dark:bg-white/5 text-gray-500 cursor-not-allowed border-transparent font-medium`} />
                                         <Icon name="verified_user" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary-500 transition-colors pointer-events-none" />
                                     </div>
-                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-50">
-                                       <Icon name="info" className="text-[10px]" />
+                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-70">
+                                       <Icon name="info" className="text-xs" />
                                        Primary login key
                                     </p>
                                 </div>
                                 <div className="space-y-2 md:col-span-1">
                                     <label htmlFor="phone" className={labelStyle}>Mobile Number</label>
-                                    <input type="tel" id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-bold px-4`} placeholder="+1 (555) 000-0000" autoComplete="off" />
+                                    <input type="tel" id="phone" name="phone" value={formData.phone || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} h-12 font-medium px-4`} placeholder="+1 (555) 000-0000" autoComplete="off" />
                                 </div>
                                 <div className="space-y-2 md:col-span-1">
                                     <label htmlFor="defaultCity" className={labelStyle}>Default City (Transactions)</label>
@@ -207,14 +207,14 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                         onChange={(val) => setFormData(prev => ({ ...prev, defaultCity: val }))}
                                         placeholder="e.g. Brussels, Belgium"
                                     />
-                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-50">
+                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-2 flex items-center gap-1.5 opacity-70">
                                        Auto-filled on new transactions
                                     </p>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label htmlFor="address" className={labelStyle}>Mailing Address</label>
-                                <textarea id="address" name="address" value={formData.address || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} min-h-[100px] font-bold p-4 resize-none`} placeholder="Street, Building, City, ZIP / Postal Code" autoComplete="off" spellCheck={false}></textarea>
+                                <textarea id="address" name="address" value={formData.address || ''} onChange={handleChange} className={`${INPUT_BASE_STYLE} min-h-[100px] font-medium p-4 resize-none`} placeholder="Street, Building, City, ZIP / Postal Code" autoComplete="off" spellCheck={false}></textarea>
                             </div>
                         </div>
                 </div>
@@ -226,8 +226,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                             <Icon name="safety_check" className="text-2xl" />
                         </div>
                         <div>
-                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text leading-tight tracking-tight">Access Control</h3>
-                           <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-wider">Authentication Methods</p>
+                           <h3 className="text-lg font-semibold text-light-text dark:text-dark-text leading-tight tracking-tight">Access Control</h3>
+                           <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Authentication Methods</p>
                         </div>
                     </div>
                     
@@ -238,11 +238,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                   <Icon name="password" />
                                 </div>
                                 <div>
-                                    <p className="font-black text-sm text-light-text dark:text-dark-text  tracking-tight">Main Password</p>
-                                    <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-widest mt-0.5">Updated 45 days ago</p>
+                                    <p className="font-semibold text-sm text-light-text dark:text-dark-text tracking-tight">Main Password</p>
+                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Updated 45 days ago</p>
                                 </div>
                             </div>
-                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-5 py-2.5 rounded-xl bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 text-[10px] font-black  tracking-widest hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-sm">Rotate Credentials</button>
+                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 rounded-xl bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 text-xs font-semibold text-light-text dark:text-dark-text hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-sm">Rotate Credentials</button>
                          </div>
                          
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-dashed border-black/20 dark:border-white/20 opacity-60 grayscale">
@@ -251,11 +251,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                   <Icon name="stay_current_portrait" />
                                 </div>
                                 <div>
-                                    <p className="font-black text-sm text-light-text dark:text-dark-text  tracking-tight">Two-Factor Authentication</p>
-                                    <p className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-widest mt-0.5">Biometric / TOTP Required</p>
+                                    <p className="font-semibold text-sm text-light-text dark:text-dark-text tracking-tight">Two-Factor Authentication</p>
+                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Biometric / TOTP Required</p>
                                 </div>
                             </div>
-                            <div className="px-4 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black  tracking-[0.2em] border border-amber-500/20">
+                            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold border border-amber-500/20">
                                 Engineering Lock
                             </div>
                          </div>
@@ -263,10 +263,10 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 </div>
 
                 <div className="flex items-center justify-between gap-6 pt-6">
-                    <p className="text-[11px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-[0.1em] opacity-40 max-w-sm leading-tight">
+                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary max-w-sm leading-normal">
                        Changes are synced across your devices immediately. Audit logs will reflect this administrative action.
                     </p>
-                    <button type="submit" className="px-10 py-4 rounded-2xl bg-primary-500 text-white text-sm font-black  tracking-[0.2em] shadow-2xl shadow-primary-500/30 hover:scale-105 active:scale-95 transition-all">
+                    <button type="submit" className="px-8 py-3.5 rounded-2xl bg-primary-500 text-white text-sm font-semibold tracking-wide shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
                        Commit Changes
                     </button>
                 </div>

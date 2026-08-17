@@ -57,16 +57,16 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                             className={`p-3 rounded-xl border ${statusColor}`}
                         >
                             <div className="flex justify-between items-start mb-1.5">
-                                <span className="text-xs font-bold  tracking-wider opacity-70">{item.period}</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider opacity-70">{item.period}</span>
                                 <Icon name={icon} className={`text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`} />
                             </div>
 
-                            <p className={`text-xl font-black tracking-tight privacy-blur ${amountColor}`}>
+                            <p className={`text-xl font-bold tracking-tight privacy-blur ${amountColor}`}>
                                 {formatCurrency(item.lowestBalance, currency as Currency)}
                             </p>
                             
-                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-[10px] opacity-70">
-                                <Icon name="calendar" className="text-[14px]" />
+                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-xs opacity-70">
+                                <Icon name="calendar" className="text-sm" />
                                 <span>On {formattedDate}</span>
                             </div>
                         </div>

@@ -40,16 +40,16 @@ export const ConfidenceScoreBar: React.FC<ConfidenceScoreBarProps> = ({
       {showLabel && (
         <div className="flex items-center justify-between text-xs font-bold gap-2">
           <div className="flex items-center gap-1.5">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black border ${badgeBg}`}>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-bold border ${badgeBg}`}>
               {normalizedScore}% Match
             </span>
-            <span className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary font-medium">
+            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
               ({levelText})
             </span>
           </div>
 
           {varianceText && (
-            <span className="text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary truncate">
+            <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary truncate">
               {varianceText}
             </span>
           )}

@@ -66,7 +66,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
       {/* Bottom Floating Navigation Bar — Apple HIG Tab Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
         <nav
-          className="flex items-center justify-around p-1.5 gap-1 bg-white/80 dark:bg-gray-900/80 border-t border-black/10 dark:border-white/10 backdrop-blur-xl safe-bottom"
+          className="flex items-center justify-around p-1.5 gap-1 bg-white/75 dark:bg-dark-card/85 border-t border-black/5 dark:border-white/10 backdrop-blur-xl safe-bottom shadow-lg shadow-black/5 dark:shadow-black/40"
           style={{ paddingBottom: `calc(0.375rem + env(safe-area-inset-bottom, 0px))` }}
           role="tabbar"
         >
@@ -89,8 +89,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <Icon name={item.icon} className={`text-[22px] transition-all duration-300 relative z-10 ${isActive ? 'scale-110 ' : 'scale-100'}`} />
-                <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
+                <Icon name={item.icon} className={`text-xl transition-all duration-300 relative z-10 ${isActive ? 'scale-110 ' : 'scale-100'}`} />
+                <span className="text-xs font-medium tracking-tight relative z-10 mt-0.5">
                   {item.label}
                 </span>
               </button>
@@ -113,8 +113,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-[22px] transition-all duration-300 relative z-10 ${isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100'}`} />
-            <span className="text-[10px] font-semibold tracking-tight relative z-10 mt-0.5">
+            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-xl transition-all duration-300 relative z-10 ${isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100'}`} />
+            <span className="text-xs font-medium tracking-tight relative z-10 mt-0.5">
               {isMoreOpen ? 'Close' : 'More'}
             </span>
           </button>
@@ -151,8 +151,8 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               {/* Sheet Header */}
               <div className="flex items-center justify-between px-6 py-2 border-b border-black/5 dark:border-white/5">
                 <div>
-                  <h3 className="text-base font-bold text-light-text dark:text-dark-text">All Pages</h3>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Navigate anywhere in Crystal</p>
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">All Pages</h3>
+                  <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Navigate anywhere in Crystal</p>
                 </div>
                 <button
                   onClick={() => setIsMoreOpen(false)}
@@ -166,7 +166,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               <div className="overflow-y-auto px-5 py-4 space-y-6 scroll-touch">
                 {NAV_CATEGORIES.map((category) => (
                   <div key={category.title} className="space-y-2">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/50 px-1">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/60 px-1">
                       {category.title}
                     </h4>
                     <div className="grid grid-cols-2 gap-2">

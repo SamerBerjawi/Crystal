@@ -49,16 +49,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                         <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                          {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
                 <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -206,9 +206,9 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className="text-[10px] font-bold text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20">Pension Asset</span>
-                       <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                       <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">Targeted Maturity: {retirementYear}</span>
+                       <span className="text-xs font-semibold text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20">Pension Asset</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">Targeted Maturity: {retirementYear}</span>
                   </div>
                   <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
@@ -251,17 +251,17 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                    
                    <div className="relative z-10 flex flex-col md:flex-row justify-between gap-12">
                         <div className="flex-grow">
-                             <p className="text-[10px] font-black tracking-wider text-indigo-200/80 mb-2">Total Pot Capitalization</p>
+                             <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200/80 mb-2">Total Pot Capitalization</p>
                              <h2 className="text-6xl md:text-7xl font-bold tracking-tighter tabular-nums drop-shadow-lg mb-8">
                                  {formatCurrency(account.balance, account.currency)}
                              </h2>
                              <div className="flex gap-10">
                                  <div>
-                                    <p className="text-[10px] font-bold tracking-wider text-indigo-200/40 mb-1">Maturity Age Target</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200/40 mb-1">Maturity Age Target</p>
                                     <p className="font-bold text-2xl text-white drop-shadow-sm">{retirementYear}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold tracking-wider text-indigo-200/40 mb-1">Runway</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200/40 mb-1">Runway</p>
                                     <p className="font-bold text-2xl text-indigo-300 drop-shadow-sm">{yearsToRetirement} Years</p>
                                 </div>
                              </div>
@@ -269,12 +269,12 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                         
                         <div className="md:w-64 flex flex-col justify-between text-right border-l border-white/10 md:pl-10">
                              <div>
-                                 <p className="text-[10px] font-bold tracking-wider text-indigo-200/40 mb-2">Forecasted Value</p>
+                                 <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200/40 mb-2">Forecasted Value</p>
                                  <p className="text-3xl font-bold text-white tabular-nums tracking-tight">{formatCurrency(projectedValueAtRetirement, account.currency)}</p>
-                                 <p className="text-[10px] font-bold text-indigo-300 mt-1">At {account.apy || 5}% Growth Rate</p>
+                                 <p className="text-xs font-semibold text-indigo-300 mt-1">At {account.apy || 5}% Growth Rate</p>
                              </div>
                              <div className="mt-8 space-y-3">
-                                 <div className="flex justify-between items-end text-[10px] font-bold tracking-wider text-indigo-100/40">
+                                 <div className="flex justify-between items-end text-xs font-semibold uppercase tracking-wider text-indigo-100/40">
                                      <span>Accumulation Index</span>
                                      <span className="text-white">{(100 - (yearsToRetirement/40 * 100)).toFixed(0)}%</span>
                                  </div>
@@ -316,7 +316,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden">
                     <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-10 flex justify-between items-center relative z-10">
                         Fortune Trajectory
-                        <span className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/60">History & Forecast</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/60">History & Forecast</span>
                     </h3>
                     
                     <div className="h-[400px] w-full relative z-10">
@@ -380,7 +380,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
            <div className="lg:col-span-4 space-y-8">
                 {/* Infrastructure Configuration */}
                 <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                    <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Infrastructure Configuration</h3>
                     <div className="space-y-6">
                         {[
                             { label: 'Clearing Institution', value: account.financialInstitution },
@@ -392,8 +392,8 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                             { label: 'Internal Serial', value: account.accountNumber, isMono: true }
                         ].filter(i => i.value).map((item, idx) => (
                             <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
-                                <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">{item.label}</p>
+                                <p className={`text-xs font-semibold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>
                             </div>
@@ -405,7 +405,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                             <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center">
                                 <Icon name="verified" className="text-lg" />
                             </div>
-                            <p className="text-[10px] font-bold text-indigo-500 tracking-wider">Asset Integrity Verified</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-500">Asset Integrity Verified</p>
                         </div>
                         <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 leading-relaxed">
                             Projections assume a static growth vector and linear contribution velocity.

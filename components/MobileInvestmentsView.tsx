@@ -242,14 +242,14 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
         {/* ================================================================= */}
         <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
               Portfolio & Wealth
             </p>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight leading-tight">
+              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
                 Investments
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
                 Live Tracking
               </span>
@@ -325,7 +325,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                   {activeSegment === 'all' ? 'Total Portfolio Value' : `${activeSegment} Value`}
                 </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold">
                 {preferredCurrency}
               </span>
             </div>
@@ -337,7 +337,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                 </h2>
                 <div className="flex items-center gap-2 mt-2">
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                       totalUnrealizedGain >= 0
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
@@ -350,7 +350,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                     {totalUnrealizedGain >= 0 ? '+' : ''}
                     {formatCurrency(totalUnrealizedGain, curr)} ({totalGainPercent.toFixed(1)}%)
                   </span>
-                  <span className="text-[11px] text-white/50 font-medium">
+                  <span className="text-xs text-white/60 font-medium">
                     Basis: {formatCurrency(totalCostBasis, curr)}
                   </span>
                 </div>
@@ -383,20 +383,20 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
             {/* Inset Metrics Grid */}
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10">
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Holdings
                 </span>
-                <span className="text-xs font-black text-white">
+                <span className="text-xs font-bold text-white">
                   {displayHoldings.length} Positions
                 </span>
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Realized P&L
                 </span>
                 <span
-                  className={`text-xs font-black ${
+                  className={`text-xs font-bold ${
                     realizedPerformance.totalRealizedGain >= 0
                       ? 'text-emerald-400'
                       : 'text-rose-400'
@@ -408,10 +408,10 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Win Rate
                 </span>
-                <span className="text-xs font-black text-teal-400">
+                <span className="text-xs font-bold text-teal-400">
                   {realizedPerformance.winsCount + realizedPerformance.lossesCount > 0
                     ? `${Math.round(
                         (realizedPerformance.winsCount /
@@ -503,7 +503,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                 <span>Include Closed (0 Qty)</span>
               </label>
 
-              <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Swipe left for quick actions
               </span>
             </div>
@@ -526,11 +526,11 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                               ASSET_TYPE_COLORS[groupName] || ASSET_TYPE_COLORS.Stock,
                           }}
                         />
-                        <span className="text-xs font-black text-light-text dark:text-white">
+                        <span className="text-xs font-bold text-light-text dark:text-white">
                           {groupName}
                         </span>
                       </div>
-                      <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                      <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                         {groupHoldings.length} item{groupHoldings.length !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -603,7 +603,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                                       {h.name || h.symbol}
                                     </p>
                                   </div>
-                                  <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
+                                  <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
                                     {isCustom
                                       ? h.qtyLabel || `${h.quantity} items`
                                       : `${h.quantity} shares • Avg: ${formatCurrency(h.averageCost || 0, curr)}`}
@@ -613,12 +613,12 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
 
                               {/* Right Amount & Gain % */}
                               <div className="text-right shrink-0">
-                                <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
+                                <p className="text-xs font-bold text-light-text dark:text-white privacy-blur">
                                   {formatCurrency(valueEur, curr)}
                                 </p>
                                 {!isCustom && (
                                   <p
-                                    className={`text-[10px] font-extrabold privacy-blur mt-0.5 ${
+                                    className={`text-xs font-semibold privacy-blur mt-0.5 ${
                                       gainEur >= 0 ? 'text-emerald-500' : 'text-rose-500'
                                     }`}
                                   >
@@ -659,7 +659,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                 <h3 className="text-sm font-bold text-light-text dark:text-white">
                   Investment Accounts
                 </h3>
-                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                   Brokerages, crypto wallets, and pension accounts
                 </p>
               </div>
@@ -710,7 +710,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                           <p className="text-xs font-bold text-light-text dark:text-white truncate">
                             {acc.name}
                           </p>
-                          <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
+                          <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate mt-0.5">
                             {acc.subType || acc.type}
                             {acc.financialInstitution ? ` • ${acc.financialInstitution}` : ''}
                           </p>
@@ -718,10 +718,10 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                       </div>
 
                       <div className="text-right shrink-0">
-                        <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
+                        <p className="text-xs font-bold text-light-text dark:text-white privacy-blur">
                           {convertedBal}
                         </p>
-                        <span className="text-[9px] font-bold text-teal-500">Active</span>
+                        <span className="text-xs font-semibold text-teal-500">Active</span>
                       </div>
                     </div>
                   </SwipeableRow>
@@ -761,7 +761,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                   <PieCenter defaultLabel="Total">
                     {({ label }) => (
                       <div className="text-center">
-                        <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
                           {label}
                         </span>
                         <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
@@ -794,7 +794,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                         <span className="text-light-text dark:text-white privacy-blur">
                           {formatCurrency(item.value, curr)}
                         </span>
-                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-[10px] w-10 text-right">
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-xs font-medium w-10 text-right">
                           {pct.toFixed(1)}%
                         </span>
                       </div>
@@ -811,7 +811,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white">
                     Top Holdings by Valuation
                   </h3>
-                  <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold">
+                  <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-semibold">
                     Top {topHoldingsChartData.length}
                   </span>
                 </div>
@@ -873,25 +873,25 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
 
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase block">
+                  <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
                     Biggest Win
                   </span>
-                  <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
+                  <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
                     {realizedPerformance.biggestWin.symbol || 'None'}
                   </p>
-                  <p className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
                     +{formatCurrency(realizedPerformance.biggestWin.gain, curr)}
                   </p>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20">
-                  <span className="text-[10px] font-bold text-rose-800 dark:text-rose-300 uppercase block">
+                  <span className="text-xs font-semibold text-rose-800 dark:text-rose-300 uppercase tracking-wider block">
                     Biggest Loss
                   </span>
-                  <p className="text-xs font-black text-rose-600 dark:text-rose-400 truncate mt-0.5">
+                  <p className="text-xs font-bold text-rose-600 dark:text-rose-400 truncate mt-0.5">
                     {realizedPerformance.biggestLoss.symbol || 'None'}
                   </p>
-                  <p className="text-[10px] font-extrabold text-rose-700 dark:text-rose-300">
+                  <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
                     {formatCurrency(realizedPerformance.biggestLoss.gain, curr)}
                   </p>
                 </div>
@@ -910,11 +910,11 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                 <h3 className="text-sm font-bold text-light-text dark:text-white">
                   Trade Activity Feed
                 </h3>
-                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                   Recent buy, sell, and warrant grant records
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-black bg-teal-500/10 text-teal-500">
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-500/10 text-teal-500">
                 {recentActivity.length} Events
               </span>
             </div>
@@ -961,7 +961,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                                 {act.symbol}
                               </span>
                               <span
-                                className={`px-1.5 py-0.2 rounded-md text-[9px] font-extrabold ${
+                                className={`px-1.5 py-0.5 rounded-md text-2xs font-semibold uppercase tracking-wider ${
                                   isBuy
                                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                     : isGrant
@@ -972,7 +972,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                                 {act.type}
                               </span>
                             </div>
-                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
                               {parseLocalDate(act.date).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
@@ -984,7 +984,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                         </div>
 
                         <div className="text-right shrink-0">
-                          <p className="text-xs font-extrabold text-light-text dark:text-white privacy-blur">
+                          <p className="text-xs font-bold text-light-text dark:text-white privacy-blur">
                             {formatCurrency(totalAmt, curr)}
                           </p>
                         </div>

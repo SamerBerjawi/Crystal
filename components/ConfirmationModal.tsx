@@ -100,7 +100,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 flex items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-md p-4 z-[99999]"
+          className="fixed inset-0 flex items-center justify-center bg-gray-900/50 dark:bg-black/80 backdrop-blur-md p-4 z-[99999]"
           onClick={onClose}
         >
           <motion.div
@@ -108,7 +108,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="bg-white/95 dark:bg-gray-900/95 rounded-2xl sm:rounded-3xl ios-regular shadow-modal w-full max-w-sm overflow-hidden"
+            className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 rounded-3xl shadow-modal w-full max-w-sm overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 flex flex-col items-center text-center gap-4">

@@ -574,6 +574,8 @@ export interface RuleRunBackup {
   }[];
 }
 
+export type AppFont = 'plus-jakarta-sans' | 'inter';
+
 export interface AppPreferences {
   currency: string;
   displayCurrency?: Currency;
@@ -584,6 +586,7 @@ export interface AppPreferences {
   defaultPeriod: Duration;
   defaultAccountOrder: DefaultAccountOrder;
   country: string;
+  appFont?: AppFont;
   defaultQuickCreatePeriod?: number;
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;

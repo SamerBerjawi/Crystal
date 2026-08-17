@@ -421,7 +421,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         >
                             <div className="flex items-center gap-2 mb-1 sm:mb-2">
                                 <Icon name="wallet" className="text-primary-500 text-sm" />
-                                <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
                             </div>
                             <div className="flex items-baseline gap-2">
                                 <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
@@ -481,7 +481,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                         {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-[9px] sm:text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                        <span className={`text-xs font-semibold uppercase tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
                                         <span className={`text-sm sm:text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
                                             {formatCurrency(val, 'EUR')}
                                         </span>
@@ -520,8 +520,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                     <Icon name={detail.icon} className="text-base text-primary-500/70" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70">{detail.label}</span>
-                                    <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{detail.label}</span>
+                                    <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
                                 </div>
                              </div>
                         ))}
@@ -530,19 +530,19 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
                 {/* Consolidated Controls */}
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5 overflow-x-auto no-scrollbar max-w-full">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary gap-0.5 overflow-x-auto no-scrollbar max-w-full">
                         <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
-                            <Icon name="vertical_split" className="text-[16px]" />
+                            <Icon name="vertical_split" className="text-base" />
                             <span className="hidden md:inline">Split</span>
                         </button>
                         <button onClick={() => setSplitAssetsLiabilities(false)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${!splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Combined View">
-                            <Icon name="view_agenda" className="text-[16px]" />
+                            <Icon name="view_agenda" className="text-base" />
                             <span className="hidden md:inline">Combined</span>
                         </button>
                     </div>
 
                     <div className={`${SELECT_WRAPPER_STYLE} !w-auto h-9`}>
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-[10px] !font-semibold pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
+                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-xs !font-semibold pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
                             <option value="manual">Sort: Manual</option>
                             <option value="name">Sort: Name</option>
                             <option value="balance">Sort: Balance</option>
@@ -552,19 +552,19 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     
                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
                         <button onClick={() => setViewStyle('detailed')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'detailed' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Standard Cards">
-                            <Icon name="style" className="text-[18px]" />
+                            <Icon name="style" className="text-lg" />
                         </button>
                         <button onClick={() => setViewStyle('minimal')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'minimal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Minimalist Rows">
-                            <Icon name="density_medium" className="text-[18px]" />
+                            <Icon name="density_medium" className="text-lg" />
                         </button>
                     </div>
 
                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
                         <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Grid Layout">
-                            <Icon name="grid_view" className="text-[18px]" />
+                            <Icon name="grid_view" className="text-lg" />
                         </button>
                         <button onClick={() => setLayoutMode('stacked')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="List Layout">
-                            <Icon name="view_list" className="text-[18px]" />
+                            <Icon name="view_list" className="text-lg" />
                         </button>
                     </div>
                 </div>

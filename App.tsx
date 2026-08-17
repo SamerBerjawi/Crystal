@@ -683,6 +683,26 @@ const App: React.FC = () => {
     }
   }, [preferences.timezone]);
 
+  // Dynamic Font Synchronization
+  useEffect(() => {
+    const activeFont = preferences.appFont || 'plus-jakarta-sans';
+    document.documentElement.setAttribute('data-font', activeFont);
+    if (activeFont === 'inter') {
+      document.documentElement.style.setProperty(
+        '--app-font',
+        '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", sans-serif'
+      );
+    } else {
+      document.documentElement.style.setProperty(
+        '--app-font',
+        '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", sans-serif'
+      );
+    }
+    try {
+      localStorage.setItem('crystal_font', activeFont);
+    } catch (e) {}
+  }, [preferences.appFont]);
+
   const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
     investmentTransactions.forEach(tx => {
@@ -2651,7 +2671,7 @@ const App: React.FC = () => {
                 ),
               }}
             >
-              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none pb-28 md:pb-8 scroll-touch safe-top" id="main-content">
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pt-5 md:pt-7 lg:pt-8 relative scroll-smooth focus:outline-none pb-28 md:pb-8 scroll-touch safe-top" id="main-content">
                 <ErrorBoundary>
                   <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
                     <AnimatePresence mode="wait">
@@ -2661,6 +2681,7 @@ const App: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -6 }}
                         transition={{ duration: 0.15, ease: 'easeInOut' }}
+                        className="mt-3 md:mt-5"
                       >
                         {renderPage()}
                       </motion.div>

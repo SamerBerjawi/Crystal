@@ -71,7 +71,7 @@ const SuggestionItem: React.FC<{
               </div>
               <div className="text-right">
                 <p className="font-bold text-xs text-rose-500 tabular-nums">{formatCurrency(suggestion.expenseTx.amount, suggestion.expenseTx.currency)}</p>
-                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{formatDate(suggestion.expenseTx.date)}</p>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formatDate(suggestion.expenseTx.date)}</p>
               </div>
             </div>
 
@@ -86,7 +86,7 @@ const SuggestionItem: React.FC<{
               </div>
               <div className="text-right">
                 <p className="font-bold text-xs text-emerald-500 tabular-nums">{formatCurrency(suggestion.incomeTx.amount, suggestion.incomeTx.currency)}</p>
-                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{formatDate(suggestion.incomeTx.date)}</p>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formatDate(suggestion.incomeTx.date)}</p>
               </div>
             </div>
           </div>

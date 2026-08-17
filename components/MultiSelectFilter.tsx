@@ -75,16 +75,16 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search..."
-              className="w-full h-8 pl-7 pr-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 text-[11px] font-medium text-light-text dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full h-8 pl-7 pr-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 text-xs font-medium text-light-text dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
               autoFocus
             />
           </div>
 
-          <div className="flex justify-between items-center text-[10px] font-bold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+          <div className="flex justify-between items-center text-xs font-semibold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
             <button
               type="button"
               onClick={handleToggleAll}
-              className="text-primary-600 dark:text-primary-400 hover:underline normal-case text-[11px]"
+              className="text-primary-600 dark:text-primary-400 hover:underline normal-case text-xs font-medium"
             >
               {selectedValues.length === options.length ? 'Deselect all' : 'Select all'}
             </button>

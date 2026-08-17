@@ -43,7 +43,7 @@ const variantStyles: Record<HeaderButtonVariant, string> = {
 
 const sizeStyles: Record<HeaderButtonSize, string> = {
   default: 'h-9 px-3.5 text-xs rounded-xl gap-2',
-  sm: 'h-8 px-2.5 text-[11px] rounded-lg gap-1.5',
+  sm: 'h-8 px-2.5 text-xs rounded-lg gap-1.5',
   lg: 'h-10 px-4 text-xs rounded-xl gap-2',
   icon: 'h-9 w-9 p-0 rounded-xl justify-center text-xs',
   'icon-sm': 'h-8 w-8 p-0 rounded-lg justify-center text-xs',

@@ -264,17 +264,17 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                      {/* Decorative Background */}
                      <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                      <div className="absolute bottom-0 right-0 p-4 opacity-10 pointer-events-none transform group-hover:scale-110 transition-transform duration-500 origin-bottom-right">
-                         <Icon name="account_balance_wallet" className="text-[8rem] leading-none" />
+                         <Icon name="account_balance_wallet" className="text-8xl leading-none" />
                      </div>
                      
                      <div className="relative z-10 flex flex-col h-full justify-between">
                          <div>
-                            <p className="text-xs font-bold  tracking-wider text-indigo-200 mb-1">Current Value</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200 mb-1">Current Value</p>
                             <h2 className="text-4xl font-bold tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
                          </div>
                          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 w-fit">
-                             <Icon name="layers" className="text-sm" />
-                             <span className="text-sm font-medium">{holding.quantity.toLocaleString()} units</span>
+                            <span className="text-xs font-medium text-indigo-100">Book Value:</span>
+                            <span className="text-xs font-bold text-white font-mono privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
                          </div>
                      </div>
                 </div>
@@ -407,7 +407,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                 activity.map(item => (
                                     <div key={item.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/5">
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-[10px]  shadow-sm ${item.badgeClass}`}>
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-xs shadow-sm ${item.badgeClass}`}>
                                                 {item.label}
                                             </div>
                                             <div>

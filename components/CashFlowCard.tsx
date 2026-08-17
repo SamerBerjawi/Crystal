@@ -64,12 +64,12 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
       return (
         <div className="flex flex-col h-full justify-between">
             <div>
-                <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{label}</p>
                 <p className={`text-xl font-bold ${textColor}`}>
                     {formatCurrency(amount, currency as Currency)}
                 </p>
                 {change && (
-                    <p className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                         <span className={change.startsWith('+') ? 'text-green-600' : 'text-red-600'}>{change}</span> vs prev.
                     </p>
                 )}
@@ -97,20 +97,20 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
         <div className="p-5 pb-3">
              <div className="flex justify-between items-start mb-2">
                 <div>
-                    <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
+                    <p className="text-xs font-semibold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
                     <h3 className={`text-3xl font-bold tracking-tight ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
                         {formatCurrency(netBalance, currency as Currency, { showPlusSign: true })}
                     </h3>
                 </div>
                 <div className={`px-3 py-1 rounded-lg flex flex-col items-center justify-center ${savingsBgClass}`}>
                     <span className={`text-lg font-bold ${savingsColorClass}`}>{savingsRate.toFixed(0)}%</span>
-                    <span className={`text-[10px] font-bold  ${savingsColorClass} opacity-80`}>Savings</span>
+                    <span className={`text-2xs font-semibold uppercase ${savingsColorClass} opacity-80`}>Savings</span>
                 </div>
              </div>
 
              {/* Visualization Bar */}
              <div className="mt-4">
-                <div className="flex justify-between text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
+                <div className="flex justify-between text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
                     <span>Out {Math.min(expenseRatio, 100).toFixed(0)}%</span>
                     <span>In 100%</span>
                 </div>

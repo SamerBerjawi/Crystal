@@ -438,7 +438,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                     className="absolute z-20 cursor-pointer pointer-events-auto"
                   >
                     <div
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold shadow-md transition-all select-none whitespace-nowrap ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold shadow-md transition-all select-none whitespace-nowrap ${
                         isSelected || isHovered
                           ? 'bg-primary-500 text-white scale-110 ring-2 ring-primary-400/50 shadow-primary-500/30'
                           : 'bg-white/90 dark:bg-gray-900/90 text-primary border border-black/10 dark:border-white/15 hover:scale-105'
@@ -446,7 +446,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                     >
                       <span className="text-xs leading-none">{loc.flagEmoji}</span>
                       <span>{loc.city}</span>
-                      <span className={`text-[9px] font-mono px-1 py-0.2 rounded-full ${
+                      <span className={`text-2xs font-mono px-1 py-0.2 rounded-full ${
                         isSelected || isHovered ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-secondary'
                       }`}>
                         {loc.count}
@@ -499,7 +499,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                         <span>{loc.flagEmoji}</span>
                         <span>{locationLabel}</span>
                       </p>
-                      <p className="text-[11px] text-tertiary">{loc.count} transactions</p>
+                      <p className="text-xs text-tertiary">{loc.count} transactions</p>
                       <p className="font-mono font-semibold text-xs text-green-600 dark:text-green-400">
                         {formatCurrency(Math.abs(loc.amountTotal), loc.currency as Currency)}
                       </p>
@@ -522,7 +522,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                 <h4 className="font-bold text-xs leading-tight text-primary truncate">
                   {activeHoveredLocation.label || activeHoveredLocation.city}
                 </h4>
-                <p className="text-[10px] text-tertiary truncate">
+                <p className="text-xs text-tertiary truncate">
                   {activeHoveredLocation.address || [activeHoveredLocation.city, activeHoveredLocation.country].filter(Boolean).join(', ')}
                 </p>
               </div>
@@ -538,11 +538,11 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
               </button>
             )}
           </div>
-          <div className="border-t border-black/5 dark:border-white/5 my-0.5 pt-1 flex justify-between items-center text-[11px]">
+          <div className="border-t border-black/5 dark:border-white/5 my-0.5 pt-1 flex justify-between items-center text-xs">
             <span className="text-tertiary">Transactions</span>
             <span className="font-bold font-mono text-primary">{activeHoveredLocation.count}</span>
           </div>
-          <div className="flex justify-between items-center text-[11px]">
+          <div className="flex justify-between items-center text-xs">
             <span className="text-tertiary">Total Spend</span>
             <span className="font-bold font-mono text-green-600 dark:text-green-400">
               {formatCurrency(Math.abs(activeHoveredLocation.amountTotal), activeHoveredLocation.currency as Currency)}
@@ -573,7 +573,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
             >
               <span>{loc.flagEmoji}</span>
               <span className="max-w-[130px] truncate">{loc.label || loc.city}</span>
-              <span className={`text-[10px] font-mono font-medium ${
+              <span className={`text-xs font-mono font-medium ${
                 isSelected || isHovered ? 'text-white/90' : 'text-tertiary'
               }`}>
                 {formatCurrency(Math.abs(loc.amountTotal), loc.currency as Currency, { compact: true })}
@@ -605,7 +605,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         <button
           type="button"
           onClick={handleResetZoom}
-          className="px-1.5 h-6 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-[10px] font-mono text-tertiary hover:text-primary transition-colors cursor-pointer"
+          className="px-1.5 h-6 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono text-tertiary hover:text-primary transition-colors cursor-pointer"
           title="Reset Zoom"
         >
           {mapMode === 'tile' ? `${Math.round((tileZoom / 3) * 100)}%` : `${Math.round(dottedZoom * 100)}%`}

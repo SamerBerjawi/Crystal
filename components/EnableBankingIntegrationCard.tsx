@@ -339,7 +339,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
               Note: credentials are stored in this browser only and are not encrypted.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider">Local Storage</span>
+          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Local Storage</span>
         </div>
 
         <div className="grid gap-6">
@@ -458,10 +458,10 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                     <h4 className="text-lg font-bold text-light-text dark:text-dark-text">{connection.selectedBank || 'Bank Connection'}</h4>
                                     {renderStatusBadge(connection.status)}
                                 </div>
-                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-mono mt-1 opacity-70">
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-mono mt-1 opacity-70">
                                     Session ID: {connection.sessionId || 'pending'} • Expires {connection.sessionExpiresAt ? new Date(connection.sessionExpiresAt).toLocaleDateString() : 'N/A'}
                                 </p>
-                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                                     Last synced {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Never'}
                                 </p>
                                 {connection.lastError && (
@@ -538,16 +538,16 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px]  font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">BALANCE</p>
+                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">BALANCE</p>
                                                     <p className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight">
                                                         {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
                                                     {balanceSyncLabel && (
-                                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                                                             {balanceSyncLabel}
                                                         </p>
                                                     )}
-                                                    <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Default sync start: {defaultSyncStart}</p>
+                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Default sync start: {defaultSyncStart}</p>
                                                     <div className="flex justify-end mt-3">
                                                       <button
                                                         onClick={() => openSyncPrompt(connection, account)}
@@ -564,7 +564,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                 
                                                 {/* Col 1: Link Target */}
                                                 <div className="space-y-3">
-                                                    <p className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider">LINK TARGET</p>
+                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">LINK TARGET</p>
                                                     <div className="flex flex-col gap-2">
                                                          <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                                             <input type="radio" name={`${rowKey}-mode`} checked={(rowState.mode || 'existing') === 'existing'} onChange={() => handleLinkChange(rowKey, { mode: 'existing' })} className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300" />
@@ -613,7 +613,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
                                                 {/* Col 2: Sync Start */}
                                                 <div className="space-y-3">
-                                                    <p className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider">SYNC START</p>
+                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">SYNC START</p>
                                                     <input
                                                         type="date"
                                                         className={`${INPUT_BASE_STYLE} !text-sm`}
@@ -622,15 +622,14 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                         value={clampSyncDate(rowState.syncStartDate || defaultSyncStart) || ''}
                                                         onChange={(e) => handleLinkChange(rowKey, { syncStartDate: clampSyncDate(e.target.value) })}
                                                     />
-                                                    <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary leading-snug">
+                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug">
                                                         Choose how far back to import (up to 90 days). Future syncs will continue from where they left off.
-import Icon from './ui/Icon';
                                                     </p>
                                                 </div>
 
                                                 {/* Col 3: Actions */}
                                                 <div className="space-y-3">
-                                                    <p className="text-[10px] font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider">ACTIONS</p>
+                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">ACTIONS</p>
                                                     <button
                                                         onClick={() => {
                                                             const syncStartDate = clampSyncDate(rowState.syncStartDate || defaultSyncStart);
@@ -657,11 +656,11 @@ import Icon from './ui/Icon';
                                                     </button>
                                                     
                                                     <div className="space-y-1 pt-1">
-                                                        <div className="flex items-center gap-2 text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                        <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                             <Icon name="event" className="text-sm opacity-70" />
                                                             <span>Sync start: {defaultSyncStart}</span>
                                                         </div>
-                                                         <div className="flex items-center gap-2 text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                         <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                             <Icon name="history" className="text-sm opacity-70" />
                                                             <span>Last sync: {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Pending'}</span>
                                                         </div>

@@ -198,12 +198,12 @@ const MobileAccountItem: React.FC<{
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <p className="text-[14px] font-extrabold text-light-text dark:text-white truncate tracking-tight">
+              <p className="text-sm font-bold text-light-text dark:text-white truncate tracking-tight">
                 {account.name}
               </p>
             </div>
 
-            <p className="text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-75 truncate mt-0.5">
+            <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-75 truncate mt-0.5">
               {subtext}
             </p>
           </div>
@@ -220,7 +220,7 @@ const MobileAccountItem: React.FC<{
         <div className="text-right shrink-0 flex items-center gap-1.5">
           <div>
             <p
-              className={`text-[14px] font-black privacy-blur tracking-tight leading-tight ${
+              className={`text-sm font-bold privacy-blur tracking-tight leading-tight ${
                 isDebt ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-white'
               }`}
             >
@@ -228,7 +228,7 @@ const MobileAccountItem: React.FC<{
             </p>
 
             {Math.abs(trend) > 0 && (
-              <div className="flex items-center justify-end gap-0.5 text-[10px] font-bold mt-0.5">
+              <div className="flex items-center justify-end gap-0.5 text-xs font-semibold mt-0.5">
                 <span className={isPositiveTrend ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                   {isPositiveTrend ? '▲' : '▼'}
                 </span>
@@ -525,7 +525,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             className="absolute -top-1 -right-1 size-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#18181b] z-10"
             title="Main Account"
           >
-            <Icon name="cryptocurrency-01" className="text-[11px]" strokeWidth={2.5} />
+            <Icon name="cryptocurrency-01" className="text-xs" strokeWidth={2.5} />
           </div>
         )}
 
@@ -535,7 +535,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             className="absolute -bottom-1 -right-1 size-4.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-[#18181b] z-10"
             title="Connected / Linked Account"
           >
-            <Icon name="link-04" className="text-[11px]" strokeWidth={2.5} />
+            <Icon name="link-04" className="text-xs" strokeWidth={2.5} />
           </div>
         )}
       </div>
@@ -547,10 +547,10 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
       {/* 1. Top Header */}
       <div className="sticky top-0 z-20 pt-2 pb-2 bg-light-bg/85 dark:bg-dark-bg/85 backdrop-blur-xl -mx-4 px-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+          <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
             Portfolio
           </p>
-          <h1 className="text-2xl font-black text-light-text dark:text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">
             Accounts
           </h1>
         </div>
@@ -560,7 +560,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
           {sortBy === 'manual' && (
             <button
               onClick={() => setIsReordering(!isReordering)}
-              className={`px-3 py-1.5 rounded-2xl text-xs font-black transition-all active:scale-95 touch-feedback border ${
+              className={`px-3 py-1.5 rounded-2xl text-xs font-semibold transition-all active:scale-95 touch-feedback border ${
                 isReordering
                   ? 'bg-primary-500 text-white border-primary-500 shadow-md shadow-primary-500/20'
                   : 'bg-white/80 dark:bg-dark-card/80 text-light-text dark:text-white border-black/5 dark:border-white/10'
@@ -591,16 +591,16 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
       {/* 2. Hero Segment Summary Card */}
       <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white rounded-[24px] p-4 shadow-lg border border-white/15 relative overflow-hidden space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-white/70">
+          <span className="text-xs font-semibold uppercase tracking-wider text-white/70">
             Net Portfolio Value
           </span>
-          <span className="px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-[10px] font-extrabold text-white border border-white/20">
+          <span className="px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-xs font-bold text-white border border-white/20">
             {curr}
           </span>
         </div>
 
         <div>
-          <p className="text-3xl font-black text-white tracking-tight privacy-blur leading-none">
+          <p className="text-3xl font-bold text-white tracking-tight privacy-blur leading-none">
             {netWorthFormatted}
           </p>
         </div>
@@ -608,16 +608,16 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
           <div className="bg-emerald-500/15 rounded-xl p-2 border border-emerald-500/25 flex items-center justify-between">
             <div>
-              <span className="text-[9px] font-extrabold uppercase text-emerald-300 block">Total Assets</span>
-              <span className="text-xs font-black text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
+              <span className="text-xs font-semibold uppercase text-emerald-300 block">Total Assets</span>
+              <span className="text-xs font-bold text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
             </div>
             <Icon name="arrow_upward" className="text-emerald-400 text-sm" />
           </div>
 
           <div className="bg-rose-500/15 rounded-xl p-2 border border-rose-500/25 flex items-center justify-between">
             <div>
-              <span className="text-[9px] font-extrabold uppercase text-rose-300 block">Liabilities</span>
-              <span className="text-xs font-black text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
+              <span className="text-xs font-semibold uppercase text-rose-300 block">Liabilities</span>
+              <span className="text-xs font-bold text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
             </div>
             <Icon name="arrow_downward" className="text-rose-400 text-sm" />
           </div>
@@ -630,7 +630,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
           <button
             key={seg.id}
             onClick={() => setActiveSegment(seg.id)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 active:scale-95 touch-feedback ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 active:scale-95 touch-feedback ${
               activeSegment === seg.id
                 ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
                 : 'bg-white/80 dark:bg-dark-card/80 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/10'
@@ -645,7 +645,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
       {groupedSections.map((sec) => (
         <div key={sec.title} className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               {sec.title}
             </span>
             <span className={`text-xs font-black privacy-blur ${sec.totalClass}`}>

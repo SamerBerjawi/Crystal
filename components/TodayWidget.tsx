@@ -142,27 +142,27 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     const renderDueBadge = (daysUntil: number) => {
         if (daysUntil < 0) {
             return (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                     Overdue
                 </span>
             );
         }
         if (daysUntil === 0) {
             return (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                     Due Today
                 </span>
             );
         }
         if (daysUntil === 1) {
             return (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                     Due Tomorrow
                 </span>
             );
         }
         return (
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/10">
+            <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/10">
                 In {daysUntil} days
             </span>
         );
@@ -199,7 +199,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
-                                        <Icon name="task_alt" className="text-[10px]" /> Task
+                                        <Icon name="task_alt" className="text-xs" /> Task
                                     </p>
                                 </div>
                             </div>

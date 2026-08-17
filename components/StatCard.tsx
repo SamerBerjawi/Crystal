@@ -22,9 +22,9 @@ const StatCard: React.FC<StatCardProps> = ({
             <Icon name={icon} className="text-3xl" />
         </div>
         <div className="min-w-0 relative z-10 w-full">
-            <p className="text-[10px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary  opacity-60 group-hover:opacity-100 transition-opacity">{title}</p>
-            <p className="text-2xl md:text-3xl font-black text-light-text dark:text-dark-text tracking-tighter mt-1 leading-none group-hover:text-primary-500 transition-colors">{value}</p>
-            {subtext && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1.5 font-bold truncate opacity-60  tracking-tight">{subtext}</p>}
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 group-hover:opacity-100 transition-opacity">{title}</p>
+            <p className="text-2xl md:text-3xl font-bold text-light-text dark:text-dark-text tracking-tight mt-1.5 leading-tight group-hover:text-primary-500 transition-colors">{value}</p>
+            {subtext && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-80 leading-normal">{subtext}</p>}
         </div>
     </div>
 );

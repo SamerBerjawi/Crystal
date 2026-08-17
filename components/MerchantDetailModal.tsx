@@ -332,7 +332,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         toast.success(`Fetched latest logo from Brandfetch for "${merchantName}"!`);
     };
 
-    const labelStyle = "block text-[11px] font-extrabold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
 
     if (!isOpen && !isVisible) return null;
 
@@ -359,12 +359,12 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                         {/* Top Action Ribbon */}
                         <div className="flex items-center justify-between px-6 pt-5 pb-3">
                             <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 bg-primary-500/10 px-2.5 py-1 rounded-full border border-primary-500/20">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-500/10 px-2.5 py-1 rounded-full border border-primary-500/20">
                                     <Icon name="Building02" className="text-xs" />
                                     Entity Protocol
                                 </span>
                                 {isHidden && (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                                         <Icon name="eye_off" className="text-xs" />
                                         Hidden
                                     </span>
@@ -389,7 +389,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     title="Close panel (Esc)"
                                 >
                                     <Icon name="close" className="text-lg" />
-                                    <span className="hidden sm:inline text-[10px] text-gray-400 font-mono">ESC</span>
+                                    <span className="hidden sm:inline text-xs font-medium text-gray-400 font-mono">ESC</span>
                                 </button>
                             </div>
                         </div>
@@ -411,7 +411,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             {merchantName}
                                         </h2>
                                         {isOnline && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+                                            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
                                                 🌐 Online Business
                                             </span>
                                         )}
@@ -425,7 +425,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 className="text-xs font-bold text-primary-500 hover:underline flex items-center gap-1"
                                             >
                                                 <span>{website.replace(/^https?:\/\/(www\.)?/, '')}</span>
-                                                <Icon name="open_in_new" className="text-[10px]" />
+                                                <Icon name="open_in_new" className="text-xs" />
                                             </a>
                                         ) : (
                                             <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
@@ -433,7 +433,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             </span>
                                         )}
                                         {category && (
-                                            <span className="inline-flex items-center text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md border border-black/5 dark:border-white/5">
+                                            <span className="inline-flex items-center text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md border border-black/5 dark:border-white/5">
                                                 {category}
                                             </span>
                                         )}
@@ -444,7 +444,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                             {/* Stat Highlights Cards */}
                             <div className="grid grid-cols-3 gap-2.5">
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
-                                    <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-0.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">
                                         Volume
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
@@ -452,7 +452,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
-                                    <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-0.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">
                                         Avg Ticket
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
@@ -460,7 +460,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
-                                    <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-0.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">
                                         Activity
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
@@ -497,11 +497,11 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 <Icon name="marker_pin" className="text-sm" />
                                 <span>Locations</span>
                                 {isOnline ? (
-                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                                         🌐 Online
                                     </span>
                                 ) : locations.length > 0 && (
-                                    <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-500">
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-500">
                                         {locations.length}
                                     </span>
                                 )}
@@ -545,7 +545,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
                                         <div className="flex items-center justify-between">
                                             <label className={labelStyle}>Default Category Classification</label>
-                                            <span className="text-[10px] text-primary-500 font-bold">Auto-Classification</span>
+                                            <span className="text-xs text-primary-500 font-semibold uppercase tracking-wider">Auto-Classification</span>
                                         </div>
                                         <div className={SELECT_WRAPPER_STYLE}>
                                             <select
@@ -557,7 +557,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
                                         </div>
-                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                                             Telemetry ingestion will automatically route new transactions from this merchant to this category.
                                         </p>
                                     </div>
@@ -572,7 +572,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             className={INPUT_BASE_STYLE}
                                             placeholder="e.g. Monthly Software License"
                                         />
-                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                                             Prefills the description field whenever this merchant is selected during manual transaction logging.
                                         </p>
                                     </div>
@@ -598,7 +598,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                         Hide from Merchant Pickers
                                                     </span>
                                                 </div>
-                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                                                     Hides this merchant from quick autocomplete pickers without affecting historical transaction data.
                                                 </p>
                                             </div>
@@ -630,12 +630,12 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                         Online / Digital Business
                                                     </span>
                                                     {isOnline && (
-                                                        <span className="inline-flex items-center text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                                                        <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
                                                             Active
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                                                     Toggle on for web stores, SaaS platforms, streaming subscriptions, and cloud services (e.g. Amazon, Netflix, Spotify, Steam) with no physical storefront.
                                                 </p>
                                             </div>
@@ -654,7 +654,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             <Icon name="info" className="text-blue-500 text-base shrink-0 mt-0.5" />
                                             <div className="text-xs space-y-1 text-light-text dark:text-dark-text">
                                                 <p className="font-bold">Digital / Web Service Protocol Enabled</p>
-                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
                                                     Transactions for {merchantName} are classified as online digital orders and won't require physical map coordinates. You can still optionally add local pickup lockers or regional headquarters below if desired.
                                                 </p>
                                             </div>
@@ -667,7 +667,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 <Icon name="marker_pin" className="text-sm text-primary-500" />
                                                 <span>{isOnline ? 'Optional Fulfillment Centers & Pickups' : 'Configured Branches & Locations'}</span>
                                             </h4>
-                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                                                 {isOnline ? 'Add optional physical pickup lockers, hub locations, or regional offices.' : 'Map multiple physical stores, warehouses, or office locations.'}
                                             </p>
                                         </div>
@@ -710,14 +710,14 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                             {loc.label || `Branch #${idx + 1}`}
                                                                         </p>
                                                                         {loc.isPrimary ? (
-                                                                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                                                            <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                                                                                 ★ Primary Branch
                                                                             </span>
                                                                         ) : (
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => handleSetPrimaryBranch(loc.id)}
-                                                                                className="text-[9px] font-bold text-gray-400 hover:text-primary-500 hover:underline transition-colors"
+                                                                                className="text-xs font-medium text-gray-400 hover:text-primary-500 hover:underline transition-colors"
                                                                             >
                                                                                 Set as Primary
                                                                             </button>
@@ -728,11 +728,11 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                     </p>
                                                                     {(loc.latitude !== undefined && loc.longitude !== undefined) && (
                                                                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                                                            <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md text-primary-600 dark:text-primary-400">
+                                                                            <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md text-primary-600 dark:text-primary-400">
                                                                                 📍 {loc.latitude.toFixed(4)}°, {loc.longitude.toFixed(4)}°
                                                                             </span>
                                                                             {loc.country && (
-                                                                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                                                                                     {loc.country}
                                                                                 </span>
                                                                             )}
@@ -782,7 +782,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                             <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 space-y-3 animate-fade-in-up">
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                                     <div>
-                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Branch Name / Label</label>
+                                                                        <label className="block text-xs font-semibold text-light-text-secondary mb-1">Branch Name / Label</label>
                                                                         <input
                                                                             type="text"
                                                                             value={loc.label || ''}
@@ -792,7 +792,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">City / Municipality</label>
+                                                                        <label className="block text-xs font-semibold text-light-text-secondary mb-1">City / Municipality</label>
                                                                         <input
                                                                             type="text"
                                                                             value={loc.city || ''}
@@ -802,7 +802,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Country</label>
+                                                                        <label className="block text-xs font-semibold text-light-text-secondary mb-1">Country</label>
                                                                         <input
                                                                             type="text"
                                                                             value={loc.country || ''}
@@ -812,7 +812,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Postal Code</label>
+                                                                        <label className="block text-xs font-semibold text-light-text-secondary mb-1">Postal Code</label>
                                                                         <input
                                                                             type="text"
                                                                             value={loc.postalCode || ''}
@@ -822,7 +822,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Latitude</label>
+                                                                        <label className="block text-xs font-semibold text-light-text-secondary mb-1">Latitude</label>
                                                                         <input
                                                                             type="number"
                                                                             step="any"
@@ -833,7 +833,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                         />
                                                                     </div>
                                                                     <div>
-                                                                        <label className="block text-[9px] font-bold text-light-text-secondary mb-1">Longitude</label>
+                                                                        <label className="block text-xs font-semibold text-light-text-secondary mb-1">Longitude</label>
                                                                         <input
                                                                             type="number"
                                                                             step="any"
@@ -863,7 +863,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         <div className="p-8 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-dashed border-black/10 dark:border-white/10 text-center space-y-2">
                                             <Icon name="marker_pin" className="text-3xl text-gray-400 mx-auto" />
                                             <p className="text-xs font-bold text-light-text dark:text-dark-text">No Physical Locations Added</p>
-                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary max-w-sm mx-auto">
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-sm mx-auto">
                                                 Add addresses or store branches to enable exact coordinate geolocation on your transaction maps.
                                             </p>
                                         </div>
@@ -894,7 +894,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold text-light-text-secondary mb-1">
+                                                <label className="block text-xs font-semibold text-light-text-secondary mb-1">
                                                     Branch Label / Nickname (Optional)
                                                 </label>
                                                 <input
@@ -907,7 +907,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold text-light-text-secondary mb-1">
+                                                <label className="block text-xs font-semibold text-light-text-secondary mb-1">
                                                     Address / Public Map Search
                                                 </label>
                                                 <AddressAutocomplete
@@ -921,9 +921,9 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 <div className="p-3 bg-white dark:bg-dark-card rounded-2xl border border-primary-500/20 text-xs flex items-center justify-between shadow-2xs">
                                                     <div className="min-w-0 flex-1">
                                                         <p className="font-bold text-light-text dark:text-dark-text truncate">{newBranchData.title}</p>
-                                                        <p className="text-[11px] text-light-text-secondary truncate">{newBranchData.formattedAddress}</p>
+                                                        <p className="text-xs text-light-text-secondary truncate">{newBranchData.formattedAddress}</p>
                                                     </div>
-                                                    <span className="text-[10px] font-mono text-primary-500 ml-2 shrink-0">
+                                                    <span className="text-xs font-mono text-primary-500 ml-2 shrink-0">
                                                         📍 {newBranchData.lat.toFixed(4)}°, {newBranchData.lon.toFixed(4)}°
                                                     </span>
                                                 </div>
@@ -976,7 +976,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                     <p className="text-xs font-bold text-light-text dark:text-dark-text">
                                                         {isCustomUpload ? 'Manual Image Upload' : (logo ? `Domain: ${logo}` : 'Automatic Telemetry Lookup')}
                                                     </p>
-                                                    <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                         {isCustomUpload ? 'Overrides Brandfetch lookups globally' : 'Cached via Brandfetch CDN endpoint'}
                                                     </p>
                                                 </div>
@@ -986,7 +986,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 <button
                                                     type="button"
                                                     onClick={() => setLogo('')}
-                                                    className="text-[10px] font-black text-red-500 hover:text-red-600 transition-colors"
+                                                    className="text-xs font-semibold text-red-500 hover:text-red-600 transition-colors"
                                                 >
                                                     Remove
                                                 </button>
@@ -1016,7 +1016,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 </button>
                                             )}
                                         </div>
-                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                                             Enter the official brand domain to automatically pull matching high-resolution logos and icons from Brandfetch.
                                         </p>
                                     </div>
@@ -1044,7 +1044,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             />
                                             <Icon name="upload_file" className="text-2xl text-light-text-secondary dark:text-dark-text-secondary mb-1" />
                                             <p className="text-xs font-bold text-light-text dark:text-dark-text">Click or drag image here</p>
-                                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Supports PNG, SVG, JPG, WEBP</p>
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Supports PNG, SVG, JPG, WEBP</p>
                                         </div>
                                     </div>
 
@@ -1073,12 +1073,12 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                     <Icon name="coins_stacked" className="text-sm text-primary-500" />
                                                     <span>6-Month Spending Trajectory</span>
                                                 </h4>
-                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                                                     Historical monthly outflow aggregates for {merchantName}
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">
+                                                <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">
                                                     Period Volume: <span className="text-light-text dark:text-dark-text font-mono font-bold">{formatCurrency(totalAmount, 'EUR')}</span>
                                                 </span>
                                             </div>
@@ -1114,7 +1114,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             <div className="h-40 w-full flex flex-col items-center justify-center p-6 text-center space-y-1.5 border border-dashed border-black/5 dark:border-white/5 rounded-2xl bg-black/[0.01] dark:bg-white/[0.01]">
                                                 <Icon name="calendar" className="text-2xl text-gray-400" />
                                                 <p className="text-xs font-bold text-light-text dark:text-dark-text">No Recent Spending in Last 6 Months</p>
-                                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                     Transactions logged for this merchant will appear in this monthly spending trajectory.
                                                 </p>
                                             </div>
@@ -1127,7 +1127,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">
                                                 Recent Observed Transactions ({recentMerchantTxs.length})
                                             </h4>
-                                            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                            <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">
                                                 Latest History
                                             </span>
                                         </div>
@@ -1145,12 +1145,12 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                     {tx.description}
                                                                 </p>
                                                                 {tx.category && (
-                                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary">
+                                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary">
                                                                         {tx.category}
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
+                                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
                                                                 {parseLocalDate(tx.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                                                                 {tx.address && ` • 📍 ${tx.address}`}
                                                             </p>

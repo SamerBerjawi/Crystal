@@ -101,31 +101,31 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${typeConfig.color}`}>
                 <Icon name={typeConfig.icon} className="text-lg" />
               </div>
-              <span className="text-[11px] font-bold text-white/80 uppercase tracking-wider">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">
                 {badgeText || account.type}
               </span>
             </div>
 
-            <span className="bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-white border border-white/10">
+            <span className="bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-full text-xs font-bold text-white border border-white/10">
               {account.currency}
             </span>
           </div>
 
           <div>
-            <h1 className="text-xl font-extrabold text-white tracking-tight leading-tight">
+            <h1 className="text-xl font-bold text-white tracking-tight leading-tight">
               {account.name}
             </h1>
-            <p className="text-[11px] font-semibold text-white/60 mt-0.5">
+            <p className="text-xs font-medium text-white/60 mt-0.5">
               {subText || `${account.type}${account.subType ? ` • ${account.subType}` : ''}`}
             </p>
           </div>
 
           <div className="pt-2 border-t border-white/10 flex items-end justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/60">
                 Current Balance
               </p>
-              <p className="text-2xl font-black text-white tracking-tight privacy-blur mt-0.5">
+              <p className="text-2xl font-bold text-white tracking-tight privacy-blur mt-0.5">
                 {formattedBalance}
               </p>
             </div>

@@ -35,7 +35,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
         }
     };
 
-    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
+    const labelStyle = "block text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
 
     return (
         <Modal onClose={onClose} title={isEditing ? 'Edit Task' : 'New Task'}>
@@ -54,7 +54,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                                 key={p}
                                 type="button"
                                 onClick={() => setPriority(p)}
-                                className={`flex-1 py-2.5 text-[10px] font-black  tracking-[0.2em] rounded-xl transition-all ${
+                                className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${
                                     priority === p 
                                     ? `bg-white dark:bg-dark-card shadow-md ring-1 ring-black/5 ${p === 'High' ? 'text-rose-600' : p === 'Medium' ? 'text-amber-600' : 'text-blue-600'}`
                                     : 'text-gray-400 opacity-60'
@@ -68,7 +68,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                     <div className="w-full h-px bg-black/5 dark:bg-white/5" />
 
                     <div className="w-full space-y-2">
-                        <label htmlFor="title" className="text-[10px] font-black  tracking-[0.3em] text-light-text-secondary dark:text-dark-text-secondary opacity-70 px-4">Objective Brief</label>
+                        <label htmlFor="title" className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary block text-center">Objective Brief</label>
                         <input 
                             id="title" 
                             type="text" 
@@ -84,7 +84,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
 
                 {/* 2. Execution Logistics */}
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
-                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <Icon name="settings_suggest" className="text-primary-500 text-lg" />
                         Operational Configuration
                     </h4>
@@ -98,7 +98,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                                         key={s}
                                         type="button"
                                         onClick={() => setStatus(s)}
-                                        className={`flex-1 py-2 text-[9px] font-black  tracking-widest rounded-lg transition-all ${
+                                        className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${
                                             status === s 
                                             ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' 
                                             : 'text-gray-400 opacity-60'
@@ -122,7 +122,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                                         setDueDate(e.target.value);
                                         if (!e.target.value) setReminderDate('');
                                     }} 
-                                    className={`${INPUT_BASE_STYLE} font-black h-12 pl-12  tracking-widest`} 
+                                    className={`${INPUT_BASE_STYLE} font-black h-12 pl-12 tracking-widest`} 
                                 />
                             </div>
                         </div>
@@ -138,7 +138,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                                     type="date" 
                                     value={reminderDate} 
                                     onChange={e => setReminderDate(e.target.value)} 
-                                    className={`${INPUT_BASE_STYLE} font-black h-12 pl-12  tracking-widest disabled:opacity-20 transition-all`} 
+                                    className={`${INPUT_BASE_STYLE} font-black h-12 pl-12 tracking-widest disabled:opacity-20 transition-all`} 
                                     disabled={!dueDate}
                                     max={dueDate}
                                 />
@@ -147,7 +147,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                         <div className="space-y-2">
                             <label className={labelStyle}>Contextual Account</label>
                             <div className="bg-white/50 dark:bg-black/20 p-3 rounded-2xl border border-black/5 dark:border-white/5 flex items-center justify-between">
-                                <span className="text-[10px] font-black  tracking-widest text-light-text-secondary/60">Auto-Linked Assets</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60">Auto-Linked Assets</span>
                                 <Icon name="link" className="text-emerald-500 text-lg" />
                             </div>
                         </div>
@@ -169,12 +169,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ onClose, onSave, onDelete, task }
                 <div className="flex justify-between items-center pt-6 border-t border-black/5 dark:border-white/5">
                     <div className="w-32">
                         {isEditing && (
-                            <button type="button" onClick={handleDeleteClick} className="h-12 px-6 text-[10px] font-black  tracking-widest text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all active:scale-95">Purge Objective</button>
+                            <button type="button" onClick={handleDeleteClick} className="h-12 px-6 text-xs font-semibold uppercase tracking-wider text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all active:scale-95">Purge Objective</button>
                         )}
                     </div>
                     <div className="flex gap-3">
-                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
-                        <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow  tracking-widest text-[10px] font-black`}>
+                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 text-xs font-semibold uppercase tracking-wider`}>Retract</button>
+                        <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow text-xs font-semibold uppercase tracking-wider`}>
                             {isEditing ? 'Commit Changes' : 'Initialize Objective'}
                             <Icon name="rocket_launch" className="text-lg transition-transform group-hover:translate-x-1" />
                         </button>

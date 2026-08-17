@@ -142,7 +142,7 @@ const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
                     )}
                 </svg>
             </div>
-            <span className="text-[10px] font-mono font-bold text-light-text dark:text-dark-text min-w-[55px] text-right">
+            <span className="text-xs font-mono font-medium text-light-text dark:text-dark-text min-w-[55px] text-right">
                 {formatCurrency(data[data.length - 1] || 0, 'EUR')}
             </span>
         </div>
@@ -572,9 +572,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                 <div>
                     <div className="flex items-center gap-2">
                         <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
-                        <span className="px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 text-[9px] font-extrabold border border-primary-500/20">AI Active</span>
+                        <span className="px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-semibold border border-primary-500/20">AI Active</span>
                     </div>
-                    <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-80 leading-relaxed">
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-80 leading-relaxed">
                         Deploy regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
                     </p>
                 </div>
@@ -601,7 +601,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         {/* Real-time Enrichment Progress Indicator */}
         {isRefreshing && (
             <div className="bg-primary-500/10 border border-primary-500/20 rounded-3xl p-5 space-y-3 animate-pulse">
-                <div className="flex justify-between items-center text-[10px] font-black  tracking-widest text-primary-600 dark:text-primary-400">
+                <div className="flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
                     <span>Branding Telemetry Lookup Pipeline In Progress</span>
                     <span>{refreshProgress.current} / {refreshProgress.total}</span>
                 </div>
@@ -611,8 +611,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                         style={{ width: `${(refreshProgress.current / refreshProgress.total) * 100}%` }}
                     />
                 </div>
-                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
-                    Resolving domain parameters and caching Brandfetch endpoints for <strong className="font-extrabold">{refreshProgress.currentName}</strong>...
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    Resolving domain parameters and caching Brandfetch endpoints for <strong className="font-semibold">{refreshProgress.currentName}</strong>...
                 </p>
             </div>
         )}
@@ -649,7 +649,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     placeholder="Query entities..." 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold  tracking-widest placeholder:text-light-text-secondary/30 dark:placeholder:text-dark-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-xs font-semibold placeholder:text-light-text-secondary/40 dark:placeholder:text-dark-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
                 />
            </div>
            
@@ -665,7 +665,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                       <div className="w-10 h-6 bg-black/5 dark:bg-white/5 rounded-full peer-checked:bg-primary-500 transition-colors"></div>
                       <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-4 transition-transform shadow-sm"></div>
                    </div>
-                   <span className="text-[10px] font-black  tracking-widest text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
+                   <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
                </label>
 
                <div className="h-8 w-px bg-black/5 dark:bg-white/5"></div>
@@ -689,7 +689,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                    <select 
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value as any)} 
-                        className="appearance-none bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-xl pl-4 pr-10 py-3 text-[10px] font-black  tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm cursor-pointer"
+                        className="appearance-none bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-xl pl-4 pr-10 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm cursor-pointer"
                    >
                        <option value="count">Most Frequent</option>
                        <option value="value">Highest Volume</option>
@@ -708,9 +708,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-6">
                 <Icon name="search_off" className="text-3xl opacity-20" />
               </div>
-              <p className="text-[11px] font-black  tracking-[0.4em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">Zero Results Found</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Zero Results Found</p>
               {stats.missingCount > 0 && (
-                  <p className="text-[10px] font-bold text-orange-500  tracking-widest mt-4">
+                  <p className="text-xs font-semibold text-orange-500 mt-4">
                     Audit required: {stats.missingCount} ambiguous records detected.
                   </p>
               )}
@@ -738,7 +738,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                             {hasLogo && previewUrl ? (
                               <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
                             ) : (
-                              <span className="text-xl font-black text-light-text-secondary/40">{initialLetter}</span>
+                              <span className="text-xl font-bold text-light-text-secondary/40">{initialLetter}</span>
                             )}
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -761,12 +761,10 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                 >
                                     <Icon name={isHidden ? 'visibility' : 'visibility_off'} className="text-xs" />
                                 </button>
-                                <span className={`text-[9px] font-black  tracking-widest px-2 py-1 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>
-                                    {entity.type === 'Institution' ? 'Core' : 'Merch'}
-                                </span>
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>{entity.type === 'Institution' ? 'Core' : 'Merch'}</span>
                             </div>
                             {entity.rule?.category && (
-                                <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-tighter truncate max-w-[100px]">
+                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate max-w-[100px]">
                                     {entity.rule.category}
                                 </span>
                             )}
@@ -775,14 +773,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
                     <div className="space-y-4">
                         <div>
-                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
+                            <h3 className="font-semibold text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
                             <div className="flex items-center gap-2 mt-0.5">
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest">
+                                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                                     {entity.count} Observed Events
                                 </p>
                                 {entity.rule?.isOnline ? (
                                     <span 
-                                        className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
                                         title="Online / Digital Business (No physical storefront)"
                                     >
                                         <span>🌐</span>
@@ -790,18 +788,18 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                     </span>
                                 ) : entity.rule?.locations && entity.rule.locations.length > 1 ? (
                                     <span 
-                                        className="inline-flex items-center gap-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
                                         title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
                                     >
-                                        <Icon name="marker_pin" className="text-[9px] shrink-0" />
+                                        <Icon name="marker_pin" className="text-xs shrink-0" />
                                         <span className="truncate">{entity.rule.locations.length} Branches</span>
                                     </span>
                                 ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
                                     <span 
-                                        className="inline-flex items-center gap-1 text-[9px] font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-500/10 px-1.5 py-0.5 rounded truncate max-w-[130px]" 
                                         title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
                                     >
-                                        <Icon name="marker_pin" className="text-[9px] shrink-0" />
+                                        <Icon name="marker_pin" className="text-xs shrink-0" />
                                         <span className="truncate">{entity.rule?.city || entity.rule?.locations?.[0]?.city || entity.rule?.placeName || entity.rule?.address}</span>
                                     </span>
                                 )}
@@ -809,10 +807,10 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                         </div>
                         
                         <div className="pt-4 border-t border-black/5 dark:border-white/5">
-                            <p className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary opacity-40  tracking-widest mb-1">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">
                                 Cumulative
                             </p>
-                            <p className={`font-mono font-black text-xl tracking-tighter ${accentColor}`}>
+                            <p className={`font-mono font-bold text-xl tracking-tight ${accentColor}`}>
                                 {formatCurrency(entity.totalValue, 'EUR')}
                             </p>
                         </div>
@@ -826,12 +824,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               <table className="w-full text-left text-sm border-collapse">
                   <thead>
                       <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">Identifier</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest">Classification</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Frequency</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Last Sync</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Activity Trend (6m)</th>
-                          <th className="px-8 py-5 text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary  tracking-widest text-right">Total Exposure</th>
+                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Identifier</th>
+                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Classification</th>
+                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Frequency</th>
+                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Last Sync</th>
+                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Activity Trend (6m)</th>
+                          <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Total Exposure</th>
                           <th className="px-8 py-5 w-20"></th>
                       </tr>
                   </thead>
@@ -854,52 +852,52 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                 {hasLogo && previewUrl ? (
                                                     <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
                                                 ) : (
-                                                    <span className="font-black text-xs text-light-text-secondary/40">{initialLetter}</span>
+                                                    <span className="font-bold text-xs text-light-text-secondary/40">{initialLetter}</span>
                                                 )}
                                            </div>
                                            <div className="min-w-0">
                                               <div className="flex items-center gap-2">
-                                                 <span className="font-black text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors tracking-tight truncate">{entity.name}</span>
+                                                 <span className="font-semibold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors tracking-tight truncate">{entity.name}</span>
                                                  {isHidden && <Icon name="visibility_off" className="text-sm text-gray-400 shrink-0" title="Hidden from merchant lists" />}
                                               </div>
                                               {entity.rule?.isOnline ? (
-                                                  <p className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" title="Online / Digital Business">
+                                                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" title="Online / Digital Business">
                                                      <span>🌐</span>
-                                                     <span className="font-bold">Online Business</span>
+                                                     <span className="font-semibold">Online Business</span>
                                                   </p>
                                                ) : entity.rule?.locations && entity.rule.locations.length > 1 ? (
                                                  <p 
-                                                    className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
+                                                    className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
                                                     title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
                                                  >
-                                                    <Icon name="marker_pin" className="text-[9px] text-primary-500 shrink-0" />
+                                                    <Icon name="marker_pin" className="text-xs text-primary-500 shrink-0" />
                                                     <span className="truncate">{entity.rule.locations.length} Branches ({entity.rule.locations.map(l => l.city || l.label).filter(Boolean).slice(0, 2).join(', ')})</span>
                                                  </p>
-                                              ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
+                                               ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
                                                  <p 
-                                                    className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
+                                                    className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
                                                     title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
                                                  >
-                                                    <Icon name="marker_pin" className="text-[9px] text-primary-500 shrink-0" />
+                                                    <Icon name="marker_pin" className="text-xs text-primary-500 shrink-0" />
                                                     <span className="truncate">{entity.rule?.address || entity.rule?.locations?.[0]?.address}</span>
                                                  </p>
-                                              )}
+                                               )}
                                            </div>
                                       </div>
                                   </td>
                                   <td className="px-8 py-5">
                                       {entity.rule?.category ? (
-                                          <span className="inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black  tracking-widest bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
+                                          <span className="inline-flex px-3 py-1 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
                                               {entity.rule.category}
                                           </span>
                                       ) : (
-                                          <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30  tracking-[0.2em] italic">Unclassified</span>
+                                          <span className="text-xs font-normal text-light-text-secondary/50 dark:text-dark-text-secondary/50 italic">Unclassified</span>
                                       )}
                                   </td>
-                                  <td className="px-8 py-5 text-right font-black text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60  tracking-widest">
+                                  <td className="px-8 py-5 text-right font-medium text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                       {entity.count} Events
                                   </td>
-                                  <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-[10px] font-black  tracking-widest opacity-40">
+                                  <td className="px-8 py-5 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs font-medium">
                                       {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' }) : 'INF'}
                                   </td>
                                   <td className="px-8 py-5">
@@ -907,7 +905,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                           <Sparkline data={spendTrendsMap[entity.id] || [0, 0, 0, 0, 0, 0]} />
                                       </div>
                                   </td>
-                                  <td className={`px-8 py-5 text-right font-mono font-black text-base tracking-tighter ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
+                                  <td className={`px-8 py-5 text-right font-mono font-bold text-base tracking-tight ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
                                       {formatCurrency(entity.totalValue, 'EUR')}
                                   </td>
                                   <td className="px-8 py-5 text-right">

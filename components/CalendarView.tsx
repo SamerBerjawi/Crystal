@@ -224,7 +224,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     return (
                       <div
                         key={item.id}
-                        className={`group/item flex items-center justify-between gap-1.5 px-2 py-1 rounded-md border text-[11px] font-medium transition-all duration-150 hover:shadow-sm cursor-pointer ${badgeClass} ${
+                        className={`group/item flex items-center justify-between gap-1.5 px-2 py-1 rounded-md border text-xs font-medium transition-all duration-150 hover:shadow-sm cursor-pointer ${badgeClass} ${
                           isSkipped ? 'opacity-40 line-through' : ''
                         }`}
                         onClick={() => onEditItem(item)}
@@ -246,7 +246,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded text-neutral-500 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all flex-shrink-0"
                             title="Post Transaction"
                           >
-                            <Icon name="check" className="text-[13px] leading-none" />
+                            <Icon name="check" className="text-xs leading-none" />
                           </button>
                         )}
                       </div>
@@ -256,7 +256,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {dayGoals.map((goal) => (
                     <div
                       key={goal.id}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[11px] font-medium truncate cursor-default shadow-2xs"
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-medium truncate cursor-default shadow-2xs"
                       title={`Goal: ${goal.name} - Contribution: ${formatCurrency(
                         goal.monthlyContribution || 0,
                         goal.currency || 'EUR'

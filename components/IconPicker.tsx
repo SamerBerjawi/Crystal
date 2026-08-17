@@ -118,7 +118,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
                     name={icon}
                     className="text-3xl text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 group-hover:scale-110 transition-transform duration-200"
                   />
-                  <span className="absolute bottom-1 w-full text-[10px] text-center text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate px-1 capitalize">
+                  <span className="absolute bottom-1 w-full text-xs text-center text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate px-1 capitalize">
                       {icon.replace(/_/g, ' ')}
                   </span>
                 </button>

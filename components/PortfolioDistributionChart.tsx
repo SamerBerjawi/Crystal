@@ -39,7 +39,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
           <PieCenter defaultLabel="Total Value">
             {({ value, label, isHovered }) => (
               <div className="flex flex-col items-center justify-center text-center">
-                <span className="text-light-text-secondary dark:text-gray-400 text-[10px] font-extrabold uppercase tracking-widest leading-none mb-1">
+                <span className="text-light-text-secondary dark:text-gray-400 text-xs font-semibold uppercase tracking-wider leading-none mb-1">
                   {label}
                 </span>
                 <span className="text-xl font-black text-light-text dark:text-white tracking-tight">
@@ -59,7 +59,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
               <div key={item.label} className="flex items-center gap-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                 <span className="font-bold text-light-text dark:text-white truncate max-w-[110px]">{item.label}</span>
-                <span className="text-[11px] font-mono text-light-text-secondary dark:text-gray-400">({pct.toFixed(1)}%)</span>
+                <span className="text-xs font-mono text-light-text-secondary dark:text-gray-400">({pct.toFixed(1)}%)</span>
               </div>
             );
           })}

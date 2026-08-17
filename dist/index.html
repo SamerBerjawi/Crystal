@@ -14,10 +14,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Crystal" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Google Fonts: Plus Jakarta Sans & Inter (Weights 400, 500, 600, 700, 800) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <style>
@@ -190,20 +191,20 @@
       border-bottom-color: rgba(255, 255, 255, 0.4);
     }
 
-    /* Clean Glassmorphism Styling */
+    /* Clean Apple HIG Glassmorphism Styling */
     .ios-regular, .glass-card {
       background-color: var(--light-card);
       border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 2rem;
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      backdrop-filter: blur(16px) saturate(180%);
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06);
+      border-radius: 1.5rem;
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.05);
     }
 
     .dark .ios-regular, .dark .glass-card {
       background-color: var(--dark-card);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
     }
   </style>
   <script>
@@ -217,6 +218,24 @@
         (!storedTheme && !prefersDark);
 
       document.documentElement.classList.toggle('dark', !shouldUseLight);
+
+      // Apply initial font preference from localStorage to prevent font flashing
+      let initialFont = 'plus-jakarta-sans';
+      try {
+        const storedFont = localStorage.getItem('crystal_font');
+        if (storedFont) {
+          initialFont = storedFont;
+        } else {
+          const financialDataRaw = localStorage.getItem('financialData');
+          if (financialDataRaw) {
+            const parsed = JSON.parse(financialDataRaw);
+            if (parsed?.preferences?.appFont) {
+              initialFont = parsed.preferences.appFont;
+            }
+          }
+        }
+      } catch (e) {}
+      document.documentElement.setAttribute('data-font', initialFont);
 
       // Sync RGB primary variable
       const syncPrimaryRgb = () => {
@@ -243,10 +262,10 @@
       console.warn('Unable to read theme preference from localStorage.', error);
     }
   </script>
-  <script type="module" crossorigin src="/assets/index-h5vvExZd.js"></script>
+  <script type="module" crossorigin src="/assets/index-CCKi08CW.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/reactQuery-kqxeVfaM.js">
   <link rel="modulepreload" crossorigin href="/assets/recharts-o-TQtJFt.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-DkEjHLce.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-BUxEe2O4.css">
 <script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
 
 <body>

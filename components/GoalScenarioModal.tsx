@@ -132,21 +132,21 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         <button
                             type="button"
                             onClick={() => { setIsBucket(false); setType('one-time'); }}
-                            className={`flex-1 py-3 text-[10px] font-black  tracking-widest rounded-xl transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Target Date
                         </button>
                         <button
                             type="button"
                             onClick={() => { setIsBucket(false); setType('recurring'); }}
-                            className={`flex-1 py-3 text-[10px] font-black  tracking-widest rounded-xl transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Recurring
                         </button>
                          <button
                             type="button"
                             onClick={() => setIsBucket(true)}
-                            className={`flex-1 py-3 text-[10px] font-black  tracking-widest rounded-xl transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-md text-primary-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
                         >
                             Goal Bucket
                         </button>
@@ -158,14 +158,14 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     <div className="bg-white dark:bg-black/20 p-8 rounded-[2.5rem] border border-black/5 dark:border-white/5 flex flex-col items-center gap-2 shadow-sm">
                         <label className={labelStyle}>{amountLabels.target}</label>
                         <div className="relative group w-full max-w-[320px] flex justify-center py-4">
-                             <div className="text-7xl font-black tracking-tighter tabular-nums flex items-baseline gap-2">
+                             <div className="text-6xl font-bold tracking-tighter tabular-nums flex items-baseline gap-2">
                                  <input 
                                     type="number" 
                                     step="0.01" 
                                     value={amount} 
                                     onChange={e => setAmount(e.target.value)} 
                                     className="bg-transparent border-none text-center focus:ring-0 w-full p-0 placeholder-gray-200 dark:placeholder-gray-800" 
-                                    placeholder="0.00"
+                                    placeholder="0.00" 
                                     required 
                                  />
                                  <span className="text-3xl text-gray-300 dark:text-gray-700">EUR</span>
@@ -175,7 +175,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                 )}
 
                 <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                    <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                         <Icon name="flag" className="text-primary-500 text-lg" />
                         Objective Parameters
                     </h4>
@@ -200,7 +200,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     {/* Left Column: Progress & Classification */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                          <div className="space-y-6">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <Icon name="donut_large" className="text-primary-500 text-lg" />
                                 Progress Metrics
                             </h4>
@@ -215,7 +215,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                              step="0.01" 
                                              value={currentAmount} 
                                              onChange={e => setCurrentAmount(e.target.value)} 
-                                             className={`${INPUT_BASE_STYLE} pl-10 h-14 font-black tabular-nums`} 
+                                             className={`${INPUT_BASE_STYLE} pl-10 h-14 font-bold tabular-nums`} 
                                              placeholder="0.00" 
                                          />
                                      </div>
@@ -223,7 +223,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                  <div className="space-y-2">
                                      <label className={labelStyle}>Logical Classification</label>
                                      <div className={SELECT_WRAPPER_STYLE}>
-                                         <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={`${SELECT_STYLE} h-14 font-black  tracking-tight`}>
+                                         <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={`${SELECT_STYLE} h-14 font-bold tracking-tight`}>
                                              <option value="savings">Saving Strategy</option>
                                              <option value="expense">Spending Target</option>
                                              <option value="income">Income Objective</option>
@@ -235,7 +235,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         </div>
 
                         <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <Icon name="event" className="text-primary-500 text-lg" />
                                 Temporal Configuration
                             </h4>
@@ -249,7 +249,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                     <div className="space-y-2">
                                         <label className={labelStyle}>Frequency</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-black  tracking-widest`}>
+                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} h-14 font-bold tracking-wider`}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
@@ -267,7 +267,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                     {/* Right Column: Execution & Integration */}
                     <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
                         <div className="space-y-6">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <Icon name="savings" className="text-primary-500 text-lg" />
                                 Contribution Strategy
                             </h4>
@@ -283,7 +283,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                         step="0.01" 
                                         value={monthlyContribution} 
                                         onChange={e => setMonthlyContribution(e.target.value)} 
-                                        className={`${INPUT_BASE_STYLE} pl-10 h-14 font-black tabular-nums placeholder:text-[10px]`} 
+                                        className={`${INPUT_BASE_STYLE} pl-10 h-14 font-bold tabular-nums placeholder:text-xs`} 
                                         placeholder={type === 'one-time' ? "AUTOCALCULATE" : "e.g. 250.00"} 
                                     />
                                 </div>
@@ -291,7 +291,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         </div>
 
                         <div className="space-y-6 pt-6 border-t border-black/5 dark:border-white/5">
-                            <h4 className="text-[10px] font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <Icon name="account_tree" className="text-primary-500 text-lg" />
                                 Network Integration
                             </h4>
@@ -299,10 +299,10 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                 <div className="space-y-2">
                                     <label className={labelStyle}>Funding Source / Linkage</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={`${SELECT_STYLE} h-14 font-black`}>
+                                        <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={`${SELECT_STYLE} h-14 font-bold`}>
                                             <option value="">Decoupled Status</option>
                                             {Object.entries(groupedAccounts).map(([type, group]) => (
-                                                <optgroup key={type} label={type} className="font-black  tracking-widest bg-gray-50 dark:bg-dark-bg p-2 h-10">
+                                                <optgroup key={type} label={type} className="font-bold tracking-wider bg-gray-50 dark:bg-dark-bg p-2 h-10">
                                                     {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                                 </optgroup>
                                             ))}
@@ -315,7 +315,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                      <div className="bg-primary-500/5 dark:bg-primary-500/10 p-4 rounded-2xl border border-primary-500/20">
                                         <div className="flex items-center gap-2">
                                             <Icon name="subdirectory_arrow_right" className="text-primary-500 text-base" />
-                                            <span className="text-[10px] font-black  tracking-widest text-primary-600">Sub-Goal Active</span>
+                                            <span className="text-xs font-semibold tracking-wider text-primary-600">Sub-Goal Active</span>
                                         </div>
                                     </div>
                                 )}
@@ -326,8 +326,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                 )}
                 
                 <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8  tracking-widest text-[10px] font-black`}>Retract</button>
-                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow  tracking-widest text-[10px] font-black`}>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 tracking-wider text-xs font-semibold uppercase`}>Retract</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-2 group animate-glow tracking-wider text-xs font-semibold uppercase`}>
                         {isEditing ? 'Commit Objective' : 'Deploy Goal'}
                         <Icon name="track_changes" className="text-lg transition-transform group-hover:translate-x-1" />
                     </button>

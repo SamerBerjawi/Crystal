@@ -237,15 +237,15 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
         {/* ================================================================= */}
         <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
               Monthly Guardrails
             </p>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold text-light-text dark:text-white tracking-tight leading-tight">
+              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
                 Budgeting
               </h1>
               {overCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                   {overCount} Over Limit
                 </span>
@@ -313,7 +313,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                 <Icon name="pie_chart" className="text-sm text-purple-400" />
                 <span>Available Liquidity</span>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs font-semibold">
                 {preferredCurrency}
               </span>
             </div>
@@ -324,7 +324,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
               </h2>
               <div className="flex items-center gap-2 mt-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                     totalRemaining >= 0
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                       : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
@@ -337,7 +337,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                   {totalRemaining >= 0 ? 'Surplus Projection' : 'Deficit Expected'}
                 </span>
                 {daysRemaining > 0 && totalRemaining > 0 && (
-                  <span className="text-[11px] text-purple-200/60 font-medium">
+                  <span className="text-xs text-purple-200/60 font-medium">
                     ~{formatCurrency(dailySafeSpend, curr)}/day safe
                   </span>
                 )}
@@ -359,7 +359,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                 />
               </div>
 
-              <div className="flex justify-between text-[11px] font-bold text-white/70">
+              <div className="flex justify-between text-xs font-bold text-white/70">
                 <span>
                   Spent: <span className="text-white privacy-blur">{formatCurrency(totalSpent, curr)}</span> (
                   {overallProgress.toFixed(0)}%)
@@ -373,18 +373,18 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
             {/* Inset Metrics Grid */}
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10">
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Envelopes
                 </span>
-                <span className="text-xs font-black text-white">{budgets.length} Active</span>
+                <span className="text-xs font-bold text-white">{budgets.length} Active</span>
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Attention
                 </span>
                 <span
-                  className={`text-xs font-black ${
+                  className={`text-xs font-bold ${
                     overCount + warningCount > 0 ? 'text-amber-400' : 'text-emerald-400'
                   }`}
                 >
@@ -393,10 +393,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-white/70 uppercase block tracking-wider">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-white/70 block">
                   Days Left
                 </span>
-                <span className="text-xs font-black text-purple-300">
+                <span className="text-xs font-bold text-purple-300">
                   {daysRemaining} Days
                 </span>
               </div>
@@ -529,10 +529,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-extrabold text-light-text dark:text-white truncate">
+                            <p className="text-xs font-bold text-light-text dark:text-white truncate">
                               {category.name}
                             </p>
-                            <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
                               Budget: {formatCurrency(budgeted, curr)} • {progress.toFixed(0)}% used
                             </p>
                           </div>
@@ -541,7 +541,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         {/* Status Chip */}
                         <div className="text-right shrink-0">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
                               isOver
                                 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
                                 : isWarning
@@ -563,11 +563,11 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                           />
                         </div>
 
-                        <div className="flex justify-between text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">
+                        <div className="flex justify-between text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">
                           <span>
-                            Spent: <span className="privacy-blur font-extrabold text-light-text dark:text-white">{formatCurrency(spent, curr)}</span>
+                            Spent: <span className="privacy-blur font-bold text-light-text dark:text-white">{formatCurrency(spent, curr)}</span>
                           </span>
-                          <span className={remaining < 0 ? 'text-rose-500 font-extrabold' : 'text-emerald-500 font-extrabold'}>
+                          <span className={remaining < 0 ? 'text-rose-500 font-bold' : 'text-emerald-500 font-bold'}>
                             {remaining < 0 ? 'Over: ' : 'Left: '}
                             <span className="privacy-blur">{formatCurrency(Math.abs(remaining), curr)}</span>
                           </span>
@@ -592,10 +592,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
             {unbudgetedCategories.length > 0 && (
               <div className="mt-6 space-y-3">
                 <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xs font-extrabold text-light-text dark:text-white">
+                  <h3 className="text-xs font-bold text-light-text dark:text-white">
                     Unbudgeted Spending This Month
                   </h3>
-                  <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                  <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                     {unbudgetedCategories.length} categories
                   </span>
                 </div>
@@ -615,7 +615,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                           <p className="text-xs font-bold text-light-text dark:text-white truncate">
                             {item.name}
                           </p>
-                          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                             Spent: {formatCurrency(item.spent, curr)}
                           </p>
                         </div>
@@ -627,7 +627,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                           e.stopPropagation();
                           onAddBudget(item.name);
                         }}
-                        className="px-2.5 py-1 rounded-xl bg-purple-600 text-white text-[10px] font-extrabold shadow-xs"
+                        className="px-2.5 py-1 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-xs"
                       >
                         + Budget
                       </button>
@@ -651,7 +651,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white">
                     Cumulative Spending Velocity
                   </h3>
-                  <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                     Actual spend vs linear target pace
                   </p>
                 </div>
@@ -668,14 +668,15 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         <stop offset="0%" stopColor="#a855f7" stopOpacity={0.45} />
                         <stop offset="100%" stopColor="#a855f7" stopOpacity={0.0} />
                       </linearGradient>
+                      <linearGradient id="budgetIdealGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.0} />
+                      </linearGradient>
                     </defs>
-                    <XAxis dataKey="day" tick={{ fontSize: 9, fill: '#888' }} interval={4} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 9, fill: '#888' }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      formatter={(val: number, name: string) => [
-                        formatCurrency(val, curr),
-                        name === 'targetPace' ? 'Target Pace' : 'Actual Spent',
-                      ]}
+                      formatter={(val: number) => [formatCurrency(val, curr)]}
                       contentStyle={{
                         borderRadius: '1rem',
                         background: 'rgba(20,20,25,0.95)',
@@ -684,18 +685,19 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         fontSize: '11px',
                       }}
                     />
-                    <Line
+                    <Area
                       type="monotone"
-                      dataKey="targetPace"
-                      stroke="#888"
-                      strokeDasharray="4 4"
+                      dataKey="ideal"
+                      stroke="#94a3b8"
                       strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      fill="url(#budgetIdealGradient)"
                       dot={false}
-                      name="Target Pace"
+                      name="Ideal Linear"
                     />
                     <Area
                       type="monotone"
-                      dataKey="actualSpend"
+                      dataKey="actual"
                       stroke="#a855f7"
                       strokeWidth={2.5}
                       fill="url(#budgetActualGradient)"
@@ -706,7 +708,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex items-center justify-center gap-6 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary pt-1">
+              <div className="flex items-center justify-center gap-6 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-0.5 bg-purple-500 rounded-full" />
                   <span>Actual Cumulative</span>
@@ -725,7 +727,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white">
                     Category Comparison (Budget vs Spent)
                   </h3>
-                  <span className="text-[10px] font-bold text-light-text-secondary">Top Envelopes</span>
+                  <span className="text-xs font-semibold text-light-text-secondary">Top Envelopes</span>
                 </div>
 
                 <div className="h-48 w-full pt-1">
@@ -775,10 +777,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                   <PieCenter defaultLabel="Monthly Cap">
                     {({ label }) => (
                       <div className="text-center">
-                        <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary block opacity-70">
                           {label}
                         </span>
-                        <span className="text-sm font-black text-light-text dark:text-white privacy-blur">
+                        <span className="text-sm font-bold text-light-text dark:text-white privacy-blur">
                           {formatCurrency(totalBudgeted, curr)}
                         </span>
                       </div>
@@ -807,7 +809,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         <span className="text-light-text dark:text-white privacy-blur">
                           {formatCurrency(item.value, curr)}
                         </span>
-                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-[10px] w-10 text-right">
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-xs w-10 text-right font-medium">
                           {pct.toFixed(1)}%
                         </span>
                       </div>
@@ -833,7 +835,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                   <h3 className="text-sm font-bold text-light-text dark:text-white">
                     Auto-Generate Budgets
                   </h3>
-                  <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                     Calculate envelopes from past actual spending
                   </p>
                 </div>
@@ -852,10 +854,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                   className="p-4 rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between gap-3 active:bg-purple-500/5 transition-all cursor-pointer"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-extrabold text-light-text dark:text-white">
+                    <p className="text-xs font-bold text-light-text dark:text-white">
                       {opt.title}
                     </p>
-                    <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
                       {opt.desc}
                     </p>
                   </div>

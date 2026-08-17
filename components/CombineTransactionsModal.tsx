@@ -100,15 +100,15 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
             </p>
           </div>
           <div className="text-right shrink-0 ml-4">
-            <p className="text-2xl font-mono font-black">{formatCurrency(Math.abs(totalAmount), currency)}</p>
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${totalAmount >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+            <p className="text-2xl font-mono font-bold">{formatCurrency(Math.abs(totalAmount), currency)}</p>
+            <span className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${totalAmount >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
               {totalAmount >= 0 ? 'Net Income' : 'Net Expense'}
             </span>
           </div>
         </div>
 
         <div className="space-y-4">
-          <p className="text-xs font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase">
+          <p className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase">
             Combined Parent Details
           </p>
           

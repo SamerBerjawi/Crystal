@@ -135,7 +135,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
     toast.success('Protocol state updated.');
   };
 
-  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
+  const labelStyle = "block text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
 
   return (
     <Modal onClose={onClose} title="Advanced Regex Categorization Protocols" size="2xl">
@@ -200,7 +200,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
           </div>
 
           <div className="flex justify-end">
-            <button type="submit" className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 text-[10px]`}>
+            <button type="submit" className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 text-xs`}>
               Deploy Rule
             </button>
           </div>
@@ -216,7 +216,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
               <button
                 type="button"
                 onClick={onApplyHistoricalRules}
-                className="text-[10px] font-black text-primary-500 hover:text-primary-600  tracking-wider flex items-center gap-1"
+                className="text-xs font-semibold text-primary-500 hover:text-primary-600 tracking-wider flex items-center gap-1"
                 title="Reparse existing transaction histories against these classifications"
               >
                 <Icon name="history_toggle_off" className="text-sm" />
@@ -228,7 +228,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 bg-black/[0.01] dark:bg-white/[0.01] rounded-2xl border border-dashed border-black/5 dark:border-white/5">
               <Icon name="code" className="text-2xl opacity-25 mb-2" />
-              <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 Zero active regex categorization rules.
               </p>
             </div>
@@ -257,13 +257,13 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                             <span className="text-xs font-mono font-bold bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded text-primary-600 dark:text-primary-400">
                               {rule.pattern}
                             </span>
-                            <Icon name="arrow_forward" className="text-[10px] opacity-40" />
-                            <span className="text-[10px] font-black  tracking-widest text-emerald-600 dark:text-emerald-400">
+                            <Icon name="arrow_forward" className="text-xs opacity-40" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                               {rule.category}
                             </span>
                           </div>
                           {rule.description && (
-                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 italic">
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 italic">
                               {rule.description}
                             </p>
                           )}
@@ -276,7 +276,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                                 style={{ width: `${Math.min(100, matchPercent)}%` }} 
                               />
                             </div>
-                            <span className="text-[8.5px] font-mono leading-none text-light-text-secondary dark:text-dark-text-secondary opacity-80">
+                            <span className="text-xs font-mono leading-none text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                               {matchCount} matched ({Math.round(matchPercent)}%)
                             </span>
                           </div>

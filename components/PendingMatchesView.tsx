@@ -237,7 +237,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
         {/* Summary Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 relative z-10">
           <div className="bg-white/80 dark:bg-dark-bg/80 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
-            <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+            <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
               Total Pending
             </span>
             <p className="text-xl font-black text-light-text dark:text-dark-text">
@@ -246,7 +246,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           </div>
 
           <div className="bg-white/80 dark:bg-dark-bg/80 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               High Confidence (≥80%)
             </span>
             <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
@@ -255,7 +255,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           </div>
 
           <div className="bg-white/80 dark:bg-dark-bg/80 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
-            <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+            <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
               Amount Tolerance
             </span>
             <p className="text-lg font-black text-light-text dark:text-dark-text">
@@ -264,7 +264,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           </div>
 
           <div className="bg-white/80 dark:bg-dark-bg/80 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
-            <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+            <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
               Date Flexibility
             </span>
             <p className="text-lg font-black text-light-text dark:text-dark-text">
@@ -364,7 +364,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           {highConfidenceCount > 0 && selectedIds.size === 0 && (
             <button
               onClick={handleSelectHighConfidence}
-              className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+              className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
             >
               Select High Confidence ({highConfidenceCount})
             </button>
@@ -431,7 +431,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                         {/* Synced Bank Transaction */}
                         <div className="space-y-1 bg-light-bg/70 dark:bg-dark-bg/70 p-3 rounded-xl border border-black/5 dark:border-white/5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                            <span className="text-2xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
                               Synced Bank Transaction
                             </span>
                             <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary truncate">
@@ -459,7 +459,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                         {/* Planned Item */}
                         <div className="space-y-1 bg-light-bg/70 dark:bg-dark-bg/70 p-3 rounded-xl border border-black/5 dark:border-white/5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
+                            <span className="text-2xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
                               {raw.itemType === 'recurring' ? 'Planned Recurring' : 'Planned One-Time Bill'}
                             </span>
                             <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">
@@ -547,7 +547,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-xs text-rose-500 tabular-nums">{formatCurrency(raw.expenseTx.amount, raw.expenseTx.currency)}</p>
-                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{formatDate(raw.expenseTx.date)}</p>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formatDate(raw.expenseTx.date)}</p>
                           </div>
                         </div>
 
@@ -562,7 +562,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-xs text-emerald-500 tabular-nums">{formatCurrency(raw.incomeTx.amount, raw.incomeTx.currency)}</p>
-                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{formatDate(raw.incomeTx.date)}</p>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formatDate(raw.incomeTx.date)}</p>
                           </div>
                         </div>
                       </div>

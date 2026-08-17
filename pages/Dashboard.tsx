@@ -159,9 +159,9 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
       <Icon name={icon} className="text-2xl sm:text-3xl" />
     </div>
     <div className="min-w-0 relative z-10 flex-1">
-      <p className="text-[10px] sm:text-[12px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{title}</p>
       <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight">{value}</p>
-      <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium truncate opacity-70 tracking-tight">{subtext}</p>
+      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-70">{subtext}</p>
     </div>
   </div>
 );
@@ -1631,7 +1631,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-3 sm:px-6 h-10 sm:h-10 rounded-xl sm:rounded-[1.25rem] text-xs sm:text-[12px] font-semibold tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap flex-1 lg:flex-none ${activeTab === tab
+                    className={`px-3 sm:px-6 h-10 sm:h-10 rounded-xl sm:rounded-[1.25rem] text-xs font-semibold tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap flex-1 lg:flex-none ${activeTab === tab
                       ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400 font-bold scale-[1.01]'
                       : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white'
                       }`}
@@ -1639,7 +1639,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     <Icon name={tabConfig.icon} className={`text-lg sm:text-xl ${activeTab === tab ? '' : 'opacity-70'}`} />
                     <span>{tabConfig.label}</span>
                     {tabConfig.badge !== null && (
-                      <span className="ml-0.5 px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-500 text-white shadow-sm">
+                      <span className="ml-0.5 px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white shadow-sm">
                         {tabConfig.badge}
                       </span>
                     )}
@@ -1658,7 +1658,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       <select
                         value={forecastDuration}
                         onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
-                        className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs sm:text-[12px] font-semibold tracking-wide`}
+                        className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs font-semibold tracking-wide`}
                       >
                         {FORECAST_DURATION_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
@@ -1793,7 +1793,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             <Card className="overflow-hidden rounded-[2.5rem] p-8 mt-8">
               <div className="flex flex-col lg:flex-row gap-8">
                 <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                  <h3 className="text-[10px] font-semibold tracking-tight text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset allocation</h3>
+                  <h3 className="text-lg font-semibold tracking-tight text-light-text dark:text-dark-text mb-8 self-start">Asset allocation</h3>
                   <div className="h-64 w-full relative flex items-center justify-center">
                     <BklitPieChart
                       data={assetAllocationData.map((item: any) => ({
@@ -1812,10 +1812,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       <PieCenter defaultLabel="Net worth">
                         {({ value, label, isHovered }) => (
                           <div className="flex flex-col items-center justify-center text-center">
-                            <span className="text-[10px] font-bold tracking-widest text-light-text-secondary dark:text-gray-400 opacity-60 uppercase">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-gray-400 opacity-70">
                               {label}
                             </span>
-                            <span className="text-xl lg:text-2xl font-black text-light-text dark:text-white tracking-tight privacy-blur leading-tight">
+                            <span className="text-xl lg:text-2xl font-bold text-light-text dark:text-white tracking-tight privacy-blur leading-tight">
                               {formatCurrency(
                                 convertCurrency(isHovered ? value : globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates),
                                 preferredCurrency
@@ -1828,11 +1828,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   </div>
                   <div className="w-full mt-10 grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                      <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wider mb-1 opacity-60">Assets</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">Assets</p>
                       <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-center">
-                      <p className="text-[9px] text-rose-600 dark:text-rose-400 font-semibold tracking-wider mb-1 opacity-60">Liabilities</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">Liabilities</p>
                       <p className="text-lg font-semibold text-rose-600 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                     </div>
                   </div>
@@ -1840,7 +1840,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                 <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-10">
                   <div>
-                    <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 tracking-tight">Assets breakdown</h4>
+                    <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-6 tracking-tight">Assets breakdown</h4>
                     <div className="space-y-5">
                       {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                         if (group.value === 0) return null;
@@ -1849,17 +1849,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                             <div className="flex justify-between text-sm mb-2">
                               <div className="flex items-center gap-3">
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
-                                  <Icon name={group.icon} className="text-[16px]" />
+                                  <Icon name={group.icon} className="text-base" />
                                 </div>
-                                <span className="font-bold text-light-text dark:text-dark-text tracking-tight">{name}</span>
+                                <span className="font-semibold text-light-text dark:text-dark-text tracking-tight">{name}</span>
                               </div>
-                              <span className="font-black text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                              <span className="font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                             </div>
                             <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
                             </div>
                             <div className="flex justify-end mt-1">
-                              <span className="text-[9px] font-bold text-light-text-secondary dark:text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
+                              <span className="text-xs font-medium text-light-text-secondary dark:text-gray-400 opacity-70 group-hover:opacity-100 transition-opacity">
                                 {((group.value / globalTotalAssets) * 100).toFixed(1)}%
                               </span>
                             </div>
@@ -1871,7 +1871,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   </div>
 
                   <div>
-                    <h4 className="text-[10px] font-bold text-light-text-secondary dark:text-gray-400 mb-6 tracking-tight">Liabilities breakdown</h4>
+                    <h4 className="text-base font-semibold text-light-text dark:text-dark-text mb-6 tracking-tight">Liabilities breakdown</h4>
                     <div className="space-y-5">
                       {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                         if (group.value === 0) return null;
@@ -1880,17 +1880,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                             <div className="flex justify-between text-sm mb-2">
                               <div className="flex items-center gap-3">
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
-                                  <Icon name={group.icon} className="text-[16px]" />
+                                  <Icon name={group.icon} className="text-base" />
                                 </div>
-                                <span className="font-bold text-light-text dark:text-dark-text tracking-tight">{name}</span>
+                                <span className="font-semibold text-light-text dark:text-dark-text tracking-tight">{name}</span>
                               </div>
-                              <span className="font-black text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                              <span className="font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                             </div>
                             <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
                             </div>
                             <div className="flex justify-end mt-1">
-                              <span className="text-[9px] font-bold text-light-text-secondary dark:text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
+                              <span className="text-xs font-medium text-light-text-secondary dark:text-gray-400 opacity-70 group-hover:opacity-100 transition-opacity">
                                 {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
                               </span>
                             </div>

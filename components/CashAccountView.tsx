@@ -49,16 +49,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                        <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                        <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                         {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
                 <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -171,9 +171,9 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Cash Asset</span>
-                            <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                            <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Physical Reserve</span>
+                            <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Cash Asset</span>
+                            <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                            <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Physical Reserve</span>
                         </div>
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                             {account.name}
@@ -213,31 +213,31 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                     <Icon name="Lock01" className="text-3xl text-emerald-400 font-light" />
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Status</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Status</p>
                                     <p className="text-xs font-bold text-emerald-400 tracking-widest drop-shadow-sm">Synchronized</p>
                                 </div>
                             </div>
 
-                            <p className="text-[10px] font-bold text-slate-400 mb-2">Total Managed Cash</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Total Managed Cash</p>
                             <h2 className="text-6xl font-bold tracking-tighter tabular-nums drop-shadow-lg mb-8">
                                 {formatCurrency(account.balance, account.currency)}
                             </h2>
 
                             <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl ios-regular !bg-white/5 dark:!bg-white/[0.02] border border-white/5 shadow-inner">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                                <span className="text-[11px] font-bold tracking-wider text-emerald-300 drop-shadow-sm">{burnRateMessage}</span>
+                                <span className="text-xs font-semibold tracking-wider text-emerald-300 drop-shadow-sm">{burnRateMessage}</span>
                             </div>
                         </div>
 
                         <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                             <div>
-                                <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">MTD Delta</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">MTD Delta</p>
                                 <p className={`font-black text-xl flex items-center gap-1 ${netChange >= 0 ? 'text-white' : 'text-rose-400'}`}>
                                     {netChange >= 0 ? '↑' : '↓'} {formatCurrency(Math.abs(netChange), account.currency)}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Last Intake</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Last Intake</p>
                                 <p className="font-black text-xl text-white tabular-nums opacity-60">
                                     {lastReplenishment ? lastReplenishment.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : '—'}
                                 </p>
@@ -312,8 +312,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                 <div className="lg:col-span-8 bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                     <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-1">Reserve journal</h3>
-                            <p className="text-[10px] font-semibold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest ">Complete history of manual flow logs</p>
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-1">Reserve journal</h3>
+                            <p className="text-xs font-normal text-light-text-secondary/60 dark:text-dark-text-secondary/70">Complete history of manual flow logs</p>
                         </div>
                     </div>
                     <div className="flex-grow min-h-[400px]">
@@ -330,7 +330,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                 <div className="lg:col-span-4 space-y-8">
                     {/* Infrastructure Configuration */}
                     <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[3rem] p-10 group overflow-hidden">
-                        <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Infrastructure Configuration</h3>
                         <div className="space-y-6">
                             {[
                                 { label: 'Settlement Engine', value: account.currency },
@@ -339,8 +339,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                 { label: 'Logical Serial', value: account.id.slice(0, 8), isMono: true }
                             ].map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                    <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
-                                    <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">{item.label}</p>
+                                    <p className={`text-xs font-semibold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                         {item.value}
                                     </p>
                                 </div>
@@ -352,7 +352,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                 <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center">
                                     <Icon name="verified_user" className="text-lg" />
                                 </div>
-                                <p className="text-[10px] font-bold text-emerald-500 tracking-wider">Physical Reserve</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">Physical Reserve</p>
                             </div>
                             <p className="text-xs font-medium text-light-text-secondary/70 dark:text-dark-text-secondary/90 leading-relaxed  tracking-tighter">
                                 Assets are verified through periodic manual reconciliation procedures.

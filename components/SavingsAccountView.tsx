@@ -51,16 +51,16 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                        <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-[10px]" />
+                    <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                        <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />
                         {trend.val}
                     </div>
                 )}
             </div>
             <div className="mt-6 relative z-10">
-                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
                 <h4 className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
-                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+                {subValue && <p className="text-xs font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
         </div>
     );
@@ -223,9 +223,9 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                     </button>
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Savings Account</span>
-                            <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
-                            <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
+                            <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Savings Account</span>
+                            <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                            <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
                         </div>
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                             {account.name}
@@ -261,24 +261,24 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl"></div>
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-12">
-                                <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold tracking-wider border border-white/10">
+                                <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold tracking-wider border border-white/10">
                                     Active Savings • {account.currency}
                                 </span>
                                 {apy > 0 && (
                                     <div className="text-right">
-                                        <p className="text-[10px] font-bold tracking-wider text-emerald-100/80 mb-1">Yield</p>
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/80 mb-1">Yield</p>
                                         <p className="text-3xl font-bold tabular-nums">{apy}% <span className="text-xs opacity-60">APY</span></p>
                                     </div>
                                 )}
                             </div>
 
-                            <p className="text-[10px] font-bold text-emerald-100/90 mb-2">Current Total Balance</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/90 mb-2">Current Total Balance</p>
                             <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
                                 {formatCurrency(account.balance, account.currency)}
                             </h2>
 
                             <div className="space-y-4">
-                                <div className="flex justify-between text-[10px] font-bold tracking-wider text-emerald-100/70">
+                                <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-emerald-100/70">
                                     <span>Quarterly Velocity</span>
                                     <span className="text-white">Active</span>
                                 </div>
@@ -294,11 +294,11 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
 
                         <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                             <div>
-                                <p className="text-[10px] tracking-wider text-emerald-100/70 font-bold mb-1">Est. Annual Return</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/70 mb-1">Est. Annual Return</p>
                                 <p className="font-black text-xl text-white tabular-nums drop-shadow-sm">{apy > 0 ? formatCurrency(projectedAnnualInterest, account.currency) : '—'}</p>
                             </div>
                             <div>
-                                <p className="text-[10px] tracking-wider text-emerald-100/70 font-bold mb-1">YTD Interest</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/70 mb-1">YTD Interest</p>
                                 <p className="font-black text-xl text-emerald-300 tabular-nums">{formatCurrency(totalInterestYTD, account.currency)}</p>
                             </div>
                         </div>
@@ -444,7 +444,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                 <div className="xl:col-span-4 flex flex-col gap-8">
                     {/* Infrastructure Configuration */}
                     <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
-                        <h3 className="text-[11px] font-bold tracking-tight text-light-text-secondary/30 dark:text-dark-text-secondary/40 mb-8">Infrastructure Configuration</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-8">Infrastructure Configuration</h3>
                         <div className="space-y-6">
                             {[
                                 { label: 'Clearing Institution', value: account.financialInstitution },
@@ -455,8 +455,8 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                 { label: 'Routing Directive', value: account.routingNumber, isMono: true }
                             ].filter(i => i.value).map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-end border-b border-black/5 dark:border-white/5 pb-4 last:border-0 last:pb-0">
-                                    <p className="text-[9px] font-black tracking-widest text-light-text-secondary/40 dark:text-dark-text-secondary/50 ">{item.label}</p>
-                                    <p className={`text-xs font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60">{item.label}</p>
+                                    <p className={`text-xs font-semibold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                         {item.value}
                                     </p>
                                 </div>
@@ -478,8 +478,8 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                         <div key={goal.id} className="space-y-4">
                                             <div className="flex justify-between items-end">
                                                 <div>
-                                                    <p className="text-sm font-black text-light-text dark:text-dark-text tracking-tight">{goal.name}</p>
-                                                    <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/70 tracking-wider leading-none mt-1">{progress.toFixed(0)}% Achieved</p>
+                                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text tracking-tight">{goal.name}</p>
+                                                    <p className="text-xs font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/70 leading-none mt-1">{progress.toFixed(0)}% Achieved</p>
                                                 </div>
                                                 <span className="text-xs font-black text-amber-600 dark:text-amber-400 tabular-nums">{formatCurrency(goal.amount, goal.currency)}</span>
                                             </div>
