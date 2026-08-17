@@ -86,7 +86,16 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const [logoLoadError, setLogoLoadError] = useState(false);
+
+  const linkedRules = useMemo(() => {
+    const norm = merchantName.toLowerCase();
+    return (transactionRules || []).filter(r => 
+      r.actions?.some(a => a.field === 'merchant' && a.value.toLowerCase() === norm) ||
+      r.conditions?.some(c => c.value?.toLowerCase() === norm)
+    );
+  }, [transactionRules, merchantName]);
 
   // Entrance & Exit animation handling
   useEffect(() => {
@@ -407,7 +416,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   <p className="text-sm sm:text-base font-black text-amber-400 truncate leading-tight font-mono">
                     {count} Transactions
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Telemetry Frequency</p>
+                  <p className="text-2xs text-gray-500 font-mono">Total Activity</p>
                 </div>
 
                 {/* Metric 2: Lifetime Spend */}
@@ -418,7 +427,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   <p className="text-sm sm:text-base font-black text-[#ff375f] truncate leading-tight font-mono">
                     {formatCurrency(totalValue, 'EUR')}
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Lifetime Exposure</p>
+                  <p className="text-2xs text-gray-500 font-mono">Total Volume</p>
                 </div>
 
                 {/* Metric 3: Average Ticket */}
@@ -429,7 +438,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   <p className="text-sm sm:text-base font-black text-[#38bdf8] truncate leading-tight font-mono">
                     {formatCurrency(avgTicket, 'EUR')}
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Per Event Average</p>
+                  <p className="text-2xs text-gray-500 font-mono">Average Per Transaction</p>
                 </div>
 
                 {/* Metric 4: Last Active */}
@@ -464,6 +473,40 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                       </span>
                     </div>
                   )}
+
+                  {/* Matching Keyword Triggers */}
+                  <div className="pt-2 border-t border-white/5 space-y-1.5">
+                    <div className="flex items-center justify-between text-2xs text-gray-400 uppercase font-bold tracking-wider">
+                      <span>Keyword Triggers</span>
+                      {onEdit && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleClose();
+                            setTimeout(() => onEdit(), 100);
+                          }}
+                          className="text-[#a3e635] hover:underline cursor-pointer lowercase font-medium"
+                        >
+                          + manage triggers
+                        </button>
+                      )}
+                    </div>
+                    {linkedRules.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {linkedRules.map(r => {
+                          const kw = r.conditions.find(c => c.field === 'description' || c.field === 'merchant')?.value;
+                          if (!kw) return null;
+                          return (
+                            <span key={r.id} className="text-2xs font-mono font-bold px-2 py-0.5 rounded-lg bg-teal-500/15 text-teal-300 border border-teal-500/25">
+                              "{kw}"
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-2xs text-gray-500 italic">No automated keyword triggers yet</p>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Category, MerchantRule, MerchantLocation, Transaction } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
+import { Category, MerchantRule, MerchantLocation, Transaction, TransactionRule } from '../types';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { BarChart, Bar, Grid, BarXAxis, YAxis, ChartTooltip } from '@/src/components/charts';
 import { getMerchantLogoUrl, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 import Icon from './ui/Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
+import { usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 
 interface MerchantDetailModalProps {
     isOpen: boolean;
@@ -98,6 +100,117 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
 
     // ID of the location currently being edited / fine-tuned
     const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
+
+    // Linked transaction rules for this merchant
+    const { preferences, setPreferences } = usePreferencesContext();
+    const { saveTransaction } = useTransactionsContext();
+    const [newKeyword, setNewKeyword] = useState('');
+    const [isAddingKeywordRule, setIsAddingKeywordRule] = useState(false);
+
+    const linkedRules = useMemo(() => {
+        const rules = preferences.transactionRules || [];
+        const norm = merchantName.toLowerCase();
+        return rules.filter(r => 
+            r.actions?.some(a => a.field === 'merchant' && a.value.toLowerCase() === norm) ||
+            r.conditions?.some(c => c.value?.toLowerCase() === norm)
+        );
+    }, [preferences.transactionRules, merchantName]);
+
+    // Live preview of transactions matching the new keyword input
+    const previewKeywordMatches = useMemo(() => {
+        if (!newKeyword.trim()) return 0;
+        const kw = newKeyword.trim().toLowerCase();
+        return (transactions || []).filter(t => {
+            const desc = (t.description || '').toLowerCase();
+            const merch = (t.merchant || '').toLowerCase();
+            return desc.includes(kw) || merch.includes(kw);
+        }).length;
+    }, [newKeyword, transactions]);
+
+    const handleAddKeywordRule = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newKeyword.trim()) return;
+
+        const kw = newKeyword.trim();
+        const actions: { field: 'merchant' | 'description' | 'category'; value: string }[] = [
+            { field: 'merchant', value: merchantName }
+        ];
+        if (category) {
+            actions.push({ field: 'category', value: category });
+        }
+        if (defaultDescription) {
+            actions.push({ field: 'description', value: defaultDescription });
+        }
+
+        const newRule: TransactionRule = {
+            id: `rule-${uuidv4()}`,
+            name: `Auto ${merchantName} (${kw})`,
+            isActive: true,
+            priority: 10,
+            conditionLogic: 'OR',
+            conditions: [
+                { field: 'description', operator: 'contains', value: kw }
+            ],
+            actions
+        };
+
+        setPreferences(prev => ({
+            ...prev,
+            transactionRules: [newRule, ...(prev.transactionRules || [])]
+        }));
+
+        setNewKeyword('');
+        setIsAddingKeywordRule(false);
+        toast.success(`Added keyword rule for "${kw}" ➔ "${merchantName}"`);
+    };
+
+    const handleToggleRule = (ruleId: string) => {
+        setPreferences(prev => ({
+            ...prev,
+            transactionRules: (prev.transactionRules || []).map(r => 
+                r.id === ruleId ? { ...r, isActive: !r.isActive } : r
+            )
+        }));
+        toast.success('Rule state updated');
+    };
+
+    const handleDeleteRule = (ruleId: string) => {
+        setPreferences(prev => ({
+            ...prev,
+            transactionRules: (prev.transactionRules || []).filter(r => r.id !== ruleId)
+        }));
+        toast.success('Rule removed');
+    };
+
+    const handleApplyRuleToPastTxs = (rule: TransactionRule) => {
+        const kwCond = rule.conditions.find(c => c.field === 'description' || c.field === 'merchant');
+        const kw = kwCond?.value?.toLowerCase();
+        if (!kw) {
+            toast.error('Could not find keyword condition');
+            return;
+        }
+
+        const matchingTxs = (transactions || []).filter(t => {
+            const desc = (t.description || '').toLowerCase();
+            const merch = (t.merchant || '').toLowerCase();
+            return desc.includes(kw) || merch.includes(kw);
+        });
+
+        if (matchingTxs.length === 0) {
+            toast.info('No matching past transactions found in ledger.');
+            return;
+        }
+
+        const updated = matchingTxs.map(t => ({
+            ...t,
+            merchant: merchantName,
+            category: category || t.category,
+            description: defaultDescription || t.description
+        }));
+
+        saveTransaction(updated);
+        toast.success(`Updated ${updated.length} past transaction(s) with "${merchantName}"!`);
+    };
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -274,7 +387,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
             latitude: primaryLoc?.latitude,
             longitude: primaryLoc?.longitude,
         });
-        toast.success(`Saved protocol for "${merchantName}"`);
+        toast.success(`Saved changes for "${merchantName}"`);
         handleCloseDrawer();
     };
 
@@ -361,7 +474,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                             <div className="flex items-center gap-2">
                                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-500/10 px-2.5 py-1 rounded-full border border-primary-500/20">
                                     <Icon name="Building02" className="text-xs" />
-                                    Entity Protocol
+                                    Merchant Profile
                                 </span>
                                 {isHidden && (
                                     <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
@@ -588,7 +701,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         />
                                     </div>
 
-                                    {/* Visibility Toggle */}
+                                     {/* Visibility Toggle */}
                                     <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
                                         <label className="flex items-center justify-between cursor-pointer">
                                             <div className="space-y-0.5">
@@ -609,6 +722,148 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 className={CHECKBOX_STYLE}
                                             />
                                         </label>
+                                    </div>
+
+                                    {/* MATCHING KEYWORDS & AUTO-ROUTING RULES */}
+                                    <div className="p-4.5 rounded-3xl bg-teal-500/[0.03] border border-teal-500/20 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Icon name="bolt" className="text-teal-500 text-lg" />
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-light-text dark:text-dark-text">
+                                                        Auto-Categorization Trigger Keywords
+                                                    </h4>
+                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                                        Incoming bank transactions matching these keywords will automatically assign this merchant and category.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAddingKeywordRule(!isAddingKeywordRule)}
+                                                className="px-2.5 py-1 text-xs font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 hover:bg-teal-500/20 rounded-xl transition-all flex items-center gap-1"
+                                            >
+                                                <Icon name={isAddingKeywordRule ? "close" : "add"} className="text-sm" />
+                                                <span>{isAddingKeywordRule ? 'Cancel' : 'Add Trigger'}</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Add Keyword Form */}
+                                        {isAddingKeywordRule && (
+                                            <div className="p-3 bg-white dark:bg-dark-card border border-teal-500/30 rounded-2xl space-y-3 mt-2">
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-wider">
+                                                        Keyword / Text to Match in Description
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. UBER *EATS, AMZN, NETFLIX.COM"
+                                                        value={newKeyword}
+                                                        onChange={e => setNewKeyword(e.target.value)}
+                                                        className={INPUT_BASE_STYLE}
+                                                        autoFocus
+                                                    />
+                                                </div>
+
+                                                {newKeyword.trim() && (
+                                                    <div className="flex items-center justify-between text-xs font-medium px-1">
+                                                        <span className="text-gray-500">Live ledger check:</span>
+                                                        <span className={previewKeywordMatches > 0 ? "text-teal-600 dark:text-teal-400 font-bold" : "text-gray-400"}>
+                                                            Matches {previewKeywordMatches} transaction(s) in your history
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-end gap-2 pt-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setNewKeyword('');
+                                                            setIsAddingKeywordRule(false);
+                                                        }}
+                                                        className={BTN_SECONDARY_STYLE}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleAddKeywordRule}
+                                                        disabled={!newKeyword.trim()}
+                                                        className={`${BTN_PRIMARY_STYLE} disabled:opacity-50`}
+                                                    >
+                                                        Save Keyword Rule
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Existing Linked Rules List */}
+                                        {linkedRules.length > 0 ? (
+                                            <div className="space-y-2 pt-1">
+                                                {linkedRules.map(rule => {
+                                                    const kw = rule.conditions.find(c => c.field === 'description' || c.field === 'merchant')?.value || '';
+                                                    const matchCount = (transactions || []).filter(t => {
+                                                        const desc = (t.description || '').toLowerCase();
+                                                        const m = (t.merchant || '').toLowerCase();
+                                                        return desc.includes(kw.toLowerCase()) || m.includes(kw.toLowerCase());
+                                                    }).length;
+
+                                                    return (
+                                                        <div
+                                                            key={rule.id}
+                                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl gap-2 shadow-2xs"
+                                                        >
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <span className={`w-2 h-2 rounded-full shrink-0 ${rule.isActive ? 'bg-teal-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <code className="text-xs font-mono font-bold bg-teal-500/10 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded">
+                                                                            "{kw}"
+                                                                        </code>
+                                                                        <span className="text-xs text-gray-400 font-mono">
+                                                                            ({matchCount} txs)
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                                                                {matchCount > 0 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleApplyRuleToPastTxs(rule)}
+                                                                        title="Apply this rule to all matching past transactions"
+                                                                        className="px-2 py-1 text-xs font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 rounded-lg transition-all"
+                                                                    >
+                                                                        Apply to {matchCount} past
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleToggleRule(rule.id)}
+                                                                    title={rule.isActive ? "Disable rule" : "Enable rule"}
+                                                                    className="p-1 text-gray-400 hover:text-light-text dark:hover:text-dark-text rounded-lg"
+                                                                >
+                                                                    <Icon name={rule.isActive ? "toggle_on" : "toggle_off"} className="text-lg" />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteRule(rule.id)}
+                                                                    title="Delete rule"
+                                                                    className="p-1 text-red-400 hover:text-red-600 rounded-lg"
+                                                                >
+                                                                    <Icon name="delete" className="text-sm" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-3 text-xs text-gray-400">
+                                                No automatic keyword triggers linked to this merchant yet.
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -1209,7 +1464,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 !text-xs flex items-center gap-1.5 shadow-md shadow-primary-500/20`}
                             >
                                 <Icon name="check" className="text-xs" />
-                                <span>Save Protocol</span>
+                                <span>Save Changes</span>
                             </button>
                         </div>
                     </div>

@@ -4,10 +4,11 @@ import { Page, MerchantRule, Category, RegexCategorizationRule } from '../types'
 import Card from '../components/Card';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
-import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
+import { generateSmartRuleSuggestions, SmartRuleSuggestion, convertSuggestionToTransactionRule } from '../utils/ruleSuggestions';
 import MerchantDetailModal from '../components/MerchantDetailModal';
 import MerchantOverviewModal from '../components/MerchantOverviewModal';
 import { useCategoryContext } from '../contexts/FinancialDataContext';
@@ -222,6 +223,37 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       
       saveTransaction(updatedTransactions);
       toast.success(`Analysis Complete! Reclassified ${updatedTransactions.length} historical records successfully.`);
+  };
+
+  const smartSuggestions = useMemo(() => {
+    return generateSmartRuleSuggestions(transactions, preferences.transactionRules || [], preferences.merchantRules || {});
+  }, [transactions, preferences.transactionRules, preferences.merchantRules]);
+
+  const handleDeploySmartSuggestion = (suggestion: SmartRuleSuggestion) => {
+    const newRule = convertSuggestionToTransactionRule(suggestion);
+
+    setPreferences(prev => ({
+      ...prev,
+      transactionRules: [newRule, ...(prev.transactionRules || [])]
+    }));
+
+    const kw = suggestion.keyword.toLowerCase();
+    const matching = transactions.filter(t => 
+      (t.description && t.description.toLowerCase().includes(kw)) ||
+      (t.merchant && t.merchant.toLowerCase().includes(kw))
+    );
+
+    if (matching.length > 0) {
+      const updated = matching.map(t => ({
+        ...t,
+        merchant: suggestion.suggestedMerchant || t.merchant,
+        category: suggestion.suggestedCategory || t.category,
+      }));
+      saveTransaction(updated);
+      toast.success(`Created rule and updated ${updated.length} past transaction(s) for "${suggestion.suggestedMerchant}"!`);
+    } else {
+      toast.success(`Created auto-categorization rule for "${suggestion.suggestedMerchant}"!`);
+    }
   };
 
   const effectiveMerchantRules = useMemo(() => {
@@ -551,18 +583,18 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
        {/* Navigation & Header */}
        <SettingsSubpageHeader
          markerIcon="Building02"
-         markerLabel="Entity Intelligence"
+         markerLabel="Merchants & Institutions"
          title="Merchants & Institutions"
-         subtitle="Refine metadata, oversee branding assets, and configure automated classification logic for your telemetry."
+         subtitle="Manage merchant profiles, customize branding logos, and configure automatic categorization rules."
          setCurrentPage={setCurrentPage}
          actions={
            <div className="flex items-center gap-2">
              <HeaderButton
                variant="secondary"
-               icon="code"
+               icon="bolt"
                onClick={() => setIsRegexModalOpen(true)}
              >
-               Regex Routing Rules
+               Auto-Categorize Rules {regexRules.length > 0 ? `(${regexRules.length})` : ''}
              </HeaderButton>
              <HeaderButton
                variant="primary"
@@ -581,34 +613,34 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                <Icon name="alert_triangle" className="text-xl" />
             </div>
             <p className="text-xs font-bold text-amber-800/80 dark:text-amber-200/80 leading-relaxed">
-              Automatic branding enrichment is offline. Add a Brandfetch Access Key in Preferences to restore merchant telemetry.
+              Automatic logo lookup is inactive. Add a free Brandfetch Access Key in Preferences to automatically fetch merchant logos.
             </p>
           </div>
         )}
 
-        {/* Telemetry Optimization Center Action Panel */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-primary-500/[0.08] via-indigo-500/[0.05] to-emerald-500/[0.05] p-5 rounded-3xl border border-primary-500/20 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+        {/* Smart Categorization & Tools Action Panel */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-primary-500/[0.08] via-teal-500/[0.05] to-emerald-500/[0.05] p-5 rounded-3xl border border-primary-500/20 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
-                    <Icon name="zap" className="text-xl" />
+                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
+                    <Icon name="bolt" className="text-xl" />
                 </div>
                 <div>
                     <div className="flex items-center gap-2">
-                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Telemetry Optimization Engine</h3>
-                        <span className="px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-semibold border border-primary-500/20">AI Active</span>
+                        <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Smart Categorization & Tools</h3>
+                        <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-semibold border border-teal-500/20">Active</span>
                     </div>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-80 leading-relaxed">
-                        Deploy regex routing patterns or run automated branding discovery passes to resolve unrecognized merchants.
+                        Create automatic categorization rules for matching keywords or run logo discovery passes to enrich merchant branding.
                     </p>
                 </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-center">
                 <HeaderButton
                     variant="secondary"
-                    icon="code"
+                    icon="bolt"
                     onClick={() => setIsRegexModalOpen(true)}
                 >
-                    Regex Rules
+                    Auto-Categorize Rules {regexRules.length > 0 ? `(${regexRules.length})` : ''}
                 </HeaderButton>
                 <HeaderButton
                     variant="primary"
@@ -620,6 +652,75 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                 </HeaderButton>
             </div>
         </div>
+
+        {/* SMART AUTO-CATEGORIZATION SUGGESTIONS */}
+        {smartSuggestions.length > 0 && (
+          <Card className="bg-teal-500/[0.02] border border-dashed border-teal-500/30 p-5 rounded-3xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                  <Icon name="auto_awesome" className="text-base" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-teal-700 dark:text-teal-300 tracking-tight">
+                    Smart Auto-Categorization Suggestions ({smartSuggestions.length})
+                  </h4>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    Recurring description patterns detected. Accept in 1-click to map to merchant and category across all past and future records.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage('Rules')}
+                className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 self-start sm:self-auto"
+              >
+                <span>View all in Rules</span>
+                <Icon name="chevron_right" className="text-sm" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {smartSuggestions.slice(0, 3).map((sug) => (
+                <div key={sug.id} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-xs">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-mono font-bold text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-lg truncate">
+                        "{sug.keyword}"
+                      </span>
+                      <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                        {sug.matchCount} txs
+                      </span>
+                    </div>
+                    <p className="font-bold text-xs text-light-text dark:text-dark-text truncate mt-1">
+                      ➔ {sug.suggestedMerchant}
+                    </p>
+                    {sug.suggestedCategory && (
+                      <p className="text-2xs text-gray-400 font-mono mt-0.5 truncate">
+                        Category: <span className="text-teal-600 dark:text-teal-400 font-bold">{sug.suggestedCategory}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+                    <span className="text-2xs text-gray-400 font-mono">
+                      Vol: {formatCurrency(sug.totalAmount, 'EUR')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeploySmartSuggestion(sug)}
+                      className="px-2.5 py-1 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Icon name="add" className="text-xs" />
+                      <span>Accept Rule</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Real-time Enrichment Progress Indicator */}
         {isRefreshing && (
@@ -657,19 +758,19 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Institutions" value={stats.totalInstitutions} icon="bank" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Aggr. Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-          <StatCard title="Ambiguous" value={stats.missingCount} icon="psychology_alt" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
+          <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
+          <StatCard title="Unassigned" value={stats.missingCount} icon="help_outline" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
       </div>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-6 justify-between items-center px-2">
            <div className="relative w-full md:max-w-md group">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <Icon name="database_search" className="text-light-text-secondary dark:text-dark-text-secondary opacity-40 group-focus-within:text-primary-500 group-focus-within:opacity-100 transition-all" />
+                  <Icon name="search" className="text-light-text-secondary dark:text-dark-text-secondary opacity-40 group-focus-within:text-primary-500 group-focus-within:opacity-100 transition-all" />
                 </div>
                 <input 
                     type="text" 
-                    placeholder="Query entities..." 
+                    placeholder="Search merchants & institutions..." 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-xs font-semibold placeholder:text-light-text-secondary/40 dark:placeholder:text-dark-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"

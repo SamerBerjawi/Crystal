@@ -7,8 +7,10 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_ST
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatCurrency } from '../utils';
 import { normalizeMerchantKey } from '../utils/brandfetch';
 import { evaluateRuleCondition, applyTransactionRulesToFields } from '../utils/rules';
+import { generateSmartRuleSuggestions, SmartRuleSuggestion, convertSuggestionToTransactionRule } from '../utils/ruleSuggestions';
 import Icon from '../components/ui/Icon';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
@@ -46,6 +48,7 @@ const Rules: React.FC<RulesProps> = ({
   const [overrideIsHidden, setOverrideIsHidden] = useState(false);
   const [overrideNotes, setOverrideNotes] = useState('');
   const [merchantOverrideSearch, setMerchantOverrideSearch] = useState('');
+  const [merchantOverrideCategoryFilter, setMerchantOverrideCategoryFilter] = useState('ALL');
 
   // Sandbox State
   const [sandboxDesc, setSandboxDesc] = useState('Netflix monthly subscription');
@@ -178,6 +181,95 @@ const Rules: React.FC<RulesProps> = ({
 
     return results.sort((a, b) => b.count - a.count);
   }, [transactions, merchantRules]);
+
+  // Compute live match transaction count for each merchant override
+  const merchantMatchCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    transactions.forEach(tx => {
+      const key = normalizeMerchantKey(tx.merchant || '');
+      if (key) {
+        counts[key] = (counts[key] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [transactions]);
+
+  // Smart suggestions from uncategorized / recurring patterns
+  const smartRuleSuggestions = useMemo(() => {
+    return generateSmartRuleSuggestions(transactions, existingRules, merchantRules);
+  }, [transactions, existingRules, merchantRules]);
+
+  const handleDeploySmartSuggestion = (suggestion: SmartRuleSuggestion) => {
+    const newRule = convertSuggestionToTransactionRule(suggestion);
+
+    setPreferences(prev => ({
+      ...prev,
+      transactionRules: [newRule, ...(prev.transactionRules || [])]
+    }));
+
+    const kw = suggestion.keyword.toLowerCase();
+    const matching = transactions.filter(t => 
+      (t.description && t.description.toLowerCase().includes(kw)) ||
+      (t.merchant && t.merchant.toLowerCase().includes(kw))
+    );
+
+    if (matching.length > 0) {
+      const updated = matching.map(t => ({
+        ...t,
+        merchant: suggestion.suggestedMerchant || t.merchant,
+        category: suggestion.suggestedCategory || t.category,
+      }));
+      saveTransaction(updated);
+      toast.success(`Created rule and updated ${updated.length} past transaction(s) for "${suggestion.suggestedMerchant}"!`);
+    } else {
+      toast.success(`Created auto-categorization rule for "${suggestion.suggestedMerchant}"!`);
+    }
+  };
+
+  const handleApplyAllMerchantOverridesToPastLedger = () => {
+    let affectedCount = 0;
+    const updatedTxs: any[] = [];
+
+    transactions.forEach(tx => {
+      const key = normalizeMerchantKey(tx.merchant || '');
+      if (!key) return;
+      const rule = merchantRules[key];
+      if (!rule) return;
+
+      let changed = false;
+      const newTx = { ...tx };
+
+      if (rule.category && newTx.category !== rule.category) {
+        newTx.category = rule.category;
+        changed = true;
+      }
+      if (rule.defaultDescription && newTx.description !== rule.defaultDescription) {
+        newTx.description = rule.defaultDescription;
+        changed = true;
+      }
+
+      if (changed) {
+        affectedCount++;
+        updatedTxs.push(newTx);
+      }
+    });
+
+    if (affectedCount === 0) {
+      toast.info('All transactions in your ledger are already up to date with your merchant rules!');
+      return;
+    }
+
+    customConfirm(
+      'Apply Merchant Overrides to Past Transactions',
+      `This will update ${affectedCount} transaction(s) across your ledger to match your active merchant categories and descriptions. Would you like to proceed?`,
+      () => {
+        saveTransaction(updatedTxs);
+        toast.success(`Successfully updated ${affectedCount} past transaction(s) with merchant rules!`);
+      },
+      false,
+      `Apply to ${affectedCount} Transactions`
+    );
+  };
 
   const handleFeedFromMerchants = () => {
     // Scan unique transactions and register overrides if consistent category exists
@@ -2129,13 +2221,22 @@ const Rules: React.FC<RulesProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleFeedFromMerchants}
-                className={`${BTN_SECONDARY_STYLE} border-teal-500/30 hover:border-teal-500 text-teal-600 dark:text-teal-400 flex items-center gap-1.5 text-xs self-stretch sm:self-auto justify-center`}
-              >
-                <Icon name="download" className="text-sm" />
-                <span>Feed from Merchants Ledger</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap self-stretch sm:self-auto">
+                <button
+                  onClick={handleApplyAllMerchantOverridesToPastLedger}
+                  className={`${BTN_PRIMARY_STYLE} bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1.5 text-xs justify-center shadow-xs`}
+                >
+                  <Icon name="bolt" className="text-sm" />
+                  <span>Apply to Past Ledger</span>
+                </button>
+                <button
+                  onClick={handleFeedFromMerchants}
+                  className={`${BTN_SECONDARY_STYLE} border-teal-500/30 hover:border-teal-500 text-teal-600 dark:text-teal-400 flex items-center gap-1.5 text-xs justify-center`}
+                >
+                  <Icon name="download" className="text-sm" />
+                  <span>Feed from Ledger</span>
+                </button>
+              </div>
             </div>
 
             {/* Form Drawer to create or edit an override */}
@@ -2264,40 +2365,55 @@ const Rules: React.FC<RulesProps> = ({
               )}
             </AnimatePresence>
 
-            {/* AUTOMATICALLY GENERATED SUGGESTIONS SECTION */}
-            {autoGeneratedMerchantRules.length > 0 && (
-              <Card className="bg-teal-500/[0.01] border border-dashed border-teal-500/20 p-5 rounded-2xl space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-tight flex items-center gap-1.5">
-                    <Icon name="auto_awesome" className="text-base" />
-                    <span>Automatically Identified Merchant Rules ({autoGeneratedMerchantRules.length})</span>
-                  </h4>
-                  <p className="text-xs mt-0.5 text-gray-400">
-                    We scanned your active ledger and found consistent categorization patterns for recurring merchants. Click "Deploy" to establish an active priority override rule.
-                  </p>
+            {/* SMART AUTO-CATEGORIZATION SUGGESTIONS */}
+            {smartRuleSuggestions.length > 0 && (
+              <Card className="bg-teal-500/[0.02] border border-dashed border-teal-500/30 p-5 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-tight flex items-center gap-1.5">
+                      <Icon name="auto_awesome" className="text-base" />
+                      <span>Smart Rule Suggestions ({smartRuleSuggestions.length})</span>
+                    </h4>
+                    <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">
+                      Discovered recurring transaction descriptions with consistent patterns. 1-click accept to automatically classify past and future entries.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {autoGeneratedMerchantRules.slice(0, 6).map((sug) => (
-                    <div key={sug.key} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
-                      <div className="min-w-0">
-                        <p className="font-bold text-xs truncate text-light-text dark:text-dark-text">{sug.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5 font-mono">
-                          {sug.count} txs ➔ <span className="bg-teal-500/10 px-1 py-0.5 rounded text-teal-600 dark:text-teal-400 font-bold">{sug.suggestedCategory}</span>
+                  {smartRuleSuggestions.slice(0, 6).map((sug) => (
+                    <div key={sug.id} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-xs">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="font-mono font-bold text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-lg truncate">
+                            "{sug.keyword}"
+                          </span>
+                          <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                            {sug.matchCount} txs
+                          </span>
+                        </div>
+                        <p className="font-bold text-xs text-light-text dark:text-dark-text truncate mt-1">
+                          ➔ {sug.suggestedMerchant}
                         </p>
+                        {sug.suggestedCategory && (
+                          <p className="text-2xs text-gray-400 font-mono mt-0.5 truncate">
+                            Category: <span className="text-teal-600 dark:text-teal-400 font-bold">{sug.suggestedCategory}</span>
+                          </p>
+                        )}
                       </div>
-                      <button
-                        onClick={() => {
-                          setOverrideMerchantName(sug.name);
-                          setOverrideCategory(sug.suggestedCategory);
-                          setOverrideLogo(`${sug.key}.com`);
-                          setIsAddingMerchantOverride(true);
-                          toast.info(`Pre-populated override parameters for "${sug.name}".`);
-                        }}
-                        className="px-2.5 py-1 text-xs font-semibold bg-teal-50/80 text-teal-600 border border-teal-200/50 hover:bg-teal-100 rounded-lg dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-900/30 transition-all shrink-0"
-                      >
-                        Deploy
-                      </button>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+                        <span className="text-2xs text-gray-400 font-mono">
+                          Vol: {formatCurrency(sug.totalAmount, 'EUR')}
+                        </span>
+                        <button
+                          onClick={() => handleDeploySmartSuggestion(sug)}
+                          className="px-2.5 py-1 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <Icon name="add" className="text-xs" />
+                          <span>Accept Rule</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2307,16 +2423,34 @@ const Rules: React.FC<RulesProps> = ({
             {/* MANAGE ACTIVE OVERRIDES MODULE */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
-                <div className="relative flex-1">
-                  <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                  <input
-                    type="text"
-                    placeholder="Search override rules database..."
-                    value={merchantOverrideSearch}
-                    onChange={(e) => setMerchantOverrideSearch(e.target.value)}
-                    className={`${INPUT_BASE_STYLE} pl-9`}
-                  />
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="relative flex-1">
+                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+                    <input
+                      type="text"
+                      placeholder="Search override rules by name, domain, or notes..."
+                      value={merchantOverrideSearch}
+                      onChange={(e) => setMerchantOverrideSearch(e.target.value)}
+                      className={`${INPUT_BASE_STYLE} pl-9`}
+                    />
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className={`w-48 shrink-0 ${SELECT_WRAPPER_STYLE}`}>
+                    <select
+                      value={merchantOverrideCategoryFilter}
+                      onChange={(e) => setMerchantOverrideCategoryFilter(e.target.value)}
+                      className={SELECT_STYLE}
+                    >
+                      <option value="ALL">All Categories</option>
+                      {flatCategories.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <span className={SELECT_ARROW_STYLE}>expand_more</span>
+                  </div>
                 </div>
+
                 {!isAddingMerchantOverride && (
                   <button
                     onClick={() => setIsAddingMerchantOverride(true)}
@@ -2350,11 +2484,19 @@ const Rules: React.FC<RulesProps> = ({
                       <tbody className="divide-y divide-black/[0.03] dark:divide-white/[0.02]">
                         {Object.entries(merchantRules)
                           .filter(([key, rule]: [string, any]) => {
+                            if (merchantOverrideCategoryFilter !== 'ALL' && rule.category !== merchantOverrideCategoryFilter) {
+                              return false;
+                            }
                             if (!merchantOverrideSearch) return true;
-                            return key.toLowerCase().includes(merchantOverrideSearch.toLowerCase()) ||
-                              rule.category?.toLowerCase().includes(merchantOverrideSearch.toLowerCase());
+                            const search = merchantOverrideSearch.toLowerCase();
+                            return key.toLowerCase().includes(search) ||
+                              rule.category?.toLowerCase().includes(search) ||
+                              rule.notes?.toLowerCase().includes(search) ||
+                              rule.defaultDescription?.toLowerCase().includes(search);
                           })
                           .map(([key, rule]: [string, any]) => {
+                            const matchCount = merchantMatchCounts[key] || 0;
+
                             return (
                               <tr key={key} className="hover:bg-gray-100/20 dark:hover:bg-white/[0.005]">
                                 <td className="p-3">
@@ -2375,10 +2517,17 @@ const Rules: React.FC<RulesProps> = ({
                                       </div>
                                     )}
                                     <div className="truncate max-w-[150px]">
-                                      <p className="font-bold text-light-text dark:text-dark-text text-sm capitalize truncate">{key}</p>
+                                      <div className="flex items-center gap-1.5">
+                                        <p className="font-bold text-light-text dark:text-dark-text text-sm capitalize truncate">{key}</p>
+                                        {matchCount > 0 && (
+                                          <span className="text-2xs font-mono text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.2 rounded-full font-semibold">
+                                            {matchCount} txs
+                                          </span>
+                                        )}
+                                      </div>
                                       {rule.website && (
                                         <a href={rule.website} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-500 hover:underline block truncate">
-                                          {rule.logo}
+                                          {rule.logo || rule.website}
                                         </a>
                                       )}
                                     </div>
@@ -2417,7 +2566,25 @@ const Rules: React.FC<RulesProps> = ({
                                 </td>
 
                                 <td className="p-3 text-right">
-                                  <div className="flex justify-end gap-1.5">
+                                  <div className="flex justify-end items-center gap-1.5">
+                                    {matchCount > 0 && (
+                                      <button
+                                        onClick={() => {
+                                          const matching = transactions.filter(t => normalizeMerchantKey(t.merchant || '') === key);
+                                          const updated = matching.map(t => ({
+                                            ...t,
+                                            category: rule.category || t.category,
+                                            description: rule.defaultDescription || t.description
+                                          }));
+                                          saveTransaction(updated);
+                                          toast.success(`Updated ${updated.length} transactions for "${key}"!`);
+                                        }}
+                                        className="px-2 py-1 text-2xs font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 rounded-lg transition-all mr-1"
+                                        title={`Apply category "${rule.category}" to all ${matchCount} past transactions`}
+                                      >
+                                        Apply to {matchCount} past
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => handleEditMerchantOverride(key, rule, key)}
                                       className="p-1 text-gray-400 hover:text-primary-500 transition-colors"
