@@ -31,6 +31,7 @@ interface MobileTransactionsViewProps {
   setEndDate: (date: string) => void;
   clearFilters: () => void;
   onAddTransaction: () => void;
+  onOverviewTransaction?: (tx: any) => void;
   onEditTransaction: (tx: any) => void;
   onDeleteTransaction: (txId: string) => void;
   onCategorizeTransaction?: (tx: any) => void;
@@ -69,6 +70,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
   setEndDate,
   clearFilters,
   onAddTransaction,
+  onOverviewTransaction,
   onEditTransaction,
   onDeleteTransaction,
   onCategorizeTransaction,
@@ -505,7 +507,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                           ]}
                         >
                           <div
-                            onClick={() => onEditTransaction(tx)}
+                            onClick={() => onOverviewTransaction ? onOverviewTransaction(tx) : onEditTransaction(tx)}
                             className="p-3.5 flex items-center justify-between gap-3 min-h-[64px] bg-white dark:bg-[#18181b] touch-feedback cursor-pointer active:bg-gray-100 dark:active:bg-gray-800/80 transition-colors"
                           >
                             {/* Merchant Avatar */}

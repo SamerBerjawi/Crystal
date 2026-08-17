@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
+import TransactionDetailModal from '../components/TransactionDetailModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
@@ -246,6 +247,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
+  const [overviewTransactions, setOverviewTransactions] = useState<Transaction[]>([]);
   const [duplicateData, setDuplicateData] = useState<any>(null); // For duplication
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
@@ -918,6 +921,18 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     setEditingTransaction(null);
     setDuplicateData(null);
   };
+
+  const handleOpenOverview = useCallback((tx: DisplayTransaction | Transaction) => {
+    const targetId = ('isTransfer' in tx && tx.isTransfer) ? ((tx as any).originalId || tx.id) : tx.id;
+    const originalTx = transactions.find(t => t.id === targetId) || (tx as Transaction);
+    if (originalTx?.transferId) {
+      const pair = transactions.filter(t => t.transferId === originalTx.transferId);
+      setOverviewTransactions(pair.length > 0 ? pair : [originalTx]);
+    } else if (originalTx) {
+      setOverviewTransactions([originalTx]);
+    }
+    setIsOverviewModalOpen(true);
+  }, [transactions]);
 
   const handleMakeRecurring = (txToConvert?: DisplayTransaction) => {
     let displayTx: DisplayTransaction | undefined = txToConvert;
@@ -1593,6 +1608,25 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           {...duplicateData}
         />
       )}
+      {isOverviewModalOpen && (
+        <TransactionDetailModal
+          isOpen={isOverviewModalOpen}
+          onClose={() => setIsOverviewModalOpen(false)}
+          transactions={overviewTransactions}
+          accounts={accounts}
+          tags={tags}
+          allCategories={allCategories}
+          onEdit={(tx) => {
+            setIsOverviewModalOpen(false);
+            setEditingTransaction(tx);
+            setTransactionModalOpen(true);
+          }}
+          onDelete={(tx) => {
+            setIsOverviewModalOpen(false);
+            deleteTransactions([tx.id]);
+          }}
+        />
+      )}
       {isRecurringModalOpen && saveRecurringTransaction && (
         <RecurringTransactionModal
           onClose={() => setIsRecurringModalOpen(false)}
@@ -1744,6 +1778,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           setEndDate={setEndDate}
           clearFilters={clearFilters}
           onAddTransaction={handleOpenAddModal}
+          onOverviewTransaction={handleOpenOverview}
           onEditTransaction={(tx) => {
             const targetId = tx.originalId || tx.id;
             const found = transactions.find(
@@ -2278,11 +2313,13 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                           <Table.Row
                             id={tx.id}
                             className={cx(
-                              "odd:bg-secondary hover:bg-secondary cursor-default",
+                              "odd:bg-secondary hover:bg-secondary cursor-pointer",
                               tx.parentTransactionId && "bg-primary-500/[0.03] dark:bg-primary-500/[0.05]"
                             )}
-                            onAction={() => {}}
-                            onDoubleClick={() => {
+                            onAction={() => handleOpenOverview(tx)}
+                            onClick={() => handleOpenOverview(tx)}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
                               setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
                               setTransactionModalOpen(true);
                             }}
