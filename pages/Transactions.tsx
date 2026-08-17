@@ -2278,9 +2278,10 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                           <Table.Row
                             id={tx.id}
                             className={cx(
-                              "odd:bg-secondary hover:bg-secondary cursor-pointer",
+                              "odd:bg-secondary hover:bg-secondary cursor-default",
                               tx.parentTransactionId && "bg-primary-500/[0.03] dark:bg-primary-500/[0.05]"
                             )}
+                            onAction={() => {}}
                             onDoubleClick={() => {
                               setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
                               setTransactionModalOpen(true);
