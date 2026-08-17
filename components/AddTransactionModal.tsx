@@ -399,7 +399,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [description, setDescription] = useState(initialDetails?.description || '');
   const [isDescriptionUserModified, setIsDescriptionUserModified] = useState(Boolean(initialDetails?.description));
   const [merchant, setMerchant] = useState(initialDetails?.merchant || '');
-  const [amount, setAmount] = useState(initialDetails?.amount || '');
+  const [amount, setAmount] = useState(() => {
+    if (initialDetails?.amount) {
+      const num = parseFloat(initialDetails.amount);
+      return !isNaN(num) && num > 0 ? num.toFixed(2) : initialDetails.amount;
+    }
+    return '';
+  });
   const [category, setCategory] = useState(initialCategory || '');
   const [isCategoryUserModified, setIsCategoryUserModified] = useState(Boolean(transactionToEdit?.category || initialCategory));
   const [notes, setNotes] = useState(initialDetails?.notes || '');
@@ -917,6 +923,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             interest = String(transactionToEdit.interestAmount || '');
         }
         
+        const parsedAmt = parseFloat(amountToSet);
+        if (!isNaN(parsedAmt) && parsedAmt > 0) {
+            amountToSet = parsedAmt.toFixed(2);
+        }
+
         setDate(transactionToEdit.date);
         setAmount(amountToSet);
         setPrincipalPayment(principal);
@@ -1311,28 +1322,49 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <span className="text-xl font-bold font-mono">{currencySymbol}</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Transaction Amount
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 opacity-70 truncate">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Transaction Amount
+                      </p>
+                      <span className="text-2xs font-mono font-bold px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-300">
+                        {activeAccount?.currency || 'EUR'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 opacity-70 truncate mt-0.5">
                       {type === 'expense' ? 'Funds leaving your account' : type === 'income' ? 'Funds deposited' : 'Internal liquidity rebalance'}
                     </p>
                   </div>
                 </div>
 
-                <div className="relative group shrink-0 flex items-center justify-end">
+                <div className="relative group shrink-0 flex items-center justify-end gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black font-mono text-gray-400 dark:text-gray-500 select-none">
+                    {currencySymbol}
+                  </span>
                   <input
                     id="tx-amount"
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={amount}
-                    onChange={e => setAmount(e.target.value)}
-                    onBlur={() => applyRules(merchant, description, amount)}
-                    className="bg-transparent border-none text-right text-2xl sm:text-3xl font-black text-gray-900 dark:text-white placeholder-black/15 dark:placeholder-white/15 focus:ring-0 py-0 tracking-tight tabular-nums w-36 sm:w-44 focus:outline-hidden"
+                    onChange={e => {
+                      const val = e.target.value.replace(',', '.');
+                      if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                        setAmount(val);
+                      }
+                    }}
+                    onBlur={() => {
+                      const num = parseFloat(amount);
+                      if (!isNaN(num) && num > 0) {
+                        const formatted = num.toFixed(2);
+                        setAmount(formatted);
+                        applyRules(merchant, description, formatted);
+                      } else {
+                        applyRules(merchant, description, amount);
+                      }
+                    }}
+                    className="bg-transparent border-none text-right text-2xl sm:text-3xl font-black text-gray-900 dark:text-white placeholder-black/15 dark:placeholder-white/15 focus:ring-0 py-0 tracking-tight tabular-nums w-28 sm:w-36 focus:outline-hidden font-mono"
                     placeholder="0.00"
                     autoFocus
                     required
-                    inputMode="decimal"
                     autoComplete="off"
                     spellCheck={false}
                   />
