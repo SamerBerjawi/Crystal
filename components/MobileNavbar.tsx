@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Page } from '../types';
 import { NAV_ITEMS, ITEM_COLORS } from '../constants';
-import { getColorClasses, getBgClasses, getGlowClasses } from '../utils/colors';
+import { getColorClasses, getBgClasses } from '../utils/colors';
 import Icon from './ui/Icon';
 
 interface MobileNavbarProps {
@@ -11,26 +11,58 @@ interface MobileNavbarProps {
 }
 
 /**
- * Apple HIG Bottom Tab Bar — 5 primary tabs.
- *
- * Tab mapping:
- *   Home      → Dashboard
- *   Accounts  → Accounts
- *   Activity  → Transactions
- *   Insights  → Reports (with Budget, Forecasting as sub-tabs)
- *   More      → Bottom sheet grid for all remaining pages
+ * Tab configuration for the floating bottom navigation bar.
+ * Primary tabs:
+ *   Home         → Dashboard
+ *   Accounts     → Accounts
+ *   Activity     → Transactions
+ *   Forecasting  → Forecasting
+ *   More         → Bottom sheet grid for all remaining pages
  */
 const PRIMARY_TABS = [
   { label: 'Home', icon: 'layout_alt', id: 'Dashboard' as Page, color: 'indigo' },
   { label: 'Accounts', icon: 'wallet', id: 'Accounts' as Page, color: 'emerald' },
   { label: 'Activity', icon: 'receipt', id: 'Transactions' as Page, color: 'amber' },
-  { label: 'Insights', icon: 'bar_chart', id: 'Reports' as Page, color: 'blue' },
+  { label: 'Forecasting', icon: 'PresentationChart01', id: 'Forecasting' as Page, color: 'cyan' },
 ];
+
+const TAB_GLOW_STYLES: Record<string, { bg: string; border: string; shadow: string; glowRgba: string }> = {
+  indigo: {
+    bg: 'bg-indigo-500/15 dark:bg-indigo-500/25',
+    border: 'border-indigo-500/40 dark:border-indigo-400/40',
+    shadow: 'shadow-[0_0_24px_rgba(99,102,241,0.4)]',
+    glowRgba: 'rgba(99, 102, 241, 0.65)',
+  },
+  emerald: {
+    bg: 'bg-emerald-500/15 dark:bg-emerald-500/25',
+    border: 'border-emerald-500/40 dark:border-emerald-400/40',
+    shadow: 'shadow-[0_0_24px_rgba(16,185,129,0.4)]',
+    glowRgba: 'rgba(16, 185, 129, 0.65)',
+  },
+  amber: {
+    bg: 'bg-amber-500/15 dark:bg-amber-500/25',
+    border: 'border-amber-500/40 dark:border-amber-400/40',
+    shadow: 'shadow-[0_0_24px_rgba(245,158,11,0.4)]',
+    glowRgba: 'rgba(245, 158, 11, 0.65)',
+  },
+  cyan: {
+    bg: 'bg-cyan-500/15 dark:bg-cyan-500/25',
+    border: 'border-cyan-500/40 dark:border-cyan-400/40',
+    shadow: 'shadow-[0_0_24px_rgba(6,182,212,0.4)]',
+    glowRgba: 'rgba(6, 182, 212, 0.65)',
+  },
+  primary: {
+    bg: 'bg-primary-500/15 dark:bg-primary-500/25',
+    border: 'border-primary-500/40 dark:border-primary-400/40',
+    shadow: 'shadow-[0_0_24px_rgba(250,154,29,0.4)]',
+    glowRgba: 'rgba(250, 154, 29, 0.65)',
+  },
+};
 
 const NAV_CATEGORIES = [
   {
     title: 'Planning',
-    items: ['Budget', 'Forecasting', 'Investments', 'Schedule & Bills'] as Page[],
+    items: ['Budget', 'Reports', 'Investments', 'Schedule & Bills'] as Page[],
   },
   {
     title: 'Management',
@@ -63,34 +95,51 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
 
   return (
     <>
-      {/* Bottom Floating Navigation Bar — Apple HIG Tab Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+      {/* Floating Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-6 z-50 pointer-events-none flex justify-center">
         <nav
-          className="flex items-center justify-around p-1.5 gap-1 bg-white/75 dark:bg-dark-card/85 border-t border-black/5 dark:border-white/10 backdrop-blur-xl safe-bottom shadow-lg shadow-black/5 dark:shadow-black/40"
-          style={{ paddingBottom: `calc(0.375rem + env(safe-area-inset-bottom, 0px))` }}
+          className="pointer-events-auto w-full max-w-lg p-1.5 flex items-center justify-around rounded-[1.75rem] sm:rounded-3xl bg-white/60 dark:bg-dark-card/65 backdrop-blur-[32px] saturate-[190%] border border-black/10 dark:border-white/15 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.18),0_4px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_16px_40px_-6px_rgba(0,0,0,0.7),0_0_1px_rgba(255,255,255,0.15)] ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300"
+          style={{
+            marginBottom: 'env(safe-area-inset-bottom, 0px)',
+            WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+          }}
           role="tabbar"
         >
           {PRIMARY_TABS.map((item) => {
             const isActive = currentPage === item.id && !isMoreOpen;
+            const glowStyle = TAB_GLOW_STYLES[item.color] || TAB_GLOW_STYLES.primary;
+
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavSelect(item.id)}
                 aria-label={item.label}
-                className={`touch-feedback flex flex-col items-center justify-center py-2 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${isActive
-                    ? getColorClasses(item.color, true)
-                    : 'text-light-text-secondary/50 dark:text-dark-text-secondary/40'
+                className={`touch-feedback flex flex-col items-center justify-center py-2 px-1 min-h-[46px] rounded-2xl flex-1 transition-all duration-300 relative group ${isActive
+                    ? `${getColorClasses(item.color, true)} font-bold`
+                    : 'text-light-text-secondary/50 dark:text-dark-text-secondary/40 hover:text-light-text-secondary dark:hover:text-dark-text-secondary'
                   }`}
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="mobile-nav-pill"
-                    className={`absolute inset-x-0.5 inset-y-0.5 ${getBgClasses(item.color)} rounded-2xl`}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
+                  <>
+                    {/* Ambient Glow Aura */}
+                    <div
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full blur-md opacity-80 pointer-events-none"
+                      style={{ backgroundColor: glowStyle.glowRgba }}
+                    />
+
+                    {/* Active Pill with Border & Glow Shadow */}
+                    <motion.div
+                      layoutId="mobile-nav-pill"
+                      className={`absolute inset-x-0.5 inset-y-0.5 ${glowStyle.bg} ${glowStyle.shadow} border ${glowStyle.border} rounded-2xl`}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  </>
                 )}
-                <Icon name={item.icon} className={`text-xl transition-all duration-300 relative z-10 ${isActive ? 'scale-110 ' : 'scale-100'}`} />
-                <span className="text-xs font-medium tracking-tight relative z-10 mt-0.5">
+                <Icon
+                  name={item.icon}
+                  className={`text-xl transition-all duration-300 relative z-10 ${isActive ? 'scale-110 drop-shadow-sm' : 'scale-100'}`}
+                />
+                <span className={`text-[11px] leading-tight tracking-tight relative z-10 mt-0.5 ${isActive ? 'font-bold' : 'font-medium'}`}>
                   {item.label}
                 </span>
               </button>
@@ -98,26 +147,45 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
           })}
 
           {/* "More" Tab Button */}
-          <button
-            onClick={() => setIsMoreOpen(prev => !prev)}
-            aria-label="More navigation options"
-            className={`touch-feedback flex flex-col items-center justify-center py-2 px-1 min-h-[44px] rounded-2xl flex-1 transition-all duration-300 relative ${isMoreOpen || !isPrimaryActive
-                ? 'text-primary-600 dark:text-primary-400 font-bold'
-                : 'text-light-text-secondary/50 dark:text-dark-text-secondary/40'
-              }`}
-          >
-            {(isMoreOpen || !isPrimaryActive) && (
-              <motion.div
-                layoutId="mobile-nav-pill"
-                className="absolute inset-x-0.5 inset-y-0.5 bg-primary-500/10 rounded-2xl"
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
-            <Icon name={isMoreOpen ? 'close' : 'grid_view'} className={`text-xl transition-all duration-300 relative z-10 ${isMoreOpen || !isPrimaryActive ? 'scale-110 ' : 'scale-100'}`} />
-            <span className="text-xs font-medium tracking-tight relative z-10 mt-0.5">
-              {isMoreOpen ? 'Close' : 'More'}
-            </span>
-          </button>
+          {(() => {
+            const isMoreActive = isMoreOpen || !isPrimaryActive;
+            const primaryGlow = TAB_GLOW_STYLES.primary;
+
+            return (
+              <button
+                onClick={() => setIsMoreOpen(prev => !prev)}
+                aria-label="More navigation options"
+                className={`touch-feedback flex flex-col items-center justify-center py-2 px-1 min-h-[46px] rounded-2xl flex-1 transition-all duration-300 relative group ${isMoreActive
+                    ? 'text-primary-600 dark:text-primary-400 font-bold'
+                    : 'text-light-text-secondary/50 dark:text-dark-text-secondary/40 hover:text-light-text-secondary dark:hover:text-dark-text-secondary'
+                  }`}
+              >
+                {isMoreActive && (
+                  <>
+                    {/* Ambient Glow Aura */}
+                    <div
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-10 h-3 rounded-full blur-md opacity-80 pointer-events-none"
+                      style={{ backgroundColor: primaryGlow.glowRgba }}
+                    />
+
+                    {/* Active Pill with Border & Glow Shadow */}
+                    <motion.div
+                      layoutId="mobile-nav-pill"
+                      className={`absolute inset-x-0.5 inset-y-0.5 ${primaryGlow.bg} ${primaryGlow.shadow} border ${primaryGlow.border} rounded-2xl`}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  </>
+                )}
+                <Icon
+                  name={isMoreOpen ? 'close' : 'grid_view'}
+                  className={`text-xl transition-all duration-300 relative z-10 ${isMoreActive ? 'scale-110 drop-shadow-sm' : 'scale-100'}`}
+                />
+                <span className={`text-[11px] leading-tight tracking-tight relative z-10 mt-0.5 ${isMoreActive ? 'font-bold' : 'font-medium'}`}>
+                  {isMoreOpen ? 'Close' : 'More'}
+                </span>
+              </button>
+            );
+          })()}
         </nav>
       </div>
 
@@ -141,7 +209,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 350, damping: 35 }}
               className="relative z-10 bg-white dark:bg-gray-900 rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-2xl max-h-[82vh] flex flex-col overflow-hidden"
-              style={{ paddingBottom: `calc(5rem + env(safe-area-inset-bottom, 0px))` }}
+              style={{ paddingBottom: `calc(5.5rem + env(safe-area-inset-bottom, 0px))` }}
             >
               {/* Sheet Drag Handle */}
               <div className="flex justify-center pt-3 pb-1">
@@ -206,3 +274,4 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
 };
 
 export default MobileNavbar;
+
