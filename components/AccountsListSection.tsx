@@ -17,6 +17,7 @@ interface AccountsListSectionProps {
     onAccountClick: (id: string) => void;
     onEditClick: (account: Account) => void;
     onAdjustBalanceClick: (account: Account) => void;
+    onOverviewClick?: (account: Account) => void;
     sortBy: 'name' | 'balance' | 'manual';
     accountOrder?: string[];
     setAccountOrder?: React.Dispatch<React.SetStateAction<string[]>>;
@@ -39,6 +40,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
     onAccountClick, 
     onEditClick, 
     onAdjustBalanceClick, 
+    onOverviewClick,
     sortBy, 
     accountOrder = [], 
     setAccountOrder, 
@@ -218,6 +220,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                                 onClick={() => onAccountClick(acc.id)}
                                                 onEdit={() => onEditClick(acc)}
                                                 onAdjustBalance={() => onAdjustBalanceClick(acc)}
+                                                onOverview={onOverviewClick ? () => onOverviewClick(acc) : undefined}
                                                 isDraggable={sortBy === 'manual'}
                                                 isBeingDragged={draggedId === acc.id}
                                                 isDragOver={dragOverId === acc.id}

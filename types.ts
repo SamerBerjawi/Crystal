@@ -574,7 +574,21 @@ export interface RuleRunBackup {
   }[];
 }
 
-export type AppFont = 'plus-jakarta-sans' | 'inter';
+export type AppFontCategory = 'sans' | 'serif' | 'display';
+
+export type AppFont =
+  | 'plus-jakarta'
+  | 'plus-jakarta-sans'
+  | 'inter'
+  | 'open-sans'
+  | 'montserrat'
+  | 'ubuntu'
+  | 'delius'
+  | 'crimson-pro'
+  | 'neuton'
+  | 'dm-serif-display'
+  | 'noto-serif'
+  | 'crete-round';
 
 export interface AppPreferences {
   currency: string;

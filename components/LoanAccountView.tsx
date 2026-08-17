@@ -91,6 +91,9 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
     const totalOutstanding = outstandingPrincipal + outstandingInterest;
 
+    const totalPrincipal = account.principalAmount || account.totalAmount || totalScheduledPrincipal || 1;
+    const progressPercent = Math.min(100, Math.max(0, (totalPaidPrincipal / totalPrincipal) * 100));
+
     const linkedAsset = accounts.find(a => a.id === account.linkedAssetId) || accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
     
     let ltv = 0;
@@ -108,11 +111,13 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     
     return { 
         schedule, 
+        totalPrincipal,
         totalPaidPrincipal, 
         totalPaidInterest, 
         outstandingPrincipal,
         outstandingInterest,
         totalOutstanding,
+        progressPercent,
         linkedAsset, 
         ltv, 
         equity, 
@@ -187,7 +192,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                              <div className="text-right">
                                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Payoff progress</p>
                                   <p className={`text-3xl font-semibold tabular-nums ${isLending ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                      {((loanDetails.totalPaidPrincipal / (account.totalAmount || 1)) * 100).toFixed(0)}%
+                                      {loanDetails.progressPercent.toFixed(0)}%
                                   </p>
                              </div>
                         </div>
@@ -203,7 +208,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                             <div className="relative h-2.5 w-full bg-white/10 rounded-full overflow-hidden flex border border-white/5">
                                 <motion.div 
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${(loanDetails.totalPaidPrincipal / (account.totalAmount || 1)) * 100}%` }}
+                                    animate={{ width: `${loanDetails.progressPercent}%` }}
                                     className={`h-full ${isLending ? 'bg-emerald-500' : 'bg-rose-500'} relative`}
                                 />
                             </div>

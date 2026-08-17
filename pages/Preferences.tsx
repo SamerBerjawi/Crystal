@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { AppPreferences, Theme, Page, AppFont } from '../types';
+import { AppPreferences, Theme, Page, AppFont, AppFontCategory } from '../types';
+import { FONT_DEFINITIONS, FONT_CATEGORIES, normalizeFontKey, FontDefinition } from '../hooks/useFont';
 import Card from '../components/Card';
 import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
@@ -93,33 +94,35 @@ const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, se
 });
 
 interface FontCardProps {
-  label: string;
-  font: AppFont;
+  fontDef: FontDefinition;
   currentFont: AppFont;
   setFont: (font: AppFont) => void;
-  fontFamily: string;
-  description: string;
 }
-const FontCard = React.memo(function FontCard({ label, font, currentFont, setFont, fontFamily, description }: FontCardProps) {
-  const isSelected = currentFont === font;
+const FontCard = React.memo(function FontCard({ fontDef, currentFont, setFont }: FontCardProps) {
+  const isSelected = normalizeFontKey(currentFont) === normalizeFontKey(fontDef.id);
 
   return (
     <button
       type="button"
-      onClick={() => setFont(font)}
-      className={`flex-1 flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer group text-left relative overflow-hidden ${
+      onClick={() => setFont(fontDef.id)}
+      className={`flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer group text-left relative overflow-hidden ${
         isSelected 
           ? 'border-primary-500 bg-primary-500/[0.06] dark:bg-primary-500/[0.12] shadow-md ring-1 ring-primary-500/30' 
           : 'border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] hover:border-black/20 dark:hover:border-white/20'
       }`}
     >
       <div className="w-full flex items-center justify-between mb-3">
-        <span 
-          className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text"
-          style={{ fontFamily }}
-        >
-          Aa
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span 
+            className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text leading-none"
+            style={{ fontFamily: fontDef.fontFamily }}
+          >
+            Aa
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary">
+            {fontDef.categoryLabel}
+          </span>
+        </div>
         <div className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
           isSelected 
             ? 'bg-primary-500 border-primary-500 text-white shadow-xs' 
@@ -129,33 +132,34 @@ const FontCard = React.memo(function FontCard({ label, font, currentFont, setFon
         </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 w-full">
         <h4 
           className={`text-base font-bold tracking-tight ${
             isSelected ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'
           }`}
-          style={{ fontFamily }}
+          style={{ fontFamily: fontDef.fontFamily }}
         >
-          {label}
+          {fontDef.label}
         </h4>
-        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-75 leading-relaxed">
-          {description}
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-75 leading-relaxed line-clamp-2">
+          {fontDef.description}
         </p>
       </div>
 
       {/* Typography Preview Banner */}
       <div 
         className="w-full mt-3 pt-3 border-t border-black/5 dark:border-white/5 text-xs text-light-text dark:text-dark-text font-medium opacity-85 truncate"
-        style={{ fontFamily }}
+        style={{ fontFamily: fontDef.fontFamily }}
       >
-        The quick brown fox jumps over the lazy dog. 1234567890
+        {fontDef.sampleText || 'The quick brown fox jumps over the lazy dog. 1234567890'}
       </div>
     </button>
   );
 });
 
 const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {
-  const currentFont: AppFont = preferences.appFont || 'plus-jakarta-sans';
+  const currentFont: AppFont = preferences.appFont || 'plus-jakarta';
+  const [selectedCategory, setSelectedCategory] = React.useState<'all' | AppFontCategory>('all');
 
   const handleFontChange = (newFont: AppFont) => {
     setPreferences({ ...preferences, appFont: newFont });
@@ -168,6 +172,14 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
         setPreferences({ ...preferences, [name]: value as any });
     }
   };
+
+  const visibleFonts = React.useMemo(() => {
+    const allDefs = Object.values(FONT_DEFINITIONS).filter((f, idx, arr) => 
+      arr.findIndex(item => normalizeFontKey(item.id) === normalizeFontKey(f.id)) === idx
+    );
+    if (selectedCategory === 'all') return allDefs;
+    return allDefs.filter(f => f.category === selectedCategory);
+  }, [selectedCategory]);
 
   return (
     <div className="w-full pb-12 animate-fade-in-up px-4">
@@ -216,24 +228,48 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
               <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Choose the primary typeface for your application</p>
             </div>
             
-            <div className="p-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FontCard 
-                  label="Plus Jakarta Sans" 
-                  font="plus-jakarta-sans" 
-                  currentFont={currentFont} 
-                  setFont={handleFontChange} 
-                  fontFamily='"Plus Jakarta Sans", sans-serif'
-                  description="Modern geometric sans-serif with friendly curves and high legibility" 
-                />
-                <FontCard 
-                  label="Inter" 
-                  font="inter" 
-                  currentFont={currentFont} 
-                  setFont={handleFontChange} 
-                  fontFamily='"Inter", sans-serif'
-                  description="Precise, neutral Swiss-style neo-grotesque optimized for data & interfaces" 
-                />
+            <div className="p-8 space-y-6">
+              {/* Category Filter Tabs */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                {FONT_CATEGORIES.map((cat) => {
+                  const isActive = selectedCategory === cat.id;
+                  const count = cat.id === 'all' 
+                    ? Object.values(FONT_DEFINITIONS).filter((f, idx, arr) => arr.findIndex(item => normalizeFontKey(item.id) === normalizeFontKey(f.id)) === idx).length
+                    : Object.values(FONT_DEFINITIONS).filter(f => f.category === cat.id && f.id !== 'plus-jakarta-sans').length;
+
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        isActive
+                          ? 'bg-primary-500 text-white shadow-sm shadow-primary-500/25'
+                          : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      <Icon name={cat.icon} className="text-sm" />
+                      <span>{cat.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-black/10 dark:bg-white/10'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Categorized Font Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[480px] overflow-y-auto pr-1 scroll-touch">
+                {visibleFonts.map((fontDef) => (
+                  <FontCard
+                    key={fontDef.id}
+                    fontDef={fontDef}
+                    currentFont={currentFont}
+                    setFont={handleFontChange}
+                  />
+                ))}
               </div>
             </div>
           </section>

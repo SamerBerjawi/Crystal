@@ -73,6 +73,7 @@ interface MobileAccountsViewProps {
   onAccountClick: (id: string) => void;
   onEditClick: (account: Account) => void;
   onAdjustBalanceClick: (account: Account) => void;
+  onOverviewClick?: (account: Account) => void;
   onAddAccountClick: () => void;
   preferredCurrency: string;
   conversionRates?: any;
@@ -95,6 +96,7 @@ const MobileAccountItem: React.FC<{
   onAccountClick: (id: string) => void;
   onEditClick: (a: Account) => void;
   onAdjustBalanceClick: (a: Account) => void;
+  onOverviewClick?: (a: Account) => void;
   renderInstitutionAvatar: (a: Account) => React.ReactNode;
   curr: Currency;
   conversionRates?: any;
@@ -110,6 +112,7 @@ const MobileAccountItem: React.FC<{
   onAccountClick,
   onEditClick,
   onAdjustBalanceClick,
+  onOverviewClick,
   renderInstitutionAvatar,
   curr,
   conversionRates,
@@ -168,17 +171,29 @@ const MobileAccountItem: React.FC<{
     return { sparklineData: data, trend: trendVal, isPositiveTrend: isPositive };
   }, [account, transactionsByAccount, effectiveBal]);
 
+  const leftActions = [
+    ...(onOverviewClick
+      ? [
+          {
+            icon: 'visibility',
+            bgClass: 'bg-emerald-500',
+            label: 'Overview',
+            onAction: () => onOverviewClick(account),
+          },
+        ]
+      : []),
+    {
+      icon: 'tune',
+      bgClass: 'bg-indigo-500',
+      label: 'Adjust',
+      onAction: () => onAdjustBalanceClick(account),
+    },
+  ];
+
   return (
     <SwipeableRow
       key={account.id}
-      leftActions={[
-        {
-          icon: 'tune',
-          bgClass: 'bg-indigo-500',
-          label: 'Adjust',
-          onAction: () => onAdjustBalanceClick(account),
-        },
-      ]}
+      leftActions={leftActions}
       rightActions={[
         {
           icon: 'edit',
@@ -279,6 +294,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
   onAccountClick,
   onEditClick,
   onAdjustBalanceClick,
+  onOverviewClick,
   onAddAccountClick,
   preferredCurrency,
   conversionRates,
@@ -664,6 +680,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
                 onAccountClick={onAccountClick}
                 onEditClick={onEditClick}
                 onAdjustBalanceClick={onAdjustBalanceClick}
+                onOverviewClick={onOverviewClick}
                 renderInstitutionAvatar={renderInstitutionAvatar}
                 curr={curr}
                 conversionRates={conversionRates}
@@ -700,6 +717,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
                   onAccountClick={onAccountClick}
                   onEditClick={onEditClick}
                   onAdjustBalanceClick={onAdjustBalanceClick}
+                  onOverviewClick={onOverviewClick}
                   renderInstitutionAvatar={renderInstitutionAvatar}
                   curr={curr}
                   conversionRates={conversionRates}

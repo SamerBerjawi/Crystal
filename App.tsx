@@ -11,6 +11,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import AddTransactionModal from './components/AddTransactionModal';
 import { useIsMobile } from './hooks/useIsMobile';
+import { applyAppFont } from './hooks/useFont';
 function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ): React.LazyExoticComponent<T> {
@@ -685,19 +686,8 @@ const App: React.FC = () => {
 
   // Dynamic Font Synchronization
   useEffect(() => {
-    const activeFont = preferences.appFont || 'plus-jakarta-sans';
-    document.documentElement.setAttribute('data-font', activeFont);
-    if (activeFont === 'inter') {
-      document.documentElement.style.setProperty(
-        '--app-font',
-        '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", sans-serif'
-      );
-    } else {
-      document.documentElement.style.setProperty(
-        '--app-font',
-        '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", sans-serif'
-      );
-    }
+    const activeFont = preferences.appFont || 'plus-jakarta';
+    applyAppFont(activeFont);
     try {
       localStorage.setItem('crystal_font', activeFont);
     } catch (e) {}

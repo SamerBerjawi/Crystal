@@ -14,10 +14,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Crystal" />
-  <!-- Google Fonts: Plus Jakarta Sans & Inter (Weights 400, 500, 600, 700, 800) -->
+  <!-- Google Fonts: Sans-Serif, Display, and Serif collection -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Crete+Round:ital@0;1&family=Crimson+Pro:ital,wght@0,400..800;1,400..800&family=DM+Serif+Display:ital@0;1&family=Delius&family=Inter:wght@400;500;600;700;800&family=Montserrat:ital,wght@0,400..800;1,400..800&family=Neuton:ital,wght@0,400;0,700;0,800;1,400&family=Noto+Serif:ital,wght@0,400..800;1,400..800&family=Open+Sans:ital,wght@0,400..800;1,400..800&family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&family=Ubuntu:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -220,22 +220,41 @@
       document.documentElement.classList.toggle('dark', !shouldUseLight);
 
       // Apply initial font preference from localStorage to prevent font flashing
-      let initialFont = 'plus-jakarta-sans';
+      let initialFont = 'plus-jakarta';
       try {
         const storedFont = localStorage.getItem('crystal_font');
         if (storedFont) {
-          initialFont = storedFont;
+          initialFont = storedFont === 'plus-jakarta-sans' ? 'plus-jakarta' : storedFont;
         } else {
           const financialDataRaw = localStorage.getItem('financialData');
           if (financialDataRaw) {
             const parsed = JSON.parse(financialDataRaw);
             if (parsed?.preferences?.appFont) {
-              initialFont = parsed.preferences.appFont;
+              const pf = parsed.preferences.appFont;
+              initialFont = pf === 'plus-jakarta-sans' ? 'plus-jakarta' : pf;
             }
           }
         }
       } catch (e) {}
+
+      const FONT_MAP = {
+        'open-sans': '"Open Sans", sans-serif',
+        'montserrat': '"Montserrat", sans-serif',
+        'ubuntu': '"Ubuntu", sans-serif',
+        'delius': '"Delius", cursive, sans-serif',
+        'crimson-pro': '"Crimson Pro", Georgia, serif',
+        'neuton': '"Neuton", Georgia, serif',
+        'dm-serif-display': '"DM Serif Display", Georgia, serif',
+        'noto-serif': '"Noto Serif", Georgia, serif',
+        'crete-round': '"Crete Round", Georgia, serif',
+        'inter': '"Inter", sans-serif',
+        'plus-jakarta': '"Plus Jakarta Sans", sans-serif',
+        'plus-jakarta-sans': '"Plus Jakarta Sans", sans-serif',
+      };
+      const activeFamily = FONT_MAP[initialFont] || '"Plus Jakarta Sans", sans-serif';
       document.documentElement.setAttribute('data-font', initialFont);
+      document.documentElement.style.setProperty('--app-font-family', activeFamily);
+      document.documentElement.style.setProperty('--app-font', activeFamily);
 
       // Sync RGB primary variable
       const syncPrimaryRgb = () => {

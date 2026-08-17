@@ -8,6 +8,7 @@ import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency, 
 import AccountsListSection from '../components/AccountsListSection';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
+import AccountOverviewModal from '../components/AccountOverviewModal';
 import Card from '../components/Card';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
@@ -49,6 +50,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+  const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
+  const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -268,6 +271,20 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     setAdjustModalOpen(true);
   };
 
+  const openOverviewModal = (account: Account) => {
+    setOverviewAccount(account);
+    setIsOverviewModalOpen(true);
+  };
+
+  const handleAccountRowCardClick = (accountId: string) => {
+    const acc = accounts.find(a => a.id === accountId);
+    if (acc) {
+      openOverviewModal(acc);
+    } else {
+      handleAccountClick(accountId);
+    }
+  };
+
   const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
     if (!adjustingAccount) return;
     const txData: Omit<Transaction, 'id'> = {
@@ -325,12 +342,27 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
         {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
         {isAdjustModalOpen && adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
+        {isOverviewModalOpen && overviewAccount && (
+          <AccountOverviewModal
+            isOpen={isOverviewModalOpen}
+            onClose={() => setIsOverviewModalOpen(false)}
+            account={overviewAccount}
+            transactions={transactionsByAccount[overviewAccount.id] || []}
+            accounts={accounts}
+            warrants={warrants}
+            onViewAccount={handleAccountClick}
+            onEditAccount={openEditModal}
+            onAdjustBalance={openAdjustModal}
+            onNavigateToTransactions={onNavigateToTransactions}
+          />
+        )}
         {deletingAccount && <FinalConfirmationModal isOpen={!!deletingAccount} onClose={() => setDeletingAccount(null)} onConfirm={handleConfirmDelete} title="Delete Account" message={<><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">You are about to permanently delete the account <strong className="text-light-text dark:text-dark-text">{deletingAccount.name}</strong>.</p><div className="p-3 bg-red-500/10 rounded-lg text-red-700 dark:text-red-300 text-sm"><p className="font-bold">This action cannot be undone.</p><p>All associated transactions will also be permanently deleted.</p></div></>} requiredText="DELETE" confirmButtonText="Delete Account" />}
         
         {contextMenu && (
             <div ref={contextMenuRef} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed z-50 w-56 ios-regular rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up">
                 <ul className="text-sm">
-                    <li><button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="visibility" className="text-base" /><span>View Account</span></button></li>
+                    <li><button onClick={() => { openOverviewModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="visibility" className="text-base text-primary-500" /><span>Quick Overview</span></button></li>
+                    <li><button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="account_balance_wallet" className="text-base" /><span>View Full Account</span></button></li>
                     <li><button onClick={() => { onNavigateToTransactions({ accountName: contextMenu.account.name }); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="filter_list" className="text-base" /><span>Filter Transactions</span></button></li>
                     <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
                     <li><button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="edit" className="text-base" /><span>Edit Account</span></button></li>
@@ -355,9 +387,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             transactionsByAccount={transactionsByAccount}
             warrants={warrants}
             linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
-            onAccountClick={handleAccountClick}
+            onAccountClick={handleAccountRowCardClick}
             onEditClick={openEditModal}
             onAdjustBalanceClick={openAdjustModal}
+            onOverviewClick={openOverviewModal}
             onAddAccountClick={() => setAddModalOpen(true)}
             preferredCurrency={preferredCurrency}
             conversionRates={conversionRates}
@@ -585,9 +618,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         transactionsByAccount={transactionsByAccount} 
                         warrants={warrants} 
                         linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                        onAccountClick={handleAccountClick} 
+                        onAccountClick={handleAccountRowCardClick} 
                         onEditClick={openEditModal} 
                         onAdjustBalanceClick={openAdjustModal} 
+                        onOverviewClick={openOverviewModal}
                         sortBy={sortBy} 
                         accountOrder={accountOrder} 
                         setAccountOrder={setAccountOrder} 
@@ -610,9 +644,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         transactionsByAccount={transactionsByAccount} 
                         warrants={warrants} 
                         linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                        onAccountClick={handleAccountClick} 
+                        onAccountClick={handleAccountRowCardClick} 
                         onEditClick={openEditModal} 
                         onAdjustBalanceClick={openAdjustModal} 
+                        onOverviewClick={openOverviewModal}
                         sortBy={sortBy} 
                         accountOrder={accountOrder} 
                         setAccountOrder={setAccountOrder} 
@@ -633,9 +668,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     transactionsByAccount={transactionsByAccount} 
                     warrants={warrants} 
                     linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                    onAccountClick={handleAccountClick} 
+                    onAccountClick={handleAccountRowCardClick} 
                     onEditClick={openEditModal} 
                     onAdjustBalanceClick={openAdjustModal} 
+                    onOverviewClick={openOverviewModal}
                     sortBy={sortBy} 
                     accountOrder={accountOrder} 
                     setAccountOrder={setAccountOrder} 
@@ -658,9 +694,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     transactionsByAccount={transactionsByAccount} 
                     warrants={warrants} 
                     linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                    onAccountClick={handleAccountClick} 
+                    onAccountClick={handleAccountRowCardClick} 
                     onEditClick={openEditModal} 
                     onAdjustBalanceClick={openAdjustModal} 
+                    onOverviewClick={openOverviewModal}
                     sortBy={sortBy} 
                     accountOrder={accountOrder} 
                     setAccountOrder={setAccountOrder} 

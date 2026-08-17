@@ -16,6 +16,7 @@ interface AccountRowProps {
     onClick: () => void;
     onEdit: () => void;
     onAdjustBalance: () => void;
+    onOverview?: () => void;
     isDraggable: boolean;
     isBeingDragged: boolean;
     isDragOver: boolean;
@@ -29,7 +30,7 @@ interface AccountRowProps {
     viewStyle?: 'detailed' | 'minimal';
 }
 
-const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu, isLinkedToEnableBanking = false, viewStyle = 'detailed' }) => {
+const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, onOverview, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu, isLinkedToEnableBanking = false, viewStyle = 'detailed' }) => {
     const { loanPaymentOverrides } = useScheduleContext();
     const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
     const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
