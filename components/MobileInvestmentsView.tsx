@@ -91,6 +91,7 @@ export interface MobileInvestmentsViewProps {
   onUpdateAllPrices: () => Promise<void>;
   isUpdatingPrices: boolean;
   onViewAccount?: (accountId: string) => void;
+  onOverviewClick?: (account: Account) => void;
   preferredCurrency?: string;
   conversionRates?: any;
 }
@@ -138,6 +139,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
   onUpdateAllPrices,
   isUpdatingPrices,
   onViewAccount,
+  onOverviewClick,
   preferredCurrency = 'EUR',
   conversionRates,
 }) => {
@@ -581,7 +583,8 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                             <div
                               onClick={() => {
                                 if (isCustom && h.account) {
-                                  if (onViewAccount) onViewAccount(h.account.id);
+                                  if (onOverviewClick) onOverviewClick(h.account);
+                                  else if (onViewAccount) onViewAccount(h.account.id);
                                 } else {
                                   onOpenHoldingDetail(h.symbol);
                                 }
@@ -698,7 +701,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                     ]}
                   >
                     <div
-                      onClick={() => onViewAccount && onViewAccount(acc.id)}
+                      onClick={() => onOverviewClick ? onOverviewClick(acc) : (onViewAccount && onViewAccount(acc.id))}
                       className="bg-white dark:bg-dark-card rounded-2xl p-4 border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between gap-3 min-h-[64px] active:bg-black/5 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">

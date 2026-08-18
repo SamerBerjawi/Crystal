@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Account, Transaction, Tag, Category, Warrant, Currency } from '../types';
+import { Account, Transaction, Tag, Category, Warrant, Currency, InvestmentTransaction } from '../types';
 import {
   formatCurrency,
   convertToEur,
@@ -20,6 +20,8 @@ export interface AccountOverviewModalProps {
   onClose: () => void;
   account: Account | null;
   transactions?: Transaction[];
+  investmentTransactions?: InvestmentTransaction[];
+  prices?: Record<string, number>;
   accounts?: Account[];
   tags?: Tag[];
   allCategories?: Category[];
@@ -27,6 +29,7 @@ export interface AccountOverviewModalProps {
   onViewAccount?: (accountId: string) => void;
   onEditAccount?: (account: Account) => void;
   onAdjustBalance?: (account: Account) => void;
+  onOpenHoldingDetail?: (symbol: string) => void;
   onNavigateToTransactions?: (filters?: { accountName?: string | null }) => void;
 }
 
@@ -35,6 +38,8 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
   onClose,
   account,
   transactions = [],
+  investmentTransactions = [],
+  prices = {},
   accounts = [],
   tags = [],
   allCategories = [],
@@ -42,6 +47,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
   onViewAccount,
   onEditAccount,
   onAdjustBalance,
+  onOpenHoldingDetail,
   onNavigateToTransactions,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -304,6 +310,50 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       recentTxs,
     };
   }, [account, accountTransactions]);
+
+  // Investment Specific Holdings & Trade Metrics
+  const investmentHoldingMetrics = useMemo(() => {
+    if (!account || account.type !== 'Investment') return null;
+    const sym = account.symbol?.toUpperCase();
+    const matchingTrades = (investmentTransactions || []).filter(
+      tx => (sym && tx.symbol?.toUpperCase() === sym) || tx.name?.toLowerCase() === account.name?.toLowerCase()
+    );
+    const matchingGrants = (warrants || []).filter(
+      w => (sym && w.isin?.toUpperCase() === sym) || w.name?.toLowerCase() === account.name?.toLowerCase()
+    );
+
+    const buyShares = matchingTrades
+      .filter(t => t.type?.toLowerCase() === 'buy')
+      .reduce((sum, t) => sum + (t.quantity || 0), 0);
+    const sellShares = matchingTrades
+      .filter(t => t.type?.toLowerCase() === 'sell')
+      .reduce((sum, t) => sum + (t.quantity || 0), 0);
+    const grantShares = matchingGrants.reduce((sum, g) => sum + (g.quantity || 0), 0);
+    const netShares = buyShares + grantShares - sellShares;
+
+    const currentPrice = (sym && prices?.[sym]) ? prices[sym] : 0;
+    const investedCapital = matchingTrades.reduce((acc, t) => {
+      return t.type?.toLowerCase() === 'buy' ? acc + (t.quantity || 0) * (t.price || 0) : acc - (t.quantity || 0) * (t.price || 0);
+    }, 0);
+
+    const marketVal = account.balance > 0 ? account.balance : (netShares * currentPrice);
+    const totalCost = Math.max(0, investedCapital);
+    const unrealizedGain = marketVal - totalCost;
+    const gainPercent = totalCost > 0 ? (unrealizedGain / totalCost) * 100 : 0;
+
+    return {
+      symbol: sym,
+      netShares,
+      currentPrice,
+      investedCapital,
+      marketVal,
+      unrealizedGain,
+      gainPercent,
+      tradesCount: matchingTrades.length + matchingGrants.length,
+      matchingTrades,
+      matchingGrants,
+    };
+  }, [account, investmentTransactions, warrants, prices]);
 
   // Copy to clipboard helper
   const handleCopy = (text: string, label: string) => {
@@ -1071,53 +1121,97 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
           <div className="px-5 sm:px-6 pb-6 space-y-4">
             <div className="p-5 sm:p-6 rounded-3xl bg-[#181920] border border-white/5 space-y-5 shadow-inner">
               <div className="grid grid-cols-2 gap-5">
-                {/* Metric 1: 30-Day Activity */}
+                {/* Metric 1: Position / 30-Day Activity */}
                 <div className="space-y-1.5">
                   <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                    30-Day Activity
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? 'Held Position'
+                      : '30-Day Activity'}
                   </p>
                   <p className="text-sm sm:text-base font-black text-amber-400 truncate leading-tight font-mono">
-                    {metrics.txCount30d} {metrics.txCount30d === 1 ? 'Event' : 'Events'}
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? investmentHoldingMetrics.netShares > 0
+                        ? `${investmentHoldingMetrics.netShares.toLocaleString()} Units`
+                        : `${investmentHoldingMetrics.tradesCount} Events`
+                      : `${metrics.txCount30d} ${metrics.txCount30d === 1 ? 'Event' : 'Events'}`}
                   </p>
                   <p className="text-2xs text-gray-500 font-mono">
-                    {formatCurrency(metrics.volume30d, account.currency)} Vol
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? `Invested: ${formatCurrency(investmentHoldingMetrics.investedCapital, account.currency)}`
+                      : `${formatCurrency(metrics.volume30d, account.currency)} Vol`}
                   </p>
                 </div>
 
-                {/* Metric 2: Net Cash Flow 30d */}
+                {/* Metric 2: Net Cash Flow or Unrealized Gain */}
                 <div className="space-y-1.5 text-right">
                   <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                    30D Net Flow
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? 'Unrealized P&L'
+                      : '30D Net Flow'}
                   </p>
                   <p
                     className={`text-sm sm:text-base font-black truncate leading-tight font-mono ${
-                      metrics.netFlow30d >= 0 ? 'text-[#34d399]' : 'text-[#ff375f]'
+                      account.type === 'Investment' && investmentHoldingMetrics
+                        ? investmentHoldingMetrics.unrealizedGain >= 0
+                          ? 'text-[#34d399]'
+                          : 'text-[#ff375f]'
+                        : metrics.netFlow30d >= 0
+                        ? 'text-[#34d399]'
+                        : 'text-[#ff375f]'
                     }`}
                   >
-                    {metrics.netFlow30d >= 0 ? '+' : ''}
-                    {formatCurrency(metrics.netFlow30d, account.currency)}
+                    {account.type === 'Investment' && investmentHoldingMetrics ? (
+                      <>
+                        {investmentHoldingMetrics.unrealizedGain >= 0 ? '+' : ''}
+                        {formatCurrency(investmentHoldingMetrics.unrealizedGain, account.currency)}
+                      </>
+                    ) : (
+                      <>
+                        {metrics.netFlow30d >= 0 ? '+' : ''}
+                        {formatCurrency(metrics.netFlow30d, account.currency)}
+                      </>
+                    )}
                   </p>
                   <p className="text-2xs text-gray-500 font-mono">
-                    +{formatCurrency(metrics.inflows30d, account.currency)} in / -
-                    {formatCurrency(metrics.outflows30d, account.currency)} out
+                    {account.type === 'Investment' && investmentHoldingMetrics ? (
+                      <>
+                        {investmentHoldingMetrics.gainPercent >= 0 ? '+' : ''}
+                        {investmentHoldingMetrics.gainPercent.toFixed(1)}% Return
+                      </>
+                    ) : (
+                      <>
+                        +{formatCurrency(metrics.inflows30d, account.currency)} in / -
+                        {formatCurrency(metrics.outflows30d, account.currency)} out
+                      </>
+                    )}
                   </p>
                 </div>
 
-                {/* Metric 3: Average Ticket */}
+                {/* Metric 3: Average Ticket or Market Price */}
                 <div className="space-y-1.5">
                   <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                    Average Ticket
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? 'Market Quote'
+                      : 'Average Ticket'}
                   </p>
                   <p className="text-sm sm:text-base font-black text-[#38bdf8] truncate leading-tight font-mono">
-                    {formatCurrency(metrics.avgTicket, account.currency)}
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? investmentHoldingMetrics.currentPrice > 0
+                        ? formatCurrency(investmentHoldingMetrics.currentPrice, account.currency)
+                        : formatCurrency(account.balance, account.currency)
+                      : formatCurrency(metrics.avgTicket, account.currency)}
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Per Event (30d)</p>
+                  <p className="text-2xs text-gray-500 font-mono">
+                    {account.type === 'Investment' ? 'Live Unit Price' : 'Per Event (30d)'}
+                  </p>
                 </div>
 
                 {/* Metric 4: Account Specific Highlights */}
                 <div className="space-y-1.5 text-right">
                   <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
-                    {account.type === 'Credit Card' && account.creditLimit
+                    {account.type === 'Investment'
+                      ? 'Portfolio Class'
+                      : account.type === 'Credit Card' && account.creditLimit
                       ? 'Available Limit'
                       : account.type === 'Loan' && account.interestRate !== undefined
                       ? 'Interest Rate'
@@ -1128,7 +1222,9 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
                       : 'Last Activity'}
                   </p>
                   <p className="text-sm sm:text-base font-black text-[#c084fc] truncate leading-tight font-mono">
-                    {account.type === 'Credit Card' && account.creditLimit
+                    {account.type === 'Investment'
+                      ? account.subType || 'Brokerage Asset'
+                      : account.type === 'Credit Card' && account.creditLimit
                       ? formatCurrency(
                           Math.max(0, account.creditLimit - Math.abs(displayBalance)),
                           account.currency
@@ -1147,7 +1243,9 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
                       : 'No Events'}
                   </p>
                   <p className="text-2xs text-gray-500 font-mono">
-                    {account.type === 'Credit Card' && account.creditLimit
+                    {account.type === 'Investment' && investmentHoldingMetrics
+                      ? `${investmentHoldingMetrics.tradesCount} Trade Orders`
+                      : account.type === 'Credit Card' && account.creditLimit
                       ? `Limit: ${formatCurrency(account.creditLimit, account.currency)}`
                       : account.type === 'Loan' && account.duration
                       ? `${account.duration} Mos Term`
@@ -1291,7 +1389,19 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
 
               {/* ACTION BUTTONS FOOTER */}
               <div className="pt-4 border-t border-white/5 flex flex-col gap-2">
-                {onViewAccount && (
+                {account.type === 'Investment' && account.symbol && onOpenHoldingDetail ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClose();
+                      setTimeout(() => onOpenHoldingDetail(account.symbol!), 100);
+                    }}
+                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-98"
+                  >
+                    <Icon name="candlestick_chart" className="text-base text-white" />
+                    <span>View Holding Analytics & Quotes</span>
+                  </button>
+                ) : onViewAccount ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1303,7 +1413,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
                     <Icon name="visibility" className="text-base text-black" />
                     <span>Open Full Account View</span>
                   </button>
-                )}
+                ) : null}
 
                 <div className="grid grid-cols-2 gap-2">
                   {onAdjustBalance && (

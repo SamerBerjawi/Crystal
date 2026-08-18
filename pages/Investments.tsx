@@ -16,6 +16,7 @@ import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import AccountsListSection from '../components/AccountsListSection';
+import AccountOverviewModal from '../components/AccountOverviewModal';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Modal from '../components/Modal';
@@ -91,6 +92,13 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [activeSegment, setActiveSegment] = useState<InvestmentSegment>('all');
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
     const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+    const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
+    const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
+
+    const openOverviewModal = (account: Account) => {
+        setOverviewAccount(account);
+        setIsOverviewModalOpen(true);
+    };
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
     const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
@@ -340,7 +348,12 @@ const Investments: React.FC<InvestmentsProps> = ({
     };
 
     const handleAccountClick = (accountId: string) => {
-        if (onViewAccount) onViewAccount(accountId);
+        const acc = accounts.find(a => a.id === accountId);
+        if (acc) {
+            openOverviewModal(acc);
+        } else if (onViewAccount) {
+            onViewAccount(accountId);
+        }
     };
 
     const normalizeDecimalString = useCallback((rawValue: string): string => {
@@ -805,6 +818,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     onUpdateAllPrices={handleUpdateAllPrices}
                     isUpdatingPrices={isUpdatingAllPrices}
                     onViewAccount={onViewAccount}
+                    onOverviewClick={openOverviewModal}
                     preferredCurrency={preferredCurrency}
                     conversionRates={conversionRates}
                 />
@@ -1064,7 +1078,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                         {badgeLabel}
                                                                     </div>
                                                                 </td>
-                                                                <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
+                                                                 <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
                                                                     <div className="flex items-center justify-center gap-1">
                                                                         <button 
                                                                             onClick={() => handleOpenAccountModal(acc)}
@@ -1103,7 +1117,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         <tr 
                                                             key={holding.symbol} 
                                                             className={`group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer ${isClosed ? 'opacity-50' : ''}`}
-                                                            onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                                            onClick={() => holdingAccount ? openOverviewModal(holdingAccount) : onOpenHoldingDetail(holding.symbol)}
                                                         >
                                                             <td className="py-4 pl-6">
                                                                 <div className="flex items-center gap-3">
@@ -1369,6 +1383,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         onAccountClick={handleAccountClick}
                         onEditClick={handleOpenAccountModal}
                         onAdjustBalanceClick={() => {}}
+                        onOverviewClick={openOverviewModal}
                         sortBy="name"
                         accountOrder={[]}
                         onContextMenu={handleContextMenu}
@@ -1377,6 +1392,27 @@ const Investments: React.FC<InvestmentsProps> = ({
                         layoutMode="stacked"
                     />
                 </div>
+            )}
+
+            {/* Account Overview Modal */}
+            {isOverviewModalOpen && overviewAccount && (
+                <AccountOverviewModal
+                    isOpen={isOverviewModalOpen}
+                    onClose={() => setIsOverviewModalOpen(false)}
+                    account={overviewAccount}
+                    transactions={transactions}
+                    investmentTransactions={investmentTransactions}
+                    prices={prices as Record<string, number>}
+                    accounts={accounts}
+                    warrants={warrants}
+                    onViewAccount={onViewAccount}
+                    onEditAccount={handleOpenAccountModal}
+                    onAdjustBalance={(acc) => {
+                        setAdjustingAccount(acc);
+                        setAdjustModalOpen(true);
+                    }}
+                    onOpenHoldingDetail={onOpenHoldingDetail}
+                />
             )}
 
             {/* Balance Adjustment Modal */}

@@ -188,7 +188,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
               />
               <SettingCard
                 page="Merchants"
-                icon="building"
+                icon="building-02"
                 title="Merchants & Institutions"
                 description="Metadata enrichment, logos, and regex routing rules"
                 colorClass="bg-emerald-500 text-white"

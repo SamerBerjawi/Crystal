@@ -361,7 +361,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
             <div className="h-6 w-px bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name={rule?.isOnline ? "globe" : "building"} className="text-sky-400 text-sm shrink-0" />
+              <Icon name="marker-pin-04" className="text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Presence</span>
                 <span className="font-bold text-white text-xs">
