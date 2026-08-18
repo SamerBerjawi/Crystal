@@ -4,7 +4,7 @@ import { Category, MerchantRule, MerchantLocation, Transaction, TransactionRule 
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { BarChart, Bar, Grid, BarXAxis, YAxis, ChartTooltip } from '@/src/components/charts';
-import { getMerchantLogoUrl, isBrandfetchLogoRefreshable } from '../utils/brandfetch';
+import { getMerchantLogoUrl, isBrandfetchLogoRefreshable, normalizeMerchantKey } from '../utils/brandfetch';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import Icon from './ui/Icon';
@@ -363,11 +363,13 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         }
     }, [initialRule, logoKey]);
 
+    const [syncLocationToTransactions, setSyncLocationToTransactions] = useState(true);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const primaryLoc = locations.find(l => l.isPrimary) || locations[0];
 
-        onSave(logoKey, {
+        const updatedRule: MerchantRule = {
             category: category || undefined,
             website: website || undefined,
             logo: logo || undefined,
@@ -386,8 +388,40 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
             country: primaryLoc?.country || undefined,
             latitude: primaryLoc?.latitude,
             longitude: primaryLoc?.longitude,
-        });
-        toast.success(`Saved changes for "${merchantName}"`);
+        };
+
+        onSave(logoKey, updatedRule);
+
+        if (syncLocationToTransactions && (primaryLoc?.address || locations.length > 0)) {
+            const txsToUpdate: Transaction[] = [];
+            (transactions || []).forEach(t => {
+                const tKey = normalizeMerchantKey(t.merchant || '');
+                if (tKey === logoKey || (t.merchant && t.merchant.toLowerCase().trim() === merchantName.toLowerCase().trim())) {
+                    txsToUpdate.push({
+                        ...t,
+                        address: primaryLoc?.address || t.address,
+                        placeName: primaryLoc?.placeName || t.placeName,
+                        street: primaryLoc?.street || t.street,
+                        city: primaryLoc?.city || t.city,
+                        postalCode: primaryLoc?.postalCode || t.postalCode,
+                        state: primaryLoc?.state || t.state,
+                        country: primaryLoc?.country || t.country,
+                        latitude: primaryLoc?.latitude ?? t.latitude,
+                        longitude: primaryLoc?.longitude ?? t.longitude,
+                        locationLabel: primaryLoc?.label || primaryLoc?.placeName || primaryLoc?.city,
+                    });
+                }
+            });
+
+            if (txsToUpdate.length > 0) {
+                saveTransaction(txsToUpdate);
+                toast.success(`Saved changes and synced location to ${txsToUpdate.length} transaction(s) for "${merchantName}"`);
+            } else {
+                toast.success(`Saved changes for "${merchantName}"`);
+            }
+        } else {
+            toast.success(`Saved changes for "${merchantName}"`);
+        }
         handleCloseDrawer();
     };
 
@@ -936,6 +970,31 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 <span>Add Branch</span>
                                             </button>
                                         )}
+                                    </div>
+
+                                    {/* Bidirectional Sync to Past Transactions Banner */}
+                                    <div className="p-3.5 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.06] border border-primary-500/20 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-7 h-7 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0">
+                                                <Icon name="sync" className="text-xs" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-light-text dark:text-dark-text">
+                                                    Sync location to transactions
+                                                </p>
+                                                <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary">
+                                                    Apply primary branch location to {recentMerchantTxs.length} transaction(s) for {merchantName}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={syncLocationToTransactions}
+                                                onChange={e => setSyncLocationToTransactions(e.target.checked)}
+                                                className={CHECKBOX_STYLE}
+                                            />
+                                        </label>
                                     </div>
 
                                     {/* List of Configured Branches */}

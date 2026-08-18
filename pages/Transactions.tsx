@@ -988,23 +988,30 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id));
     if (!original) return;
 
+    const clearedFields = {
+      address: undefined,
+      placeName: undefined,
+      street: undefined,
+      city: undefined,
+      postalCode: undefined,
+      state: undefined,
+      country: undefined,
+      latitude: undefined,
+      longitude: undefined,
+      locationLabel: undefined,
+    };
+
     if (tx.isTransfer && original.transferId) {
       const pair = transactions.filter(t => t.transferId === original.transferId);
       const updates = pair.map(p => ({
         ...p,
-        city: undefined,
-        country: undefined,
-        latitude: undefined,
-        longitude: undefined,
+        ...clearedFields
       }));
       saveTransaction(updates, []);
     } else {
       saveTransaction([{
         ...original,
-        city: undefined,
-        country: undefined,
-        latitude: undefined,
-        longitude: undefined,
+        ...clearedFields
       }], []);
     }
   }, [transactions, saveTransaction]);

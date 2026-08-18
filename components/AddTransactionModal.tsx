@@ -9,7 +9,7 @@ import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
 import { parseLocationString } from '../utils/locationDetector';
-import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
 
@@ -354,6 +354,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [isToAccountPickerOpen, setIsToAccountPickerOpen] = useState(false);
 
   const isEditing = !!transactionToEdit;
+  const { setPreferences } = usePreferencesContext();
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
@@ -417,6 +418,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [isLocationUserModified, setIsLocationUserModified] = useState(
     Boolean(transactionToEdit?.address || initialDetails?.locationData?.address || initialDetails?.locationString)
   );
+  const [syncLocationToMerchant, setSyncLocationToMerchant] = useState(true);
   const [address, setAddress] = useState<string>(() => {
     if (transactionToEdit?.address) return transactionToEdit.address;
     if (initialDetails?.locationData?.address) return initialDetails.locationData.address;
@@ -1210,6 +1212,74 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
          }
     }
     
+    // Bidirectional Location Sync: Transaction -> Merchant Info
+    if (syncLocationToMerchant && hasLocation && merchant?.trim() && !['Internal Transfer', 'Round Up', 'Manual balance correction'].includes(merchant.trim())) {
+        const merchantKey = normalizeMerchantKey(merchant);
+        if (merchantKey) {
+            const newBranchLoc: MerchantLocation = {
+                id: uuidv4(),
+                label: locationLabel?.trim() || placeName?.trim() || city?.trim() || `${merchant.trim()} Branch`,
+                address: address?.trim() || [street, city, country].filter(Boolean).join(', '),
+                placeName: placeName?.trim() || undefined,
+                street: street?.trim() || undefined,
+                city: city?.trim() || undefined,
+                postalCode: postalCode?.trim() || undefined,
+                state: stateRegion?.trim() || undefined,
+                country: country?.trim() || undefined,
+                latitude: latitude !== undefined && !isNaN(latitude) ? latitude : undefined,
+                longitude: longitude !== undefined && !isNaN(longitude) ? longitude : undefined,
+                isPrimary: true
+            };
+
+            setPreferences(prev => {
+                const currentRules = prev.merchantRules || {};
+                const existingRule = currentRules[merchantKey] || {};
+                const existingLocs = existingRule.locations || [];
+
+                const matchIdx = existingLocs.findIndex(l => 
+                    (newBranchLoc.address && l.address && l.address.toLowerCase().trim() === newBranchLoc.address.toLowerCase().trim()) ||
+                    (newBranchLoc.latitude && l.latitude && Math.abs(l.latitude - newBranchLoc.latitude) < 0.0001 && Math.abs((l.longitude || 0) - (newBranchLoc.longitude || 0)) < 0.0001)
+                );
+
+                let nextLocs: MerchantLocation[];
+                if (matchIdx >= 0) {
+                    nextLocs = [...existingLocs];
+                    nextLocs[matchIdx] = {
+                        ...nextLocs[matchIdx],
+                        ...newBranchLoc,
+                        id: nextLocs[matchIdx].id,
+                        isPrimary: nextLocs[matchIdx].isPrimary ?? true
+                    };
+                } else {
+                    const hasPrimary = existingLocs.some(l => l.isPrimary);
+                    nextLocs = [...existingLocs, { ...newBranchLoc, isPrimary: !hasPrimary }];
+                }
+
+                const primaryLoc = nextLocs.find(l => l.isPrimary) || nextLocs[0];
+
+                return {
+                    ...prev,
+                    merchantRules: {
+                        ...currentRules,
+                        [merchantKey]: {
+                            ...existingRule,
+                            locations: nextLocs,
+                            address: primaryLoc?.address || newBranchLoc.address,
+                            placeName: primaryLoc?.placeName || newBranchLoc.placeName,
+                            street: primaryLoc?.street || newBranchLoc.street,
+                            city: primaryLoc?.city || newBranchLoc.city,
+                            postalCode: primaryLoc?.postalCode || newBranchLoc.postalCode,
+                            state: primaryLoc?.state || newBranchLoc.state,
+                            country: primaryLoc?.country || newBranchLoc.country,
+                            latitude: primaryLoc?.latitude ?? newBranchLoc.latitude,
+                            longitude: primaryLoc?.longitude ?? newBranchLoc.longitude,
+                        }
+                    }
+                };
+            });
+        }
+    }
+
     onSave(toSave, toDelete);
     handleCloseDrawer();
   };
@@ -2118,6 +2188,33 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             </div>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Bidirectional Sync with Merchant Info Toggle */}
+                    {merchant.trim() && !['Internal Transfer', 'Round Up', 'Manual balance correction'].includes(merchant.trim()) && (
+                      <div className="p-3.5 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.06] border border-primary-500/20 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0">
+                            <Icon name="sync" className="text-xs" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-900 dark:text-white">
+                              Sync location to merchant profile
+                            </p>
+                            <p className="text-2xs text-gray-500 dark:text-gray-400">
+                              Save this location as a physical branch for {merchant}
+                            </p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={syncLocationToMerchant}
+                            onChange={e => setSyncLocationToMerchant(e.target.checked)}
+                            className={CHECKBOX_STYLE}
+                          />
+                        </label>
                       </div>
                     )}
                   </div>
