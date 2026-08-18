@@ -1512,28 +1512,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       )}
 
       {/* Forecast Interaction Modals */}
-      {isRecurringModalOpen && (
+      {(isRecurringModalOpen || isBillModalOpen) && (
         <RecurringTransactionModal
-          onClose={() => setIsRecurringModalOpen(false)}
+          isOpen={isRecurringModalOpen || isBillModalOpen}
+          onClose={() => {
+            setIsRecurringModalOpen(false);
+            setIsBillModalOpen(false);
+            setEditingRecurring(null);
+            setEditingBill(null);
+          }}
           onSave={(data) => {
             saveRecurringTransaction(data);
             setIsRecurringModalOpen(false);
+            setEditingRecurring(null);
+          }}
+          onSaveBill={(data) => {
+            saveBillPayment(data);
+            setIsBillModalOpen(false);
+            setEditingBill(null);
           }}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
           recurringTransactionToEdit={editingRecurring}
-        />
-      )}
-      {isBillModalOpen && (
-        <BillPaymentModal
-          onClose={() => setIsBillModalOpen(false)}
-          onSave={(data) => {
-            saveBillPayment(data);
-            setIsBillModalOpen(false);
-          }}
-          bill={editingBill}
-          accounts={accounts}
+          billToEdit={editingBill}
+          initialMode={isBillModalOpen ? 'one-time' : 'recurring'}
           initialDate={selectedForecastDate || undefined}
         />
       )}

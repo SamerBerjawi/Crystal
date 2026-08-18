@@ -919,8 +919,34 @@ const Forecasting: React.FC = () => {
         <div className="relative">
             {/* Shared Modals (Available for both mobile and desktop) */}
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
-            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
-            {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}
+            {(isRecurringModalOpen || isBillModalOpen) && (
+                <RecurringTransactionModal 
+                    isOpen={isRecurringModalOpen || isBillModalOpen}
+                    onClose={() => {
+                        setIsRecurringModalOpen(false);
+                        setIsBillModalOpen(false);
+                        setEditingRecurring(null);
+                        setEditingBill(null);
+                    }}
+                    onSave={(d) => { 
+                        saveRecurringTransaction(d); 
+                        setIsRecurringModalOpen(false); 
+                        setEditingRecurring(null);
+                    }}
+                    onSaveBill={(d) => {
+                        saveBillPayment(d);
+                        setIsBillModalOpen(false);
+                        setEditingBill(null);
+                    }}
+                    accounts={accounts} 
+                    incomeCategories={incomeCategories} 
+                    expenseCategories={expenseCategories} 
+                    recurringTransactionToEdit={editingRecurring} 
+                    billToEdit={editingBill}
+                    initialMode={isBillModalOpen ? 'one-time' : 'recurring'}
+                    initialDate={selectedForecastDate || undefined}
+                />
+            )}
             {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
             {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
             {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}

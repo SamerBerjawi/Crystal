@@ -897,8 +897,33 @@ const SchedulePage: React.FC = () => {
     return (
         <div className="relative">
             {/* Shared Modals for both Mobile and Desktop */}
-            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
-            {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
+            {(isRecurringModalOpen || isBillModalOpen) && (
+                <RecurringTransactionModal 
+                    isOpen={isRecurringModalOpen || isBillModalOpen}
+                    onClose={() => {
+                        setIsRecurringModalOpen(false);
+                        setIsBillModalOpen(false);
+                        setEditingTransaction(null);
+                        setEditingBill(null);
+                    }}
+                    onSave={(data) => { 
+                        saveRecurringTransaction(data); 
+                        setIsRecurringModalOpen(false); 
+                        setEditingTransaction(null);
+                    }}
+                    onSaveBill={(data) => {
+                        saveBillPayment(data);
+                        setIsBillModalOpen(false);
+                        setEditingBill(null);
+                    }}
+                    accounts={accounts} 
+                    incomeCategories={incomeCategories} 
+                    expenseCategories={expenseCategories} 
+                    recurringTransactionToEdit={editingTransaction} 
+                    billToEdit={editingBill}
+                    initialMode={isBillModalOpen ? 'one-time' : 'recurring'}
+                />
+            )}
             {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
             {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
             {isTransactionModalOpen && itemToPost && (
