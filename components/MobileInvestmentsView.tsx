@@ -279,9 +279,9 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
             {/* Quick Action Button */}
             <button
               type="button"
-              onClick={() => setIsActionsSheetOpen(true)}
+              onClick={() => onAddTransaction()}
               aria-label="Add Investment Action"
-              className="h-9 w-9 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-md shadow-teal-500/25 active:scale-95"
+              className="h-9 w-9 rounded-2xl bg-teal-500 text-white flex items-center justify-center shadow-md shadow-teal-500/25 active:scale-95 cursor-pointer"
             >
               <Icon name="add" className="text-xl" />
             </button>
@@ -1001,60 +1001,6 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
             </div>
           </div>
         )}
-
-        {/* ================================================================= */}
-        {/* 5. BottomSheet: Quick Actions Menu */}
-        {/* ================================================================= */}
-        <BottomSheet
-          isOpen={isActionsSheetOpen}
-          onClose={() => setIsActionsSheetOpen(false)}
-          title="Add Investment"
-          subtitle="Record transactions or create new investment accounts"
-        >
-          <div className="space-y-2 p-4">
-            <button
-              type="button"
-              onClick={() => {
-                setIsActionsSheetOpen(false);
-                onAddTransaction();
-              }}
-              className="w-full p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center gap-3.5 text-left active:bg-black/5 transition-all"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20">
-                <Icon name="candlestick_chart" className="text-xl" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-light-text dark:text-white">
-                  Buy / Sell Trade
-                </p>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                  Record stocks, ETFs, crypto, or commodity transactions
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsActionsSheetOpen(false);
-                onAddWarrant();
-              }}
-              className="w-full p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center gap-3.5 text-left active:bg-black/5 transition-all"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
-                <Icon name="award" className="text-xl" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-light-text dark:text-white">
-                  Add Warrant Grant
-                </p>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                  Track employee stock options or company warrant programs
-                </p>
-              </div>
-            </button>
-          </div>
-        </BottomSheet>
       </div>
     </PullToRefresh>
   );

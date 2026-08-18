@@ -827,14 +827,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 {isUpdatingAllPrices ? 'Syncing...' : 'Sync Prices'}
                             </HeaderButton>
                             <HeaderButton
-                                variant="secondary"
-                                icon="Certificate01"
-                                onClick={() => handleOpenWarrantModal()}
-                                title="Add Equity Grant"
-                            >
-                                Equity Grant
-                            </HeaderButton>
-                            <HeaderButton
                                 variant="primary"
                                 icon="PlusCircle"
                                 onClick={() => handleOpenModal()}
