@@ -548,7 +548,16 @@ const SchedulePage: React.FC = () => {
                 });
             });
 
-        allUpcomingItems.sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
+        allUpcomingItems.sort((a, b) => {
+            const dateDiff = parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
+            if (dateDiff !== 0) return dateDiff;
+            const aIsIncome = a.amount >= 0;
+            const bIsIncome = b.amount >= 0;
+            if (aIsIncome && !bIsIncome) return -1;
+            if (!aIsIncome && bIsIncome) return 1;
+            if (aIsIncome && bIsIncome) return b.amount - a.amount;
+            return Math.abs(b.amount) - Math.abs(a.amount);
+        });
 
         // --- Metrics & Grouping ---
         let totalIncome30d = 0;

@@ -11,6 +11,7 @@ import {
   ForecastDuration,
   Currency,
   GoalCategory,
+  ScheduledItem,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, toLocalISOYearMonth } from '../utils';
@@ -23,6 +24,8 @@ import GoalContributionPlan from '../components/GoalContributionPlan';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import RecurringOverrideModal from '../components/RecurringOverrideModal';
+import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import ForecastOverview from '../components/ForecastOverview';
 import GoalTable from '../components/GoalTable';
@@ -93,6 +96,8 @@ const Forecasting: React.FC = () => {
     billsAndPayments,
     saveRecurringTransaction,
     deleteRecurringTransaction,
+    saveRecurringOverride,
+    deleteRecurringOverride,
     saveBillPayment,
     deleteBillPayment,
   } = useScheduleContext();
@@ -120,6 +125,8 @@ const Forecasting: React.FC = () => {
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
     const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
     const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
+    const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
+    const [editChoiceItem, setEditChoiceItem] = useState<ScheduledItem | null>(null);
 
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
         const primaryAccount = accounts.find(a => a.isPrimary);
@@ -751,13 +758,78 @@ const Forecasting: React.FC = () => {
         return tableData.filter(item => item.date === selectedForecastDate);
     }, [selectedForecastDate, tableData]);
 
+    const handleEditSingle = () => {
+        if (!editChoiceItem) return;
+        setOverrideModalItem(editChoiceItem);
+        setEditChoiceItem(null);
+    };
+
+    const handleEditSeries = () => {
+        if (!editChoiceItem) return;
+        setEditingRecurring(editChoiceItem.originalItem as RecurringTransaction);
+        setIsRecurringModalOpen(true);
+        setEditChoiceItem(null);
+    };
+
+    const handleEditFuture = () => {
+        if (!editChoiceItem) return;
+        const item = editChoiceItem;
+        const original = item.originalItem as RecurringTransaction;
+
+        const occurrenceDate = parseLocalDate(item.originalDateForOverride || item.date);
+        const dayBefore = new Date(occurrenceDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        const endDateForOld = toLocalISOString(dayBefore);
+
+        const newSeriesStart = item.originalDateForOverride || item.date;
+        const newSeriesData: Omit<RecurringTransaction, 'id'> = {
+            ...original,
+            startDate: newSeriesStart,
+            nextDueDate: newSeriesStart,
+        };
+
+        saveRecurringTransaction({ ...original, endDate: endDateForOld });
+
+        setEditingRecurring({ ...newSeriesData, id: '' } as RecurringTransaction);
+        setEditChoiceItem(null);
+        setIsRecurringModalOpen(true);
+    };
+
     const handleEditForecastItem = (item: any) => {
         setSelectedForecastDate(null);
         if (item.type === 'Financial Goal') {
              handleOpenModal(item.originalItem);
         } else if (item.type === 'Recurring') {
-             setEditingRecurring(item.originalItem);
-             setIsRecurringModalOpen(true);
+             if (item.originalItem?.isSynthetic) {
+                 return;
+             }
+             const originalRt = item.originalItem as RecurringTransaction;
+             const isOverride = !!(originalRt as any)?.isOverride;
+             const origDateForOverride = (originalRt as any)?.originalDateForOverride || item.date;
+
+             const scheduledItem: ScheduledItem = {
+                 id: item.id,
+                 isRecurring: true,
+                 date: item.date,
+                 description: item.description,
+                 amount: item.amount,
+                 accountName: item.accountName,
+                 type: originalRt?.type || (item.amount < 0 ? 'expense' : 'income'),
+                 originalItem: originalRt,
+                 isTransfer: originalRt?.type === 'transfer',
+                 isOverride: isOverride,
+                 originalDateForOverride: origDateForOverride,
+                 isSkipped: !!(originalRt as any)?.isSkipped,
+                 category: originalRt?.category,
+                 merchant: originalRt?.merchant,
+                 accountId: item.accountId || originalRt?.accountId,
+             };
+
+             if (isOverride) {
+                 setOverrideModalItem(scheduledItem);
+             } else {
+                 setEditChoiceItem(scheduledItem);
+             }
         } else if (item.type === 'Bill/Payment') {
              setEditingBill(item.originalItem);
              setIsBillModalOpen(true);
@@ -850,6 +922,8 @@ const Forecasting: React.FC = () => {
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}
             {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
+            {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
+            {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
             
             {deletingGoal && (
                 <ConfirmationModal

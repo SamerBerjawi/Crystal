@@ -971,7 +971,14 @@ export function generateBalanceForecast(
             // The requirement is "Visible but strikedout". So we must generate it.
 
             const effectiveDate = override?.date || adjustedDateStr;
-            let amount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
+            let amount: number;
+            if (rt.type === 'expense') {
+                amount = override?.amount !== undefined ? -Math.abs(override.amount) : -rt.amount;
+            } else if (rt.type === 'income') {
+                amount = override?.amount !== undefined ? Math.abs(override.amount) : rt.amount;
+            } else {
+                amount = override?.amount !== undefined ? Math.abs(override.amount) : rt.amount;
+            }
 
             // Apply Assumptions
             if (assumptions) {
@@ -989,52 +996,85 @@ export function generateBalanceForecast(
 
             let accountName = 'N/A';
             const isSkipped = !!override?.isSkipped;
+            const updatedOriginalItem = {
+                ...rt,
+                amount: override?.amount !== undefined ? Math.abs(override.amount) : rt.amount,
+                description: override?.description || rt.description,
+                isSkipped: isSkipped,
+                isOverride: !!override,
+                originalDateForOverride: rawDateStr,
+            };
 
-            // Only add financial impact if NOT skipped
-            // But we need to record the event for UI purposes regardless
-            // The chart calculation logic below iterates over events. We can add a property 'isSkipped' to event.
-
+            // Only add financial impact and events if NOT skipped (or mark as skipped)
             if (rt.type === 'transfer') {
                 const fromSelected = accountIds.has(rt.accountId);
                 const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
 
                 if (fromSelected && toSelected) {
                     // Internal transfer within selected accounts
+                    const transferAmount = override?.amount !== undefined ? Math.abs(override.amount) : rt.amount;
                     addEvent(effectiveDate, {
-                        amount: -(override?.amount !== undefined ? override.amount : rt.amount),
+                        amount: -transferAmount,
                         currency: rt.currency,
-                        description: `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`,
+                        description: override?.description || `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`,
                         accountName: accountMap.get(rt.accountId) || 'Unknown',
                         accountId: rt.accountId,
                         type: 'Recurring',
                         isGoal: false,
-                        originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
+                        originalItem: updatedOriginalItem
                     });
                     addEvent(effectiveDate, {
-                        amount: (override?.amount !== undefined ? override.amount : rt.amount),
+                        amount: transferAmount,
                         currency: rt.currency,
-                        description: `Transfer from ${accountMap.get(rt.accountId) || 'External'}`,
+                        description: override?.description || `Transfer from ${accountMap.get(rt.accountId) || 'External'}`,
                         accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
                         accountId: rt.toAccountId,
                         type: 'Recurring',
                         isGoal: false,
-                        originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
+                        originalItem: updatedOriginalItem
                     });
                 } else if (fromSelected) {
                     // Outflow from selected
                     accountName = `${accountMap.get(rt.accountId) || 'Unknown'} → External`;
-                    amount = -(override?.amount !== undefined ? override.amount : rt.amount);
-                    addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                    const transferAmount = -(override?.amount !== undefined ? Math.abs(override.amount) : rt.amount);
+                    addEvent(effectiveDate, {
+                        amount: transferAmount,
+                        currency: rt.currency,
+                        description: override?.description || rt.description,
+                        accountName,
+                        accountId: rt.accountId,
+                        type: 'Recurring',
+                        isGoal: false,
+                        originalItem: updatedOriginalItem
+                    });
                 } else if (toSelected) {
                     // Inflow to selected
                     accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
-                    amount = override?.amount !== undefined ? override.amount : rt.amount;
-                    addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                    const transferAmount = override?.amount !== undefined ? Math.abs(override.amount) : rt.amount;
+                    addEvent(effectiveDate, {
+                        amount: transferAmount,
+                        currency: rt.currency,
+                        description: override?.description || rt.description,
+                        accountName,
+                        accountId: rt.toAccountId,
+                        type: 'Recurring',
+                        isGoal: false,
+                        originalItem: updatedOriginalItem
+                    });
                 }
             } else {
                 accountName = accountMap.get(rt.accountId) || 'Unknown';
                 if (accountIds.has(rt.accountId)) {
-                    addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                    addEvent(effectiveDate, {
+                        amount,
+                        currency: rt.currency,
+                        description: override?.description || rt.description,
+                        accountName,
+                        accountId: rt.accountId,
+                        type: 'Recurring',
+                        isGoal: false,
+                        originalItem: updatedOriginalItem
+                    });
                 }
             }
 
@@ -1157,8 +1197,15 @@ export function generateBalanceForecast(
             });
         }
 
-        // Sort expenses first just for table display logic
-        eventsForDay.sort((a, b) => a.amount - b.amount);
+        // Sort same-day events: income first (highest to lowest), then expenses (highest to lowest)
+        eventsForDay.sort((a, b) => {
+            const aIsIncome = a.amount >= 0;
+            const bIsIncome = b.amount >= 0;
+            if (aIsIncome && !bIsIncome) return -1;
+            if (!aIsIncome && bIsIncome) return 1;
+            if (aIsIncome && bIsIncome) return b.amount - a.amount;
+            return Math.abs(b.amount) - Math.abs(a.amount);
+        });
 
         const dailySummary: { description: string; amount: number; type: string }[] = [];
 
@@ -1178,14 +1225,14 @@ export function generateBalanceForecast(
                         // Unassigned bill/income -> affects total view
                         runningTotalBalance += amountInEur;
                     }
-                }
 
-                tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningTotalBalance });
-                dailySummary.push({
-                    description: event.description,
-                    amount: amountInEur,
-                    type: event.type
-                });
+                    tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningTotalBalance });
+                    dailySummary.push({
+                        description: event.description,
+                        amount: amountInEur,
+                        type: event.type
+                    });
+                }
             }
         }
 

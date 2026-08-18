@@ -35,6 +35,8 @@ import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import RecurringOverrideModal from '../components/RecurringOverrideModal';
+import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -173,7 +175,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { financialGoals, saveFinancialGoal } = useGoalsContext();
-  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
+  const {
+    recurringTransactions,
+    recurringTransactionOverrides,
+    loanPaymentOverrides,
+    billsAndPayments,
+    saveRecurringTransaction,
+    saveBillPayment,
+    saveRecurringOverride,
+    deleteRecurringOverride,
+  } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
   const { preferences, setPreferences } = usePreferencesContext();
@@ -247,6 +258,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const [isBillMatcherModalOpen, setIsBillMatcherModalOpen] = useState(false);
 
   const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
+  const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
+  const [editChoiceItem, setEditChoiceItem] = useState<ScheduledItem | null>(null);
 
   // States for Forecast Interaction Modals
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
@@ -381,14 +394,79 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     setSelectedForecastDate(date);
   };
 
+  const handleEditSingle = () => {
+    if (!editChoiceItem) return;
+    setOverrideModalItem(editChoiceItem);
+    setEditChoiceItem(null);
+  };
+
+  const handleEditSeries = () => {
+    if (!editChoiceItem) return;
+    setEditingRecurring(editChoiceItem.originalItem as RecurringTransaction);
+    setIsRecurringModalOpen(true);
+    setEditChoiceItem(null);
+  };
+
+  const handleEditFuture = () => {
+    if (!editChoiceItem) return;
+    const item = editChoiceItem;
+    const original = item.originalItem as RecurringTransaction;
+
+    const occurrenceDate = parseLocalDate(item.originalDateForOverride || item.date);
+    const dayBefore = new Date(occurrenceDate);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    const endDateForOld = toLocalISOString(dayBefore);
+
+    const newSeriesStart = item.originalDateForOverride || item.date;
+    const newSeriesData: Omit<RecurringTransaction, 'id'> = {
+      ...original,
+      startDate: newSeriesStart,
+      nextDueDate: newSeriesStart,
+    };
+
+    saveRecurringTransaction({ ...original, endDate: endDateForOld });
+
+    setEditingRecurring({ ...newSeriesData, id: '' } as RecurringTransaction);
+    setEditChoiceItem(null);
+    setIsRecurringModalOpen(true);
+  };
+
   const handleEditForecastItem = (item: any) => {
     setSelectedForecastDate(null);
     if (item.type === 'Financial Goal') {
       setEditingGoal(item.originalItem);
       setIsGoalModalOpen(true);
     } else if (item.type === 'Recurring') {
-      setEditingRecurring(item.originalItem);
-      setIsRecurringModalOpen(true);
+      if (item.originalItem?.isSynthetic) {
+        return;
+      }
+      const originalRt = item.originalItem as RecurringTransaction;
+      const isOverride = !!(originalRt as any)?.isOverride;
+      const origDateForOverride = (originalRt as any)?.originalDateForOverride || item.date;
+
+      const scheduledItem: ScheduledItem = {
+        id: item.id,
+        isRecurring: true,
+        date: item.date,
+        description: item.description,
+        amount: item.amount,
+        accountName: item.accountName,
+        type: originalRt?.type || (item.amount < 0 ? 'expense' : 'income'),
+        originalItem: originalRt,
+        isTransfer: originalRt?.type === 'transfer',
+        isOverride: isOverride,
+        originalDateForOverride: origDateForOverride,
+        isSkipped: !!(originalRt as any)?.isSkipped,
+        category: originalRt?.category,
+        merchant: originalRt?.merchant,
+        accountId: item.accountId || originalRt?.accountId,
+      };
+
+      if (isOverride) {
+        setOverrideModalItem(scheduledItem);
+      } else {
+        setEditChoiceItem(scheduledItem);
+      }
     } else if (item.type === 'Bill/Payment') {
       setEditingBill(item.originalItem);
       setIsBillModalOpen(true);
@@ -1473,6 +1551,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       )}
 
       {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
+      {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
+      {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
 
       {isMobile ? (
         <MobileDashboardView
