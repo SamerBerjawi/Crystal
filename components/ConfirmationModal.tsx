@@ -108,21 +108,24 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 rounded-3xl shadow-modal w-full max-w-sm overflow-hidden"
+            className="bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 flex flex-col items-center text-center gap-4">
+            {/* Ambient Accent Glow */}
+            <div className={`absolute top-0 left-0 right-0 h-24 bg-gradient-to-b ${config.iconBg} to-transparent pointer-events-none -z-1 opacity-50`} />
+
+            <div className="p-6 pt-8 flex flex-col items-center text-center gap-4">
               {/* Icon */}
-              <div className={`w-14 h-14 rounded-2xl ${config.iconBg} flex items-center justify-center`}>
+              <div className={`w-14 h-14 rounded-2xl ${config.iconBg} border border-black/5 dark:border-white/5 flex items-center justify-center shadow-xs`}>
                 <Icon name={displayIcon} className={`text-2xl ${config.iconColor}`} />
               </div>
 
               {/* Title & Message */}
               <div className="space-y-2">
-                <h3 className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">
+                <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">
                   {title}
                 </h3>
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
                   {message}
                 </p>
               </div>

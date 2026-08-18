@@ -447,7 +447,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={handleCloseDrawer}
@@ -456,50 +456,49 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
       {/* Right-Side Full Height Slide-out Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white dark:bg-[#12141a] text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Header Ribbon & Hero Section */}
-          <div className="shrink-0 border-b border-black/5 dark:border-white/5 bg-gray-50/70 dark:bg-white/[0.02]">
-            {/* Top Action Ribbon */}
-            <div className="flex items-center justify-between px-5 sm:px-6 pt-4 pb-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                  mode === 'trade' 
-                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
-                    : 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
-                }`}>
-                  <Icon name={mode === 'trade' ? 'trending_up' : 'verified'} className="text-xs" />
-                  {mode === 'trade' 
-                    ? (isEditingTrade ? 'Edit Investment Trade' : 'New Investment Trade') 
-                    : (isEditingGrant ? 'Edit Equity Grant' : 'New Equity Grant')}
-                </span>
-
-                {mode === 'trade' && (
-                  <span className={`inline-flex items-center gap-1 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                    tradeType === 'buy' 
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                  }`}>
-                    {tradeType.toUpperCase()}
-                  </span>
-                )}
+          {/* Header matching CategoryModal */}
+          <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-indigo-500/5 to-transparent shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div 
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md transition-transform hover:scale-105 ${
+                  mode === 'trade' ? 'bg-indigo-600' : 'bg-amber-600'
+                }`}
+              >
+                <Icon name={mode === 'trade' ? 'trending_up' : 'verified'} className="text-2xl" />
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleCloseDrawer}
-                  className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all flex items-center gap-1 text-xs font-bold cursor-pointer"
-                  title="Close panel (Esc)"
-                >
-                  <Icon name="close" className="text-lg" />
-                  <span className="hidden sm:inline text-xs font-medium text-gray-400 font-mono">ESC</span>
-                </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+                    {mode === 'trade' 
+                      ? (isEditingTrade ? 'Edit Investment Trade' : 'New Investment Trade') 
+                      : (isEditingGrant ? 'Edit Equity Grant' : 'New Equity Grant')}
+                  </h2>
+                  <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
+                    mode === 'trade'
+                      ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                  }`}>
+                    {mode === 'trade' ? (tradeType === 'buy' ? 'Buy' : 'Sell') : 'Grant'}
+                  </span>
+                </div>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
+                  {mode === 'trade' ? 'Log market acquisition or disposition' : 'Record employee equity or warrant vesting'}
+                </p>
               </div>
             </div>
+            <button 
+              onClick={handleCloseDrawer}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+              aria-label="Close drawer"
+            >
+              <Icon name="close" className="text-lg" />
+            </button>
+          </div>
 
             {/* Mode Switcher (Trade vs. Grant) */}
             {!isEditing && (
@@ -830,7 +829,6 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                 </>
               )}
             </div>
-          </div>
 
           {/* 2. Scrollable Body Content */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
@@ -1145,37 +1143,37 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
           </div>
 
           {/* 3. Sticky Drawer Footer */}
-          <div className="shrink-0 p-4 sm:p-5 border-t border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#12141a]/95 backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={handleClearFields}
-              className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-rose-500 transition-colors cursor-pointer"
+              className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 transition-colors cursor-pointer"
             >
               Clear Fields
             </button>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleCloseDrawer}
-                className={`${BTN_SECONDARY_STYLE} !py-2 !px-4 !text-xs cursor-pointer`}
+                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider cursor-pointer`}
               >
-                Dismiss
+                Cancel
               </button>
 
               <button
                 type="submit"
                 form={mode === 'trade' ? 'trade-form' : 'grant-form'}
-                className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 !text-xs flex items-center gap-1.5 shadow-md ${
+                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg ${
                   mode === 'trade' ? 'shadow-indigo-500/20' : 'shadow-amber-500/20'
-                } cursor-pointer`}
+                } active:scale-95 cursor-pointer`}
               >
-                <Icon name="check" className="text-xs" />
                 <span>
                   {mode === 'trade'
                     ? (isEditingTrade ? 'Save Trade' : 'Confirm Trade')
                     : (isEditingGrant ? 'Save Grant' : 'Commit Grant')}
                 </span>
+                <Icon name="check" className="text-base" />
               </button>
             </div>
           </div>

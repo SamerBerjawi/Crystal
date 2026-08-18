@@ -229,7 +229,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
       {/* Slide-out Sidebar Drawer Container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
         <div
-          className={`pointer-events-auto w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-screen bg-white dark:bg-[#12141a] text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`pointer-events-auto w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -237,46 +237,49 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           {/* Ambient Top Glow */}
           <div className="absolute top-0 right-0 left-0 h-40 bg-gradient-to-b from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
 
-          {/* 1. DRAWER HEADER */}
-          <div className="relative px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/80 dark:bg-[#12141a]/80 backdrop-blur-md z-20">
-            <div className="flex items-center gap-3">
+          {/* Header matching CategoryModal */}
+          <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-blue-500/5 to-transparent shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
               <div
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center border shadow-xs transition-colors ${
-                  type === 'invoice'
-                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
-                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md transition-transform hover:scale-105 ${
+                  type === 'invoice' ? 'bg-blue-600' : 'bg-amber-600'
                 }`}
               >
-                <Icon name={type === 'invoice' ? 'receipt_long' : 'request_quote'} className="text-xl" />
+                <Icon name={type === 'invoice' ? 'receipt_long' : 'request_quote'} className="text-2xl" />
               </div>
-              <div>
-                <h2 className="text-lg font-black text-light-text dark:text-white tracking-tight">
-                  {isEditing
-                    ? type === 'invoice'
-                      ? 'Edit Invoice Record'
-                      : 'Edit Price Quote'
-                    : type === 'invoice'
-                    ? 'New Invoice'
-                    : 'New Estimate / Quote'}
-                </h2>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+                    {isEditing
+                      ? type === 'invoice'
+                        ? 'Edit Invoice'
+                        : 'Edit Quote'
+                      : type === 'invoice'
+                      ? 'New Invoice'
+                      : 'New Quote'}
+                  </h2>
+                  <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
+                    type === 'invoice'
+                      ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                  }`}>
+                    {type}
+                  </span>
+                </div>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
                   {type === 'invoice'
                     ? 'Client billing, receivables, and structured invoices'
                     : 'Price proposals, project estimates, and commercial quotes'}
                 </p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-light-text dark:hover:text-white flex items-center justify-center transition-all cursor-pointer"
-                title="Close (Esc)"
-              >
-                <Icon name="close" className="text-lg" />
-              </button>
-            </div>
+            <button 
+              onClick={handleClose}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+              aria-label="Close drawer"
+            >
+              <Icon name="close" className="text-lg" />
+            </button>
           </div>
 
           {/* 2. TOP MODE SWITCHER TABS */}
@@ -664,7 +667,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </div>
 
           {/* 4. DRAWER FOOTER */}
-          <div className="px-6 py-4 border-t border-black/5 dark:border-white/10 bg-gray-50/80 dark:bg-[#12141a]/90 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#16171a]/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={handleClose}

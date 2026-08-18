@@ -1,12 +1,12 @@
-
-import React, { useState, useMemo } from 'react';
-import Modal from './Modal';
-import { Transaction, Category, Currency } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Transaction, Category } from '../types';
 import { formatCurrency } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
 
 interface SplitTransactionModalProps {
+  isOpen?: boolean;
   onClose: () => void;
   onSave: (updatedParent: Transaction, subTransactions: Transaction[]) => void;
   transaction: Transaction;
@@ -22,6 +22,7 @@ interface SplitItem {
 }
 
 const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
+  isOpen = true,
   onClose,
   onSave,
   transaction,
@@ -32,6 +33,28 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
     { id: '1', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 1)` },
     { id: '2', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 2)` },
   ]);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 20);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 250);
+  };
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const flatCategories = useMemo(() => {
@@ -86,103 +109,201 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
     }));
 
     onSave(updatedParent, subTransactions);
+    handleClose();
   };
 
-  return (
-    <Modal onClose={onClose} title="Split Transaction" size="2xl">
-      <div className="space-y-6">
-        <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/10">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Original Transaction</p>
-              <p className="font-bold text-lg">{transaction.description}</p>
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{transaction.category}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-mono font-black">{formatCurrency(totalAmount, transaction.currency)}</p>
-              <p className={`text-xs font-semibold ${Math.abs(remaining) < 0.01 ? 'text-green-500' : 'text-red-500'}`}>
-                {Math.abs(remaining) < 0.01 ? 'Fully Allocated' : `Remaining: ${formatCurrency(remaining, transaction.currency)}`}
-              </p>
-            </div>
-          </div>
-        </div>
+  const content = (
+    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+      {/* Backdrop */}
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
+        onClick={handleClose}
+      />
 
-        <div className="space-y-4">
-          {splits.map((split, index) => (
-            <div key={split.id} className="grid grid-cols-12 gap-3 items-end p-3 rounded-xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-sm relative group">
-              <div className="col-span-5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 mb-1 block">Description</label>
-                <input
-                  type="text"
-                  value={split.description}
-                  onChange={e => handleUpdateSplit(split.id, { description: e.target.value })}
-                  placeholder={`Split ${index + 1}`}
-                  className={INPUT_BASE_STYLE}
-                />
+      {/* Sidebar Drawer */}
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+        <div 
+          className={`w-screen max-w-xl bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
+            isVisible ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/20 shadow-xs">
+                <Icon name="call_split" className="text-2xl" />
               </div>
-              <div className="col-span-3">
-                <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 mb-1 block">Category</label>
-                <div className={SELECT_WRAPPER_STYLE}>
-                  <select
-                    value={split.category}
-                    onChange={e => handleUpdateSplit(split.id, { category: e.target.value })}
-                    className={`${SELECT_STYLE} pr-8`}
-                  >
-                    <option value="">Select Category</option>
-                    {flatCategories.map(cat => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                </div>
-              </div>
-              <div className="col-span-3 text-right">
-                <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mr-1 mb-1 block">Amount</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={split.amount}
-                    onChange={e => handleUpdateSplit(split.id, { amount: e.target.value })}
-                    className={`${INPUT_BASE_STYLE} text-right font-mono font-bold`}
-                  />
-                </div>
-              </div>
-              <div className="col-span-1 flex justify-center pb-2">
-                <button
-                  onClick={() => handleRemoveSplit(split.id)}
-                  disabled={splits.length <= 1}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30"
-                >
-                  <Icon name="delete" className="text-lg" />
-                </button>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+                  Split Transaction
+                </h2>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
+                  Divide transaction across categories
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-
-        <div className="flex justify-between items-center pt-2">
-          <button
-            onClick={handleAddSplit}
-            className="flex items-center gap-2 text-sm font-bold text-primary-500 hover:text-primary-600 transition-colors"
-          >
-            <Icon name="add_circle" />
-            Add Split
-          </button>
-          <div className="flex gap-3">
-            <button onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-            <button
-              onClick={handleSave}
-              className={BTN_PRIMARY_STYLE}
-              disabled={Math.abs(remaining) > 0.01}
+            <button 
+              onClick={handleClose}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+              aria-label="Close drawer"
             >
-              Confirm Split
+              <Icon name="close" className="text-lg" />
             </button>
+          </div>
+
+          {/* Body Content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+
+              {/* Transaction Summary Card */}
+              <div className="p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 flex items-center justify-between">
+                <div className="min-w-0 flex-1 pr-4">
+                  <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 block mb-1">
+                    Original Entry
+                  </span>
+                  <p className="font-bold text-base text-light-text dark:text-dark-text truncate">
+                    {transaction.description}
+                  </p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5">
+                    {transaction.category}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-2xl font-black tabular-nums text-light-text dark:text-dark-text">
+                    {formatCurrency(totalAmount, transaction.currency)}
+                  </p>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold mt-1 ${
+                    Math.abs(remaining) < 0.01 
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                  }`}>
+                    {Math.abs(remaining) < 0.01 ? 'Fully Allocated' : `Remaining: ${formatCurrency(remaining, transaction.currency)}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Split Items */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                    Split Allocations ({splits.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAddSplit}
+                    className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1"
+                  >
+                    <Icon name="add" className="text-sm" />
+                    <span>Add Split</span>
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {splits.map((split, index) => (
+                    <div 
+                      key={split.id} 
+                      className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm space-y-3 relative group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xs font-bold uppercase tracking-wider text-primary-500">
+                          Part {index + 1}
+                        </span>
+                        {splits.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSplit(split.id)}
+                            className="text-rose-500 hover:bg-rose-500/10 p-1 rounded-lg transition-colors"
+                            title="Remove split"
+                          >
+                            <Icon name="delete" className="text-base" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                            Description
+                          </label>
+                          <input
+                            type="text"
+                            value={split.description}
+                            onChange={e => handleUpdateSplit(split.id, { description: e.target.value })}
+                            placeholder={`Split ${index + 1}`}
+                            className={`${INPUT_BASE_STYLE} h-11 text-xs`}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                            Category
+                          </label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                            <select
+                              value={split.category}
+                              onChange={e => handleUpdateSplit(split.id, { category: e.target.value })}
+                              className={`${SELECT_STYLE} h-11 text-xs font-semibold`}
+                            >
+                              <option value="">Select Category</option>
+                              {flatCategories.map(cat => (
+                                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                              ))}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                          Amount
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={split.amount}
+                            onChange={e => handleUpdateSplit(split.id, { amount: e.target.value })}
+                            className={`${INPUT_BASE_STYLE} pl-8 h-11 text-sm font-bold font-mono`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Sticky Bottom Actions */}
+            <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
+              <button 
+                type="button" 
+                onClick={handleClose} 
+                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSave} 
+                disabled={Math.abs(remaining) > 0.01}
+                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`}
+              >
+                <span>Confirm Split</span>
+                <Icon name="check" className="text-base" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </Modal>
+    </div>
   );
+
+  return createPortal(content, document.body);
 };
 
 export default SplitTransactionModal;

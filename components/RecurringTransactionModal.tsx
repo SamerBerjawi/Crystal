@@ -321,7 +321,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
       {/* Slide-out Sidebar Drawer Container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
         <div 
-          className={`pointer-events-auto w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white dark:bg-[#12141a] text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`pointer-events-auto w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -329,17 +329,22 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
           {/* Ambient Top Glow */}
           <div className="absolute top-0 right-0 left-0 h-40 bg-gradient-to-b from-primary-500/10 via-teal-500/5 to-transparent pointer-events-none" />
 
-        {/* 1. DRAWER HEADER */}
-        <div className="relative px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-md z-20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary-500/20 to-teal-500/20 text-primary-500 flex items-center justify-center border border-primary-500/30 shadow-xs">
-              <Icon name={mode === 'recurring' ? 'refresh' : 'receipt'} className="text-xl" />
+        {/* Header matching CategoryModal */}
+        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-primary-500 flex items-center justify-center text-white shrink-0 shadow-md transition-transform hover:scale-105">
+              <Icon name={mode === 'recurring' ? 'refresh' : 'receipt'} className="text-2xl" />
             </div>
-            <div>
-              <h2 className="text-lg font-black text-light-text dark:text-white tracking-tight">
-                {isEditing ? (mode === 'recurring' ? 'Edit Recurring Series' : 'Edit One-time Obligation') : 'Scheduled Obligation'}
-              </h2>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+                  {isEditing ? (mode === 'recurring' ? 'Edit Recurring Series' : 'Edit Obligation') : 'Scheduled Obligation'}
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                  {mode === 'recurring' ? 'Series' : 'One-Time'}
+                </span>
+              </div>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
                 {mode === 'recurring' 
                   ? 'Automated cashflow rules, subscriptions & recurring payroll' 
                   : 'Single maturity bills, invoices & upcoming settlements'}
@@ -347,11 +352,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
+          <button 
             onClick={handleClose}
-            className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-light-text dark:hover:text-white flex items-center justify-center transition-all cursor-pointer"
-            title="Close (Esc)"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+            aria-label="Close drawer"
           >
             <Icon name="close" className="text-lg" />
           </button>
@@ -852,7 +856,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
         </div>
 
         {/* 4. DRAWER STICKY FOOTER */}
-        <div className="px-6 py-4 border-t border-black/5 dark:border-white/10 flex items-center justify-between shrink-0 bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-md z-20">
+        <div className="p-6 border-t border-black/5 dark:border-white/5 flex items-center justify-between shrink-0 bg-white/80 dark:bg-[#16171a]/80 backdrop-blur-md z-20">
           <button
             type="button"
             onClick={handleClose}

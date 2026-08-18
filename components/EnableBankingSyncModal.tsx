@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { EnableBankingSyncOptions } from '../types';
@@ -82,114 +81,145 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isBalanceOnly = state.transactionMode === 'none';
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 transition-opacity">
-      <div className="w-full max-w-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 p-6 space-y-6 animate-fade-in-up">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity font-sans">
+      <div className="w-full max-w-lg bg-light-card dark:bg-dark-card shadow-2xl border border-black/10 dark:border-white/10 rounded-3xl overflow-hidden flex flex-col transform transition-all duration-300">
         
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                    <Icon name="sync_alt" className="text-lg" />
-                </div>
-                <h4 className="text-xl font-bold text-light-text dark:text-dark-text">{title}</h4>
+        {/* Header matching CategoryModal */}
+        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/5 to-transparent">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-md">
+              <Icon name="sync_alt" className="text-2xl" />
             </div>
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h4 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">{title}</h4>
+                <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Sync
+                </span>
+              </div>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">{description}</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100 hover:bg-black/5 dark:hover:bg-white/10 p-1 rounded-full transition-colors"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+            aria-label="Close modal"
           >
-            <Icon name="close" />
+            <Icon name="close" className="text-lg" />
           </button>
         </div>
 
         {/* Options */}
-        <div className="space-y-4">
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
           
           {/* Option 1: Transactions from a date */}
           <div
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'full' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-neutral-200 dark:border-neutral-800 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer ${
+              state.transactionMode === 'full' 
+                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-sm' 
+                : 'bg-light-fill dark:bg-dark-fill/50 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
+            }`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'full' }))}
           >
-            <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${state.transactionMode === 'full' ? 'border-primary-600 bg-primary-600' : 'border-gray-400'}`}>
-                    {state.transactionMode === 'full' && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+            <div className="flex items-start gap-3.5">
+              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'full' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'}`}>
+                {state.transactionMode === 'full' && <div className="w-2 h-2 bg-white rounded-full"></div>}
+              </div>
+              <div className="flex-1 space-y-3">
+                <div>
+                  <div className="font-bold text-sm text-light-text dark:text-dark-text">Sync transactions & balance</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Import transactions starting from a specific date and update account balance.</div>
                 </div>
-                <div className="flex-1 space-y-3">
-                    <div>
-                        <div className="font-bold text-sm text-light-text dark:text-dark-text">Sync transactions & balance</div>
-                        <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Import transactions starting from a specific date and update account balance.</div>
+                
+                {/* Date Picker (Nested) */}
+                {state.transactionMode === 'full' && (
+                  <div className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 space-y-2" onClick={e => e.stopPropagation()}>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary" htmlFor="enable-banking-sync-start">
+                      Import From Date
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="enable-banking-sync-start"
+                        type="date"
+                        min={minDate}
+                        max={maxDate}
+                        value={clampDate(state.syncStartDate) || ''}
+                        onChange={(e) => setState(prev => ({ ...prev, syncStartDate: clampDate(e.target.value) || '' }))}
+                        className={`${INPUT_BASE_STYLE} h-11 flex-1 font-medium`}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleSetToday}
+                        className={`${BTN_SECONDARY_STYLE} h-11 px-4 text-xs font-bold uppercase tracking-wider`}
+                      >
+                        Today
+                      </button>
                     </div>
-                    
-                    {/* Date Picker (Nested) */}
-                    {state.transactionMode === 'full' && (
-                         <div className="flex flex-col gap-1.5 animate-fade-in-up" onClick={e => e.stopPropagation()}>
-                            <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary" htmlFor="enable-banking-sync-start">Import from</label>
-                            <div className="flex gap-2">
-                                <input
-                                    id="enable-banking-sync-start"
-                                    type="date"
-                                    min={minDate}
-                                    max={maxDate}
-                                    value={clampDate(state.syncStartDate) || ''}
-                                    onChange={(e) => setState(prev => ({ ...prev, syncStartDate: clampDate(e.target.value) || '' }))}
-                                    className="h-10 w-full rounded-xl px-4 border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 text-sm flex-1"
-                                />
-                                <button 
-                                    type="button"
-                                    onClick={handleSetToday}
-                                    className="px-3 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-semibold transition-colors text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700"
-                                >
-                                    Today
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Option 2: Sync only new transactions */}
           <div
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'incremental' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-neutral-200 dark:border-neutral-800 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer ${
+              state.transactionMode === 'incremental' 
+                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-sm' 
+                : 'bg-light-fill dark:bg-dark-fill/50 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
+            }`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'incremental', updateBalance: true }))}
           >
-            <div className="flex items-start gap-3">
-              <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${state.transactionMode === 'incremental' ? 'border-primary-600 bg-primary-600' : 'border-gray-400'}`}>
-                {state.transactionMode === 'incremental' && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+            <div className="flex items-start gap-3.5">
+              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'incremental' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'}`}>
+                {state.transactionMode === 'incremental' && <div className="w-2 h-2 bg-white rounded-full"></div>}
               </div>
               <div>
                 <div className="font-bold text-sm text-light-text dark:text-dark-text">Sync only new transactions</div>
-                <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use the last synced time for this account to import only fresh activity and update balance.</div>
+                <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Use the last synced time for this account to import only fresh activity and update balance.</div>
               </div>
             </div>
           </div>
 
           {/* Option 3: Balance Only */}
           <div
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'none' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-neutral-200 dark:border-neutral-800 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`p-5 rounded-3xl border transition-all cursor-pointer ${
+              state.transactionMode === 'none' 
+                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-sm' 
+                : 'bg-light-fill dark:bg-dark-fill/50 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
+            }`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'none', updateBalance: true }))}
           >
-             <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${state.transactionMode === 'none' ? 'border-primary-600 bg-primary-600' : 'border-gray-400'}`}>
-                     {state.transactionMode === 'none' && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                </div>
-                <div>
-                    <div className="font-bold text-sm text-light-text dark:text-dark-text">Update balance only</div>
-                    <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Skip transaction import, just refresh the numbers.</div>
-                </div>
+            <div className="flex items-start gap-3.5">
+              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'none' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'}`}>
+                {state.transactionMode === 'none' && <div className="w-2 h-2 bg-white rounded-full"></div>}
+              </div>
+              <div>
+                <div className="font-bold text-sm text-light-text dark:text-dark-text">Update balance only</div>
+                <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Skip transaction import, just refresh the numbers.</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-          <button onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-          <button onClick={handleConfirm} className={BTN_PRIMARY_STYLE}>Start Sync</button>
+        {/* Footer matching CategoryModal */}
+        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            onClick={handleConfirm} 
+            className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95`}
+          >
+            <span>Start Sync</span>
+            <Icon name="sync" className="text-base" />
+          </button>
         </div>
       </div>
     </div>

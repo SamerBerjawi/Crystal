@@ -457,7 +457,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={handleCloseDrawer}
@@ -466,45 +466,49 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
       {/* Right-Side Full Height Slide-out Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white dark:bg-[#12141a] text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Header Ribbon & Hero Section */}
-          <div className="shrink-0 border-b border-black/5 dark:border-white/5 bg-gray-50/70 dark:bg-white/[0.02]">
-            {/* Top Action Ribbon */}
-            <div className="flex items-center justify-between px-5 sm:px-6 pt-4 pb-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-500/10 px-2.5 py-1 rounded-full border border-primary-500/20">
-                  <Icon name="edit" className="text-xs" />
-                  Edit Account
-                </span>
-                <span className={`inline-flex items-center gap-1 text-2xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                  account.status === 'closed' 
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' 
-                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                }`}>
-                  <Icon name={account.status === 'closed' ? 'archive' : 'check_circle'} className="text-xs" />
-                  {account.status === 'closed' ? 'Archived' : 'Active'}
-                </span>
-                <span className="inline-flex items-center gap-1 text-2xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300">
-                  {type}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleCloseDrawer}
-                  className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all flex items-center gap-1 text-xs font-bold cursor-pointer"
-                  title="Close panel (Esc)"
-                >
-                  <Icon name="close" className="text-lg" />
-                  <span className="hidden sm:inline text-xs font-medium text-gray-400 font-mono">ESC</span>
-                </button>
+          {/* Header matching CategoryModal */}
+          <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setIconPickerOpen(true)}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md transition-transform hover:scale-105 bg-primary-500"
+                title="Change Icon"
+              >
+                <Icon name={icon} className="text-2xl" />
+              </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+                    Edit Account
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                    {type}
+                  </span>
+                  {account.status === 'closed' && (
+                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      Archived
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
+                  Modify balance, banking credentials & settings
+                </p>
               </div>
             </div>
+            <button 
+              onClick={handleCloseDrawer}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+              aria-label="Close drawer"
+            >
+              <Icon name="close" className="text-lg" />
+            </button>
+          </div>
 
             {/* Hero Card: Avatar / Icon + Account Name + Type & Liquidity */}
             <div className="px-5 sm:px-6 py-3 space-y-3">
@@ -663,7 +667,6 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 )}
               </button>
             </div>
-          </div>
 
           {/* 2. Scrollable Body Content */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
@@ -1587,47 +1590,47 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           </div>
 
           {/* 3. Sticky Drawer Footer */}
-          <div className="shrink-0 p-4 sm:p-5 border-t border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#12141a]/95 backdrop-blur-md flex items-center justify-between gap-3">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleDelete}
-                className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer"
-                title="Delete Account"
+                onClick={handleDeleteClick}
+                className="h-12 px-4 rounded-xl text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/10 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Icon name="delete" className="text-base" />
+                <span>Delete</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleToggleStatus}
-                className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border cursor-pointer ${
+                className={`h-12 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors border cursor-pointer ${
                   account.status === 'closed'
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
                     : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
                 }`}
               >
-                <Icon name={account.status === 'closed' ? 'sync' : 'archive'} className="text-xs" />
-                <span>{account.status === 'closed' ? 'Reactivate' : 'Archive Node'}</span>
+                <Icon name={account.status === 'closed' ? 'sync' : 'archive'} className="text-base" />
+                <span>{account.status === 'closed' ? 'Reactivate' : 'Archive'}</span>
               </button>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleCloseDrawer}
-                className={`${BTN_SECONDARY_STYLE} !py-2 !px-4 !text-xs cursor-pointer`}
+                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider cursor-pointer`}
               >
-                Dismiss
+                Cancel
               </button>
 
               <button
                 type="submit"
                 form="edit-account-form"
-                className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 !text-xs flex items-center gap-1.5 shadow-md shadow-primary-500/20 cursor-pointer`}
+                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer`}
               >
-                <Icon name="check" className="text-xs" />
                 <span>Save Changes</span>
+                <Icon name="check" className="text-base" />
               </button>
             </div>
           </div>
