@@ -356,34 +356,36 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
   return (
     <div
-      className={`bg-white dark:bg-dark-card rounded-3xl p-5 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden flex flex-col ${className}`}
+      className={`bg-white dark:bg-dark-card rounded-3xl p-5 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden flex flex-col justify-between ${className}`}
     >
       {/* Top Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Icon name="candlestick_chart" className="text-primary-500 text-lg" />
-            <h3 className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight">
-              {title}
-            </h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
+            <Icon name="candlestick_chart" className="text-primary-500 text-base" />
           </div>
-          {subtitle && (
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-              {subtitle}
-            </p>
-          )}
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
+              <span>{title}</span>
+            </h3>
+            {subtitle && (
+              <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* View Mode & Timeframe Selector */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           {/* Granularity / Grouping Selector */}
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
+          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 text-2xs">
             <button
               type="button"
               onClick={() => setGranularity('raw')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'raw'
-                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm scale-105'
+                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
@@ -392,26 +394,26 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             <button
               type="button"
               onClick={() => setGranularity('weekly')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'weekly'
-                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm scale-105'
+                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
-              Weekly Grouped
+              Weekly
             </button>
           </div>
 
           {/* Timeframe Selector (1M, 3M, 6M, 1Y, ALL) */}
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
+          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 text-2xs">
             {(['1M', '3M', '6M', '1Y', 'ALL'] as TimeframeOption[]).map((tf) => (
               <button
                 key={tf}
                 type="button"
                 onClick={() => setTimeframe(tf)}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
+                className={`px-2 py-1 rounded-lg font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                   timeframe === tf
-                    ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm scale-105'
+                    ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
@@ -423,61 +425,65 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       </div>
 
       {/* Summary OHLC Metric Bar */}
-      {!compact && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3.5 bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl mb-5">
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between">
-              <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Period Start</span>
-              <span className="text-2xs font-semibold text-gray-400">{startDateFormatted}</span>
-            </div>
-            <span className="text-sm font-bold font-mono text-light-text dark:text-dark-text privacy-blur">
-              {formatCurrency(stats.open, currency)}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xs font-semibold tracking-wider text-emerald-500 uppercase">Period High</span>
-            <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 privacy-blur">
-              {formatCurrency(stats.high, currency)}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xs font-semibold tracking-wider text-rose-500 uppercase">Period Low</span>
-            <span className="text-sm font-bold font-mono text-rose-600 dark:text-rose-400 privacy-blur">
-              {formatCurrency(stats.low, currency)}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xs font-semibold tracking-wider text-primary-500 uppercase">Latest Close</span>
-            <span className="text-sm font-bold font-mono text-primary-600 dark:text-primary-400 privacy-blur">
-              {formatCurrency(stats.close, currency)}
-            </span>
-          </div>
-          <div className="col-span-2 sm:col-span-1 flex flex-col justify-center">
-            <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Total Return</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span
-                className={`text-xs font-bold font-mono px-2 py-0.5 rounded-lg ${
-                  stats.change >= 0
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {stats.change >= 0 ? '+' : ''}
-                {stats.changePercent.toFixed(2)}%
-              </span>
-            </div>
-          </div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-2.5 bg-gray-50/80 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl mb-4 text-xs">
+        <div className="flex flex-col px-2">
+          <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Period Start</span>
+          <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text mt-0.5">
+            {startDateFormatted}
+          </span>
         </div>
-      )}
+        <div className="flex flex-col px-2">
+          <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Open</span>
+          <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text privacy-blur mt-0.5">
+            {formatCurrency(stats.open, currency)}
+          </span>
+        </div>
+        <div className="flex flex-col px-2">
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-2xs font-semibold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">High</span>
+          </div>
+          <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 privacy-blur mt-0.5">
+            {formatCurrency(stats.high, currency)}
+          </span>
+        </div>
+        <div className="flex flex-col px-2">
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span className="text-2xs font-semibold tracking-wider text-rose-600 dark:text-rose-400 uppercase">Low</span>
+          </div>
+          <span className="text-xs font-bold font-mono text-rose-600 dark:text-rose-400 privacy-blur mt-0.5">
+            {formatCurrency(stats.low, currency)}
+          </span>
+        </div>
+        <div className="col-span-2 sm:col-span-1 flex flex-col px-2 justify-center">
+          <div className="flex items-center justify-between">
+            <span className="text-2xs font-semibold tracking-wider text-primary-500 uppercase">Return</span>
+            <span
+              className={`text-2xs font-bold font-mono px-1.5 py-0.5 rounded-md ${
+                stats.change >= 0
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {stats.change >= 0 ? '+' : ''}
+              {stats.changePercent.toFixed(1)}%
+            </span>
+          </div>
+          <span className="text-xs font-black font-mono text-primary-500 privacy-blur mt-0.5">
+            {formatCurrency(stats.close, currency)}
+          </span>
+        </div>
+      </div>
 
       {/* Main Candlestick Chart Area */}
-      <div className="w-full relative flex-1 min-h-[260px]" style={{ height }}>
+      <div className="w-full relative flex-1 min-h-[220px]" style={{ height }}>
         <CandlestickChart
           key={`${timeframe}-${granularity}`}
           revealSignature={`${timeframe}-${granularity}`}
           data={ohlcData}
-          margin={{ top: 20, right: 20, bottom: 35, left: 20 }}
-          style={{ height }}
+          margin={{ top: 12, right: 16, bottom: 28, left: 16 }}
+          style={{ height: '100%', minHeight: height }}
           candleGap={0.25}
         >
           <Grid horizontal stroke="rgba(128,128,128,0.12)" />

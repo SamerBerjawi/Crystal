@@ -809,7 +809,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     conversionRates={conversionRates}
                 />
             ) : (
-                <div className="space-y-8">
+                <div className="space-y-5">
                 <PageHeader 
                     markerIcon="candlestick_chart"
                     markerLabel="Investment Center"
@@ -845,101 +845,127 @@ const Investments: React.FC<InvestmentsProps> = ({
                     }
                 />
 
-                {/* --- Consolidated Header & Portfolio --- */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
-                    <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
+                {/* --- Unified Top Row: 1/3 Hero Portfolio Command & 2/3 Candlestick Performance --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    {/* --- Left 1/3 (Col 4): Investment Portfolio Command Hero Card --- */}
+                    <div className="lg:col-span-4 bg-white dark:bg-dark-card rounded-3xl p-5 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative flex flex-col justify-between group">
+                        <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
-                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-8 flex-1">
-                            <div onClick={() => setActiveSegment('all')} className="cursor-pointer group/nw">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Icon name="candlestick_chart" className="text-primary-500 text-sm" />
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Assets</span>
-                                </div>
-                                <div className="flex items-baseline gap-2">
-                                    <h2 className="text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
-                                        {formatCurrency(segmentValues.all, 'EUR')}
-                                    </h2>
-                                    {activeSegment === 'all' && (
-                                        <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                        <div className="relative z-10 space-y-4">
+                            {/* Header: Valuation & Sparkline */}
+                            <div>
+                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center">
+                                            <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-500 text-sm" />
+                                        </div>
+                                        <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                                            {activeSegment === 'all' ? 'Portfolio Valuation' : `${segments.find(s => s.id === activeSegment)?.label} Segment`}
+                                        </span>
+                                    </div>
+
+                                    {activeSegment !== 'all' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveSegment('all')}
+                                            className="text-2xs font-bold uppercase tracking-wider text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+                                        >
+                                            View All
+                                        </button>
                                     )}
                                 </div>
-                                <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={trendData}>
-                                            <Area type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={2000} />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+
+                                <div className="flex items-baseline justify-between gap-3">
+                                    <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight privacy-blur text-light-text dark:text-dark-text">
+                                        {formatCurrency(segmentValues[activeSegment] || segmentValues.all, 'EUR')}
+                                    </h2>
+                                    <div className="w-20 h-7 opacity-60">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={trendData}>
+                                                <Area type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={1500} />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
-
-                            {/* Segment Grid - High Density Tiles */}
-                            <div className="flex-[2] grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                {segments.filter(s => s.id !== 'all').map(seg => {
-                                    const isActive = activeSegment === seg.id;
-                                    const val = segmentValues[seg.id as keyof typeof segmentValues];
-                                    return (
-                                        <div key={seg.id} onClick={() => setActiveSegment(seg.id)} className={`group cursor-pointer p-3 sm:p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}>
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <Icon name={seg.icon} className="text-lg" />
+                            {/* Middle: Segment Allocation Grid */}
+                            <div className="space-y-1.5">
+                                <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                    Allocation by Segment
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {segments.map(seg => {
+                                        const isActive = activeSegment === seg.id;
+                                        const val = segmentValues[seg.id as keyof typeof segmentValues];
+                                        return (
+                                            <button
+                                                key={seg.id}
+                                                type="button"
+                                                onClick={() => setActiveSegment(seg.id)}
+                                                className={`p-2.5 rounded-xl transition-all border text-left flex items-center justify-between cursor-pointer ${
+                                                    isActive
+                                                        ? 'bg-primary-500/10 border-primary-500/30 text-primary-600 dark:text-primary-400 shadow-xs'
+                                                        : 'bg-gray-50/70 dark:bg-white/[0.02] hover:bg-gray-100/80 dark:hover:bg-white/[0.05] border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                                                        isActive ? 'bg-primary-500/20 text-primary-600 dark:text-primary-400' : 'bg-white dark:bg-white/10 text-gray-500 shadow-2xs'
+                                                    }`}>
+                                                        <Icon name={seg.icon} className="text-xs" />
+                                                    </div>
+                                                    <span className={`text-2xs font-semibold truncate ${isActive ? 'text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                        {seg.label}
+                                                    </span>
                                                 </div>
-                                                {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className={`text-xs font-semibold ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
-                                                <span className={`text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                                <span className={`text-xs font-bold font-mono privacy-blur ml-1 shrink-0 ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
                                                     {formatCurrency(val, 'EUR')}
                                                 </span>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer: Dynamic Segment Metrics & Inactive Toggle */}
+                        <div className="relative z-10 mt-4 pt-4 border-t border-black/5 dark:border-white/5 space-y-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                {segmentMetrics.details.map((detail, i) => (
+                                    <div key={i} className="p-2 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 flex flex-col">
+                                        <span className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary/70 truncate">{detail.label}</span>
+                                        <span className="text-xs font-black text-light-text dark:text-dark-text privacy-blur truncate mt-0.5">{detail.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs pt-1">
+                                <span className="text-2xs font-semibold uppercase tracking-wider text-gray-400">Display Options</span>
+                                <label className="flex items-center gap-1.5 text-2xs bg-light-fill dark:bg-dark-fill px-2.5 py-1 rounded-lg font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                    <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3 h-3" />
+                                    <span>Show Inactive</span>
+                                </label>
                             </div>
                         </div>
                     </div>
 
-                    {/* Integrated Details Tray */}
-                    <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-6">
-                        <AnimatePresence mode="wait">
-                            <motion.div key={activeSegment} initial={{ opacity: 0, x: -1 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 1 }} className="flex flex-wrap items-center gap-x-8 gap-y-3">
-                                {segmentMetrics.details.map((detail, i) => (
-                                     <div key={i} className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
-                                            <Icon name={detail.icon} className="text-base text-primary-500/70" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70">{detail.label}</span>
-                                            <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
-                                        </div>
-                                     </div>
-                                ))}
-                            </motion.div>
-                        </AnimatePresence>
-
-                        <div className="flex items-center gap-3 flex-wrap">
-                             <label className="flex items-center gap-2 text-xs bg-light-fill dark:bg-dark-fill px-4 h-9 rounded-xl font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                                <span>Inactive</span>
-                            </label>
-                        </div>
+                    {/* --- Right 2/3 (Col 8): Candlestick OHLC Performance Trend Chart --- */}
+                    <div className="lg:col-span-8 flex flex-col">
+                        <InvestmentCandlestickChart
+                            title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
+                            subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
+                            currentValue={segmentMetrics.totalValue}
+                            costBasis={activeSegment === 'all' ? totalCostBasis : undefined}
+                            isNegativeTrend={segmentMetrics.totalValue < (totalCostBasis || 0)}
+                            priceHistory={segmentPriceHistory}
+                            transactions={investmentTransactions}
+                            currency="EUR"
+                            height={220}
+                            className="h-full"
+                        />
                     </div>
                 </div>
-
-                {/* Investment Candlestick Performance Trend Chart */}
-                <InvestmentCandlestickChart
-                    title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
-                    subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
-                    currentValue={segmentMetrics.totalValue}
-                    costBasis={activeSegment === 'all' ? totalCostBasis : undefined}
-                    isNegativeTrend={segmentMetrics.totalValue < (totalCostBasis || 0)}
-                    priceHistory={segmentPriceHistory}
-                    transactions={investmentTransactions}
-                    currency="EUR"
-                    height={320}
-                />
 
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                     {/* Main Table Column */}
