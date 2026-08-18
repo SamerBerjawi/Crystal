@@ -23,30 +23,32 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
   return (
     <Modal onClose={onClose} title={title} zIndexClass="z-[80]">
       <div className="space-y-4">
-        {message}
+        <div className="text-xs text-light-text dark:text-dark-text leading-relaxed font-medium">
+          {message}
+        </div>
         <div>
-          <label htmlFor="confirm-input" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">
-            To confirm, type "{requiredText}" in the box below.
+          <label htmlFor="confirm-input" className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
+            To confirm, type <span className="font-mono font-bold text-rose-500 underline decoration-rose-500/30">"{requiredText}"</span> in the box below:
           </label>
           <input
             id="confirm-input"
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            className={`${INPUT_BASE_STYLE} text-center`}
+            className={`${INPUT_BASE_STYLE} h-12 text-center font-mono font-bold text-base`}
             autoFocus
             autoComplete="off"
           />
         </div>
       </div>
-      <div className="flex justify-end gap-4 pt-6 mt-4 border-t border-black/10 dark:border-white/10">
-        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>
+      <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-black/5 dark:border-white/5">
+        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>
           Cancel
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-11 px-6 rounded-2xl text-xs font-bold uppercase tracking-wider bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!isMatch}
         >
           {confirmButtonText}

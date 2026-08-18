@@ -76,12 +76,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 dark:bg-[#18181c]/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 z-50 overflow-hidden ring-1 ring-black/5"
+            className="absolute right-0 mt-3 w-80 sm:w-96 bg-light-card dark:bg-dark-card rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 z-50 overflow-hidden"
           >
             {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
+            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-xs">
                   <Icon name="event_upcoming" className="text-lg" />
                 </div>
                 <div>

@@ -220,7 +220,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -229,7 +229,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
       {/* Slide-out Sidebar Drawer Container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
         <div
-          className={`pointer-events-auto w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`pointer-events-auto w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -288,10 +288,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleTypeChange('invoice')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   type === 'invoice'
-                    ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm border border-black/5 dark:border-white/10'
-                    : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                 }`}
               >
                 <Icon name="receipt_long" className="text-sm" />
@@ -300,14 +300,14 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleTypeChange('quote')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   type === 'quote'
-                    ? 'bg-white dark:bg-dark-card text-amber-600 dark:text-amber-400 shadow-sm border border-black/5 dark:border-white/10'
-                    : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-white dark:bg-dark-card text-amber-600 dark:text-amber-400 shadow-sm'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                 }`}
               >
                 <Icon name="request_quote" className="text-sm" />
-                <span>Quote / Estimate</span>
+                <span>Quote</span>
               </button>
             </div>
           </div>
@@ -667,11 +667,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </div>
 
           {/* 4. DRAWER FOOTER */}
-          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#16171a]/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              className={`${BTN_SECONDARY_STYLE} !py-2.5 !px-5 text-xs font-bold tracking-wider uppercase`}
+              className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
             >
               Cancel
             </button>
@@ -679,15 +679,16 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
             <button
               type="submit"
               form="invoice-quote-form"
-              className={`${BTN_PRIMARY_STYLE} !py-2.5 !px-8 text-xs font-black tracking-wider uppercase shadow-md shadow-primary-500/20`}
+              className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95`}
             >
-              {isEditing
+              <span>{isEditing
                 ? type === 'invoice'
                   ? 'Update Invoice'
                   : 'Update Quote'
                 : type === 'invoice'
                 ? 'Issue Invoice'
-                : 'Create Quote'}
+                : 'Create Quote'}</span>
+              <Icon name="check" className="text-base" />
             </button>
           </div>
         </div>

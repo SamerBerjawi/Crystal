@@ -82,14 +82,14 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
         <div className="mb-4 relative flex-shrink-0">
           <Icon
             name="search"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none text-xl"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none text-xl"
           />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search icons..."
-            className={`${INPUT_BASE_STYLE} pl-10 pr-10`}
+            className={`${INPUT_BASE_STYLE} h-12 pl-11 pr-10`}
             autoFocus
           />
            {searchTerm && (
@@ -111,14 +111,14 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
                 <button
                   key={icon}
                   onClick={() => handleIconClick(icon)}
-                  className="group flex flex-col items-center justify-center aspect-square rounded-xl bg-light-bg dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:shadow-md transition-all duration-200 border border-transparent hover:border-black/5 dark:hover:border-white/10 relative overflow-hidden"
+                  className="group flex flex-col items-center justify-center aspect-square rounded-2xl bg-light-fill dark:bg-dark-fill/50 hover:bg-white dark:hover:bg-dark-card hover:shadow-md transition-all duration-200 border border-black/5 dark:border-white/5 hover:border-primary-500/30 relative overflow-hidden active:scale-95 cursor-pointer"
                   title={icon}
                 >
                   <Icon
                     name={icon}
                     className="text-3xl text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 group-hover:scale-110 transition-transform duration-200"
                   />
-                  <span className="absolute bottom-1 w-full text-xs text-center text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate px-1 capitalize">
+                  <span className="absolute bottom-1 w-full text-2xs text-center text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate px-1 capitalize">
                       {icon.replace(/_/g, ' ')}
                   </span>
                 </button>

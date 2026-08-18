@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Membership } from '../types';
-import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import IconPicker from './IconPicker';
 import Icon from './ui/Icon';
 
@@ -156,41 +156,75 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
 
-              {/* Provider & Icon Selector */}
-              <div className="p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 flex items-center gap-4">
-                <div className="relative shrink-0">
+              {/* Provider Name Hero Input */}
+              <div className="space-y-2">
+                <label htmlFor="provider" className={labelStyle}>
+                  Provider / Issuer <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  id="provider" 
+                  type="text" 
+                  value={provider} 
+                  onChange={e => setProvider(e.target.value)} 
+                  className={`${INPUT_BASE_STYLE} h-14 !text-xl font-bold`} 
+                  placeholder="e.g. Starbucks, Delta, Hilton" 
+                  required 
+                  autoFocus 
+                />
+              </div>
+
+              {/* Icon & Accent Color Swatches */}
+              <div className="p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                    Icon & Card Tint
+                  </span>
                   <button
                     type="button"
                     onClick={() => setIconPickerOpen(true)}
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-md hover:scale-105 transition-transform"
-                    style={{ backgroundColor: color }}
-                    title="Change icon"
+                    className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1"
                   >
-                    <Icon name={icon} className="text-3xl" />
+                    <span>Change Icon</span>
+                    <Icon name="chevron_right" className="text-sm" />
                   </button>
-                  <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 flex items-center justify-center shadow-xs cursor-pointer hover:scale-110 transition-transform overflow-hidden">
-                    <input
-                      type="color"
-                      value={color}
-                      onChange={(e) => setColor(e.target.value)}
-                      className="w-full h-full opacity-0 cursor-pointer absolute inset-0"
-                    />
-                    <Icon name="palette" className="text-primary-500 text-xs" />
-                  </label>
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <label htmlFor="provider" className={labelStyle}>Provider / Issuer <span className="text-rose-500">*</span></label>
-                  <input 
-                    id="provider" 
-                    type="text" 
-                    value={provider} 
-                    onChange={e => setProvider(e.target.value)} 
-                    className={`${INPUT_BASE_STYLE} h-12 font-bold !text-lg`} 
-                    placeholder="e.g. Starbucks, Delta" 
-                    required 
-                    autoFocus 
-                  />
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setIconPickerOpen(true)}
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform hover:scale-105 active:scale-95 border-2 border-white/20 shrink-0"
+                    style={{ backgroundColor: color }}
+                    title="Choose Icon"
+                  >
+                    <Icon name={icon} className="text-3xl drop-shadow-sm" />
+                  </button>
+
+                  {/* Swatches */}
+                  <div className="flex-1">
+                    <div className="grid grid-cols-6 sm:grid-cols-7 gap-2">
+                      {CATEGORY_TAG_PRESET_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setColor(c)}
+                          className={`w-7 h-7 rounded-full transition-all hover:scale-110 focus:outline-none ${
+                            color === c ? 'ring-2 ring-offset-2 ring-offset-light-card dark:ring-offset-dark-card ring-primary-500 scale-110 shadow-sm' : ''
+                          }`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                      <div className="relative w-7 h-7 rounded-full overflow-hidden cursor-pointer hover:scale-110 transition-transform bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 flex items-center justify-center shrink-0">
+                        <Icon name="add" className="text-white text-xs" />
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => setColor(e.target.value)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -278,6 +312,22 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                     placeholder="Add bar-code info, PIN, or special discounts..." 
                   />
                 </div>
+              </div>
+
+              {/* Live Preview Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0" style={{ backgroundColor: color }}>
+                    <Icon name={icon} className="text-xl" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-light-text dark:text-dark-text text-sm truncate">{provider || 'Membership Provider'}</p>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium truncate">{tier || category}</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-black/5 dark:bg-white/5 text-xs font-mono font-bold text-light-text dark:text-dark-text shrink-0">
+                  {points || memberId || 'Active'}
+                </span>
               </div>
 
             </div>

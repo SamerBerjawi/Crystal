@@ -220,7 +220,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                 const isObjectData = isObjectSection(section.key);
 
                                 return (
-                                    <div key={section.key} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-light-bg dark:bg-dark-bg border border-black/5 dark:border-white/5 gap-3">
+                                    <div key={section.key} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 gap-3">
                                         <div className="flex items-center gap-3">
                                             <input 
                                                 type="checkbox" 
@@ -228,29 +228,29 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                                 onChange={(e) => setSelectedSections(prev => ({...prev, [section.key]: e.target.checked}))}
                                                 className={CHECKBOX_STYLE}
                                             />
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-white/10 text-light-text dark:text-dark-text`}>
-                                                <Icon name={section.icon} className="text-lg" />
+                                            <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 text-primary-500 shadow-xs">
+                                                <Icon name={section.icon} className="text-base" />
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-sm text-light-text dark:text-dark-text">{section.label}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                                <p className="font-bold text-xs text-light-text dark:text-dark-text">{section.label}</p>
+                                                <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary">
                                                     {count} {isObjectData ? 'records' : 'items'} found
                                                 </p>
                                             </div>
                                         </div>
 
                                         {selectedSections[section.key] && !isObjectData && (
-                                            <div className="flex bg-white dark:bg-black/20 p-1 rounded-lg">
+                                            <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
                                                 <button 
                                                     onClick={() => setStrategies(prev => ({...prev, [section.key]: 'merge'}))}
-                                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${strategies[section.key] === 'merge' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${strategies[section.key] === 'merge' ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-xs' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
                                                     title="Keep existing data and add new items"
                                                 >
                                                     Merge
                                                 </button>
                                                 <button 
                                                     onClick={() => setStrategies(prev => ({...prev, [section.key]: 'replace'}))}
-                                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${strategies[section.key] === 'replace' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${strategies[section.key] === 'replace' ? 'bg-white dark:bg-dark-card text-rose-500 shadow-xs' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
                                                     title="Delete existing data in this section and replace with backup"
                                                 >
                                                     Replace
@@ -258,7 +258,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                             </div>
                                         )}
                                         {selectedSections[section.key] && isObjectData && (
-                                             <span className="text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">Overwrites Existing</span>
+                                             <span className="text-2xs font-bold uppercase tracking-wider text-rose-500 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full">Overwrites Existing</span>
                                         )}
                                     </div>
                                 );
@@ -267,9 +267,9 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                     </div>
                 )}
                 
-                <div className="flex justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/10">
-                    <button onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button onClick={handleRestore} disabled={!parsedData} className={BTN_PRIMARY_STYLE}>Restore Selected Data</button>
+                <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+                    <button onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
+                    <button onClick={handleRestore} disabled={!parsedData} className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`}>Restore Selected Data</button>
                 </div>
             </div>
         </Modal>

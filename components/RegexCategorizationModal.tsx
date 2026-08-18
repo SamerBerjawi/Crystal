@@ -357,7 +357,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
     toast.success('Rule status updated.');
   };
 
-  const labelStyle = "block text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
+  const labelStyle = "block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
 
   return (
     <Modal onClose={onClose} title="Auto-Categorize Rules" size="2xl">
@@ -382,7 +382,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                 key={preset.name}
                 type="button"
                 onClick={() => handleApplyPreset(preset)}
-                className="p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] hover:bg-teal-500/10 border border-black/5 dark:border-white/5 hover:border-teal-500/30 text-left transition-all group flex items-center gap-2 cursor-pointer"
+                className="p-2.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 hover:bg-teal-500/10 border border-black/5 dark:border-white/5 hover:border-teal-500/30 text-left transition-all group flex items-center gap-2 cursor-pointer"
               >
                 <div className="w-7 h-7 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Icon name={preset.icon} className="text-sm" />
@@ -404,7 +404,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
         <form
           id="merchant-form"
           onSubmit={handleSaveRule}
-          className="bg-gray-50/70 dark:bg-white/[0.02] rounded-3xl p-5 border border-black/5 dark:border-white/5 space-y-4"
+          className="bg-light-fill dark:bg-dark-fill/50 rounded-3xl p-5 border border-black/5 dark:border-white/5 space-y-4"
         >
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">

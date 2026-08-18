@@ -109,7 +109,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -118,7 +118,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
       {/* Slide-out Sidebar Drawer Container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
         <div
-          className={`pointer-events-auto w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`pointer-events-auto w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -166,10 +166,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
                     key={p}
                     type="button"
                     onClick={() => setPriority(p)}
-                    className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                       isSelected
-                        ? `bg-white dark:bg-dark-card ${cfg.color} shadow-sm border border-black/5 dark:border-white/10`
-                        : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        ? `bg-white dark:bg-dark-card ${cfg.color} shadow-sm`
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                     }`}
                   >
                     <Icon name={cfg.icon} className="text-sm" />
@@ -292,13 +292,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
           </div>
 
           {/* 4. STICKY ACTION FOOTER */}
-          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/80 dark:bg-[#16171a]/80 backdrop-blur-md flex items-center justify-between shrink-0 z-20">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
             <div>
               {isEditing && (
                 <button
                   type="button"
                   onClick={handleDeleteClick}
-                  className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+                  className="text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/10 px-4 py-2.5 rounded-xl transition-all cursor-pointer"
                 >
                   Delete Task
                 </button>
@@ -309,7 +309,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
               <button
                 type="button"
                 onClick={handleClose}
-                className={`${BTN_SECONDARY_STYLE} !py-2.5 !px-5 text-xs font-bold tracking-wider uppercase`}
+                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
               >
                 Cancel
               </button>
@@ -317,9 +317,10 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
               <button
                 type="submit"
                 form="task-drawer-form"
-                className={`${BTN_PRIMARY_STYLE} !py-2.5 !px-8 text-xs font-black tracking-wider uppercase shadow-md shadow-primary-500/20`}
+                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95`}
               >
-                {isEditing ? 'Commit Changes' : 'Initialize Objective'}
+                <span>{isEditing ? 'Commit Changes' : 'Initialize Objective'}</span>
+                <Icon name="check" className="text-base" />
               </button>
             </div>
           </div>

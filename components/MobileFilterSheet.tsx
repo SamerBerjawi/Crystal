@@ -62,30 +62,30 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
 
   if (section.type === 'segmented') {
     return (
-      <div className="bg-white dark:bg-[#2c2c2e]/70 rounded-2xl p-3 border border-black/[0.04] dark:border-white/[0.06] shadow-2xs space-y-2">
+      <div className="bg-light-fill dark:bg-dark-fill/50 rounded-2xl p-3.5 border border-black/5 dark:border-white/5 shadow-2xs space-y-2.5">
         <div className="flex items-center gap-2 px-1">
           {section.icon && (
             <div className="w-5 h-5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center">
               <Icon name={section.icon} className="text-xs" />
             </div>
           )}
-          <h4 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/70">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
             {section.title}
           </h4>
         </div>
 
-        {/* iOS Segmented Control */}
-        <div className="p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/5 flex items-center gap-1">
+        {/* Segmented Control */}
+        <div className="p-1 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center gap-1">
           {section.chips.map((chip) => {
             const isActive = chip.isActive;
             return (
               <button
                 key={chip.id}
                 onClick={chip.onToggle}
-                className={`touch-feedback flex-1 py-2 px-1.5 rounded-lg text-xs font-bold transition-all text-center relative flex items-center justify-center gap-1.5 min-h-[36px] ${
+                className={`touch-feedback flex-1 py-2.5 px-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-center relative flex items-center justify-center gap-1.5 min-h-[36px] ${
                   isActive
-                    ? 'bg-white dark:bg-[#3a3a3c] text-light-text dark:text-white shadow-xs font-black'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-75 hover:opacity-100'
+                    ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                 }`}
               >
                 {chip.icon && <Icon name={chip.icon} className="text-sm" />}
@@ -99,7 +99,7 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
   }
 
   return (
-    <div className="bg-white dark:bg-[#2c2c2e]/70 rounded-2xl p-3.5 border border-black/[0.04] dark:border-white/[0.06] shadow-2xs space-y-3">
+    <div className="bg-light-fill dark:bg-dark-fill/50 rounded-2xl p-3.5 border border-black/5 dark:border-white/5 shadow-2xs space-y-3">
       {/* Section Header */}
       <div className="flex items-center justify-between px-0.5">
         <div className="flex items-center gap-2">

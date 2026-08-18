@@ -487,8 +487,8 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         <div className="fixed inset-0 z-[9999] overflow-hidden">
             {/* Backdrop Blur Overlay */}
             <div 
-                className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-300 ${
-                    isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+                    isVisible ? 'opacity-100' : 'opacity-0'
                 }`}
                 onClick={handleCloseDrawer}
             />
@@ -496,13 +496,13 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
             {/* Right-Side Full Height Slide-out Drawer */}
             <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
                 <div 
-                    className={`w-screen max-w-xl md:max-w-2xl h-screen bg-white dark:bg-[#12141a] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    className={`w-screen max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
                         isVisible ? 'translate-x-0' : 'translate-x-full'
                     }`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* 1. Header Section */}
-                    <div className="shrink-0 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                    <div className="shrink-0 border-b border-black/5 dark:border-white/5 bg-gradient-to-r from-primary-500/5 to-transparent">
                         {/* Top Action Ribbon */}
                         <div className="flex items-center justify-between px-6 pt-5 pb-3">
                             <div className="flex items-center gap-2">
@@ -523,7 +523,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     <button
                                         type="button"
                                         onClick={handleRefreshBrandfetchLogo}
-                                        className="p-2 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+                                        className="w-9 h-9 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-all flex items-center justify-center"
                                         title="Fetch latest branding from Brandfetch"
                                     >
                                         <Icon name="magic_wand" className="text-base" />
@@ -532,11 +532,11 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 <button
                                     type="button"
                                     onClick={handleCloseDrawer}
-                                    className="p-2 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-all flex items-center gap-1 text-xs font-bold"
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+                                    aria-label="Close drawer"
                                     title="Close panel (Esc)"
                                 >
                                     <Icon name="close" className="text-lg" />
-                                    <span className="hidden sm:inline text-xs font-medium text-gray-400 font-mono">ESC</span>
                                 </button>
                             </div>
                         </div>
@@ -1490,7 +1490,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                     </div>
 
                     {/* 3. Sticky Drawer Footer */}
-                    <div className="shrink-0 p-5 border-t border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#12141a]/95 backdrop-blur-md flex items-center justify-between gap-3">
+                    <div className="shrink-0 p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
                         <button
                             type="button"
                             onClick={() => {
@@ -1503,16 +1503,16 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 setLocations([]);
                                 toast.info('Reset unsaved fields');
                             }}
-                            className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors"
+                            className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 transition-colors cursor-pointer"
                         >
                             Reset Fields
                         </button>
 
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={handleCloseDrawer}
-                                className={`${BTN_SECONDARY_STYLE} !py-2 !px-4 !text-xs`}
+                                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider cursor-pointer`}
                             >
                                 Dismiss
                             </button>
@@ -1520,10 +1520,10 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                             <button
                                 type="submit"
                                 form="merchant-protocol-form"
-                                className={`${BTN_PRIMARY_STYLE} !py-2 !px-6 !text-xs flex items-center gap-1.5 shadow-md shadow-primary-500/20`}
+                                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer`}
                             >
-                                <Icon name="check" className="text-xs" />
                                 <span>Save Changes</span>
+                                <Icon name="check" className="text-base" />
                             </button>
                         </div>
                     </div>

@@ -126,7 +126,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
                       key={item.id}
                       type="button"
                       onClick={() => setClosureType(item.id)}
-                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center ${
+                      className={`py-2.5 px-1 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-center ${
                         closureType === item.id 
                           ? 'bg-white dark:bg-dark-card shadow-sm text-rose-500' 
                           : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'

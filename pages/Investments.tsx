@@ -46,7 +46,7 @@ interface InvestmentsProps {
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     prices: Record<string, number | null>;
     onOpenHoldingDetail?: (symbol: string) => void;
-    onToggleAccountStatus: (account: Account) => void;
+    onToggleAccountStatus: (accountId: string) => void;
     deleteAccount: (id: string) => void;
     transactions: Transaction[];
     onViewAccount?: (accountId: string) => void;
@@ -834,7 +834,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     transactions={transactions}
                     prices={prices}
                     manualPrices={manualPrices}
-                    holdingsOverview={holdingsOverview}
+                    holdingsOverview={propHoldingsOverview}
                     globalOverview={globalOverview}
                     activeOverview={activeOverview}
                     displayHoldings={displayHoldings}

@@ -917,7 +917,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/60 dark:bg-black/85 backdrop-blur-md transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}

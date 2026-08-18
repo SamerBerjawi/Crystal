@@ -24,16 +24,16 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
 
   return (
     <Modal onClose={onClose} title="Keyboard Shortcuts" size="lg">
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {shortcuts.map((s) => (
           <div
             key={s.key}
-            className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5"
+            className="flex items-center justify-between p-3.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5"
           >
-            <span className="text-sm font-medium text-light-text dark:text-dark-text">
+            <span className="text-xs font-bold text-light-text dark:text-dark-text">
               {s.description}
             </span>
-            <kbd className="px-2.5 py-1 rounded-lg bg-white dark:bg-gray-800 border border-black/10 dark:border-white/10 text-xs font-mono font-bold text-primary-600 dark:text-primary-400 shadow-sm">
+            <kbd className="px-2.5 py-1 rounded-xl bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 text-xs font-mono font-bold text-primary-600 dark:text-primary-400 shadow-sm">
               {s.key}
             </kbd>
           </div>

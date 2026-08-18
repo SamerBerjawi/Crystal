@@ -97,7 +97,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/45 dark:bg-black/70 backdrop-blur-md"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
           {/* Sheet Surface */}
@@ -114,7 +114,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
               isDragging.current = true;
             }}
             onDragEnd={handleDragEnd}
-            className={`relative z-10 bg-[#f8f9fa]/98 dark:bg-[#1a1b1e]/98 backdrop-blur-2xl rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-[0_-16px_48px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden ${className}`}
+            className={`relative z-10 bg-light-card dark:bg-dark-card rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden ${className}`}
             style={{
               maxHeight: `min(${maxHeight}vh, ${maxHeight}dvh)`,
               paddingBottom: `env(safe-area-inset-bottom, 0px)`,
@@ -129,7 +129,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
             {/* iOS Navigation Header */}
             {(title || headerLeft || headerRight || shouldShowClose) && (
-              <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] shrink-0 min-h-[48px]">
+              <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-black/5 dark:border-white/5 bg-gradient-to-r from-primary-500/5 to-transparent shrink-0 min-h-[48px]">
                 {/* Left Action */}
                 <div className="flex items-center justify-start min-w-[70px]">
                   {headerLeft}
@@ -138,7 +138,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 {/* Center Title */}
                 <div className="text-center flex-1 px-2">
                   {title && (
-                    <h3 className="text-base font-bold text-light-text dark:text-white tracking-tight leading-tight">
+                    <h3 className="text-base font-bold text-light-text dark:text-dark-text tracking-tight leading-tight">
                       {title}
                     </h3>
                   )}
@@ -156,7 +156,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                   ) : shouldShowClose ? (
                     <button
                       onClick={onClose}
-                      className="touch-feedback w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 active:scale-95 flex items-center justify-center text-gray-600 dark:text-gray-300 transition-all"
+                      className="w-8 h-8 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                       aria-label="Close"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -175,7 +175,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
             {/* Sticky Footer */}
             {footer && (
-              <div className="shrink-0 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#f8f9fa]/95 dark:bg-[#1a1b1e]/95 backdrop-blur-xl px-4 sm:px-5 py-3 safe-bottom shadow-lg">
+              <div className="shrink-0 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md px-4 sm:px-5 py-3 safe-bottom shadow-lg">
                 {footer}
               </div>
             )}

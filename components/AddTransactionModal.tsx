@@ -1290,8 +1290,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleCloseDrawer}
       />
@@ -1299,7 +1299,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       {/* Right-Side Full Height Slide-out Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -1359,10 +1359,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('expense')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wide rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     type === 'expense' 
                       ? 'bg-white dark:bg-dark-card text-rose-600 dark:text-rose-400 shadow-sm' 
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   <Icon name="arrow_downward" className="text-xs" />
@@ -1372,10 +1372,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('income')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wide rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     type === 'income' 
                       ? 'bg-white dark:bg-dark-card text-emerald-600 dark:text-emerald-400 shadow-sm' 
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   <Icon name="arrow_upward" className="text-xs" />
@@ -1385,10 +1385,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('transfer')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wide rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     type === 'transfer' 
                       ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm' 
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   <Icon name="sync_alt" className="text-xs" />

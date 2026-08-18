@@ -312,7 +312,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -321,7 +321,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
       {/* Slide-out Sidebar Drawer Container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 pointer-events-none">
         <div 
-          className={`pointer-events-auto w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`pointer-events-auto w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -367,25 +367,25 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
             <button
               type="button"
               onClick={() => setMode('recurring')}
-              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 mode === 'recurring'
-                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm border border-black/5 dark:border-white/10'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                  : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
               }`}
             >
-              <Icon name="refresh" className="text-sm" />
+              <Icon name="event_repeat" className="text-base" />
               <span>Recurring Series</span>
             </button>
             <button
               type="button"
               onClick={() => setMode('one-time')}
-              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 mode === 'one-time'
-                  ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm border border-black/5 dark:border-white/10'
-                  : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                  ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
+                  : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
               }`}
             >
-              <Icon name="receipt" className="text-sm" />
+              <Icon name="receipt" className="text-base" />
               <span>One-Time Obligation</span>
             </button>
           </div>
@@ -403,10 +403,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('expense')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
+                  className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     type === 'expense'
-                      ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      ? 'bg-white dark:bg-dark-card text-rose-500 shadow-sm'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   Expense
@@ -414,10 +414,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('income')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
+                  className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     type === 'income'
-                      ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   Income
@@ -425,10 +425,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setType('transfer')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
+                  className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     type === 'transfer'
-                      ? 'bg-white dark:bg-dark-card text-blue-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      ? 'bg-white dark:bg-dark-card text-blue-500 shadow-sm'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   Transfer
@@ -748,10 +748,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setBillType('payment')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
+                  className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     billType === 'payment'
-                      ? 'bg-white dark:bg-dark-card text-rose-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      ? 'bg-white dark:bg-dark-card text-rose-500 shadow-sm'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   Expenditure / Outflow
@@ -759,10 +759,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setBillType('deposit')}
-                  className={`flex-1 py-2 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
+                  className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     billType === 'deposit'
-                      ? 'bg-white dark:bg-dark-card text-emerald-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                      ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                   }`}
                 >
                   Acquisition / Inflow
@@ -856,11 +856,11 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
         </div>
 
         {/* 4. DRAWER STICKY FOOTER */}
-        <div className="p-6 border-t border-black/5 dark:border-white/5 flex items-center justify-between shrink-0 bg-white/80 dark:bg-[#16171a]/80 backdrop-blur-md z-20">
+        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
           <button
             type="button"
             onClick={handleClose}
-            className={BTN_SECONDARY_STYLE}
+            className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
           >
             Cancel
           </button>
@@ -868,11 +868,12 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
           <button
             type="submit"
             form={mode === 'recurring' ? 'recurring-obligation-form' : 'one-time-obligation-form'}
-            className={`${BTN_PRIMARY_STYLE} !py-2.5 !px-8 text-xs font-black tracking-wider uppercase shadow-md shadow-primary-500/20`}
+            className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95`}
           >
-            {isEditing
+            <span>{isEditing
               ? (mode === 'recurring' ? 'Update Series' : 'Update Obligation')
-              : (mode === 'recurring' ? 'Commit Recurring Series' : 'Save Obligation')}
+              : (mode === 'recurring' ? 'Commit Recurring Series' : 'Save Obligation')}</span>
+            <Icon name="check" className="text-base" />
           </button>
         </div>
       </div>

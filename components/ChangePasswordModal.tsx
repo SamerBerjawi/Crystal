@@ -43,7 +43,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
     }
   };
 
-  const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+  const labelStyle = "block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
 
   if (!isOpen) return null;
 
@@ -52,23 +52,23 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="currentPassword" className={labelStyle}>Current Password</label>
-          <input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={INPUT_BASE_STYLE} required autoComplete="current-password" />
+          <input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required autoComplete="current-password" />
         </div>
         <div>
           <label htmlFor="newPassword" className={labelStyle}>New Password</label>
-          <input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={INPUT_BASE_STYLE} required autoComplete="new-password" />
+          <input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required autoComplete="new-password" />
         </div>
         <div>
           <label htmlFor="confirmPassword" className={labelStyle}>Confirm New Password</label>
-          <input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={INPUT_BASE_STYLE} required autoComplete="new-password" />
+          <input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} required autoComplete="new-password" />
         </div>
         
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        {success && <p className="text-sm text-green-500">{success}</p>}
+        {error && <p className="text-xs font-semibold text-rose-500">{error}</p>}
+        {success && <p className="text-xs font-semibold text-emerald-500">{success}</p>}
 
-        <div className="flex justify-end gap-4 pt-4">
-          <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-          <button type="submit" className={BTN_PRIMARY_STYLE}>Update Password</button>
+        <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+          <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
+          <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95`}>Update Password</button>
         </div>
       </form>
     </Modal>

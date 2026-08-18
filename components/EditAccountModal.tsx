@@ -457,8 +457,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleCloseDrawer}
       />
@@ -466,7 +466,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
       {/* Right-Side Full Height Slide-out Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -1594,7 +1594,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleDeleteClick}
+                onClick={handleDelete}
                 className="h-12 px-4 rounded-xl text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/10 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Icon name="delete" className="text-base" />

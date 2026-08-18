@@ -95,39 +95,39 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
     return (
         <Modal onClose={onClose} title="Create Prediction Contract" size="lg">
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl">
+                <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
                     <button
                         type="button"
                         onClick={() => { setType('spending_cap'); setTargetId(''); }}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${type === 'spending_cap' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'spending_cap' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
                     >
                         Spending Cap
                     </button>
                     <button
                         type="button"
                         onClick={() => { setType('net_worth_goal'); setTargetId(''); }}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${type === 'net_worth_goal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'net_worth_goal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
                     >
                         Net Worth
                     </button>
                     <button
                         type="button"
                         onClick={() => { setType('price_target'); setTargetId(''); }}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${type === 'price_target' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'price_target' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
                     >
                         Price Target
                     </button>
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold  text-gray-500 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
                         {type === 'spending_cap' ? 'Target Category' : type === 'net_worth_goal' ? 'Target Account' : 'Target Asset'}
                     </label>
                     <div className={SELECT_WRAPPER_STYLE}>
                         <select 
                             value={targetId} 
                             onChange={e => setTargetId(e.target.value)} 
-                            className={SELECT_STYLE}
+                            className={`${SELECT_STYLE} h-12 font-bold`}
                             required
                         >
                             <option value="">Select target...</option>
@@ -143,7 +143,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                                         const group = accountGroups[accType];
                                         if (!group || group.length === 0) return null;
                                         return (
-                                            <optgroup key={accType} label={accType}>
+                                             <optgroup key={accType} label={accType}>
                                                 {group.map(acc => (
                                                     <option key={acc.id} value={acc.id}>{acc.name}</option>
                                                 ))}
@@ -164,19 +164,19 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold  text-gray-500 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
                          {type === 'spending_cap' ? 'Limit Amount' : type === 'net_worth_goal' ? 'Target Balance' : 'Target Price'}
                     </label>
                     <input 
                         type="number" 
                         value={targetAmount} 
                         onChange={e => setTargetAmount(e.target.value)} 
-                        className={INPUT_BASE_STYLE}
+                        className={`${INPUT_BASE_STYLE} h-12`}
                         placeholder="0.00"
                         step="0.01"
                         required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                         {type === 'spending_cap' 
                             ? "I bet I will spend LESS than this amount." 
                             : type === 'net_worth_goal' 
@@ -186,20 +186,20 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                 </div>
 
                 <div>
-                    <label className="block text-xs font-bold  text-gray-500 mb-1">Resolution Date</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Resolution Date</label>
                     <input 
                         type="date" 
                         value={endDate} 
                         onChange={e => setEndDate(e.target.value)} 
-                        className={INPUT_BASE_STYLE}
+                        className={`${INPUT_BASE_STYLE} h-12`}
                         min={toLocalISOString(new Date())}
                         required
                     />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
-                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>Lock In Prediction</button>
+                    <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
+                    <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95`}>Lock In Prediction</button>
                 </div>
             </form>
         </Modal>

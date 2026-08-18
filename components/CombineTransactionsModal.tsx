@@ -92,45 +92,43 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
   return (
     <Modal onClose={onClose} title="Combine Transactions" size="xl">
       <div className="space-y-6">
-        <div className="bg-primary-500/5 dark:bg-primary-500/10 p-4 rounded-2xl border border-primary-500/10 flex justify-between items-center">
-          <div>
-            <p className="text-xs font-black tracking-widest text-primary-600 dark:text-primary-400 mb-1">Combining {transactionsToCombine.length} Items</p>
-            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
-              A combined parent transaction will represent these items as indented sub-transactions.
+        {/* Live Summary Metric Card */}
+        <div className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
+          <div className="min-w-0 flex-1 pr-3">
+            <span className="text-2xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 block mb-0.5">Combining {transactionsToCombine.length} Items</span>
+            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
+              A combined parent transaction will group these items as indented sub-transactions.
             </p>
           </div>
-          <div className="text-right shrink-0 ml-4">
-            <p className="text-2xl font-mono font-bold">{formatCurrency(Math.abs(totalAmount), currency)}</p>
-            <span className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md ${totalAmount >= 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-mono font-bold text-light-text dark:text-dark-text">{formatCurrency(Math.abs(totalAmount), currency)}</p>
+            <span className={`text-2xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-block mt-1 ${totalAmount >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'}`}>
               {totalAmount >= 0 ? 'Net Income' : 'Net Expense'}
             </span>
           </div>
         </div>
 
         <div className="space-y-4">
-          <p className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase">
-            Combined Parent Details
-          </p>
-          
-          <div>
-            <label className="block text-xs font-semibold mb-1">Description</label>
-            <input
-              type="text"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              className={INPUT_BASE_STYLE}
-              placeholder="e.g., Combined Uber Trips"
-            />
-          </div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+            Combined Transaction Title
+          </label>
+          <input
+            type="text"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            className={`${INPUT_BASE_STYLE} h-14 !text-xl font-bold`}
+            placeholder="e.g., Combined Uber Trips"
+            autoFocus
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold mb-1">Category</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Category</label>
               <div className={SELECT_WRAPPER_STYLE}>
                 <select
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  className={`${SELECT_STYLE} pr-8`}
+                  className={`${SELECT_STYLE} h-12 pr-8 font-bold`}
                 >
                   <option value="">Select Category</option>
                   {flatCategories.map(cat => (
@@ -142,12 +140,12 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">Account</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Account</label>
               <div className={SELECT_WRAPPER_STYLE}>
                 <select
                   value={accountId}
                   onChange={e => setAccountId(e.target.value)}
-                  className={`${SELECT_STYLE} pr-8`}
+                  className={`${SELECT_STYLE} h-12 pr-8 font-bold`}
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -159,12 +157,12 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold mb-1">Date</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Date</label>
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className={INPUT_BASE_STYLE}
+              className={`${INPUT_BASE_STYLE} h-12`}
             />
           </div>
         </div>
@@ -175,12 +173,12 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
           </p>
           <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             {transactionsToCombine.map((tx) => (
-              <div key={tx.id} className="flex justify-between items-center p-3 rounded-xl border border-black/5 dark:border-white/5 bg-gray-50 dark:bg-white/5 text-sm">
+              <div key={tx.id} className="flex justify-between items-center p-3.5 rounded-2xl border border-black/5 dark:border-white/5 bg-light-fill dark:bg-dark-fill/50 text-sm">
                 <div>
-                  <p className="font-semibold text-light-text dark:text-dark-text">{tx.description}</p>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{tx.category} • {tx.date}</p>
+                  <p className="font-bold text-light-text dark:text-dark-text text-xs">{tx.description}</p>
+                  <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">{tx.category} • {tx.date}</p>
                 </div>
-                <p className={`font-mono font-bold ${tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                <p className={`font-mono font-bold text-xs ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {formatCurrency(tx.amount, tx.currency)}
                 </p>
               </div>
@@ -188,9 +186,9 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <button onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-          <button onClick={handleSave} className={BTN_PRIMARY_STYLE}>
+        <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+          <button onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
+          <button onClick={handleSave} className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95`}>
             Confirm Combine
           </button>
         </div>

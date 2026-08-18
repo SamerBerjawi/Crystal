@@ -138,14 +138,14 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
             onClick={onClose}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -10 }}
-            className="fixed top-[12%] left-1/2 -translate-x-1/2 w-full max-w-2xl bg-white/80 dark:bg-[#121212]/90 backdrop-blur-2xl rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] z-[101] border border-black/5 dark:border-white/10 overflow-hidden flex flex-col"
+            className="fixed top-[12%] left-1/2 -translate-x-1/2 w-full max-w-2xl bg-light-card dark:bg-dark-card rounded-3xl shadow-2xl z-[101] border border-black/10 dark:border-white/10 overflow-hidden flex flex-col"
           >
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
               <div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center">

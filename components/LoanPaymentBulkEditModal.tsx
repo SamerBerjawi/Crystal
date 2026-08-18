@@ -120,22 +120,22 @@ const LoanPaymentBulkEditModal: React.FC<LoanPaymentBulkEditModalProps> = ({ sch
           placeholder="1 2156.68 1302.77 853.91"
         />
 
-        <div className="bg-light-fill dark:bg-dark-fill rounded-lg p-3 text-sm">
+        <div className="bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 rounded-2xl p-4 text-sm">
           {parsedEntries.length === 0 ? (
-            <p className="text-light-text-secondary dark:text-dark-text-secondary">Paste values to preview changes.</p>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-medium">Paste values to preview changes.</p>
           ) : (
             <div className="space-y-2">
               {parsedEntries.map((entry, index) => (
                 <div key={`${entry.paymentNumber}-${index}`} className="flex items-center justify-between gap-4">
                   <div className="font-mono text-xs">
                     {entry.error ? (
-                      <span className="text-red-500">{entry.error}</span>
+                      <span className="text-rose-500 font-bold">{entry.error}</span>
                     ) : (
                       <>
-                        <span className="text-light-text-secondary dark:text-dark-text-secondary">#{entry.paymentNumber}</span>
-                        <span className="ml-3">Total {entry.totalPayment?.toFixed(2) ?? '—'}</span>
-                        <span className="ml-3">Principal {entry.principal?.toFixed(2) ?? '—'}</span>
-                        <span className="ml-3">Interest {entry.interest?.toFixed(2) ?? '—'}</span>
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary font-bold">#{entry.paymentNumber}</span>
+                        <span className="ml-3 font-semibold">Total {entry.totalPayment?.toFixed(2) ?? '—'}</span>
+                        <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">Principal {entry.principal?.toFixed(2) ?? '—'}</span>
+                        <span className="ml-3 text-light-text-secondary dark:text-dark-text-secondary">Interest {entry.interest?.toFixed(2) ?? '—'}</span>
                       </>
                     )}
                   </div>
@@ -145,9 +145,9 @@ const LoanPaymentBulkEditModal: React.FC<LoanPaymentBulkEditModalProps> = ({ sch
           )}
         </div>
 
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-          <button onClick={handleApply} className={BTN_PRIMARY_STYLE} disabled={hasErrors || validEntries.length === 0}>
+        <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+          <button onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
+          <button onClick={handleApply} className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`} disabled={hasErrors || validEntries.length === 0}>
             Apply Overrides
           </button>
         </div>

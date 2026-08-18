@@ -447,8 +447,8 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleCloseDrawer}
       />
@@ -456,7 +456,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
       {/* Right-Side Full Height Slide-out Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card text-gray-900 dark:text-white shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -507,10 +507,10 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMode('trade')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       mode === 'trade'
-                        ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-xs'
-                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                        ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                     }`}
                   >
                     <Icon name="show_chart" className="text-xs" />
@@ -520,10 +520,10 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setMode('grant')}
-                    className={`flex-1 py-2 text-xs font-bold tracking-wide rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       mode === 'grant'
-                        ? 'bg-white dark:bg-dark-card text-amber-600 dark:text-amber-400 shadow-xs'
-                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                        ? 'bg-white dark:bg-dark-card text-amber-600 dark:text-amber-400 shadow-sm'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
                     }`}
                   >
                     <Icon name="verified" className="text-xs" />

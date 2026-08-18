@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
@@ -48,15 +49,37 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
     updateBalance: initialState.updateBalance,
     syncStartDate: clampDate(initialState.syncStartDate) || minDate,
   });
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
-    setState({
-      transactionMode: initialState.transactionMode || 'full',
-      updateBalance: initialState.updateBalance,
-      syncStartDate: clampDate(initialState.syncStartDate) || minDate,
-    });
+    if (isOpen) {
+      setState({
+        transactionMode: initialState.transactionMode || 'full',
+        updateBalance: initialState.updateBalance,
+        syncStartDate: clampDate(initialState.syncStartDate) || minDate,
+      });
+      const timer = setTimeout(() => setIsVisible(true), 20);
+      return () => clearTimeout(timer);
+    } else {
+      setIsVisible(false);
+    }
   }, [clampDate, initialState, isOpen, minDate]);
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 250);
+  };
 
   const handleSetToday = () => {
     setState(prev => ({ ...prev, syncStartDate: toLocalISOString(new Date()) }));
@@ -79,11 +102,19 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
     });
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isVisible) return null;
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity font-sans">
-      <div className="w-full max-w-lg bg-light-card dark:bg-dark-card shadow-2xl border border-black/10 dark:border-white/10 rounded-3xl overflow-hidden flex flex-col transform transition-all duration-300">
+  const content = (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-sans">
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
+        onClick={handleClose}
+      />
+      <div className={`w-full max-w-lg bg-light-card dark:bg-dark-card shadow-2xl border border-black/10 dark:border-white/10 rounded-3xl overflow-hidden flex flex-col relative z-10 transform transition-all duration-300 ${
+        isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+      }`}>
         
         {/* Header matching CategoryModal */}
         <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/5 to-transparent">
@@ -207,7 +238,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
         <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
           <button 
             type="button" 
-            onClick={onClose} 
+            onClick={handleClose} 
             className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
           >
             Cancel
@@ -224,6 +255,8 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 };
 
 export default EnableBankingSyncModal;

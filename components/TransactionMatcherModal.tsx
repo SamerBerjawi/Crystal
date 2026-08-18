@@ -37,7 +37,7 @@ const SuggestionItem: React.FC<{
   };
 
   return (
-    <div className={`p-4 rounded-xl bg-light-bg dark:bg-dark-bg border transition-all ${
+    <div className={`p-4 rounded-2xl bg-light-fill dark:bg-dark-fill/50 border transition-all ${
       isSelected ? 'border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/10' : 'border-black/5 dark:border-white/5'
     } space-y-3`}>
       <div className="flex items-start gap-3">

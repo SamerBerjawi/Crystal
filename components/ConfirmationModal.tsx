@@ -100,7 +100,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 flex items-center justify-center bg-gray-900/50 dark:bg-black/80 backdrop-blur-md p-4 z-[99999]"
+          className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 z-[99999]"
           onClick={onClose}
         >
           <motion.div
@@ -108,7 +108,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="bg-white/90 dark:bg-[#16171a]/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative"
+            className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ambient Accent Glow */}

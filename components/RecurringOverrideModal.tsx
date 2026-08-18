@@ -60,48 +60,48 @@ const RecurringOverrideModal: React.FC<RecurringOverrideModalProps> = ({ item, o
       onClose();
     };
 
-    const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+    const labelStyle = "block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
     
     return (
         <Modal onClose={onClose} title="Edit Occurrence">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
                     You are editing a single occurrence of "{item.description}". Original date was {originalDate}.
                 </p>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="override-date" className={labelStyle}>Date</label>
-                        <input id="override-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} disabled={isSkipped} />
+                        <input id="override-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} disabled={isSkipped} />
                     </div>
                     <div>
                         <label htmlFor="override-amount" className={labelStyle}>Amount</label>
-                        <input id="override-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} disabled={isSkipped} />
+                        <input id="override-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} disabled={isSkipped} />
                     </div>
                 </div>
 
                 <div>
                     <label htmlFor="override-description" className={labelStyle}>Description</label>
-                    <input id="override-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} disabled={isSkipped} />
+                    <input id="override-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} h-12`} disabled={isSkipped} />
                 </div>
                 
-                <div className="flex justify-between items-center pt-4 border-t border-black/10 dark:border-white/10">
-                    <button type="button" onClick={handleDelete} className={BTN_SECONDARY_STYLE}>
+                <div className="flex justify-between items-center pt-4 border-t border-black/5 dark:border-white/5">
+                    <button type="button" onClick={handleDelete} className={`${BTN_SECONDARY_STYLE} h-11 px-4 text-xs font-bold uppercase tracking-wider text-rose-500 hover:text-rose-600`}>
                         Revert to Original
                     </button>
-                    <div className="flex gap-4">
-                        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                        <button type="submit" className={BTN_PRIMARY_STYLE} disabled={isSkipped}>Save Changes</button>
+                    <div className="flex gap-3">
+                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-5 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
+                        <button type="submit" className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`} disabled={isSkipped}>Save Changes</button>
                     </div>
                 </div>
             </form>
-             <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+             <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
                 <div className="flex justify-between items-center">
                     <div>
-                        <p className="font-medium text-light-text dark:text-dark-text">Skip this occurrence</p>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">This will remove the transaction for this date only.</p>
+                        <p className="font-bold text-xs text-light-text dark:text-dark-text">Skip this occurrence</p>
+                        <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary">This will remove the transaction for this date only.</p>
                     </div>
-                     <button type="button" onClick={handleSkipToggle} className={isSkipped ? BTN_SECONDARY_STYLE : BTN_DANGER_STYLE}>
+                     <button type="button" onClick={handleSkipToggle} className={isSkipped ? `${BTN_SECONDARY_STYLE} h-10 px-4 text-xs font-bold uppercase tracking-wider` : `${BTN_DANGER_STYLE} h-10 px-4 text-xs font-bold uppercase tracking-wider`}>
                         {isSkipped ? 'Un-skip Occurrence' : 'Skip Occurrence'}
                     </button>
                 </div>

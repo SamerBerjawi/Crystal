@@ -558,7 +558,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                 <button
                                     type="button"
                                     onClick={() => setMode('single')}
-                                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                                         mode === 'single'
                                             ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
                                             : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
@@ -569,7 +569,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                 <button
                                     type="button"
                                     onClick={() => setMode('bulk')}
-                                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                                         mode === 'bulk'
                                             ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
                                             : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
