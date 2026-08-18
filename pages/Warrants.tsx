@@ -177,8 +177,8 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set a price</p>
                                         )}
                                         <div className="mt-2 flex justify-end items-center gap-2">
-                                            <button onClick={() => handleOpenPriceModal(holding.isin, holding.name)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10" title="Set Manual Price">
-                                                <Icon name="edit_note" className="text-base" />
+                                            <button onClick={() => handleOpenPriceModal(holding.isin, holding.name)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 hover:text-indigo-500 transition-colors" title="Log / Fetch Price">
+                                                <Icon name="price_change" className="text-base" />
                                             </button>
                                         </div>
                                     </div>

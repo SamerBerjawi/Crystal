@@ -567,17 +567,24 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                                   }
                                 },
                               },
-                              {
-                                icon: 'edit',
-                                bgClass: 'bg-indigo-500',
-                                label: 'Price',
-                                onAction: () =>
-                                  onOpenPriceModal(
-                                    h.symbol,
-                                    h.name || h.symbol,
-                                    h.currentPrice
-                                  ),
-                              },
+                              isCustom && h.account
+                                ? {
+                                    icon: 'tune',
+                                    bgClass: 'bg-amber-500',
+                                    label: 'Adjust',
+                                    onAction: () => onAdjustBalance(h.account!),
+                                  }
+                                : {
+                                    icon: 'price_change',
+                                    bgClass: 'bg-indigo-500',
+                                    label: 'Price',
+                                    onAction: () =>
+                                      onOpenPriceModal(
+                                        h.symbol,
+                                        h.name || h.symbol,
+                                        h.currentPrice
+                                      ),
+                                  },
                             ]}
                           >
                             <div

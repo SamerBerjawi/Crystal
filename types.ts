@@ -590,6 +590,24 @@ export type AppFont =
   | 'noto-serif'
   | 'crete-round';
 
+export interface SmartPriceBinding {
+  url: string;
+  selector: string;
+  cookies?: string;
+  lastFetchedPrice?: number;
+  lastFetchedAt?: string;
+}
+
+export type InvestmentPriceSource = 'twelvedata' | 'web' | 'manual';
+
+export interface InvestmentPriceConfig {
+  source?: InvestmentPriceSource;
+  ticker?: string;
+  binding?: SmartPriceBinding;
+  lastFetchedPrice?: number;
+  lastFetchedAt?: string;
+}
+
 export interface AppPreferences {
   currency: string;
   displayCurrency?: Currency;
@@ -605,6 +623,8 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
+  smartPriceBindings?: Record<string, SmartPriceBinding>;
+  investmentPriceConfigs?: Record<string, InvestmentPriceConfig>;
   conversionRates?: Record<string, number>;
   merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name

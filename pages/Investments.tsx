@@ -17,7 +17,7 @@ import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import AccountsListSection from '../components/AccountsListSection';
 import AccountOverviewModal from '../components/AccountOverviewModal';
-import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Modal from '../components/Modal';
 import { motion, AnimatePresence } from 'motion/react';
@@ -25,6 +25,7 @@ import { useSafeState } from '../hooks/useSafeState';
 import Icon from '../components/ui/Icon';
 import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { SmartPriceBinding } from '../types';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -34,22 +35,22 @@ interface InvestmentsProps {
     accounts: Account[];
     cashAccounts: Account[];
     investmentTransactions: InvestmentTransaction[];
-    saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
-    saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+    saveInvestmentTransaction: (transaction: Omit<InvestmentTransaction, 'id'> & { id?: string }) => void;
+    saveAccount: (accountData: Omit<Account, 'id'> & { id?: string }) => void;
     deleteInvestmentTransaction: (id: string) => void;
-    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete?: string[]) => void;
     warrants: Warrant[];
     saveWarrant: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
     deleteWarrant: (id: string) => void;
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     prices: Record<string, number | null>;
-    onOpenHoldingDetail: (symbol: string) => void;
-    holdingsOverview?: HoldingsOverview;
-    onToggleAccountStatus: (accountId: string) => void;
-    deleteAccount: (accountId: string) => void;
+    onOpenHoldingDetail?: (symbol: string) => void;
+    onToggleAccountStatus: (account: Account) => void;
+    deleteAccount: (id: string) => void;
     transactions: Transaction[];
     onViewAccount?: (accountId: string) => void;
+    holdingsOverview?: HoldingsOverview;
 }
 
 type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change' | 'Pension Fund' | 'Other';
@@ -74,7 +75,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     deleteAccount,
     transactions,
     onViewAccount,
-    holdingsOverview
+    holdingsOverview: propHoldingsOverview
 }) => {
     const isMobile = useIsMobile();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,10 +83,10 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
-    const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
-    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
+    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+    const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice?: number } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; account: Account } | null>(null);
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
     const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useSafeState(false);
@@ -100,9 +101,37 @@ const Investments: React.FC<InvestmentsProps> = ({
         setIsOverviewModalOpen(true);
     };
 
-    const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
-    const preferredCurrency = usePreferencesSelector(p => p.currency || 'EUR');
-    const conversionRates = usePreferencesSelector(p => p.conversionRates);
+    const { preferences, setPreferences } = usePreferencesContext();
+    const twelveDataApiKey = preferences.twelveDataApiKey || '';
+    const preferredCurrency = preferences.currency || 'EUR';
+    const conversionRates = preferences.conversionRates;
+
+    // Auto-migrate any local storage price bindings into cloud-synced AppPreferences
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('smartPriceBindings');
+            if (stored) {
+                const localBindings = JSON.parse(stored) as Record<string, SmartPriceBinding>;
+                const existingBindings = preferences.smartPriceBindings || {};
+                let hasNew = false;
+                const merged = { ...existingBindings };
+                for (const [sym, b] of Object.entries(localBindings)) {
+                    if (!merged[sym] && b && b.url && b.selector) {
+                        merged[sym] = b;
+                        hasNew = true;
+                    }
+                }
+                if (hasNew) {
+                    setPreferences(prev => ({
+                        ...prev,
+                        smartPriceBindings: merged,
+                    }));
+                }
+            }
+        } catch (err) {
+            console.warn('Unable to migrate local price bindings to app preferences', err);
+        }
+    }, [preferences.smartPriceBindings, setPreferences]);
 
     // Include all Investment accounts for the Investments page
     const investmentAccounts = useMemo(() => (
@@ -451,18 +480,33 @@ const Investments: React.FC<InvestmentsProps> = ({
 
         setIsUpdatingAllPrices(true);
         try {
-            const smartBindingsRaw = localStorage.getItem('smartPriceBindings');
-            const smartBindings = smartBindingsRaw
-                ? JSON.parse(smartBindingsRaw) as Record<string, { url: string; selector: string; cookies?: string }>
-                : {};
+            const syncedSmartBindings = preferences.smartPriceBindings || {};
+            const syncedPriceConfigs = preferences.investmentPriceConfigs || {};
+
+            // Fallback to localStorage if any unmigrated bindings exist
+            let localFallbackBindings: Record<string, SmartPriceBinding> = {};
+            try {
+                const raw = localStorage.getItem('smartPriceBindings');
+                if (raw) localFallbackBindings = JSON.parse(raw) as Record<string, SmartPriceBinding>;
+            } catch {}
 
             const settled = await Promise.allSettled(displayHoldings.map(async (holding) => {
-                const binding = smartBindings[holding.symbol];
-                const nextPrice = binding
-                    ? await fetchFromSmartBinding(holding.symbol, binding)
-                    : await fetchFromTwelveData(holding.symbol);
+                const binding = syncedSmartBindings[holding.symbol] || syncedPriceConfigs[holding.symbol]?.binding || localFallbackBindings[holding.symbol];
+                const targetTicker = syncedPriceConfigs[holding.symbol]?.ticker || holding.symbol;
+
+                let nextPrice: number;
+                let sourceLabel: string;
+
+                if (binding && binding.url && binding.selector) {
+                    nextPrice = await fetchFromSmartBinding(holding.symbol, binding);
+                    sourceLabel = 'Custom site';
+                } else {
+                    nextPrice = await fetchFromTwelveData(targetTicker);
+                    sourceLabel = 'Twelve Data';
+                }
+
                 onManualPriceChange(holding.symbol, nextPrice, toLocalISOString(new Date()));
-                return { symbol: holding.symbol, source: binding ? 'Custom site' : 'Twelve Data' };
+                return { symbol: holding.symbol, source: sourceLabel, price: nextPrice };
             }));
 
             const successCount = settled.filter(result => result.status === 'fulfilled').length;
@@ -482,7 +526,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         } finally {
             setIsUpdatingAllPrices(false);
         }
-    }, [displayHoldings, fetchFromSmartBinding, fetchFromTwelveData, isUpdatingAllPrices, onManualPriceChange]);
+    }, [displayHoldings, fetchFromSmartBinding, fetchFromTwelveData, isUpdatingAllPrices, onManualPriceChange, preferences.smartPriceBindings, preferences.investmentPriceConfigs]);
 
     const holdingsByType = useMemo(() => {
         const groups = new Map<string, any[]>();
@@ -1078,21 +1122,21 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                         {badgeLabel}
                                                                     </div>
                                                                 </td>
-                                                                 <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
+                                                                  <td className="py-4 text-center pr-4 sm:pr-6" onClick={(e) => e.stopPropagation()}>
                                                                     <div className="flex items-center justify-center gap-1">
                                                                         <button 
                                                                             onClick={() => handleOpenAccountModal(acc)}
                                                                             className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
                                                                             title="Edit Account Settings"
                                                                         >
-                                                                            <Icon name="edit_note" className="text-base" />
+                                                                            <Icon name="edit" className="text-base" />
                                                                         </button>
                                                                         <button 
                                                                             onClick={() => { setAdjustingAccount(acc); setAdjustModalOpen(true); }}
-                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-emerald-500 transition-colors"
+                                                                            className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-amber-500 transition-colors"
                                                                             title="Adjust Balance"
                                                                         >
-                                                                            <Icon name="payments" className="text-base" />
+                                                                            <Icon name="tune" className="text-base" />
                                                                         </button>
                                                                         <button 
                                                                             onClick={() => handleAccountClick(acc.id)}
@@ -1154,10 +1198,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <div className="flex items-center justify-center gap-1">
                                                                     <button 
                                                                         onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice || null)}
-                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary-500 transition-colors"
-                                                                        title="Set / Scrape Price"
+                                                                        className="p-1.5 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-indigo-500 transition-colors"
+                                                                        title="Log / Fetch Price"
                                                                     >
-                                                                        <Icon name="edit_note" className="text-base" />
+                                                                        <Icon name="price_change" className="text-base" />
                                                                     </button>
                                                                     <button 
                                                                         onClick={() => handleOpenModal({ id: '', type: 'buy', symbol: holding.symbol, name: holding.name, quantity: 1, price: holding.currentPrice || 0, date: toLocalISOString(new Date()) })}

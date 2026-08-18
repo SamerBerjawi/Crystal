@@ -1,173 +1,284 @@
-
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import Modal from './Modal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE } from '../constants';
+import { createPortal } from 'react-dom';
+import { SmartPriceBinding } from '../types';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { toLocalISOString } from '../utils';
-import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { useSafeState } from '../hooks/useSafeState';
+import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
 
+const normalizeDecimalString = (str: string): string => {
+    const cleaned = str
+        .replace(/\s+/g, '')
+        .replace(/\u00A0/g, '')
+        .replace(/[^0-9.,-]/g, '');
+
+    const lastDot = cleaned.lastIndexOf('.');
+    const lastComma = cleaned.lastIndexOf(',');
+    const decimalSeparator = lastDot > lastComma ? '.' : (lastComma > lastDot ? ',' : null);
+
+    if (decimalSeparator) {
+        const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
+        const withoutThousands = cleaned.split(thousandsSeparator).join('');
+        return withoutThousands.replace(decimalSeparator, '.');
+    }
+
+    return cleaned.replace(/,/g, '.');
+};
+
+const parsePriceFromText = (text: string): number | null => {
+    const numericPart = text.match(/-?\d[\d.,-]*/);
+    if (!numericPart) return null;
+
+    const normalized = normalizeDecimalString(numericPart[0]);
+    const parsed = parseFloat(normalized);
+    return isNaN(parsed) ? null : parsed;
+};
+
 interface WarrantPriceModalProps {
-  onClose: () => void;
-  onSave: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
-  isin: string;
-  name: string;
-  initialEntry?: { date: string; price: number };
-  manualPrice?: number | null | undefined;
+    onClose: () => void;
+    onSave: (isin: string, price: number | null | { date: string; price: number }[], date?: string) => void;
+    isin: string;
+    name: string;
+    initialEntry?: { date: string; price: number } | null;
+    manualPrice?: number;
 }
 
 const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
-    const [mode, setMode] = useState<'single' | 'bulk'>(initialEntry ? 'single' : 'single');
-    const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
-
-    // Single Entry State
-    const [newPrice, setNewPrice] = useState('');
-    const [date, setDate] = useState(toLocalISOString(new Date()));
-
-    // Bulk Entry State
+    const [mode, setMode] = useState<'single' | 'bulk'>('single');
+    const [newPrice, setNewPrice] = useState(
+        initialEntry 
+            ? String(initialEntry.price) 
+            : (manualPrice !== undefined && manualPrice !== null ? String(manualPrice) : '')
+    );
+    const [date, setDate] = useState(initialEntry ? initialEntry.date : toLocalISOString(new Date()));
     const [bulkData, setBulkData] = useState('');
-    const [bulkPreview, setBulkPreview] = useState<{date: string, price: number}[]>([]);
-    const [fetchError, setFetchError] = useSafeState<string | null>(null);
-    const [isFetching, setIsFetching] = useSafeState(false);
-
-    // Smart Fetcher State
+    const [bulkPreview, setBulkPreview] = useState<{ date: string; price: number }[]>([]);
+    const [isFetching, setIsFetching] = useState(false);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [isSmartFetcherOpen, setIsSmartFetcherOpen] = useState(false);
     const [smartFetcherUrl, setSmartFetcherUrl] = useState('');
-    const [smartFetcherStatus, setSmartFetcherStatus] = useSafeState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-    const [smartFetcherError, setSmartFetcherError] = useSafeState<string | null>(null);
-    const [smartFetcherCandidates, setSmartFetcherCandidates] = useSafeState<{ id: string; value: number; selector: string; context: string; score: number }[]>([]);
-    const [smartFetcherSelection, setSmartFetcherSelection] = useState<string | null>(null);
-    const [smartFetcherBinding, setSmartFetcherBinding] = useState<{ url: string; selector: string; cookies?: string } | null>(null);
     const [smartFetcherCookies, setSmartFetcherCookies] = useState('');
+    const [smartFetcherCandidates, setSmartFetcherCandidates] = useState<{ id: string; value: number; selector: string; context: string }[]>([]);
+    const [smartFetcherSelection, setSmartFetcherSelection] = useState<string | null>(null);
+    const [smartFetcherStatus, setSmartFetcherStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    const [smartFetcherError, setSmartFetcherError] = useState<string | null>(null);
+    const [smartFetcherBinding, setSmartFetcherBinding] = useState<SmartPriceBinding | null>(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    const { preferences, setPreferences } = usePreferencesContext();
+    const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
+    const [twelveDataTicker, setTwelveDataTicker] = useState(preferences.investmentPriceConfigs?.[isin]?.ticker || isin);
 
     useEffect(() => {
-        if (initialEntry) {
-            setNewPrice(String(initialEntry.price));
-            setDate(initialEntry.date);
-            setMode('single');
-        } else {
-            setNewPrice(manualPrice !== undefined && manualPrice !== null ? String(manualPrice) : '');
-            setDate(toLocalISOString(new Date()));
-        }
-    }, [initialEntry, manualPrice]);
+        const timer = setTimeout(() => setIsVisible(true), 20);
+        return () => clearTimeout(timer);
+    }, []);
 
+    // Handle ESC key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                handleClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const handleClose = () => {
+        setIsVisible(false);
+        setTimeout(onClose, 250);
+    };
+
+    // Hydrate saved binding with priority to synced preferences, fallback to localStorage
     useEffect(() => {
         try {
+            const syncedBinding = preferences.smartPriceBindings?.[isin] || preferences.investmentPriceConfigs?.[isin]?.binding;
+            if (syncedBinding) {
+                setSmartFetcherBinding(syncedBinding);
+                setSmartFetcherUrl(syncedBinding.url || '');
+                setSmartFetcherCookies(syncedBinding.cookies || '');
+                return;
+            }
+
             const stored = localStorage.getItem('smartPriceBindings');
             if (stored) {
-                const parsed = JSON.parse(stored) as Record<string, { url: string; selector: string; cookies?: string }>;
-                if (parsed[isin]) {
-                    setSmartFetcherBinding(parsed[isin]);
-                    setSmartFetcherUrl(parsed[isin].url);
-                    if (parsed[isin].cookies) {
-                        setSmartFetcherCookies(parsed[isin].cookies);
-                    }
+                const parsed = JSON.parse(stored) as Record<string, SmartPriceBinding>;
+                const localBinding = parsed[isin];
+                if (localBinding) {
+                    setSmartFetcherBinding(localBinding);
+                    setSmartFetcherUrl(localBinding.url || '');
+                    setSmartFetcherCookies(localBinding.cookies || '');
+                    // Migrate to cloud preferences
+                    persistSmartBinding(localBinding);
                 }
             }
         } catch (err) {
-            console.warn('Unable to restore smart price bindings', err);
+            console.error('Failed to parse smart price bindings', err);
         }
-    }, [isin]);
+    }, [isin, preferences.smartPriceBindings, preferences.investmentPriceConfigs]);
 
     // Parse Bulk Data
     useEffect(() => {
-        if (mode === 'bulk') {
-            const lines = bulkData.split('\n');
-            const parsed: {date: string, price: number}[] = [];
-            
-            lines.forEach(line => {
-                // simple parsing: look for date (YYYY-MM-DD) and a number
-                const trimmed = line.trim();
-                if (!trimmed) return;
-
-                // Ensure we aren't matching the date parts as price if no other number exists
-                // A better approach: split by comma/tab/space
-                const parts = trimmed.split(/[\s,;]+/).filter(Boolean);
-
-                if (parts.length >= 2) {
-                    // Assume Date is one part, Price is another
-                    let d = parts.find(p => p.match(/^\d{4}-\d{2}-\d{2}$/));
-                    let p = parts.find(p => p !== d && p.match(/^-?\d+[.,]?\d*$/));
-
-                    if (d && p) {
-                        const normalizedPrice = normalizeDecimalString(p);
-                        parsed.push({
-                            date: d,
-                            price: parseFloat(normalizedPrice)
-                        });
-                    }
+        if (mode !== 'bulk') return;
+        const lines = bulkData.split('\n');
+        const parsed: { date: string; price: number }[] = [];
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+            const parts = trimmed.split(/[\t, ]+/);
+            if (parts.length >= 2) {
+                const d = parts[0].trim();
+                const p = parseFloat(parts[1].trim());
+                if (/^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(p)) {
+                    parsed.push({ date: d, price: p });
                 }
-            });
-            setBulkPreview(parsed);
-        }
+            }
+        });
+        setBulkPreview(parsed);
     }, [bulkData, mode]);
 
-    const normalizeDecimalString = (rawValue: string): string => {
-        const cleaned = rawValue
-            .replace(/\s+/g, '')
-            .replace(/\u00A0/g, '')
-            .replace(/[^0-9.,-]/g, '');
-
-        const lastDot = cleaned.lastIndexOf('.');
-        const lastComma = cleaned.lastIndexOf(',');
-        const decimalSeparator = lastDot > lastComma ? '.' : (lastComma > lastDot ? ',' : null);
-
-        if (decimalSeparator) {
-            const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
-            const withoutThousands = cleaned.split(thousandsSeparator).join('');
-            return withoutThousands.replace(decimalSeparator, '.');
+    const fetchSmartPage = async (url: string, cookies?: string) => {
+        const params = new URLSearchParams({ url });
+        if (cookies) {
+            params.set('cookies', cookies);
         }
-
-        return cleaned.replace(/,/g, '.');
-    };
-
-    const parsePriceFromText = (text: string): number | null => {
-        const numericPart = text.match(/-?\d[\d.,-]*/);
-        if (!numericPart) return null;
-
-        const normalized = normalizeDecimalString(numericPart[0]);
-        const parsed = parseFloat(normalized);
-        return isNaN(parsed) ? null : parsed;
-    };
-
-    const fetchSmartPage = async (targetUrl: string, cookies?: string): Promise<string> => {
-        const encodedUrl = encodeURIComponent(targetUrl);
-        const cookieParam = cookies ? `&cookies=${encodeURIComponent(cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        const response = await fetch(`/api/smart-fetch?${params.toString()}`);
         if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
+            throw new Error(`Smart fetch failed with status ${response.status}`);
         }
         return response.text();
     };
 
-    const buildSelector = (element: Element): string => {
+    const buildSelector = (el: Element | null): string => {
+        if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
         const parts: string[] = [];
-        let current: Element | null = element;
+        let curr: Element | null = el;
 
-        while (current && current.nodeType === 1 && current.tagName.toLowerCase() !== 'html') {
-            const tag = current.tagName.toLowerCase();
-            const id = current.id ? `#${current.id}` : '';
-            const className = (current.className && typeof current.className === 'string')
-                ? `.${current.className.trim().split(/\s+/).filter(Boolean).join('.')}`
-                : '';
-            const siblingIndex = Array.from(current.parentElement?.children || []).indexOf(current) + 1;
-            parts.unshift(`${tag}${id || className}${siblingIndex > 0 ? `:nth-child(${siblingIndex})` : ''}`);
-            current = current.parentElement;
+        while (curr && curr.nodeType === Node.ELEMENT_NODE && curr.tagName.toLowerCase() !== 'body') {
+            const tag = curr.tagName.toLowerCase();
+            const id = curr.getAttribute('id');
+            const dataTestId = curr.getAttribute('data-testid');
+
+            if (id) {
+                parts.unshift(`#${id}`);
+                break;
+            }
+            if (dataTestId) {
+                parts.unshift(`[data-testid="${dataTestId}"]`);
+                break;
+            }
+
+            const classes = Array.from(curr.classList || [])
+                .filter(cls => !cls.includes(':') && !cls.includes('/') && !cls.includes('[') && cls.length < 24)
+                .slice(0, 2);
+
+            let segment = tag;
+            if (classes.length) {
+                segment += `.${classes.join('.')}`;
+            }
+
+            const parent = curr.parentElement;
+            if (parent) {
+                const siblings = Array.from(parent.children).filter(sibling => sibling.tagName === curr!.tagName);
+                if (siblings.length > 1) {
+                    const idx = siblings.indexOf(curr) + 1;
+                    segment += `:nth-of-type(${idx})`;
+                }
+            }
+
+            parts.unshift(segment);
+            curr = curr.parentElement;
         }
 
         return parts.length ? parts.join(' > ') : '';
     };
 
-    const persistSmartBinding = (binding: { url: string; selector: string; cookies?: string }) => {
+    const persistSmartBinding = (binding: SmartPriceBinding) => {
         try {
+            // 1. Persist to App Preferences (synced to server and available on all devices)
+            setPreferences(prev => {
+                const currentBindings = prev.smartPriceBindings || {};
+                const currentConfigs = prev.investmentPriceConfigs || {};
+                return {
+                    ...prev,
+                    smartPriceBindings: {
+                        ...currentBindings,
+                        [isin]: binding,
+                    },
+                    investmentPriceConfigs: {
+                        ...currentConfigs,
+                        [isin]: {
+                            ...(currentConfigs[isin] || {}),
+                            source: 'web',
+                            binding,
+                        },
+                    },
+                };
+            });
+
+            // 2. Mirror to localStorage as offline cache
             const stored = localStorage.getItem('smartPriceBindings');
-            const parsed = stored ? (JSON.parse(stored) as Record<string, { url: string; selector: string; cookies?: string }>) : {};
+            const parsed = stored ? (JSON.parse(stored) as Record<string, SmartPriceBinding>) : {};
             parsed[isin] = binding;
             localStorage.setItem('smartPriceBindings', JSON.stringify(parsed));
             setSmartFetcherBinding(binding);
         } catch (err) {
             console.error('Failed to persist smart price binding', err);
+        }
+    };
+
+    const removeSmartBinding = () => {
+        try {
+            setPreferences(prev => {
+                const nextBindings = { ...(prev.smartPriceBindings || {}) };
+                delete nextBindings[isin];
+                const nextConfigs = { ...(prev.investmentPriceConfigs || {}) };
+                if (nextConfigs[isin]) {
+                    delete nextConfigs[isin].binding;
+                }
+                return {
+                    ...prev,
+                    smartPriceBindings: nextBindings,
+                    investmentPriceConfigs: nextConfigs,
+                };
+            });
+
+            const stored = localStorage.getItem('smartPriceBindings');
+            if (stored) {
+                const parsed = JSON.parse(stored) as Record<string, SmartPriceBinding>;
+                delete parsed[isin];
+                localStorage.setItem('smartPriceBindings', JSON.stringify(parsed));
+            }
+
+            setSmartFetcherBinding(null);
+            setSmartFetcherUrl('');
+            setSmartFetcherCookies('');
+            setSmartFetcherCandidates([]);
+            setSmartFetcherSelection(null);
+        } catch (err) {
+            console.error('Failed to remove smart price binding', err);
+        }
+    };
+
+    const persistTwelveDataTicker = (ticker: string) => {
+        const cleaned = ticker.trim().toUpperCase();
+        setTwelveDataTicker(cleaned);
+        if (cleaned) {
+            setPreferences(prev => {
+                const currentConfigs = prev.investmentPriceConfigs || {};
+                return {
+                    ...prev,
+                    investmentPriceConfigs: {
+                        ...currentConfigs,
+                        [isin]: {
+                            ...(currentConfigs[isin] || {}),
+                            source: 'twelvedata',
+                            ticker: cleaned,
+                        },
+                    },
+                };
+            });
         }
     };
 
@@ -310,7 +421,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                 onSave(isin, bulkPreview);
             }
         }
-        onClose();
+        handleClose();
     };
 
     const handleFetchLatestPrice = async () => {
@@ -334,13 +445,13 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         };
 
         try {
-            const symbol = isin.toUpperCase();
-            const candidates = symbol.includes('/')
-                ? [symbol]
+            const targetSymbol = (twelveDataTicker.trim() || isin).toUpperCase();
+            const candidates = targetSymbol.includes('/')
+                ? [targetSymbol]
                 : [
-                    `${symbol}/EUR`, // direct EUR quote for crypto pairs
-                    `${symbol}/USD`, // USD quote with conversion to EUR
-                    symbol // fallback to raw symbol
+                    `${targetSymbol}/EUR`, // direct EUR quote for crypto pairs
+                    `${targetSymbol}/USD`, // USD quote with conversion to EUR
+                    targetSymbol // fallback to raw symbol
                 ];
 
             let fetchedPrice: number | null = null;
@@ -368,8 +479,11 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
             if (fetchedPrice) {
                 setNewPrice(String(fetchedPrice));
                 setDate(toLocalISOString(new Date()));
+                if (twelveDataTicker.trim() && twelveDataTicker.trim().toUpperCase() !== isin.toUpperCase()) {
+                    persistTwelveDataTicker(twelveDataTicker);
+                }
             } else {
-                setFetchError('Price not available for this symbol.');
+                setFetchError(`Price not available from Twelve Data for "${targetSymbol}".`);
             }
         } catch (error) {
             console.error('Failed to fetch Twelve Data price', error);
@@ -382,272 +496,405 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const handleClear = () => {
         if (mode === 'single') {
             onSave(isin, null, date);
-            onClose();
+            handleClose();
         } else {
             setBulkData('');
         }
     };
 
-    const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-    const title = initialEntry ? `Edit Price for ${initialEntry.date}` : `Log Price for ${name}`;
-    
-    return (
-        <Modal onClose={onClose} title={title}>
-            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2.5rem]">
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full" />
-                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-primary-500/10 blur-[80px] rounded-full" />
-            </div>
+    const labelStyle = "block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
+    const title = initialEntry ? `Edit Valuation Entry` : `Log Valuation`;
 
-            <form onSubmit={handleSubmit} className="relative z-10 space-y-8 pb-4">
-                
-                {/* 1. Modal Hero */}
-                {!initialEntry && (
-                    <div className="bg-white dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/5 flex flex-col items-center gap-6 shadow-sm">
-                        <div className="flex bg-gray-100 dark:bg-white/10 p-1.5 rounded-2xl border border-black/5 dark:border-white/5 space-x-1 w-full max-w-sm">
-                            <button
-                                type="button"
-                                onClick={() => setMode('single')}
-                                className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${mode === 'single' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
-                            >
-                                Single Entry
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setMode('bulk')}
-                                className={`flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all ${mode === 'bulk' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-md ring-1 ring-black/5' : 'text-gray-400 opacity-60'}`}
-                            >
-                                Bulk Manifest
-                            </button>
-                        </div>
+    const content = (
+        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+            {/* Backdrop */}
+            <div 
+                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+                    isVisible ? 'opacity-100' : 'opacity-0'
+                }`}
+                onClick={handleClose}
+            />
 
-                        <div className="flex items-center gap-4 text-center">
-                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                                <Icon name="analytics" className="text-amber-500" />
+            {/* Sidebar Drawer */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+                <div 
+                    className={`w-screen max-w-lg bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
+                        isVisible ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+                >
+                    {/* Header */}
+                    <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-indigo-500/5 via-primary-500/5 to-transparent">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20 shadow-xs">
+                                <Icon name="price_change" className="text-xl" />
                             </div>
-                            <div className="space-y-0.5 text-left">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 opacity-70">Current Asset</span>
-                                <p className="text-lg font-black text-light-text dark:text-dark-text tracking-tight truncate max-w-[240px]">{name}</p>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+                                        {title}
+                                    </h2>
+                                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0 font-mono">
+                                        {isin}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
+                                    {name}
+                                </p>
                             </div>
                         </div>
+                        <button 
+                            onClick={handleClose}
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+                            aria-label="Close drawer"
+                        >
+                            <Icon name="close" className="text-lg" />
+                        </button>
                     </div>
-                )}
 
-                {mode === 'single' ? (
-                    <div className="space-y-8 animate-fade-in">
-                        {/* Entry Card */}
-                        <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-8">
-                            <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                <Icon name="payments" className="text-primary-500 text-lg" />
-                                Valuation Parameters
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                                <div className="space-y-2">
-                                    <label htmlFor="price-date" className={labelStyle}>Observation Date</label>
-                                    <input
-                                        id="price-date"
-                                        type="date"
-                                        value={date}
-                                        onChange={(e) => setDate(e.target.value)}
-                                        className={`${INPUT_BASE_STYLE} h-14 font-semibold tracking-wide`}
-                                        required
-                                        disabled={!!initialEntry}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label htmlFor="manual-price" className={labelStyle}>Unit Price</label>
-                                    <div className="relative group">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400 transition-colors group-focus-within:text-primary-500">€</span>
-                                        <input
-                                            id="manual-price"
-                                            type="number"
-                                            step="any"
-                                            value={newPrice}
-                                            onChange={(e) => setNewPrice(normalizeDecimalString(e.target.value))}
-                                            className={`${INPUT_BASE_STYLE} pl-10 h-14 !text-3xl font-black tabular-nums`}
-                                            placeholder="0.00"
-                                            autoFocus
-                                        />
-                                    </div>
-                                </div>
+                    {/* Mode Segment Switcher */}
+                    {!initialEntry && (
+                        <div className="px-6 pt-5 pb-2">
+                            <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
+                                <button
+                                    type="button"
+                                    onClick={() => setMode('single')}
+                                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                                        mode === 'single'
+                                            ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                    }`}
+                                >
+                                    Single Entry
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMode('bulk')}
+                                    className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                                        mode === 'bulk'
+                                            ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                    }`}
+                                >
+                                    Bulk Manifest (CSV)
+                                </button>
                             </div>
+                        </div>
+                    )}
 
-                            {/* Smart Tools Sub-Card */}
-                            <div className="pt-6 border-t border-black/5 dark:border-white/5 space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                                            <Icon name="auto_fix" className="text-lg" />
+                    {/* Form / Scrollable Content */}
+                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+
+                            {mode === 'single' ? (
+                                <div className="space-y-6 animate-fade-in">
+                                    
+                                    {/* Observation Date & Unit Price Grid */}
+                                    <div className="space-y-4 p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5">
+                                        <div>
+                                            <label htmlFor="price-date" className={labelStyle}>
+                                                Observation Date <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                id="price-date"
+                                                type="date"
+                                                value={date}
+                                                onChange={(e) => setDate(e.target.value)}
+                                                className={`${INPUT_BASE_STYLE} h-12 font-semibold tracking-wide`}
+                                                required
+                                                disabled={!!initialEntry}
+                                            />
                                         </div>
-                                        <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Autonomous Retrieval</span>
-                                    </div>
-                                    <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
-                                        <button
-                                            type="button"
-                                            onClick={handleFetchLatestPrice}
-                                            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${!isFetching ? 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card' : 'opacity-50'}`}
-                                            disabled={isFetching}
-                                        >
-                                            {isFetching ? 'Syncing...' : 'Twelve Data'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsSmartFetcherOpen(prev => !prev)}
-                                            className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${isSmartFetcherOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card'}`}
-                                        >
-                                            Smart Fetch
-                                        </button>
-                                    </div>
-                                </div>
 
-                                {isSmartFetcherOpen && (
-                                    <div className="p-6 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-200/30 dark:border-indigo-800/20 space-y-6 animate-fade-in">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-semibold uppercase tracking-wider text-indigo-900/60 dark:text-indigo-300/60 px-1">Source URL</label>
+                                        <div>
+                                            <label htmlFor="manual-price" className={labelStyle}>
+                                                Unit Price (€) <span className="text-rose-500">*</span>
+                                            </label>
+                                            <div className="relative group">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400 group-focus-within:text-indigo-500 transition-colors">
+                                                    €
+                                                </span>
                                                 <input
-                                                    type="url"
-                                                    value={smartFetcherUrl}
-                                                    onChange={(e) => setSmartFetcherUrl(e.target.value)}
-                                                    placeholder="Target landing page..."
-                                                    className={`${INPUT_BASE_STYLE} h-11 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-xs font-semibold uppercase tracking-wider text-indigo-900/60 dark:text-indigo-300/60 px-1">Session Data (Cookies)</label>
-                                                <input
-                                                    type="text"
-                                                    value={smartFetcherCookies}
-                                                    onChange={(e) => setSmartFetcherCookies(e.target.value)}
-                                                    placeholder="Optional session tokens..."
-                                                    className={`${INPUT_BASE_STYLE} h-11 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
+                                                    id="manual-price"
+                                                    type="number"
+                                                    step="any"
+                                                    value={newPrice}
+                                                    onChange={(e) => setNewPrice(normalizeDecimalString(e.target.value))}
+                                                    className={`${INPUT_BASE_STYLE} pl-10 h-14 !text-2xl font-black tabular-nums`}
+                                                    placeholder="0.00"
+                                                    autoFocus
                                                 />
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleSmartFetcher()}
-                                                className="flex-1 h-12 bg-indigo-600 text-white text-xs font-semibold uppercase tracking-wider rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                                                disabled={smartFetcherStatus === 'loading'}
-                                            >
-                                                <Icon name={smartFetcherStatus === 'loading' ? 'sync' : 'radar'} className="text-lg" />
-                                                {smartFetcherStatus === 'loading' ? 'Extracting Data...' : 'Scan Webpage'}
-                                            </button>
-                                            {smartFetcherBinding && (
+                                    {/* Autonomous Retrieval Section */}
+                                    <div className="p-5 rounded-3xl bg-gradient-to-br from-indigo-50/40 via-indigo-50/20 to-transparent dark:from-indigo-950/20 dark:via-indigo-950/10 dark:to-transparent border border-indigo-200/40 dark:border-indigo-800/30 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                                    <Icon name="auto_fix" className="text-base" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block leading-tight">
+                                                        Autonomous Retrieval
+                                                    </span>
+                                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                        Synced across all devices
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center bg-gray-100 dark:bg-white/10 p-1 rounded-xl gap-1">
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleSmartFetcher({ useSavedSelector: true })}
-                                                    className="w-12 h-12 flex items-center justify-center bg-white dark:bg-dark-card text-indigo-600 rounded-xl hover:shadow-md transition-all border border-indigo-200/50 dark:border-indigo-800/50 shadow-sm"
-                                                    title="Refresh from saved binding"
-                                                    disabled={smartFetcherStatus === 'loading'}
+                                                    onClick={handleFetchLatestPrice}
+                                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${!isFetching ? 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card' : 'opacity-50'}`}
+                                                    disabled={isFetching}
+                                                    title="Fetch current market price via Twelve Data"
                                                 >
-                                                    <Icon name="refresh" className="text-lg" />
+                                                    {isFetching ? 'Syncing...' : 'Twelve Data'}
                                                 </button>
-                                            )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsSmartFetcherOpen(prev => !prev)}
+                                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${isSmartFetcherOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card'}`}
+                                                    title="Configure custom webpage scraping selector"
+                                                >
+                                                    Smart Fetch
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        {smartFetcherCandidates.length > 0 && (
-                                            <div className="space-y-4 pt-2">
-                                                <div className="flex items-center justify-between px-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <Icon name="center_focus_strong" className="text-sm text-indigo-600" />
-                                                        <p className="text-xs font-semibold uppercase tracking-wider text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</p>
+                                        {smartFetcherBinding && !isSmartFetcherOpen && (
+                                            <div className="p-3.5 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 flex items-center justify-between gap-3 animate-fade-in">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                                        <Icon name="cloud_done" className="text-base" />
                                                     </div>
-                                                    <span className="text-xs font-semibold text-indigo-600/70 px-2 py-0.5 rounded-full bg-indigo-600/5">Select Binding</span>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200 truncate">
+                                                                Web Fetching Configured
+                                                            </p>
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                                <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                                                Cloud Synced
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-2xs text-indigo-900/60 dark:text-indigo-300/60 truncate font-mono mt-0.5" title={smartFetcherBinding.url}>
+                                                            {smartFetcherBinding.url}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-auto pr-2 custom-scrollbar">
-                                                    {smartFetcherCandidates.map(candidate => (
-                                                        <label key={candidate.id} className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer relative group ${smartFetcherSelection === candidate.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 text-light-text dark:text-dark-text hover:border-indigo-300/50'}`}>
-                                                            <input
-                                                                type="radio"
-                                                                name="smart-fetcher-price"
-                                                                checked={smartFetcherSelection === candidate.id}
-                                                                onChange={() => setSmartFetcherSelection(candidate.id)}
-                                                                className="sr-only"
-                                                            />
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-black text-xl tabular-nums mb-1 tracking-tight">€{candidate.value}</p>
-                                                                <p className="text-xs font-medium opacity-60 truncate tracking-tight">{candidate.context}</p>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSmartFetcher({ useSavedSelector: true })}
+                                                        disabled={smartFetcherStatus === 'loading'}
+                                                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-dark-card border border-indigo-200 dark:border-indigo-800 text-indigo-600 hover:bg-indigo-50 transition-all flex items-center gap-1"
+                                                        title="Test Fetch Price"
+                                                    >
+                                                        <Icon name="refresh" className={`text-xs ${smartFetcherStatus === 'loading' ? 'animate-spin' : ''}`} />
+                                                        <span>Fetch</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeSmartBinding}
+                                                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                                                        title="Remove Web Binding"
+                                                    >
+                                                        <Icon name="delete" className="text-xs" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {fetchError && (
+                                            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                                                <Icon name="error" className="text-sm shrink-0" />
+                                                <span>{fetchError}</span>
+                                            </div>
+                                        )}
+
+                                        {isSmartFetcherOpen && (
+                                            <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-200/30 dark:border-indigo-800/20 space-y-4 animate-fade-in">
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-2xs font-bold uppercase tracking-wider text-indigo-900/60 dark:text-indigo-300/60">Source Webpage URL</label>
+                                                        <input
+                                                            type="url"
+                                                            value={smartFetcherUrl}
+                                                            onChange={(e) => setSmartFetcherUrl(e.target.value)}
+                                                            placeholder="https://finance.example.com/asset..."
+                                                            className={`${INPUT_BASE_STYLE} h-10 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-2xs font-bold uppercase tracking-wider text-indigo-900/60 dark:text-indigo-300/60">Session Data / Cookies (Optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={smartFetcherCookies}
+                                                            onChange={(e) => setSmartFetcherCookies(e.target.value)}
+                                                            placeholder="session_id=xyz; auth=abc..."
+                                                            className={`${INPUT_BASE_STYLE} h-10 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSmartFetcher()}
+                                                        className="flex-1 h-11 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                                                        disabled={smartFetcherStatus === 'loading'}
+                                                    >
+                                                        <Icon name={smartFetcherStatus === 'loading' ? 'sync' : 'radar'} className={`text-base ${smartFetcherStatus === 'loading' ? 'animate-spin' : ''}`} />
+                                                        {smartFetcherStatus === 'loading' ? 'Scanning Webpage...' : 'Scan Webpage for Prices'}
+                                                    </button>
+                                                    {smartFetcherBinding && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSmartFetcher({ useSavedSelector: true })}
+                                                            className="w-11 h-11 flex items-center justify-center bg-white dark:bg-dark-card text-indigo-600 rounded-xl hover:shadow-md transition-all border border-indigo-200/50 dark:border-indigo-800/50 shadow-xs"
+                                                            title="Refresh from saved binding"
+                                                            disabled={smartFetcherStatus === 'loading'}
+                                                        >
+                                                            <Icon name="refresh" className="text-base" />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {smartFetcherError && (
+                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+                                                        <Icon name="error" className="text-sm shrink-0" />
+                                                        <span>{smartFetcherError}</span>
+                                                    </div>
+                                                )}
+
+                                                {smartFetcherCandidates.length > 0 && (
+                                                    <div className="space-y-3 pt-2">
+                                                        <div className="flex items-center justify-between px-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <Icon name="center_focus_strong" className="text-sm text-indigo-600" />
+                                                                <span className="text-2xs font-bold uppercase tracking-wider text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</span>
                                                             </div>
-                                                            {smartFetcherSelection === candidate.id && <Icon name="check_circle" className="text-base absolute top-3 right-3 text-white/50" />}
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={applySmartSelection}
-                                                    className="w-full h-12 bg-white dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-xs font-semibold uppercase tracking-wider rounded-xl border border-indigo-600/20 hover:bg-indigo-50 transition-all shadow-sm active:scale-95"
-                                                    disabled={!smartFetcherSelection}
-                                                >
-                                                    Finalize & Bind Selector
-                                                </button>
+                                                            <span className="text-2xs font-semibold text-indigo-600/70 px-2 py-0.5 rounded-full bg-indigo-600/5">Select Best Match</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-auto pr-1 custom-scrollbar">
+                                                            {smartFetcherCandidates.map(candidate => (
+                                                                <label key={candidate.id} className={`flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer relative group ${smartFetcherSelection === candidate.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 text-light-text dark:text-dark-text hover:border-indigo-300/50'}`}>
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="smart-fetcher-price"
+                                                                        checked={smartFetcherSelection === candidate.id}
+                                                                        onChange={() => setSmartFetcherSelection(candidate.id)}
+                                                                        className="sr-only"
+                                                                    />
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-black text-lg tabular-nums tracking-tight">€{candidate.value}</p>
+                                                                        <p className="text-2xs font-medium opacity-60 truncate tracking-tight">{candidate.context}</p>
+                                                                    </div>
+                                                                    {smartFetcherSelection === candidate.id && <Icon name="check_circle" className="text-sm absolute top-2.5 right-2.5 text-white/70" />}
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={applySmartSelection}
+                                                            className="w-full h-11 bg-white dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider rounded-xl border border-indigo-600/20 hover:bg-indigo-50 transition-all shadow-xs active:scale-95"
+                                                            disabled={!smartFetcherSelection}
+                                                        >
+                                                            Finalize & Bind Selector
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-8 animate-fade-in">
-                        <div className="bg-light-fill dark:bg-dark-fill/50 p-6 rounded-3xl border border-black/5 dark:border-white/5 space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                    <Icon name="description" className="text-primary-500 text-lg" />
-                                    Input Stream
-                                </h4>
-                                <div className="text-xs font-semibold text-primary-500/70 px-2 py-0.5 rounded-full bg-primary-500/5 uppercase tracking-wider">TSV/CSV Format</div>
-                            </div>
-                            <textarea
-                                id="bulk-data"
-                                value={bulkData}
-                                onChange={(e) => setBulkData(e.target.value)}
-                                className={`${INPUT_BASE_STYLE} font-mono !text-xs h-64 p-6 leading-relaxed bg-white dark:bg-black/20 border-black/5 dark:border-white/5 focus:ring-1 focus:ring-primary-500/20`}
-                                placeholder={`YYYY-MM-DD VALUE\n2024-05-10 1282.50\n2024-05-11 1290.10`}
-                                autoFocus
-                            />
-                            <AnimatePresence>
-                                {bulkPreview.length > 0 && (
-                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                                <Icon name="task_alt" className="text-emerald-500 text-base" />
-                                            </div>
-                                            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">{bulkPreview.length} Validated Data Points Detected</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 animate-fade-in">
+                                    <div className="p-5 bg-light-fill dark:bg-dark-fill/50 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                                <Icon name="description" className="text-primary-500 text-base" />
+                                                TSV / CSV Batch Input
+                                            </h4>
+                                            <span className="text-2xs font-bold text-primary-500/80 px-2 py-0.5 rounded-full bg-primary-500/10 uppercase tracking-wider">
+                                                YYYY-MM-DD VALUE
+                                            </span>
                                         </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                                        <textarea
+                                            id="bulk-data"
+                                            value={bulkData}
+                                            onChange={(e) => setBulkData(e.target.value)}
+                                            className={`${INPUT_BASE_STYLE} font-mono !text-xs h-56 p-4 leading-relaxed bg-white dark:bg-black/20 border-black/5 dark:border-white/5`}
+                                            placeholder={`2024-05-10 128.50\n2024-05-11 129.10\n2024-05-12 130.00`}
+                                            autoFocus
+                                        />
+                                        {bulkPreview.length > 0 && (
+                                            <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-between">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                                        <Icon name="task_alt" className="text-emerald-500 text-sm" />
+                                                    </div>
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                                                        {bulkPreview.length} Historical Points Validated
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
-                    </div>
-                )}
-                
-                <div className="flex justify-between items-center pt-8 border-t border-black/5 dark:border-white/5">
-                     <div className="w-32">
-                        {mode === 'single' ? (
-                            <button type="button" onClick={handleClear} className="h-12 px-6 text-xs font-semibold uppercase tracking-wider text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all active:scale-95">
-                                {initialEntry ? 'Purge Record' : 'Reset Inputs'}
-                            </button>
-                        ) : (
-                            <button type="button" onClick={() => setBulkData('')} className="h-12 px-6 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-600 rounded-xl transition-all">Clear All</button>
-                        )}
-                     </div>
-                    <div className="flex gap-3">
-                        <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-12 px-8 uppercase tracking-wider text-xs font-semibold`}>Retract</button>
-                        <button 
-                            type="submit" 
-                            className={`${BTN_PRIMARY_STYLE} h-12 px-10 gap-3 group animate-glow uppercase tracking-wider text-xs font-semibold disabled:opacity-50`} 
-                            disabled={mode === 'bulk' && bulkPreview.length === 0}
-                        >
-                            {mode === 'bulk' ? 'Commit Batch' : 'Log Valuation'}
-                            <Icon name="save" className="text-lg transition-transform group-hover:translate-x-1" />
-                        </button>
-                    </div>
+
+                        {/* Sticky Bottom Actions */}
+                        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
+                            <div>
+                                {mode === 'single' ? (
+                                    <button 
+                                        type="button" 
+                                        onClick={handleClear} 
+                                        className="h-12 px-4 text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all"
+                                    >
+                                        {initialEntry ? 'Purge Record' : 'Reset'}
+                                    </button>
+                                ) : (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setBulkData('')} 
+                                        className="h-12 px-4 text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text rounded-xl transition-all"
+                                    >
+                                        Clear All
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    type="button" 
+                                    onClick={handleClose} 
+                                    className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`}
+                                    disabled={mode === 'bulk' && bulkPreview.length === 0}
+                                >
+                                    <span>{mode === 'bulk' ? 'Commit Batch' : 'Log Valuation'}</span>
+                                    <Icon name="save" className="text-base" />
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </Modal>
+            </div>
+        </div>
     );
+
+    return createPortal(content, document.body);
 };
 
 export default WarrantPriceModal;
