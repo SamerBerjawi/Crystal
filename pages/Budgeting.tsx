@@ -15,6 +15,7 @@ import { useConfirm } from '../components/ConfirmationModal';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import Icon from '../components/ui/Icon';
+import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 import { MobileBudgetView } from '../components/MobileBudgetView';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -317,11 +318,17 @@ const Budgeting: React.FC<BudgetingProps> = ({
            </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
-          <div className="md:col-span-2 bg-[#121214] dark:bg-dark-card rounded-2xl p-6 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[200px] border border-white/5 group">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[120px] -mr-64 -mt-64 transition-opacity group-hover:opacity-20"></div>
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] -ml-40 -mb-40 transition-opacity group-hover:opacity-20"></div>
-                
+      <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 relative z-10">
+          <BentoCard 
+              className="md:col-span-2 !p-0 bg-[#121214] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[200px] border-white/5"
+              background={
+                  <>
+                      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[120px] -mr-64 -mt-64 pointer-events-none transition-opacity group-hover:opacity-20"></div>
+                      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] -ml-40 -mb-40 pointer-events-none transition-opacity group-hover:opacity-20"></div>
+                  </>
+              }
+          >
+              <div className="relative z-10 p-6 flex flex-col justify-between h-full">
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
                         <div>
@@ -375,11 +382,16 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         )}
                     </div>
                 </div>
-          </div>
+              </div>
+          </BentoCard>
 
-          <div className="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-2xl border border-black/5 dark:border-white/5 flex flex-col justify-center relative overflow-hidden group">
-              <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover:opacity-40 transition-opacity"></div>
-              <div className="relative z-10 text-center flex flex-col items-center">
+          <BentoCard 
+              className="!col-span-1 !p-0 shadow-2xl flex flex-col justify-center relative overflow-hidden"
+              background={
+                  <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover:opacity-40 transition-opacity"></div>
+              }
+          >
+              <div className="relative z-10 p-6 text-center flex flex-col items-center justify-center h-full">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
                         <Icon name="coins_stacked" className="text-2xl" />
                   </div>
@@ -391,8 +403,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     </p>
                   </div>
               </div>
-          </div>
-      </div>
+          </BentoCard>
+      </BentoGrid>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-10">
           <div className="xl:col-span-2 space-y-6">

@@ -34,6 +34,7 @@ import { useCategoryContext, useGoalsContext, useScheduleContext } from '../cont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import {
@@ -1130,13 +1131,15 @@ const Forecasting: React.FC = () => {
             </AnimatePresence>
 
             {/* --- Bento Grid Hero --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <BentoGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4">
                 {/* Main Forecast Card */}
-                <motion.div 
-                    layout
-                    className="md:col-span-2 relative overflow-hidden rounded-3xl p-6 bg-white dark:bg-dark-card text-light-text dark:text-dark-text shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between min-h-[220px]"
+                <BentoCard 
+                    className="md:col-span-2 relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+                    background={
+                        <div className="absolute top-0 right-0 w-[40%] h-full bg-primary-500/5 dark:bg-primary-500/10 blur-[80px] rounded-full pointer-events-none -z-1" />
+                    }
                 >
-                    <div className="relative z-10">
+                    <div className="relative z-10 flex flex-col justify-between h-full">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-500">
@@ -1169,13 +1172,10 @@ const Forecasting: React.FC = () => {
                             </div>
                         </div>
                     </div>
-
-                    {/* Subtle Gradient Accents */}
-                    <div className="absolute top-0 right-0 w-[40%] h-full bg-primary-500/5 dark:bg-primary-500/10 blur-[80px] rounded-full -z-1" />
-                </motion.div>
+                </BentoCard>
 
                 {/* Net Change Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-4 sm:!p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[160px] sm:min-h-[180px]">
+                <BentoCard className="!col-span-1 flex flex-col justify-between min-h-[160px] sm:min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Portfolio Shift</p>
@@ -1187,7 +1187,7 @@ const Forecasting: React.FC = () => {
                             <Icon name={netChange >= 0 ? 'trending_up' : 'trending_down'} className="text-lg" />
                         </div>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-4">
                         <div className="flex items-center gap-2">
                              <div className="flex -space-x-1.5">
                                 {selectedAccounts.slice(0, 3).map((acc, i) => (
@@ -1205,10 +1205,10 @@ const Forecasting: React.FC = () => {
                             <span className="text-xs font-semibold text-emerald-500">Active</span>
                         </div>
                     </div>
-                </Card>
+                </BentoCard>
 
                 {/* Progress Mini Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-4 sm:!p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[160px] sm:min-h-[180px]">
+                <BentoCard className="!col-span-1 flex flex-col justify-between min-h-[160px] sm:min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Global Performance</p>
@@ -1255,8 +1255,8 @@ const Forecasting: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </Card>
-            </div>
+                </BentoCard>
+            </BentoGrid>
 
             
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />

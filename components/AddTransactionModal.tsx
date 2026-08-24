@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Account, Category, Transaction, Tag, User, MerchantLocation, AccountType } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ACCOUNT_TYPE_ACCENT_STYLES } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ACCOUNT_TYPE_ACCENT_STYLES, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
@@ -10,6 +10,7 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
 import { parseLocationString } from '../utils/locationDetector';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
+import { useTagsContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
 
@@ -330,6 +331,318 @@ const AccountPicker: React.FC<AccountPickerProps> = ({
   );
 };
 
+// Rich Interactive Tag Selector Component with search, multi-selection, and inline creation
+interface TagSelectorProps {
+  selectedTagIds: string[];
+  onChange: (tagIds: string[]) => void;
+  tags: Tag[];
+  saveTag?: (tag: Omit<Tag, 'id'> & { id?: string }) => void;
+}
+
+const TagSelector: React.FC<TagSelectorProps> = ({
+  selectedTagIds,
+  onChange,
+  tags,
+  saveTag,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreatingInline, setIsCreatingInline] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState(CATEGORY_TAG_PRESET_COLORS[0]);
+  const [newTagIcon, setNewTagIcon] = useState('label');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setIsCreatingInline(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const selectedTags = useMemo(() => {
+    return selectedTagIds
+      .map(id => tags.find(t => t.id === id))
+      .filter((t): t is Tag => Boolean(t));
+  }, [selectedTagIds, tags]);
+
+  const filteredTags = useMemo(() => {
+    if (!searchQuery.trim()) return tags;
+    const q = searchQuery.toLowerCase().trim();
+    return tags.filter(t => t.name.toLowerCase().includes(q));
+  }, [tags, searchQuery]);
+
+  const toggleTag = (tagId: string) => {
+    if (selectedTagIds.includes(tagId)) {
+      onChange(selectedTagIds.filter(id => id !== tagId));
+    } else {
+      onChange([...selectedTagIds, tagId]);
+    }
+  };
+
+  const removeTag = (tagId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    onChange(selectedTagIds.filter(id => id !== tagId));
+  };
+
+  const handleCreateNewTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newTagName.trim().replace(/^#/, '');
+    if (!cleanName) return;
+
+    if (saveTag) {
+      const newTagId = uuidv4();
+      saveTag({
+        id: newTagId,
+        name: cleanName,
+        color: newTagColor,
+        icon: newTagIcon,
+      });
+      onChange([...selectedTagIds, newTagId]);
+      toast.success(`Created & applied tag "#${cleanName}"`);
+    }
+
+    setNewTagName('');
+    setIsCreatingInline(false);
+    setSearchQuery('');
+  };
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      {/* Trigger Area / Interactive Multi-badge Input */}
+      <div
+        onClick={() => {
+          setIsOpen(prev => !prev);
+          setTimeout(() => searchInputRef.current?.focus(), 50);
+        }}
+        className={`w-full min-h-[48px] p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-2.5 ${
+          isOpen
+            ? 'bg-primary-500/5 border-primary-500 ring-2 ring-primary-500/20 shadow-sm'
+            : 'bg-white dark:bg-[#181a20] border-gray-200 dark:border-white/10 hover:border-primary-500/40 hover:bg-gray-50/80 dark:hover:bg-[#1f222a] shadow-2xs'
+        }`}
+      >
+        <div className="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
+          {selectedTags.length === 0 ? (
+            <div className="flex items-center gap-2 text-xs font-medium text-gray-400 dark:text-gray-500 px-1.5 py-0.5">
+              <Icon name="tag" className="text-sm text-gray-400 opacity-60" />
+              <span>Attach categorical tags or create new...</span>
+            </div>
+          ) : (
+            selectedTags.map(tag => (
+              <span
+                key={tag.id}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl shadow-2xs transition-all group/tag"
+                style={{
+                  backgroundColor: `${tag.color}15`,
+                  color: tag.color,
+                  border: `1px solid ${tag.color}35`,
+                }}
+              >
+                <Icon name={tag.icon || 'label'} className="text-xs shrink-0" />
+                <span className="truncate max-w-[120px]">#{tag.name}</span>
+                <button
+                  type="button"
+                  onClick={e => removeTag(tag.id, e)}
+                  className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition-colors shrink-0 cursor-pointer"
+                  title={`Remove #${tag.name}`}
+                >
+                  <Icon name="close" className="text-[10px]" />
+                </button>
+              </span>
+            ))
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 text-gray-400">
+          {selectedTags.length > 0 && (
+            <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 mr-0.5">
+              {selectedTags.length}
+            </span>
+          )}
+          <Icon name={isOpen ? 'expand_less' : 'expand_more'} className="text-base transition-transform" />
+        </div>
+      </div>
+
+      {/* Popover Dropdown */}
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#181a20] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] p-3 space-y-2.5 max-h-80 flex flex-col animate-fade-in-up">
+          
+          {/* Header & Search */}
+          <div className="relative">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search tags or type name to add..."
+              className="w-full h-9 pl-9 pr-8 text-xs font-semibold bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-xl border border-black/5 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+              >
+                <Icon name="close" className="text-xs" />
+              </button>
+            )}
+          </div>
+
+          {/* Inline Tag Creator Form */}
+          {isCreatingInline ? (
+            <form onSubmit={handleCreateNewTag} className="p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-black/5 dark:border-white/10 space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-2xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Create New Tag
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingInline(false)}
+                  className="text-2xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-2xs"
+                  style={{ backgroundColor: newTagColor }}
+                >
+                  <Icon name={newTagIcon} className="text-sm" />
+                </div>
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={e => setNewTagName(e.target.value)}
+                  placeholder="tag-name"
+                  className="flex-1 h-8 px-2.5 text-xs font-bold bg-white dark:bg-[#12141a] text-gray-900 dark:text-white rounded-lg border border-black/10 dark:border-white/10 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  autoFocus
+                />
+              </div>
+
+              {/* Color Presets */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                {CATEGORY_TAG_PRESET_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNewTagColor(c)}
+                    className={`w-5 h-5 rounded-full shrink-0 transition-transform ${
+                      newTagColor === c ? 'scale-125 ring-2 ring-offset-1 ring-primary-500' : 'hover:scale-110 opacity-80 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="submit"
+                disabled={!newTagName.trim()}
+                className={`${BTN_PRIMARY_STYLE} w-full h-8 text-xs font-bold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-1.5`}
+              >
+                <Icon name="check" className="text-xs" />
+                <span>Save & Apply Tag</span>
+              </button>
+            </form>
+          ) : (
+            saveTag && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNewTagName(searchQuery.trim().replace(/^#/, ''));
+                  setIsCreatingInline(true);
+                }}
+                className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-500/5 hover:bg-primary-500/10 border border-primary-500/20 flex items-center justify-between transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5 truncate">
+                  <Icon name="add_circle" className="text-sm" />
+                  <span>
+                    {searchQuery.trim() ? `Create tag "#${searchQuery.trim().replace(/^#/, '')}"` : 'Create new custom tag...'}
+                  </span>
+                </span>
+                <span className="text-2xs uppercase tracking-wider font-bold opacity-70">New</span>
+              </button>
+            )
+          )}
+
+          {/* Tags List */}
+          <div className="overflow-y-auto max-h-48 space-y-1 custom-scrollbar pr-1 flex-1">
+            {filteredTags.length === 0 ? (
+              <div className="py-6 text-center text-xs text-gray-500 dark:text-gray-400">
+                <p>No matching tags found</p>
+              </div>
+            ) : (
+              filteredTags.map(tag => {
+                const isSelected = selectedTagIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between gap-2.5 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold border border-primary-500/20'
+                        : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-2xs"
+                        style={{
+                          backgroundColor: `${tag.color}20`,
+                          color: tag.color,
+                          border: `1px solid ${tag.color}40`,
+                        }}
+                      >
+                        <Icon name={tag.icon || 'label'} className="text-xs" />
+                      </div>
+                      <span className="truncate">#{tag.name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isSelected ? (
+                        <div className="w-5 h-5 rounded-full bg-primary-500 text-white flex items-center justify-center shadow-2xs">
+                          <Icon name="check" className="text-xs" />
+                        </div>
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-white/20" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer Quick stats */}
+          {selectedTags.length > 0 && (
+            <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-2xs text-gray-500 dark:text-gray-400 px-1">
+              <span>{selectedTags.length} tag{selectedTags.length > 1 ? 's' : ''} attached</span>
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="hover:text-rose-500 font-semibold cursor-pointer transition-colors"
+              >
+                Clear all tags
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   onClose,
   onSave,
@@ -355,6 +668,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
   const isEditing = !!transactionToEdit;
   const { setPreferences } = usePreferencesContext();
+  const tagsContext = useTagsContext();
+  const availableTags = tagsContext?.tags?.length ? tagsContext.tags : tags;
+  const saveTag = tagsContext?.saveTag;
+
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId || '');
@@ -399,7 +716,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [toAccountId, setToAccountId] = useState(initialToAccountId || defaultAccountId);
   const [description, setDescription] = useState(initialDetails?.description || '');
   const [isDescriptionUserModified, setIsDescriptionUserModified] = useState(Boolean(initialDetails?.description));
-  const [merchant, setMerchant] = useState(initialDetails?.merchant || '');
+  const [merchant, setMerchant] = useState(transactionToEdit?.merchant || initialDetails?.merchant || '');
   const [amount, setAmount] = useState(() => {
     if (initialDetails?.amount) {
       const num = parseFloat(initialDetails.amount);
@@ -411,8 +728,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [isCategoryUserModified, setIsCategoryUserModified] = useState(Boolean(transactionToEdit?.category || initialCategory));
   const [notes, setNotes] = useState(initialDetails?.notes || '');
   const [tagIds, setTagIds] = useState<string[]>(initialDetails?.tagIds || []);
-  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
-  const tagSelectorRef = useRef<HTMLDivElement>(null);
   
   // Exact Location State
   const [isLocationUserModified, setIsLocationUserModified] = useState(
@@ -992,9 +1307,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
-        setIsTagSelectorOpen(false);
-      }
       if (merchantContainerRef.current && !merchantContainerRef.current.contains(event.target as Node)) {
         setShowMerchantSuggestions(false);
       }
@@ -2241,72 +2553,25 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               {activeTab === 'extras' && (
                 <div className="space-y-4 animate-fade-in">
                   {/* Categorical Tags */}
-                  <div className="p-4 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3" ref={tagSelectorRef}>
+                  <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
                     <div className="flex items-center justify-between">
-                      <label className={labelStyle}>Categorical Tags</label>
-                      <span className="text-2xs text-primary-500 font-semibold uppercase">{tagIds.length} selected</span>
-                    </div>
-
-                    <div 
-                      onClick={() => setIsTagSelectorOpen(prev => !prev)}
-                      className={`${INPUT_BASE_STYLE} min-h-[44px] py-2 px-3 flex flex-wrap gap-1.5 items-center cursor-pointer`}
-                    >
-                      {tagIds.length === 0 ? (
-                        <span className="text-gray-400 text-xs font-medium">Select tags...</span>
-                      ) : (
-                        tagIds.map(tid => {
-                          const tag = (tags || []).find(t => t.id === tid);
-                          if (!tag) return null;
-                          return (
-                            <span 
-                              key={tid}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20"
-                            >
-                              <span>{tag.name}</span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTagIds(prev => prev.filter(id => id !== tid));
-                                }}
-                                className="hover:text-red-500 cursor-pointer"
-                              >
-                                <Icon name="close" className="text-xs" />
-                              </button>
-                            </span>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    {isTagSelectorOpen && (
-                      <div className="p-2 bg-white dark:bg-[#181a20] border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                        {(!tags || tags.length === 0) ? (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">No tags available in workspace</p>
-                        ) : (
-                          tags.map(tag => {
-                            const isSelected = tagIds.includes(tag.id);
-                            return (
-                              <button
-                                key={tag.id}
-                                type="button"
-                                onClick={() => {
-                                  setTagIds(prev => isSelected ? prev.filter(id => id !== tag.id) : [...prev, tag.id]);
-                                }}
-                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between cursor-pointer ${
-                                  isSelected 
-                                    ? 'bg-primary-500/15 text-primary-600 dark:text-primary-400 font-bold' 
-                                    : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white'
-                                }`}
-                              >
-                                <span>{tag.name}</span>
-                                {isSelected && <Icon name="check" className="text-xs text-primary-500" />}
-                              </button>
-                            );
-                          })
-                        )}
+                      <div className="flex items-center gap-2">
+                        <Icon name="tag" className="text-sm text-primary-500" />
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
+                          Categorical Tags
+                        </span>
                       </div>
-                    )}
+                      <span className="text-2xs text-primary-500 font-semibold uppercase tracking-wider">
+                        {tagIds.length} attached
+                      </span>
+                    </div>
+
+                    <TagSelector
+                      selectedTagIds={tagIds}
+                      onChange={setTagIds}
+                      tags={availableTags}
+                      saveTag={saveTag}
+                    />
                   </div>
 
                   {/* Extended Remarks & Notes */}

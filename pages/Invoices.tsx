@@ -11,6 +11,7 @@ import HeaderButton from '../components/HeaderButton';
 import InvoiceModal from '../components/InvoiceModal';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Icon from '../components/ui/Icon';
+import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 
 const STATUS_COLORS: Record<InvoiceStatus, { bg: string, text: string, icon: string }> = {
     draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'Edit02' },
@@ -143,33 +144,38 @@ const InvoicesPage: React.FC = () => {
             />
 
             {/* Financial Intelligence Hub */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <BentoGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
                 {[
                     { label: 'Aggregate Billing', value: metrics.paidMonth, icon: 'receipt', color: 'text-primary-500', bg: 'bg-primary-500/5', desc: 'Total invoices paid (Mo)' },
                     { label: 'Risk exposure', value: metrics.overdue, icon: 'alert_triangle', color: 'text-rose-500', bg: 'bg-rose-500/5', desc: 'Active overdue receivables' },
                     { label: 'Liquid Pipeline', value: metrics.outstanding, icon: 'clock', color: 'text-blue-500', bg: 'bg-blue-500/5', desc: 'Outstanding receivables' },
                     { label: 'Quote Velocity', value: metrics.pendingQuotes, icon: 'file_text', color: 'text-amber-500', bg: 'bg-amber-500/5', desc: 'Active proposals pipeline' },
                 ].map((stat, idx) => (
-                    <div key={idx} className="bg-white dark:bg-dark-card p-8 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group overflow-hidden relative">
-                        <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-3xl rounded-full -translate-y-8 translate-x-8 opacity-0 group-hover:opacity-100 transition-opacity`} />
-                        <div className="flex flex-col gap-6 relative z-10">
+                    <BentoCard 
+                        key={idx} 
+                        className="!col-span-1 !p-0 min-h-[160px]"
+                        background={
+                            <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-3xl rounded-full -translate-y-8 translate-x-8 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`} />
+                        }
+                    >
+                        <div className="flex flex-col justify-between h-full gap-5 relative z-10 p-6">
                             <div className="flex items-center justify-between">
                                 <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
                                     <Icon name={stat.icon} className={`${stat.color} text-2xl`} />
                                 </div>
-                                <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">METRIC Node {idx + 1}</span>
+                                <span className="text-2xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Node {idx + 1}</span>
                             </div>
                             <div className="space-y-1">
                                 <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{stat.label}</p>
-                                <h3 className="text-3xl font-bold tabular-nums tracking-tight privacy-blur">
+                                <h3 className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight privacy-blur">
                                     {formatCurrency(stat.value, currencyCode)}
                                 </h3>
                                 <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-70">{stat.desc}</p>
                             </div>
                         </div>
-                    </div>
+                    </BentoCard>
                 ))}
-            </div>
+            </BentoGrid>
 
             {/* Content Switcher & Filters */}
             <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">

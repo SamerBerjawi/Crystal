@@ -10,6 +10,7 @@ import CategoryItem from '../components/CategoryItem';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
+import { BentoGrid } from '../components/ui/bento-grid';
 import Icon from '../components/ui/Icon';
 
 const generateId = () => `cat-${uuidv4()}`;
@@ -252,12 +253,12 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
        />
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
           <StatCard title="Major Nodes" value={stats.parents} icon="folder" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Sub-Nodes" value={stats.subs} icon="folder" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
           <StatCard title="Total Schema" value={stats.total} icon="folder" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
           <StatCard title="Search" value={searchTerm ? '1' : '0'} icon="sliders" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
-      </div>
+      </BentoGrid>
 
       {/* Controls Section */}
       <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">

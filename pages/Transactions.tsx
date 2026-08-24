@@ -1548,7 +1548,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     } else {
       const pageTxIds = new Set(tableRenderItems.filter(i => !i.isGroupHeader).map(i => i.id));
       const selectedOnPage = new Set(Array.from(keys).map(String).filter(id => !id.startsWith('group-hdr-')));
-      
+
       setSelectedIds(prev => {
         const next = new Set(prev);
         pageTxIds.forEach(id => {
@@ -2292,8 +2292,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                         const typeIndicator = txType === 'income'
                           ? { dot: "bg-emerald-500 shadow-xs shadow-emerald-500/50", label: "Income" }
                           : txType === 'expense'
-                          ? { dot: "bg-rose-500 shadow-xs shadow-rose-500/50", label: "Expense" }
-                          : { dot: "bg-slate-400 dark:bg-white/80 shadow-xs", label: "Internal Transfer" };
+                            ? { dot: "bg-rose-500 shadow-xs shadow-rose-500/50", label: "Expense" }
+                            : { dot: "bg-slate-400 dark:bg-white/80 shadow-xs", label: "Internal Transfer" };
 
                         const categoryDetails = getCategoryDetails(tx.category, allCategories);
                         const categoryColor = (tx.isTransfer && (!tx.category || tx.category === 'Transfer')) ? '#64748B' : (categoryDetails.color || '#A0AEC0');

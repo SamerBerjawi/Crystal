@@ -22,6 +22,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import CalendarView from '../components/CalendarView';
 import { MobileScheduleView } from '../components/MobileScheduleView';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { RingChart, Ring, RingCenter, RingData } from '../src/components/charts';
 
 // --- Summary Card Component ---
 const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'income' | 'expense' | 'net'; count?: number }> = ({ title, value, type, count }) => {
@@ -814,11 +815,13 @@ const SchedulePage: React.FC = () => {
         let type: 'income' | 'expense' | 'transfer';
         let from, to;
         let category: string | undefined;
+        let merchant: string | undefined;
 
         if (item.isRecurring) {
             const rt = original as RecurringTransaction;
             type = rt.type;
             category = rt.category;
+            merchant = rt.merchant || item.merchant;
             if (type === 'transfer') {
                 from = rt.accountId;
                 to = rt.toAccountId;
@@ -831,6 +834,7 @@ const SchedulePage: React.FC = () => {
             const bill = original as BillPayment;
             type = bill.type === 'deposit' ? 'income' : 'expense';
             category = type === 'income' ? 'Income' : 'Bills & Utilities';
+            merchant = (bill as any).merchant || (bill as any).biller || item.merchant;
             if (bill.accountId) {
                  if (type === 'income') to = bill.accountId;
                  else from = bill.accountId;
@@ -846,6 +850,7 @@ const SchedulePage: React.FC = () => {
                 date: item.date,
                 amount: String(Math.abs(item.amount)),
                 description: item.description,
+                merchant: merchant || item.merchant || (original as any)?.merchant || '',
             },
         };
     }, [itemToPost]);
@@ -878,7 +883,7 @@ const SchedulePage: React.FC = () => {
         toast.success(`Marked ${oldUnpaidBills.length} old bill(s) as expired and moved to archive.`);
     };
 
-    const PIE_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
+    const PIE_COLORS = ['#38BDF8', '#C084FC', '#F59E0B', '#10B981', '#EF4444', '#6366F1'];
     const segments: { id: ScheduleSegment; label: string; icon: string; color: string }[] = [
         { id: 'calendar', label: 'Calendar', icon: 'calendar', color: 'primary' },
         { id: 'timeline', label: 'Timeline', icon: 'sliders', color: 'rose' },
@@ -1019,192 +1024,355 @@ const SchedulePage: React.FC = () => {
                     outflowCount={summaryMetrics.expCount}
                 />
 
-                {/* --- Consolidated Header & Portfolio --- */}
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
-                    <div className={`absolute -top-24 -right-24 w-80 h-80 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
-                    
-                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-10">
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-10 flex-1">
-                            <div className="group/val cursor-pointer">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Icon name="credit_card" className="text-primary-500 text-sm" />
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Next 30 Days Outflow</span>
-                                </div>
-                                <div className="flex items-baseline gap-3">
-                                    <h2 className="text-5xl font-bold tracking-tighter text-light-text dark:text-dark-text transition-colors group-hover/val:text-primary-500">
-                                        {formatCurrency(summaryMetrics.expense, 'EUR')}
-                                    </h2>
-                                    <motion.div layoutId="active-indicator-main" className="w-2 h-2 rounded-full bg-primary-500 shadow-[0_0_12px_rgba(99,102,241,1)]" />
-                                 </div>
-                                 <div className="flex items-center gap-3 mt-3 opacity-60">
-                                      <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">{summaryMetrics.expCount} Operations Pending</span>
-                                 </div>
+                {/* --- Hero Card: Row #1 (Category Breakdown + 2x2 KPIs) & Row #2 (Heatmap with Title Left, Legend Right) --- */}
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-6 lg:p-7 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group space-y-6">
+                    <div className={`absolute -top-28 -right-28 w-96 h-96 blur-3xl opacity-25 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
+
+                    {/* ROW #1: Category Expenditure Breakdown (Left Half) & 2x2 Grid (Right Half) */}
+                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                        
+                        {/* LEFT HALF (lg:col-span-6): CATEGORY EXPENDITURE BREAKDOWN */}
+                        <div className="lg:col-span-6 flex flex-col justify-between p-5 sm:p-6 rounded-[2rem] bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
+                                    <Icon name="donut_large" className="text-xs text-primary-500" />
+                                    Category Expenditure Breakdown
+                                </h3>
+                                <span className="text-3xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full">
+                                    30-Day Commitment View
+                                </span>
                             </div>
 
-                            <div className="hidden lg:block w-px h-20 bg-black/5 dark:bg-white/10" />
-
-                            {/* View Switcher Grid */}
-                            <div className="flex-[2] grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {segments.map(seg => {
-                                    const isActive = activeSegment === seg.id;
-                                    return (
-                                        <div 
-                                            key={seg.id} 
-                                            onClick={() => setActiveSegment(seg.id)} 
-                                            className={`group cursor-pointer p-5 rounded-3xl transition-all duration-300 border ${isActive ? 'bg-primary-500/5 border-primary-500/20 shadow-inner' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}
+                            {categoryBreakdown.length > 0 ? (
+                                <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8 py-2 flex-1 justify-center">
+                                    <div className="w-56 h-56 shrink-0 flex items-center justify-center relative">
+                                        <RingChart
+                                            data={categoryBreakdown.map((cat, idx) => ({
+                                                label: cat.name,
+                                                value: cat.value,
+                                                maxValue: summaryMetrics.expense > 0 ? summaryMetrics.expense : cat.value,
+                                                color: PIE_COLORS[idx % PIE_COLORS.length],
+                                            }))}
+                                            size={224}
+                                            strokeWidth={10}
+                                            ringGap={5}
+                                            baseInnerRadius={44}
                                         >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <Icon name={seg.icon} className="text-xl" />
+                                            {categoryBreakdown.map((cat, idx) => (
+                                                <Ring
+                                                    key={cat.name}
+                                                    index={idx}
+                                                    color={PIE_COLORS[idx % PIE_COLORS.length]}
+                                                />
+                                            ))}
+                                            <RingCenter
+                                                defaultLabel="Total Outflow"
+                                                prefix="€"
+                                                valueClassName="text-sm sm:text-base font-extrabold tabular-nums tracking-tight leading-none"
+                                                labelClassName="text-[9px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary/60 mt-1"
+                                            />
+                                        </RingChart>
+                                    </div>
+
+                                    <div className="flex-1 w-full flex flex-col justify-center space-y-2.5 min-w-0">
+                                        {categoryBreakdown.slice(0, 5).map((cat, idx) => {
+                                            const color = PIE_COLORS[idx % PIE_COLORS.length];
+                                            const pct = summaryMetrics.expense > 0 ? Math.round((cat.value / summaryMetrics.expense) * 100) : 0;
+                                            return (
+                                                <div key={cat.name} className="space-y-1">
+                                                    <div className="flex items-center justify-between text-xs gap-2">
+                                                        <div className="flex items-center gap-2 min-w-0 truncate">
+                                                            <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: color }} />
+                                                            <span className="truncate font-bold text-light-text dark:text-dark-text">{cat.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-xs">
+                                                            <span className="font-bold text-light-text dark:text-dark-text">{formatCurrency(cat.value, 'EUR')}</span>
+                                                            <span className="text-light-text-secondary dark:text-dark-text-secondary/70 font-semibold">{pct}%</span>
+                                                        </div>
+                                                    </div>
+                                                    {/* Mini progress bar under each item matching the screenshot */}
+                                                    <div className="w-full bg-black/5 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${Math.min(pct, 100)}%` }}
+                                                            className="h-full rounded-full"
+                                                            style={{ backgroundColor: color }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                {isActive && <motion.div layoutId="active-dot" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className={`text-xs font-semibold uppercase tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60'}`}>{seg.label}</span>
-                                            </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="py-8 text-center text-xs text-light-text-secondary/40 italic flex-1 flex items-center justify-center">
+                                    No scheduled expenditure
+                                </div>
+                            )}
+
+                            {/* Recurring / Income Mini Progress Bar */}
+                            <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-1.5">
+                                <div className="flex items-center justify-between text-3xs font-semibold">
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-70">Recurring vs Income Overhead</span>
+                                    <span className="text-primary-500 font-bold tabular-nums">
+                                        {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min(summaryMetrics.income > 0 ? (summaryMetrics.expense / summaryMetrics.income) * 100 : 0, 100)}%` }}
+                                        className="h-full rounded-full bg-primary-500"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RIGHT HALF (lg:col-span-6): 2x2 GRID FOR 4 KPI CARDS */}
+                        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+                            {/* KPI 1: 30-Day Outflow */}
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-rose-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-rose-500/10 dark:border-rose-500/20 flex flex-col justify-between space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                                            <Icon name="credit_card" className="text-sm" />
                                         </div>
-                                    )
-                                })}
+                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">30-Day Outflow</span>
+                                    </div>
+                                    <span className="text-4xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
+                                        {summaryMetrics.expCount} Ops
+                                    </span>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-light-text dark:text-dark-text">
+                                        {formatCurrency(summaryMetrics.expense, 'EUR')}
+                                    </h2>
+                                </div>
+                                <div className="pt-2 border-t border-rose-500/10 dark:border-rose-500/15 flex items-center justify-between text-2xs min-w-0">
+                                    {majorOutflow ? (
+                                        <div className="flex items-center gap-1.5 min-w-0 truncate text-rose-600 dark:text-rose-400">
+                                            <Icon name="upload" className="text-xs shrink-0" />
+                                            <span className="truncate font-semibold text-3xs">{majorOutflow.description}</span>
+                                            <span className="text-3xs font-black shrink-0">(-{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-3xs text-light-text-secondary dark:text-dark-text-secondary/60">No major outflow scheduled</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* KPI 2: Expected Income */}
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-emerald-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-emerald-500/10 dark:border-emerald-500/20 flex flex-col justify-between space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                            <Icon name="download" className="text-sm" />
+                                        </div>
+                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Expected Income</span>
+                                    </div>
+                                    <span className="text-4xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                        {summaryMetrics.incCount} Ops
+                                    </span>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-light-text dark:text-dark-text">
+                                        {formatCurrency(summaryMetrics.income, 'EUR')}
+                                    </h2>
+                                </div>
+                                <div className="pt-2 border-t border-emerald-500/10 dark:border-emerald-500/15 flex items-center justify-between text-2xs min-w-0">
+                                    {majorInflow ? (
+                                        <div className="flex items-center gap-1.5 min-w-0 truncate text-emerald-600 dark:text-emerald-400">
+                                            <Icon name="download" className="text-xs shrink-0" />
+                                            <span className="truncate font-semibold text-3xs">{majorInflow.description}</span>
+                                            <span className="text-3xs font-black shrink-0">(+{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-3xs text-light-text-secondary dark:text-dark-text-secondary/60">No major inflow scheduled</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* KPI 3: Overdue Obligations */}
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-amber-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-amber-500/10 dark:border-amber-500/20 flex flex-col justify-between space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                            <Icon name="warning" className="text-sm" />
+                                        </div>
+                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Overdue Items</span>
+                                    </div>
+                                    <span className={`text-4xs font-bold px-2 py-0.5 rounded-full ${
+                                        (groupedItems['Overdue']?.length || 0) > 0 
+                                            ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10' 
+                                            : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                                    }`}>
+                                        {(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Pending` : 'All Clear'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h2 className={`text-2xl sm:text-3xl font-black tracking-tighter ${(groupedItems['Overdue']?.length || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
+                                        {groupedItems['Overdue']?.length || 0} <span className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">Items</span>
+                                    </h2>
+                                </div>
+                                <div className="pt-2 border-t border-amber-500/10 dark:border-amber-500/15 flex items-center justify-between text-2xs min-w-0">
+                                    {(groupedItems['Overdue']?.length || 0) > 0 ? (
+                                        <span className="text-3xs font-bold text-rose-600 dark:text-rose-400 truncate">
+                                            {formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} unpaid total
+                                        </span>
+                                    ) : (
+                                        <span className="text-3xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                                            All obligations on track
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* KPI 4: Active Rules */}
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-primary-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-primary-500/10 dark:border-primary-500/20 flex flex-col justify-between space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
+                                            <Icon name="event_repeat" className="text-sm" />
+                                        </div>
+                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Active Rules</span>
+                                    </div>
+                                    <span className="text-4xs font-bold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full">
+                                        {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden
+                                    </span>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-light-text dark:text-dark-text">
+                                        {recurringTransactions.length} <span className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">Rules</span>
+                                    </h2>
+                                </div>
+                                <div className="pt-2 border-t border-primary-500/10 dark:border-primary-500/15 flex items-center justify-between text-2xs min-w-0">
+                                    {(() => {
+                                        const net = summaryMetrics.income - summaryMetrics.expense;
+                                        return (
+                                            <span className={`text-3xs font-bold truncate ${net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                                Net Projected: {net >= 0 ? '+' : ''}{formatCurrency(net, 'EUR')}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Integrated Detail Tray */}
-                    <div className="mt-8 pt-8 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-8">
-                         <div className="flex flex-wrap items-center gap-x-12 gap-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-2xl bg-emerald-500/5 flex items-center justify-center">
-                                    <Icon name="arrow_downward" className="text-emerald-500/70" />
+                    {/* ROW #2: 3 Columns (0.2 Title Left, 0.6 Heatmap Center, 0.2 Legend Right) */}
+                    <div className="relative z-10 p-5 sm:p-6 rounded-[2rem] bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-center">
+                            {/* Column 1 (20% -> lg:col-span-1): Title & Subtitle */}
+                            <div className="lg:col-span-1 flex flex-col justify-center space-y-1.5 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse shrink-0" />
+                                    <h3 className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary leading-tight">
+                                        12-Month Schedule Horizon Density
+                                    </h3>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Expected Income</span>
-                                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(summaryMetrics.income, 'EUR')}</span>
-                                </div>
+                                <p className="text-4xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 leading-relaxed pl-4.5">
+                                    Rolled weekly commitments & cashflow activity
+                                </p>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-2xl bg-rose-500/5 flex items-center justify-center">
-                                    <Icon name="warning" className="text-rose-500/70" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Overdue</span>
-                                    <span className="text-base font-black text-rose-600 dark:text-rose-400 tabular-nums">{groupedItems['Overdue']?.length || 0}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-2xl bg-primary-500/5 flex items-center justify-center">
-                                    <Icon name="event_repeat" className="text-primary-500/70" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 ">Active Rules</span>
-                                    <span className="text-base font-black text-light-text dark:text-dark-text tabular-nums">{recurringTransactions.length}</span>
-                                </div>
-                            </div>
-                         </div>
 
-                         {/* Search Integrated */}
-                         <div className="relative flex-grow max-w-[280px]">
-                            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary" />
-                            <input 
-                                type="text" 
-                                placeholder="Global Search..." 
-                                value={searchQuery} 
-                                onChange={(e) => setSearchQuery(e.target.value)} 
-                                className="w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl py-3 pl-10 pr-4 text-xs font-bold focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-light-text-secondary/60 dark:text-dark-text-secondary/60"
-                            />
-                         </div>
+                            {/* Column 2 (60% -> lg:col-span-3): Centered Heatmap */}
+                            <div className="lg:col-span-3 overflow-x-auto w-full flex justify-center items-center py-1">
+                                <ScheduleHeatmap items={allUpcomingForHeatmap} hideLegend={true} />
+                            </div>
+
+                            {/* Column 3 (20% -> lg:col-span-1): Legend */}
+                            <div className="lg:col-span-1 flex flex-col justify-center space-y-2 min-w-0 lg:pl-4 lg:border-l border-black/5 dark:border-white/5">
+                                <span className="text-4xs font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">
+                                    Activity Key
+                                </span>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1.5 text-3xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-xs bg-gray-200 dark:bg-gray-700 shrink-0" />
+                                        <span className="truncate">No Activity</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-xs bg-slate-400 shrink-0" />
+                                        <span className="truncate">Transfer</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-xs bg-green-500 shrink-0" />
+                                        <span className="truncate">Income</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-xs bg-red-500 shrink-0" />
+                                        <span className="truncate">Expense</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-xs bg-purple-500 shrink-0" />
+                                        <span className="truncate">Mixed</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* --- Analytics Bento Grid --- */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    <div className="md:col-span-12">
-                        <ScheduleHeatmap items={allUpcomingForHeatmap} />
+                {/* --- Navigation View Switcher with Search --- */}
+                <div className="bg-white dark:bg-dark-card rounded-[2rem] p-3 border border-black/5 dark:border-white/5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1">
+                        {segments.map(seg => {
+                            const isActive = activeSegment === seg.id;
+                            return (
+                                <button
+                                    key={seg.id}
+                                    type="button"
+                                    onClick={() => setActiveSegment(seg.id)}
+                                    className={`group relative flex items-center gap-3 p-3.5 rounded-2xl transition-all duration-300 border text-left ${
+                                        isActive
+                                            ? 'bg-primary-500/10 border-primary-500/20 shadow-xs'
+                                            : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'
+                                    }`}
+                                >
+                                    <div
+                                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                                            isActive
+                                                ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30'
+                                                : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'
+                                        }`}
+                                    >
+                                        <Icon name={seg.icon} className="text-lg" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className={`text-xs font-bold uppercase tracking-wider truncate ${isActive ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
+                                            {seg.label}
+                                        </span>
+                                    </div>
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="active-nav-dot"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]"
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
 
-                    <div className="md:col-span-4 bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm">
-                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Exp. Breakdown</h3>
-                            <span className="text-xs font-semibold text-primary-500">30d Horizon</span>
-                        </div>
-                        <div className="space-y-4">
-                             {categoryBreakdown.length > 0 ? (
-                                categoryBreakdown.map((cat, index) => {
-                                    const percent = summaryMetrics.expense > 0 ? (cat.value / summaryMetrics.expense) * 100 : 0;
-                                    const color = PIE_COLORS[index % PIE_COLORS.length];
-                                    return (
-                                        <div key={cat.name} className="group cursor-default">
-                                            <div className="flex justify-between text-xs font-semibold tracking-tight mb-2">
-                                                <span className="text-light-text dark:text-dark-text opacity-70 truncate max-w-[140px]">{cat.name}</span>
-                                                <span className="tabular-nums">{formatCurrency(cat.value, 'EUR')}</span>
-                                            </div>
-                                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
-                                                 <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} className="h-full rounded-full" style={{ backgroundColor: color }} />
-                                            </div>
-                                        </div>
-                                    )
-                                })
-                            ) : (
-                                <div className="py-8 text-center text-xs text-light-text-secondary/40 italic">No scheduled data</div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-4 group bg-gradient-to-br from-emerald-500/5 to-teal-500/5 dark:bg-emerald-900/10 rounded-[2rem] p-6 border border-emerald-500/10 dark:border-emerald-500/20 relative overflow-hidden">
-                         <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Icon name="savings" className="text-8xl text-emerald-500" />
-                        </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div className="space-y-2">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">Dominant Inflow</span>
-                                {majorInflow ? (
-                                    <>
-                                        <h3 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center">
-                                                <Icon name="download" className="text-sm text-emerald-500" />
-                                            </div>
-                                            <p className="font-bold text-xs truncate opacity-70">{majorInflow.description}</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <p className="text-xs font-semibold opacity-40 italic">No major inflow detected</p>
-                                )}
-                            </div>
-                            <div className="pt-6">
-                                <div className="text-xs font-semibold text-emerald-600/60 uppercase tracking-wider">
-                                    {majorInflow ? `Expected ${parseLocalDate(majorInflow.date).toLocaleDateString()}` : 'Forecast Clean'}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-4 group bg-gradient-to-br from-rose-500/5 to-pink-500/5 dark:bg-rose-900/10 rounded-[2rem] p-6 border border-rose-500/10 dark:border-rose-500/20 relative overflow-hidden">
-                         <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Icon name="payments" className="text-8xl text-rose-500" />
-                        </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                             <div className="space-y-2">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-rose-600">Critical Outflow</span>
-                                {majorOutflow ? (
-                                    <>
-                                        <h3 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <div className="w-5 h-5 rounded-md bg-rose-500/10 flex items-center justify-center">
-                                                <Icon name="upload" className="text-sm text-rose-500" />
-                                            </div>
-                                            <p className="font-bold text-xs truncate opacity-70">{majorOutflow.description}</p>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <p className="text-xs font-semibold opacity-40 italic">No major outflow detected</p>
-                                )}
-                            </div>
-                            <div className="pt-6">
-                                <div className="text-xs font-semibold text-rose-600/60 uppercase tracking-wider">
-                                    {majorOutflow ? `Due ${parseLocalDate(majorOutflow.date).toLocaleDateString()}` : 'Safe Horizon'}
-                                </div>
-                            </div>
-                        </div>
+                    {/* Quick Search */}
+                    <div className="relative w-full md:w-72 shrink-0">
+                        <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary text-xs" />
+                        <input 
+                            type="text" 
+                            placeholder="Search obligations..." 
+                            value={searchQuery} 
+                            onChange={(e) => setSearchQuery(e.target.value)} 
+                            className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl py-2.5 pl-9 pr-8 text-xs font-semibold focus:outline-hidden focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-light-text-secondary/50 dark:text-dark-text"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-light-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors p-1"
+                                title="Clear search"
+                            >
+                                <Icon name="close" className="text-xs" />
+                            </button>
+                        )}
                     </div>
                 </div>
 

@@ -28,5 +28,7 @@ export { BarChart, type BarChartProps } from "./bar-chart";
 export { Bar, type BarProps } from "./bar";
 export { BarXAxis, type BarXAxisProps } from "./bar-x-axis";
 export { BarYAxis, type BarYAxisProps } from "./bar-y-axis";
-export { BarSquares, type BarSquaresProps } from "./bar-squares";
-
+export { RingChart, type RingChartProps } from "./ring-chart";
+export { Ring, type RingProps, type RingLineCap } from "./ring";
+export { RingCenter, type RingCenterProps } from "./ring-center";
+export { type RingData } from "./ring-context";

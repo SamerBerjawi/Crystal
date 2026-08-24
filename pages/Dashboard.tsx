@@ -63,6 +63,7 @@ import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import Icon from '../components/ui/Icon';
+import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -155,17 +156,18 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-  <div className="ios-regular p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] border border-black/5 dark:border-white/5 bg-white/80 dark:bg-dark-card/80 backdrop-blur-md shadow-sm flex items-center gap-3.5 sm:gap-5 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
-    <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-    <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-105 transition-transform`}>
-      <Icon name={icon} className="text-2xl sm:text-3xl" />
+  <BentoCard className="!col-span-1 !p-0 min-h-[110px]">
+    <div className="flex items-center gap-3.5 sm:gap-5 w-full">
+      <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-105 transition-transform`}>
+        <Icon name={icon} className="text-2xl sm:text-3xl" />
+      </div>
+      <div className="min-w-0 relative z-10 flex-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">{title}</p>
+        <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight truncate">{value}</p>
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-70">{subtext}</p>
+      </div>
     </div>
-    <div className="min-w-0 relative z-10 flex-1">
-      <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{title}</p>
-      <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight">{value}</p>
-      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-70">{subtext}</p>
-    </div>
-  </div>
+  </BentoCard>
 );
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
@@ -545,11 +547,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     let type: 'income' | 'expense' | 'transfer';
     let from, to;
     let category: string | undefined;
+    let merchant: string | undefined;
 
     if ('frequency' in item) {
       const rt = item as RecurringTransaction;
       type = rt.type;
       category = rt.category;
+      merchant = rt.merchant;
       if (type === 'transfer') {
         from = rt.accountId;
         to = rt.toAccountId;
@@ -562,6 +566,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       const bill = item as BillPayment;
       type = bill.type === 'deposit' ? 'income' : 'expense';
       category = type === 'income' ? 'Income' : 'Bills & Utilities';
+      merchant = (bill as any).merchant || (bill as any).biller;
       if (bill.accountId) {
         if (type === 'income') to = bill.accountId;
         else from = bill.accountId;
@@ -577,6 +582,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         date: 'dueDate' in item ? item.dueDate : (item as RecurringTransaction).nextDueDate,
         amount: String(Math.abs(item.amount)),
         description: item.description,
+        merchant: merchant || (item as any)?.merchant || '',
       },
     };
   }, [itemToPost]);
@@ -1787,7 +1793,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
         {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+            <BentoGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-3 sm:gap-4 lg:gap-6">
               <AnalysisStatCard
                 title="Liquidity Ratio"
                 value={`${liquidityRatio.toFixed(1)} months`}
@@ -1816,7 +1822,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 icon="coins_stacked"
                 colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
               />
-            </div>
+            </BentoGrid>
 
             {/* Dynamic widgets grid */}
             {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (

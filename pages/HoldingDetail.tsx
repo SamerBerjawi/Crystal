@@ -21,6 +21,7 @@ import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart
 import HeaderButton from '../components/HeaderButton';
 import { useConfirm } from '../components/ConfirmationModal';
 import Icon from '../components/ui/Icon';
+import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -258,72 +259,85 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
             </div>
 
             {/* Performance Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <BentoGrid className="grid-cols-1 md:grid-cols-2 xl:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
                 {/* Current Value - Primary Hero */}
-                <div className="md:col-span-2 xl:col-span-1 bg-gradient-to-br from-indigo-600 to-blue-700 text-white p-6 rounded-2xl shadow-lg shadow-indigo-500/20 relative overflow-hidden group">
-                     {/* Decorative Background */}
-                     <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                     <div className="absolute bottom-0 right-0 p-4 opacity-10 pointer-events-none transform group-hover:scale-110 transition-transform duration-500 origin-bottom-right">
-                         <Icon name="account_balance_wallet" className="text-8xl leading-none" />
-                     </div>
-                     
-                     <div className="relative z-10 flex flex-col h-full justify-between">
+                <BentoCard 
+                    className="md:col-span-2 xl:col-span-1 !p-0 bg-gradient-to-br from-indigo-600 to-blue-700 text-white border-none shadow-lg shadow-indigo-500/20 relative overflow-hidden"
+                    background={
+                        <>
+                            <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                            <div className="absolute bottom-0 right-0 p-4 opacity-10 pointer-events-none transform group-hover:scale-110 transition-transform duration-500 origin-bottom-right">
+                                <Icon name="account_balance_wallet" className="text-8xl leading-none" />
+                            </div>
+                        </>
+                    }
+                >
+                    <div className="relative z-10 p-6 flex flex-col h-full justify-between">
                          <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200 mb-1">Current Value</p>
-                            <h2 className="text-4xl font-bold tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
+                            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
                          </div>
                          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 w-fit">
                             <span className="text-xs font-medium text-indigo-100">Book Value:</span>
                             <span className="text-xs font-bold text-white font-mono privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
                          </div>
-                     </div>
-                </div>
+                    </div>
+                </BentoCard>
 
                 {/* Total Return - Performance Indicator */}
-                <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group flex flex-col justify-between">
-                     <div className={`absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                         <Icon name="trending_up" className="text-8xl" />
-                     </div>
-                     
-                     <div>
-                        <p className="text-xs font-bold  tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Return</p>
-                        <p className={`text-3xl font-black tracking-tight privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
-                        </p>
-                     </div>
-                     
-                     <div className="mt-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm font-bold ${isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                            <Icon name={isPositive ? 'arrow_upward' : 'arrow_downward'} className="text-base" />
-                            {Math.abs(gainLossPercent).toFixed(2)}%
-                        </span>
-                     </div>
-                </div>
+                <BentoCard 
+                    className="!col-span-1 !p-0 flex flex-col justify-between"
+                    background={
+                        <div className={`absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-500 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                            <Icon name="trending_up" className="text-8xl" />
+                        </div>
+                    }
+                >
+                    <div className="relative z-10 p-6 flex flex-col h-full justify-between">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Return</p>
+                            <p className={`text-2xl sm:text-3xl font-black tracking-tight privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                            </p>
+                        </div>
+                        
+                        <div className="mt-4">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm font-bold ${isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                <Icon name={isPositive ? 'arrow_upward' : 'arrow_downward'} className="text-base" />
+                                {Math.abs(gainLossPercent).toFixed(2)}%
+                            </span>
+                        </div>
+                    </div>
+                </BentoCard>
 
                 {/* Avg Cost */}
-                <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold  tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Avg Cost</p>
-                        <p className="text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(averageCost, 'EUR')}</p>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Per Unit</p>
+                <BentoCard className="!col-span-1 !p-0">
+                    <div className="p-6 flex items-center justify-between w-full h-full">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Avg Cost</p>
+                            <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(averageCost, 'EUR')}</p>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Per Unit</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                             <Icon name="history" className="text-2xl" />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                         <Icon name="history" className="text-2xl" />
-                    </div>
-                </div>
+                </BentoCard>
                 
                  {/* Current Price */}
-                 <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-bold  tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Market Price</p>
-                        <p className="text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</p>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Last Logged</p>
+                 <BentoCard className="!col-span-1 !p-0">
+                    <div className="p-6 flex items-center justify-between w-full h-full">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Market Price</p>
+                            <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</p>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Last Logged</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                             <Icon name="sell" className="text-2xl" />
+                        </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                         <Icon name="sell" className="text-2xl" />
-                    </div>
-                </div>
-            </div>
+                </BentoCard>
+            </BentoGrid>
             
             {/* Price History Chart & Candlestick Performance */}
             {holding && (

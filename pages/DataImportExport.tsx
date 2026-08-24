@@ -15,6 +15,8 @@ import { arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../ut
 import PageHeader from '../components/PageHeader';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import Icon from '../components/ui/Icon';
+import StatCard from '../components/StatCard';
+import { BentoGrid } from '../components/ui/bento-grid';
 
 interface DataImportExportProps {
   accounts: Account[];
@@ -105,18 +107,6 @@ const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDat
         </Modal>
     );
 };
-
-const StatCard: React.FC<{ title: string; value: string | number; icon: string; colorClass: string }> = ({ title, value, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
-        <div>
-            <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{value}</p>
-        </div>
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}>
-            <Icon name={icon} className="text-2xl" />
-        </div>
-    </div>
-);
 
 const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
@@ -414,12 +404,12 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
        />
       
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <BentoGrid className="grid-cols-2 md:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
           <StatCard title="Ingress" value={stats.imports} icon="download" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Egress" value={stats.exports} icon="upload" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
           <StatCard title="Restored" value={stats.restores} icon="refresh" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
           <StatCard title="Uptime" value={stats.lastActivity} icon="history" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
-      </div>
+      </BentoGrid>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
            {/* External Data */}

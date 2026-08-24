@@ -4,5 +4,11 @@
   "less.lint.unknownAtRules": "ignore",
   "files.associations": {
     "*.css": "tailwindcss"
-  }
+  },
+  "tailwindCSS.lint.cssConflict": "ignore",
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
+  "tailwindCSS.lint.invalidApply": "error",
+  "tailwindCSS.lint.invalidScreen": "error",
+  "tailwindCSS.lint.invalidVariant": "error",
+  "tailwindCSS.lint.invalidConfigPath": "error"
 }

@@ -10,6 +10,7 @@ import PortfolioDistributionChart from '../components/PortfolioDistributionChart
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
+import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 
 interface WarrantsProps {
   warrants: Warrant[];
@@ -125,20 +126,29 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 </p>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</p>
-                    <p className="text-2xl font-bold">{formatCurrency(totalCurrentValue, 'EUR')}</p>
-                </Card>
-                <Card>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Total Gain/Loss</p>
-                    <>
-                        <p className={`text-2xl font-bold ${totalGainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(totalGainLoss, 'EUR')}</p>
-                        <p className={`text-sm font-semibold ${totalGainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{totalGainLoss >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(2)}%</p>
-                    </>
-                </Card>
-                <Card><p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Holdings</p><p className="text-2xl font-bold">{holdings.length}</p></Card>
-            </div>
+            <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 sm:gap-6">
+                <BentoCard className="!col-span-1 !p-0">
+                    <div className="p-6 flex flex-col justify-between h-full">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</p>
+                        <p className="text-2xl sm:text-3xl font-bold text-light-text dark:text-dark-text mt-2">{formatCurrency(totalCurrentValue, 'EUR')}</p>
+                    </div>
+                </BentoCard>
+                <BentoCard className="!col-span-1 !p-0">
+                    <div className="p-6 flex flex-col justify-between h-full">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Gain/Loss</p>
+                        <div className="mt-2">
+                            <p className={`text-2xl sm:text-3xl font-bold ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{formatCurrency(totalGainLoss, 'EUR')}</p>
+                            <p className={`text-xs font-semibold mt-1 ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{totalGainLoss >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(2)}%</p>
+                        </div>
+                    </div>
+                </BentoCard>
+                <BentoCard className="!col-span-1 !p-0">
+                    <div className="p-6 flex flex-col justify-between h-full">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Holdings</p>
+                        <p className="text-2xl sm:text-3xl font-bold text-light-text dark:text-dark-text mt-2">{holdings.length}</p>
+                    </div>
+                </BentoCard>
+            </BentoGrid>
             
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-2">

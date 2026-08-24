@@ -16,6 +16,7 @@ import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { motion, AnimatePresence } from 'motion/react';
 import { useConfirm } from '../components/ConfirmationModal';
 import Icon from '../components/ui/Icon';
+import { BentoCard, BentoGrid } from '../components/ui/bento-grid';
 import { MobileSubscriptionsView } from '../components/MobileSubscriptionsView';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -487,19 +488,23 @@ const Subscriptions: React.FC = () => {
                     })}
                 </div>
 
-                {/* ── Glassmorphic Hero Metrics Card ── */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl p-6 md:p-8 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative">
-                    {/* Dynamic radial glow */}
-                    <div 
-                        className="absolute -top-32 -right-32 w-80 h-80 blur-[100px] pointer-events-none transition-all duration-1000"
-                        style={{ background: heroGlowColor }}
-                    />
-                    <div 
-                        className="absolute -bottom-24 -left-24 w-56 h-56 blur-[80px] pointer-events-none transition-all duration-1000 opacity-50"
-                        style={{ background: heroGlowColor }}
-                    />
-
-                    <div className="relative z-10">
+                {/* ── Glassmorphic Hero Metrics Bento Card ── */}
+                <BentoCard 
+                    className="!p-0 min-h-[220px]"
+                    background={
+                        <>
+                            <div 
+                                className="absolute -top-32 -right-32 w-80 h-80 blur-[100px] pointer-events-none transition-all duration-1000"
+                                style={{ background: heroGlowColor }}
+                            />
+                            <div 
+                                className="absolute -bottom-24 -left-24 w-56 h-56 blur-[80px] pointer-events-none transition-all duration-1000 opacity-50"
+                                style={{ background: heroGlowColor }}
+                            />
+                        </>
+                    }
+                >
+                    <div className="relative z-10 flex flex-col justify-between h-full">
                         {/* Primary Metric */}
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
                             <div>
@@ -520,7 +525,7 @@ const Subscriptions: React.FC = () => {
                         </div>
 
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                        <BentoGrid className="grid-cols-2 sm:grid-cols-4 auto-rows-auto gap-4 pt-6 border-t border-black/5 dark:border-white/5">
                             <AnimatePresence mode="wait">
                                 <motion.div 
                                     key={activeSegment}
@@ -619,9 +624,9 @@ const Subscriptions: React.FC = () => {
                                     )}
                                 </motion.div>
                             </AnimatePresence>
-                        </div>
+                        </BentoGrid>
                     </div>
-                </div>
+                </BentoCard>
 
                 <div className="space-y-8">
                     <AnimatePresence mode="wait">

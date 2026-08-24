@@ -15,6 +15,8 @@ import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import RegexCategorizationModal from '../components/RegexCategorizationModal';
 import Icon from '../components/ui/Icon';
+import StatCard from '../components/StatCard';
+import { BentoGrid } from '../components/ui/bento-grid';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -34,18 +36,6 @@ interface EntityItem {
     currency?: string; // Dominant currency (optional/cosmetic)
     rule?: MerchantRule;
 }
-
-const StatCard: React.FC<{ title: string; value: string | number; icon: string; colorClass: string }> = ({ title, value, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
-        <div>
-            <p className="text-xs font-bold  text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{value}</p>
-        </div>
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}>
-            <Icon name={icon} className="text-2xl" />
-        </div>
-    </div>
-);
 
 // --- Custom Guess Helper & Sparkline Mini charts ---
 const guessDomainName = (name: string): string | null => {
@@ -755,12 +745,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         )}
 
         {/* Metrics Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
           <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Institutions" value={stats.totalInstitutions} icon="bank" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
           <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
           <StatCard title="Unassigned" value={stats.missingCount} icon="help_outline" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
-      </div>
+      </BentoGrid>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-6 justify-between items-center px-2">

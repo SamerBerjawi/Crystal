@@ -10,6 +10,7 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
 import StatCard from '../components/StatCard';
+import { BentoGrid } from '../components/ui/bento-grid';
 import EmptyState from '../components/EmptyState';
 import Icon from '../components/ui/Icon';
 
@@ -180,11 +181,11 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
        />
 
       {/* Metrics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 sm:gap-6">
           <StatCard title="Total Inventory" value={metrics.totalTags} icon="tag" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
           <StatCard title="Semantic Density" value={`${metrics.utilization.toFixed(0)}%`} icon="bar_chart" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
           <StatCard title="Primary Vector" value={metrics.topTag ? metrics.topTag.name : 'None'} icon="award" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-      </div>
+      </BentoGrid>
 
       {/* Controls Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">

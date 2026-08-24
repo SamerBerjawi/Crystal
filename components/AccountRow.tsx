@@ -277,11 +277,33 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             >
                 {/* Left Section: Icon and Account Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}>
-                        {showLogo ? (
-                            <img src={logoUrl!} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
-                        ) : (
-                            <Icon name={iconName} className="text-lg sm:text-xl" />
+                    <div className="relative shrink-0">
+                        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}>
+                            {showLogo ? (
+                                <img src={logoUrl!} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
+                            ) : (
+                                <Icon name={iconName} className="text-lg sm:text-xl" />
+                            )}
+                        </div>
+
+                        {/* Top-Right: Cryptocurrency01 Icon for Main Account */}
+                        {account.isPrimary && (
+                            <div
+                                className="absolute -top-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
+                                title="Main Account"
+                            >
+                                <Icon name="cryptocurrency-01" className="text-[10px] sm:text-xs" strokeWidth={2.5} />
+                            </div>
+                        )}
+
+                        {/* Bottom-Right: Link04 Icon for Linked Accounts */}
+                        {isLinkedToEnableBanking && (
+                            <div
+                                className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
+                                title="Connected / Linked Account"
+                            >
+                                <Icon name="link-04" className="text-[10px] sm:text-xs" strokeWidth={2.5} />
+                            </div>
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -339,10 +361,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             )}
                         </div>
                     </div>
-
-                    {isLinkedToEnableBanking && (
-                         <Icon name="sync" className="text-emerald-500 text-sm animate-pulse shrink-0" title="Live Sync Active" />
-                    )}
                 </div>
 
                 {/* Action Bar Overlay - absolutely positioned to not take up flex space and cause horizontal margins */}
@@ -431,13 +449,36 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             <div className="relative z-10 h-full flex flex-col justify-between">
                 <div>
                     <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
-                            {showLogo ? (
-                                <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
-                            ) : (
-                                <Icon name={iconName} className="text-xl sm:text-2xl" />
+                        <div className="relative shrink-0">
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
+                                {showLogo ? (
+                                    <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
+                                ) : (
+                                    <Icon name={iconName} className="text-xl sm:text-2xl" />
+                                )}
+                            </div>
+
+                            {/* Top-Right: Cryptocurrency01 Icon for Main Account */}
+                            {account.isPrimary && (
+                                <div
+                                    className="absolute -top-1 -right-1 w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
+                                    title="Main Account"
+                                >
+                                    <Icon name="cryptocurrency-01" className="text-xs" strokeWidth={2.5} />
+                                </div>
+                            )}
+
+                            {/* Bottom-Right: Link04 Icon for Linked Accounts */}
+                            {isLinkedToEnableBanking && (
+                                <div
+                                    className="absolute -bottom-1 -right-1 w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
+                                    title="Connected / Linked Account"
+                                >
+                                    <Icon name="link-04" className="text-xs" strokeWidth={2.5} />
+                                </div>
                             )}
                         </div>
+
                         <div className="min-w-0">
                             <p className="text-xs font-semibold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider opacity-60 mb-0.5 truncate ">
                                 {account.financialInstitution || account.type}
@@ -484,9 +525,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
-                         {isLinkedToEnableBanking && (
-                             <Icon name="sync" className="text-emerald-500 text-base sm:text-lg animate-pulse shrink-0" title="Live Sync Active" />
-                         )}
                          <div className={`h-8 sm:h-12 w-24 sm:w-48 opacity-40 group-hover:opacity-100 transition-opacity select-none`}>
                              <LineChart
                                  data={sparklineData}
