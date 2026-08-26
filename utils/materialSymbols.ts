@@ -1,4 +1,5 @@
 import { ICON_NAME_MAP } from '../components/ui/Icon';
+import { ALL_UNTITLED_UI_ICON_NAMES, UNTITLED_UI_ICONS } from './untitleduiIcons';
 
 const EXTRA_TAGS: Record<string, string[]> = {
   weekend: ['couch', 'sofa', 'relax', 'sleep'],
@@ -15,7 +16,10 @@ const EXTRA_TAGS: Record<string, string[]> = {
   bathtub: ['bathroom', 'tub', 'shower'],
 };
 
-export const ICON_LIBRARY: string[] = Object.keys(ICON_NAME_MAP);
+// Combine all 1,179 Untitled UI icons with existing legacy keys for backward compatibility
+export const ICON_LIBRARY: string[] = Array.from(
+  new Set([...ALL_UNTITLED_UI_ICON_NAMES, ...Object.keys(ICON_NAME_MAP)])
+);
 
 const fuzzyMatch = (needle: string, haystack: string): boolean => {
   if (!needle) return true;
@@ -35,15 +39,21 @@ const fuzzyMatch = (needle: string, haystack: string): boolean => {
 };
 
 const buildTags = (name: string): string[] => {
-  const base = name.split('_').filter(Boolean);
+  const base = name.split(/[_\-\s]+/).filter(Boolean);
   const extras = EXTRA_TAGS[name] || [];
   return Array.from(new Set([...base, ...extras]));
 };
 
-const MATERIAL_SYMBOL_METADATA = ICON_LIBRARY.map(name => ({
-  name,
-  tags: buildTags(name),
-}));
+const MATERIAL_SYMBOL_METADATA = [
+  ...UNTITLED_UI_ICONS.map(item => ({
+    name: item.name,
+    tags: item.tags,
+  })),
+  ...Object.keys(ICON_NAME_MAP).map(name => ({
+    name,
+    tags: buildTags(name),
+  })),
+];
 
 export const searchMaterialSymbols = (term: string): string[] => {
   const normalized = term.trim().toLowerCase();
@@ -57,4 +67,3 @@ export const searchMaterialSymbols = (term: string): string[] => {
 };
 
 export default MATERIAL_SYMBOL_METADATA;
-
