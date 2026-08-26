@@ -1272,43 +1272,50 @@ const App: React.FC = () => {
     if (viewingHoldingSymbol === accountToDelete.symbol) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
   }, [accounts, recurringTransactions, viewingAccountId, viewingHoldingSymbol, setCurrentPage]);
 
-  const handleSaveTransaction = useCallback((transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete: string[] = [], options?: { autoSpareChange?: boolean }) => {
+  const handleSaveTransaction = useCallback((
+    transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
+    transactionIdsToDelete: string[] = [],
+    options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean }
+  ) => {
     const finalTxArray = [...transactionDataArray];
 
-    // Apply Rule Engine Rules (IF-WHEN-THEN rules)
-    const merchantRules = preferences.merchantRules || {};
-    const transactionRules = preferences.transactionRules || [];
-    finalTxArray.forEach(tx => {
-      const res = applyTransactionRulesToFields(
-        {
-          description: tx.description || '',
-          merchant: tx.merchant || '',
-          category: tx.category || '',
-          amount: Number(tx.amount) || 0,
-          type: tx.type || 'expense'
-        },
-        merchantRules,
-        transactionRules
-      );
-      tx.merchant = res.merchant;
-      tx.description = res.description;
-      tx.category = res.category;
-    });
+    if (!options?.skipRules) {
+      // Apply Rule Engine Rules only for brand new transactions (no id yet) or when explicitly requested
+      const merchantRules = preferences.merchantRules || {};
+      const transactionRules = preferences.transactionRules || [];
+      const activeRegexRules = preferences.regexCategorizationRules?.filter(r => r.isActive) || [];
 
-    // Apply Regex Categorization rules (Fallback / Legacy)
-    const activeRegexRules = preferences.regexCategorizationRules?.filter(r => r.isActive) || [];
-    if (activeRegexRules.length > 0) {
       finalTxArray.forEach(tx => {
-        const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').trim();
-        for (const rule of activeRegexRules) {
-          try {
-            const regex = new RegExp(rule.pattern, 'i');
-            if (regex.test(textToMatch)) {
-              tx.category = rule.category;
-              break; // Stop at first matching rule
+        if (!tx.id || options?.applyRules) {
+          const res = applyTransactionRulesToFields(
+            {
+              description: tx.description || '',
+              merchant: tx.merchant || '',
+              category: tx.category || '',
+              amount: Number(tx.amount) || 0,
+              type: tx.type || 'expense'
+            },
+            merchantRules,
+            transactionRules
+          );
+          tx.merchant = res.merchant;
+          tx.description = res.description;
+          tx.category = res.category;
+
+          // Apply Regex Categorization rules (Fallback / Legacy)
+          if (activeRegexRules.length > 0) {
+            const textToMatch = [tx.merchant || '', tx.description || '', tx.notes || ''].join(' ').trim();
+            for (const rule of activeRegexRules) {
+              try {
+                const regex = new RegExp(rule.pattern, 'i');
+                if (regex.test(textToMatch)) {
+                  tx.category = rule.category;
+                  break; // Stop at first matching rule
+                }
+              } catch (e) {
+                console.error('Invalid regex pattern:', rule.pattern, e);
+              }
             }
-          } catch (e) {
-            console.error('Invalid regex pattern:', rule.pattern, e);
           }
         }
       });

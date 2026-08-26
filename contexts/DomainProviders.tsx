@@ -4,7 +4,11 @@ import { Account, AppPreferences, Transaction, Warrant, Invoice } from '../types
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
-  saveTransaction: (txs: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+  saveTransaction: (
+    txs: (Omit<Transaction, 'id'> & { id?: string })[],
+    idsToDelete?: string[],
+    options?: { autoSpareChange?: boolean; skipRules?: boolean; applyRules?: boolean }
+  ) => void;
   deleteTransactions: (transactionIds: string[]) => void;
   digest?: string;
 }

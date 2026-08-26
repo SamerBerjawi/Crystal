@@ -42,8 +42,6 @@ import GoalScenarioModal from '../components/GoalScenarioModal';
 import FinancialGoalCard from '../components/FinancialGoalCard';
 import ConfirmationModal, { useConfirm } from '../components/ConfirmationModal';
 import GoalContributionPlan from '../components/GoalContributionPlan';
-import BulkCategorizeModal from '../components/BulkCategorizeModal';
-import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import { MobileDashboardView } from '../components/MobileDashboardView';

@@ -771,7 +771,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     const categoryDetails = findCategoryByName(newCategoryName, allCategories);
     if (!categoryDetails) {
       console.error("Could not find details for new category:", newCategoryName);
-      // Don't close if failed, maybe show an alert or just return
+      toast.error(`Category "${newCategoryName}" could not be found.`);
       return;
     }
 
@@ -784,17 +784,24 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
         const pairExpense = transactions.find(t => t.transferId === transferId && t.type === 'expense');
         const pairIncome = transactions.find(t => t.transferId === transferId && t.type === 'income');
 
-        if (pairExpense) {
-          transactionUpdates.push({
-            ...pairExpense,
-            category: newCategoryName
-          });
-        }
-        if (pairIncome) {
+        if (newType === 'income' && pairIncome) {
           transactionUpdates.push({
             ...pairIncome,
-            category: newCategoryName
+            category: newCategoryName,
+            type: 'income',
+            amount: Math.abs(pairIncome.amount),
+            transferId: undefined
           });
+          if (pairExpense) idsToDelete.push(pairExpense.id);
+        } else if (pairExpense) {
+          transactionUpdates.push({
+            ...pairExpense,
+            category: newCategoryName,
+            type: 'expense',
+            amount: -Math.abs(pairExpense.amount),
+            transferId: undefined
+          });
+          if (pairIncome) idsToDelete.push(pairIncome.id);
         }
       } else {
         const originalTx = transactions.find(t => t.id === selectedId);
@@ -804,17 +811,24 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             const pairExpense = transactions.find(t => t.transferId === transferId && t.type === 'expense');
             const pairIncome = transactions.find(t => t.transferId === transferId && t.type === 'income');
 
-            if (pairExpense && !transactionUpdates.some(ut => ut.id === pairExpense.id)) {
-              transactionUpdates.push({
-                ...pairExpense,
-                category: newCategoryName
-              });
-            }
-            if (pairIncome && !transactionUpdates.some(ut => ut.id === pairIncome.id)) {
+            if (newType === 'income' && pairIncome) {
               transactionUpdates.push({
                 ...pairIncome,
-                category: newCategoryName
+                category: newCategoryName,
+                type: 'income',
+                amount: Math.abs(pairIncome.amount),
+                transferId: undefined
               });
+              if (pairExpense && !idsToDelete.includes(pairExpense.id)) idsToDelete.push(pairExpense.id);
+            } else if (pairExpense) {
+              transactionUpdates.push({
+                ...pairExpense,
+                category: newCategoryName,
+                type: 'expense',
+                amount: -Math.abs(pairExpense.amount),
+                transferId: undefined
+              });
+              if (pairIncome && !idsToDelete.includes(pairIncome.id)) idsToDelete.push(pairIncome.id);
             }
           } else {
             const newAmount = newType === 'income' ? Math.abs(originalTx.amount) : -Math.abs(originalTx.amount);
@@ -830,17 +844,19 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
     }
 
     if (transactionUpdates.length > 0) {
-      saveTransaction(transactionUpdates, idsToDelete);
+      saveTransaction(transactionUpdates, idsToDelete, { skipRules: true });
+      toast.success(`Updated category for ${transactionUpdates.length} transaction${transactionUpdates.length !== 1 ? 's' : ''}`);
     }
 
     setIsCategorizeModalOpen(false);
     setSelectedIds(new Set());
   };
 
-  const handleSaveBulkEdits = (updatedTransactions: Transaction[]) => {
-    saveTransaction(updatedTransactions, []);
+  const handleSaveBulkEdits = (updatedTransactions: Transaction[], idsToDelete: string[] = []) => {
+    saveTransaction(updatedTransactions, idsToDelete, { skipRules: true });
     setBulkEditModalOpen(false);
     setSelectedIds(new Set());
+    toast.success(`Updated ${updatedTransactions.length} transaction${updatedTransactions.length !== 1 ? 's' : ''}`);
   };
 
   const handleOpenDeleteModal = () => {
@@ -1681,6 +1697,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           onClose={() => setBulkEditModalOpen(false)}
           onSave={handleSaveBulkEdits}
           transactionsToEdit={selectedTransactions}
+          allTransactions={transactions}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
