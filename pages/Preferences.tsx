@@ -306,12 +306,35 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 </div>
               </div>
 
+              <div className="space-y-4">
+                <label className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1">Calendar & Date Presentation</label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary z-10">
+                    <Icon name="clock" className="text-lg" />
+                  </div>
+                  <select 
+                    name="dateFormat" 
+                    value={preferences.dateFormat || 'DD/MM/YYYY'} 
+                    onChange={handleChange} 
+                    className="w-full h-14 pl-12 pr-10 bg-black/5 dark:bg-white/5 border-0 rounded-2xl font-semibold text-light-text dark:text-dark-text appearance-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer"
+                  >
+                    <option value="DD/MM/YYYY" className="bg-white dark:bg-dark-card">DD/MM/YYYY (e.g. 31/12/2026)</option>
+                    <option value="MM/DD/YYYY" className="bg-white dark:bg-dark-card">MM/DD/YYYY (e.g. 12/31/2026)</option>
+                    <option value="YYYY-MM-DD" className="bg-white dark:bg-dark-card">YYYY-MM-DD (e.g. 2026-12-31)</option>
+                    <option value="DD.MM.YYYY" className="bg-white dark:bg-dark-card">DD.MM.YYYY (e.g. 31.12.2026)</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary opacity-40">
+                    <Icon name="chevron_down" />
+                  </div>
+                </div>
+              </div>
+
               <div className="p-5 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl border border-primary-500/10 flex items-start gap-4">
                   <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
                     <Icon name="zap" className="text-sm" />
                   </div>
                   <p className="text-xs font-normal text-primary-600 dark:text-primary-400 leading-normal">
-                      Crystal automatically synchronizes language, date-strings, and temporal offsets via your browser environment for atomic precision.
+                      Crystal dynamically synchronizes numeric date presentation, temporal formats, and FX conversions across all dashboards and transaction ledgers.
                   </p>
               </div>
             </div>

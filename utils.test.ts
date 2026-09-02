@@ -1,4 +1,4 @@
-import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString, escapeHtml, sanitizeInput, safeAdd, safeSubtract, safeMultiply, safeDivide, safeRound, toCents, fromCents } from './utils';
+import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString, escapeHtml, sanitizeInput, safeAdd, safeSubtract, safeMultiply, safeDivide, safeRound, toCents, fromCents, formatDate } from './utils';
 import { upsertEntity, removeEntityById } from './utils/collection';
 
 function assert(condition: boolean, message: string) {
@@ -112,6 +112,30 @@ try {
   console.log('✓ Test 7 Passed: Floating-Point Math & Arbitrary Precision Safety');
 } catch (e: any) {
   console.error('✕ Test 7 Failed:', e.message);
+}
+
+// Test 8: formatDate with various user preferences
+try {
+  const testIso = '2026-07-29';
+  
+  const dmy = formatDate(testIso, 'DD/MM/YYYY');
+  assert(dmy === '29/07/2026', `DD/MM/YYYY formatting: expected 29/07/2026, got ${dmy}`);
+
+  const mdy = formatDate(testIso, 'MM/DD/YYYY');
+  assert(mdy === '07/29/2026', `MM/DD/YYYY formatting: expected 07/29/2026, got ${mdy}`);
+
+  const ymd = formatDate(testIso, 'YYYY-MM-DD');
+  assert(ymd === '2026-07-29', `YYYY-MM-DD formatting: expected 2026-07-29, got ${ymd}`);
+
+  const dotDmy = formatDate(testIso, 'DD.MM.YYYY');
+  assert(dotDmy === '29.07.2026', `DD.MM.YYYY formatting: expected 29.07.2026, got ${dotDmy}`);
+
+  const styled = formatDate(testIso, { format: 'DD/MM/YYYY', style: 'short' });
+  assert(styled.includes('Jul') && styled.includes('29'), `Short style format check: got ${styled}`);
+
+  console.log('✓ Test 8 Passed: formatDate with user preference formats');
+} catch (e: any) {
+  console.error('✕ Test 8 Failed:', e.message);
 }
 
 console.log('--- All Unit Tests Executed Successfully ---');

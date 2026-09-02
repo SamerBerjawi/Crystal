@@ -85,6 +85,43 @@ export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-light-text-secondary dark:text-dark-text-secondary";
 export const CHECKBOX_STYLE = "h-5 w-5 rounded text-white bg-light-bg dark:bg-dark-fill border border-gray-400 dark:border-gray-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-light-card dark:focus:ring-offset-dark-card focus:ring-primary-500 checked:bg-primary-500 checked:border-transparent cursor-pointer touch-feedback";
 
+// Icon Button Styles — Minimum 44x44px touch targets per Apple HIG
+export const ICON_BUTTON_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer shrink-0 touch-feedback";
+export const ICON_BUTTON_SM_STYLE = "w-9 h-9 min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer shrink-0 touch-feedback";
+export const CLOSE_BTN_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer shrink-0";
+
+// Semantic Status Color Tokens
+export const STATUS_DANGER_TEXT = "text-rose-600 dark:text-rose-400";
+export const STATUS_DANGER_BG = "bg-rose-500/10 dark:bg-rose-500/20";
+export const STATUS_DANGER_BORDER = "border-rose-500/20 dark:border-rose-500/30";
+export const STATUS_DANGER_BADGE = "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+
+export const STATUS_SUCCESS_TEXT = "text-emerald-600 dark:text-emerald-400";
+export const STATUS_SUCCESS_BG = "bg-emerald-500/10 dark:bg-emerald-500/20";
+export const STATUS_SUCCESS_BORDER = "border-emerald-500/20 dark:border-emerald-500/30";
+export const STATUS_SUCCESS_BADGE = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+
+export const STATUS_WARNING_TEXT = "text-amber-600 dark:text-amber-400";
+export const STATUS_WARNING_BG = "bg-amber-500/10 dark:bg-amber-500/20";
+export const STATUS_WARNING_BORDER = "border-amber-500/20 dark:border-amber-500/30";
+export const STATUS_WARNING_BADGE = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+
+export const STATUS_INFO_TEXT = "text-blue-600 dark:text-blue-400";
+export const STATUS_INFO_BG = "bg-blue-500/10 dark:bg-blue-500/20";
+export const STATUS_INFO_BORDER = "border-blue-500/20 dark:border-blue-500/30";
+export const STATUS_INFO_BADGE = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+
+// Stacking Order Hierarchy
+export const Z_INDEX = {
+  BASE: 'z-0',
+  DROPDOWN: 'z-dropdown',
+  STICKY: 'z-sticky',
+  POPOVER: 'z-popover',
+  MODAL: 'z-modal',
+  TOAST: 'z-toast',
+  MAX: 'z-max',
+} as const;
+
 
 export const BRAND_COLORS = ['#fcb045', '#fd1d1d', '#3B82F6', '#22d3ee', '#a78bfa', '#f472b6'];
 

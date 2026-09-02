@@ -58,6 +58,14 @@ export default {
       borderRadius: {
         'xl': '16px',
       },
+      zIndex: {
+        'dropdown': '50',
+        'sticky': '100',
+        'popover': '200',
+        'modal': '500',
+        'toast': '1000',
+        'max': '9999',
+      },
     },
   },
   plugins: [],

@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { Category, DisplayTransaction, MerchantRule, Tag } from '../types';
-import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
+import { formatCurrency, convertToEur, parseLocalDate, formatDate as formatSharedDate } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
@@ -62,6 +62,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     setLogoLoadErrors(prev => (prev.has(logoUrl) ? prev : new Set(prev).add(logoUrl)));
   }, []);
 
+  const userDateFormat = usePreferencesSelector(p => p.dateFormat);
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = parseLocalDate(dateString);
@@ -72,7 +73,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
     if (date.toDateString() === today.toDateString()) return 'Today';
     if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
 
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return formatSharedDate(date, { format: userDateFormat, style: 'short' });
   };
 
   const categoryDetailsMap = useMemo(() => buildCategoryDetailsMap(allCategories), [allCategories]);

@@ -212,6 +212,69 @@ export const parseLocalDate = (dateString: string): Date => {
     }
 };
 
+export interface FormatDateOptions {
+    format?: string; // 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | 'DD.MM.YYYY'
+    style?: 'numeric' | 'short' | 'medium' | 'long';
+    timeZone?: string;
+    includeYear?: boolean;
+}
+
+/**
+ * Centralized date formatter that respects user preference formats ('DD/MM/YYYY', 'MM/DD/YYYY', etc.)
+ */
+export const formatDate = (
+    dateInput: string | Date | null | undefined,
+    optionsOrFormat?: string | FormatDateOptions,
+    fallbackFormat?: string
+): string => {
+    if (!dateInput) return '';
+
+    const date = typeof dateInput === 'string' ? parseLocalDate(dateInput) : dateInput;
+    if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+
+    const opts: FormatDateOptions = typeof optionsOrFormat === 'string'
+        ? { format: optionsOrFormat }
+        : (optionsOrFormat || {});
+
+    const desiredFormat = (opts.format || fallbackFormat || 'DD/MM/YYYY').toUpperCase();
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear());
+
+    if (opts.style === 'short') {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const shortMonth = monthNames[date.getMonth()];
+        if (desiredFormat.startsWith('MM')) {
+            return `${shortMonth} ${date.getDate()}, ${year}`;
+        }
+        return `${date.getDate()} ${shortMonth} ${year}`;
+    }
+
+    if (opts.style === 'medium' || opts.style === 'long') {
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const fullMonth = monthNames[date.getMonth()];
+        if (desiredFormat.startsWith('MM')) {
+            return `${fullMonth} ${date.getDate()}, ${year}`;
+        }
+        return `${date.getDate()} ${fullMonth} ${year}`;
+    }
+
+    switch (desiredFormat) {
+        case 'MM/DD/YYYY':
+            return `${month}/${day}/${year}`;
+        case 'YYYY-MM-DD':
+            return `${year}-${month}-${day}`;
+        case 'DD.MM.YYYY':
+            return `${day}.${month}.${year}`;
+        case 'DD/MM/YYYY':
+        default:
+            return `${day}/${month}/${year}`;
+    }
+};
+
 export const adjustDateForWeekend = (dateStr: string, strategy: WeekendAdjustment): string => {
     if (strategy === 'on') return dateStr;
     const date = parseLocalDate(dateStr);

@@ -73,6 +73,24 @@ Crystal supports dynamic switching between **Plus Jakarta Sans** and **Inter** w
 
 - **Canvas & Navigation Bars:** `bg-white/75 dark:bg-dark-card/85 backdrop-blur-xl border-b border-black/5 dark:border-white/10`
 - **Glass Cards (`ios-regular` / `glass-card`):** `bg-white/60 dark:bg-dark-card/70 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-card`
-- **Elevated Overlays & Modals:** `bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-modal`
-- **Backdrops:** `bg-gray-900/50 dark:bg-black/80 backdrop-blur-md`
+- **Elevated Overlays & Modals:** `bg-light-card dark:bg-dark-card backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl`
+- **Backdrops:** `bg-black/60 backdrop-blur-sm` (consistent modal and bottom-sheet scrim)
 - **Hairline Reflex Highlights:** `shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]` in dark mode to simulate real glass edge reflection.
+
+## Layer & Stacking Order (Z-Index Scale)
+
+Crystal employs a strict, named stacking hierarchy to avoid arbitrary z-index escalation:
+- **`z-dropdown` (50):** Select menus, autocomplete popdowns, contextual action menus.
+- **`z-sticky` (100):** Sticky page headers, floating bottom action bars.
+- **`z-popover` (200):** Tooltips, date pickers, floating command palettes.
+- **`z-modal` (500):** Floating dialogs, responsive bottom sheets, detail inspectors.
+- **`z-toast` (1000):** Ephemeral notifications, system alerts (Sonner).
+- **`z-max` (9999):** Fullscreen spotlight takeovers / critical blocking prompts.
+
+## Semantic Status Token System
+
+To ensure financial metrics communicate urgency and direction consistently:
+- **Danger / Negative (Apple Red):** `STATUS_DANGER_TEXT` (`text-rose-600 dark:text-rose-400`), `STATUS_DANGER_BG` (`bg-rose-500/10 dark:bg-rose-500/20`), `STATUS_DANGER_BADGE`.
+- **Success / Positive (Apple Green):** `STATUS_SUCCESS_TEXT` (`text-emerald-600 dark:text-emerald-400`), `STATUS_SUCCESS_BG` (`bg-emerald-500/10 dark:bg-emerald-500/20`), `STATUS_SUCCESS_BADGE`.
+- **Warning / Attention (Apple Amber):** `STATUS_WARNING_TEXT` (`text-amber-600 dark:text-amber-400`), `STATUS_WARNING_BG` (`bg-amber-500/10 dark:bg-amber-500/20`), `STATUS_WARNING_BADGE`.
+- **Informational / Neutral (Apple Blue):** `STATUS_INFO_TEXT` (`text-blue-600 dark:text-blue-400`), `STATUS_INFO_BG` (`bg-blue-500/10 dark:bg-blue-500/20`), `STATUS_INFO_BADGE`.

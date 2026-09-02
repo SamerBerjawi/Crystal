@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './ui/Icon';
+import { CLOSE_BTN_STYLE, Z_INDEX } from '../constants';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ interface ModalProps {
 /**
  * Responsive Modal — Apple HIG Sheet on mobile / Glassmorphic Floating Window on desktop.
  */
-const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-[9999]', size = 'lg' }) => {
+const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z_INDEX.MODAL, size = 'lg' }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [mounted, setMounted] = useState(true);
 
@@ -97,7 +98,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
           </div>
           <button 
             onClick={handleClose} 
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+            className={CLOSE_BTN_STYLE}
             aria-label="Close modal"
           >
             <Icon name="close" className="text-lg" />
