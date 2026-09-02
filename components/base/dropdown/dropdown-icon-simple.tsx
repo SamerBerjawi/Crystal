@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from "react";
-import { DotsVertical } from "@untitledui/icons";
+import { DotsThreeVertical as DotsVertical } from "@phosphor-icons/react";
 import { Dropdown } from "./dropdown";
 
 export interface DropdownIconSimpleProps {

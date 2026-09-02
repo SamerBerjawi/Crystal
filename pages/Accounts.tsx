@@ -612,7 +612,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Assets"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0"><Icon name="Bank" className="text-primary-500" /></div>}
+                        headerIcon={<Icon name="Bank" className="text-2xl text-primary-500 shrink-0" />}
                         headerSubtitle="Wealth & Resources"
                         accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 
@@ -638,7 +638,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <div className="space-y-8">
                     <AccountsListSection 
                         title="Liabilities"
-                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0"><Icon name="receipt" className="text-rose-500" /></div>}
+                        headerIcon={<Icon name="receipt" className="text-2xl text-rose-500 shrink-0" />}
                         headerSubtitle="Debts & Obligations"
                         accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
                         transactionsByAccount={transactionsByAccount} 

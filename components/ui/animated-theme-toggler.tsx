@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Moon01, Sun } from "@untitledui/icons"
+import { Moon as Moon01, Sun } from "@phosphor-icons/react"
 import { flushSync } from "react-dom"
 
 import { cn } from "@/lib/utils"

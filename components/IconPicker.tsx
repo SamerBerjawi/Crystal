@@ -3,13 +3,13 @@ import { createPortal } from 'react-dom';
 import { INPUT_BASE_STYLE } from '../constants';
 import Icon from './ui/Icon';
 import {
-  UNTITLED_UI_CATEGORIES,
-  UntitledUiCategory,
-  searchUntitledUiIcons,
+  PHOSPHOR_CATEGORIES,
+  PhosphorCategory,
+  searchPhosphorIcons,
   groupIconsByCategory,
-  UntitledUiIconItem,
-  UNTITLED_UI_ICONS,
-} from '../utils/untitleduiIcons';
+  PhosphorIconItem,
+  PHOSPHOR_ICONS,
+} from '../utils/phosphorIcons';
 
 interface IconPickerProps {
   onClose: () => void;
@@ -19,26 +19,23 @@ interface IconPickerProps {
 }
 
 const CATEGORY_ICON_HINTS: Record<string, string> = {
-  'View all': 'LayoutGrid01',
-  'Finance & eCommerce': 'Bank',
-  Charts: 'BarChart01',
-  Users: 'Users01',
-  Security: 'Shield01',
-  Communication: 'Mail01',
-  'Media & devices': 'Monitor01',
-  Layout: 'Columns01',
-  Files: 'Folder',
-  Editor: 'Edit02',
-  Time: 'Clock',
-  'Maps & travel': 'Compass01',
-  Education: 'GraduationHat01',
-  Weather: 'Sun',
-  'Alerts & feedback': 'AlertCircle',
-  Arrows: 'ArrowRight',
-  Development: 'Code01',
-  Shapes: 'Circle',
-  Images: 'Image01',
-  General: 'Settings01',
+  'View all': 'SquaresFour',
+  'Finance & Commerce': 'Bank',
+  'Charts & Analytics': 'ChartBar',
+  'Navigation & UI': 'Compass',
+  'Users & Account': 'Users',
+  'Security & Privacy': 'Shield',
+  Communication: 'Envelope',
+  'Media & Devices': 'Monitor',
+  'Layout & Design': 'Columns',
+  'Files & Documents': 'Folder',
+  'Time & Calendar': 'Clock',
+  'Travel & Maps': 'MapPin',
+  'Health & Wellness': 'Heart',
+  'Shopping & Lifestyle': 'ShoppingBag',
+  'Development & Tech': 'Code',
+  'Weather & Nature': 'Sun',
+  'General & System': 'Gear',
 };
 
 const IconPicker: React.FC<IconPickerProps> = ({
@@ -47,11 +44,10 @@ const IconPicker: React.FC<IconPickerProps> = ({
   selectedIcon,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<UntitledUiCategory>('View all');
-  const [showFirstVariantOnly, setShowFirstVariantOnly] = useState<boolean>(true);
-  const [activeHoverIcon, setActiveHoverIcon] = useState<UntitledUiIconItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<PhosphorCategory>('View all');
+  const [activeHoverIcon, setActiveHoverIcon] = useState<PhosphorIconItem | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  
+
   const deferredSearch = useDeferredValue(searchTerm);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,10 +90,10 @@ const IconPicker: React.FC<IconPickerProps> = ({
     handleClose();
   };
 
-  // Filtered icons based on search query, category, and summary mode
+  // Filtered icons based on search query and category
   const filteredIcons = useMemo(() => {
-    return searchUntitledUiIcons(deferredSearch, selectedCategory, showFirstVariantOnly);
-  }, [deferredSearch, selectedCategory, showFirstVariantOnly]);
+    return searchPhosphorIcons(deferredSearch, selectedCategory);
+  }, [deferredSearch, selectedCategory]);
 
   // Grouped structure when in "View all" mode
   const groupedSections = useMemo(() => {
@@ -105,17 +101,17 @@ const IconPicker: React.FC<IconPickerProps> = ({
     return groupIconsByCategory(filteredIcons);
   }, [selectedCategory, filteredIcons]);
 
-  // Dynamic category counts according to current search & variant mode
+  // Dynamic category counts according to current search
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
-      'View all': searchUntitledUiIcons(deferredSearch, 'View all', showFirstVariantOnly).length,
+      'View all': searchPhosphorIcons(deferredSearch, 'View all').length,
     };
-    for (const cat of UNTITLED_UI_CATEGORIES) {
+    for (const cat of PHOSPHOR_CATEGORIES) {
       if (cat === 'View all') continue;
-      counts[cat] = searchUntitledUiIcons(deferredSearch, cat, showFirstVariantOnly).length;
+      counts[cat] = searchPhosphorIcons(deferredSearch, cat).length;
     }
     return counts;
-  }, [deferredSearch, showFirstVariantOnly]);
+  }, [deferredSearch]);
 
   const totalVisibleCount = filteredIcons.length;
 
@@ -131,7 +127,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
         onClick={handleClose}
       />
 
-      {/* Slide-over Sidebar Drawer from Right (similar to AddAccountModal / CategoryModal) */}
+      {/* Slide-over Sidebar Drawer from Right */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-6 md:pl-10">
         <div 
           className={`w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl h-screen bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
@@ -143,7 +139,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
           <header className="p-4 sm:p-5 md:p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-11 h-11 rounded-2xl bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 border border-primary-500/20 flex items-center justify-center shrink-0 shadow-xs">
-                <Icon name="LayoutGrid01" className="text-2xl" />
+                <Icon name="SquaresFour" className="text-2xl" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -151,50 +147,22 @@ const IconPicker: React.FC<IconPickerProps> = ({
                     Select Icon
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
-                    Untitled UI
+                    Phosphor Duotone
                   </span>
                 </div>
                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
-                  {showFirstVariantOnly ? 'Summary view showing primary icons' : 'Full catalog with all variations'}
+                  Select a duotone icon for your category, account, or custom view
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Variant Switcher in Header */}
-              <div className="hidden sm:flex items-center p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-                <button
-                  type="button"
-                  onClick={() => setShowFirstVariantOnly(true)}
-                  className={`py-1 px-2.5 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
-                    showFirstVariantOnly
-                      ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text'
-                  }`}
-                  title="Shows 1st variant of each icon family"
-                >
-                  Summary
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowFirstVariantOnly(false)}
-                  className={`py-1 px-2.5 text-xs font-bold rounded-lg transition-all text-center cursor-pointer ${
-                    !showFirstVariantOnly
-                      ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text'
-                  }`}
-                  title="Shows all 1,179 numbered icon variations"
-                >
-                  All (1,179)
-                </button>
-              </div>
-
               <button 
                 onClick={handleClose}
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
                 aria-label="Close drawer"
               >
-                <Icon name="close" className="text-lg" />
+                <Icon name="X" className="text-lg" />
               </button>
             </div>
           </header>
@@ -210,16 +178,16 @@ const IconPicker: React.FC<IconPickerProps> = ({
                   Categories
                 </span>
                 <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary font-mono">
-                  {UNTITLED_UI_CATEGORIES.length - 1}
+                  {PHOSPHOR_CATEGORIES.length - 1}
                 </span>
               </div>
 
               {/* Scrollable Category List */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                {UNTITLED_UI_CATEGORIES.map((cat) => {
+                {PHOSPHOR_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategory === cat;
                   const count = categoryCounts[cat] || 0;
-                  const hintIcon = CATEGORY_ICON_HINTS[cat] || 'Grid01';
+                  const hintIcon = CATEGORY_ICON_HINTS[cat] || 'SquaresFour';
 
                   return (
                     <button
@@ -253,34 +221,6 @@ const IconPicker: React.FC<IconPickerProps> = ({
                   );
                 })}
               </div>
-
-              {/* Mobile Variant Switcher */}
-              <div className="sm:hidden p-2.5 border-t border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/[0.02] flex-shrink-0">
-                <div className="grid grid-cols-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => setShowFirstVariantOnly(true)}
-                    className={`py-1 px-1 text-[10px] font-bold rounded-lg transition-all text-center ${
-                      showFirstVariantOnly
-                        ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                        : 'text-light-text-secondary'
-                    }`}
-                  >
-                    Summary
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowFirstVariantOnly(false)}
-                    className={`py-1 px-1 text-[10px] font-bold rounded-lg transition-all text-center ${
-                      !showFirstVariantOnly
-                        ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                        : 'text-light-text-secondary'
-                    }`}
-                  >
-                    All
-                  </button>
-                </div>
-              </div>
             </aside>
 
             {/* Right Main Grid Area */}
@@ -290,7 +230,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
               <div className="p-3.5 border-b border-black/5 dark:border-white/5 flex items-center gap-3 flex-shrink-0 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm">
                 <div className="relative flex-1">
                   <Icon
-                    name="SearchMd"
+                    name="MagnifyingGlass"
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none text-base"
                   />
                   <input
@@ -298,7 +238,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder={`Search ${selectedCategory === 'View all' ? '1,179' : selectedCategory.toLowerCase()} icons by name, tag, or synonyms (e.g. wallet, dollar, card, check)...`}
+                    placeholder={`Search ${selectedCategory === 'View all' ? 'all' : selectedCategory.toLowerCase()} icons by name, tag, or synonyms (e.g. wallet, dollar, card, check)...`}
                     className={`${INPUT_BASE_STYLE} !h-10 pl-10 pr-9 text-xs font-medium shadow-xs`}
                   />
                   {searchTerm && (
@@ -311,13 +251,13 @@ const IconPicker: React.FC<IconPickerProps> = ({
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
                       title="Clear search"
                     >
-                      <Icon name="XClose" className="text-xs block" />
+                      <Icon name="X" className="text-xs block" />
                     </button>
                   )}
                 </div>
 
                 <div className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 text-xs font-bold shrink-0">
-                  <Icon name={CATEGORY_ICON_HINTS[selectedCategory] || 'Grid01'} className="text-sm" />
+                  <Icon name={CATEGORY_ICON_HINTS[selectedCategory] || 'SquaresFour'} className="text-sm" />
                   <span>{selectedCategory}</span>
                 </div>
               </div>
@@ -332,7 +272,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                         <div className="sticky top-0 z-10 py-1.5 px-3.5 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-md flex items-center justify-between border-y border-black/5 dark:border-white/5 -mx-4 shadow-2xs">
                           <div className="flex items-center gap-2">
                             <Icon
-                              name={CATEGORY_ICON_HINTS[group.category] || 'Grid01'}
+                              name={CATEGORY_ICON_HINTS[group.category] || 'SquaresFour'}
                               className="text-primary-500 text-sm"
                             />
                             <h3 className="text-xs font-bold text-light-text dark:text-white uppercase tracking-wider">
@@ -344,7 +284,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                           </span>
                         </div>
 
-                        {/* Spacious Unclipped Grid: 3 to 6 columns with ample height & line wrapping */}
+                        {/* Spacious Unclipped Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 pt-1">
                           {group.icons.map((item) => {
                             const isCurrent =
@@ -364,7 +304,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                                     ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 text-primary-600 dark:text-primary-400 shadow-sm ring-2 ring-primary-500/20'
                                     : 'bg-white dark:bg-white/[0.03] border-black/5 dark:border-white/5 hover:border-primary-500/40 hover:bg-primary-500/[0.04] dark:hover:bg-primary-500/[0.08] hover:shadow-sm'
                                 }`}
-                                title={`${item.label} (${item.category})${item.variantCount > 1 ? ` • ${item.variantCount} variants available` : ''}`}
+                                title={`${item.label} (${item.category})`}
                               >
                                 {/* Center Icon */}
                                 <div className="w-10 h-10 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] group-hover:bg-primary-500/10 flex items-center justify-center transition-colors">
@@ -378,17 +318,10 @@ const IconPicker: React.FC<IconPickerProps> = ({
                                   />
                                 </div>
 
-                                {/* Full Label with no clipping: multiline wrap */}
+                                {/* Full Label with no clipping */}
                                 <span className="text-xs font-semibold text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 text-center w-full px-1 mt-1.5 leading-snug line-clamp-2 break-words transition-colors">
                                   {item.label}
                                 </span>
-
-                                {/* Multi-variant indicator badge */}
-                                {showFirstVariantOnly && item.variantCount > 1 && (
-                                  <span className="absolute top-1.5 right-1.5 text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary opacity-70 group-hover:opacity-100 group-hover:bg-primary-500/20 group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                                    {item.variantCount}
-                                  </span>
-                                )}
                               </button>
                             );
                           })}
@@ -416,7 +349,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                                 ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-500 text-primary-600 dark:text-primary-400 shadow-sm ring-2 ring-primary-500/20'
                                 : 'bg-white dark:bg-white/[0.03] border-black/5 dark:border-white/5 hover:border-primary-500/40 hover:bg-primary-500/[0.04] dark:hover:bg-primary-500/[0.08] hover:shadow-sm'
                             }`}
-                            title={`${item.label} (${item.category})${item.variantCount > 1 ? ` • ${item.variantCount} variants available` : ''}`}
+                            title={`${item.label} (${item.category})`}
                           >
                             {/* Center Icon */}
                             <div className="w-10 h-10 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] group-hover:bg-primary-500/10 flex items-center justify-center transition-colors">
@@ -434,13 +367,6 @@ const IconPicker: React.FC<IconPickerProps> = ({
                             <span className="text-xs font-semibold text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 text-center w-full px-1 mt-1.5 leading-snug line-clamp-2 break-words transition-colors">
                               {item.label}
                             </span>
-
-                            {/* Multi-variant indicator badge */}
-                            {showFirstVariantOnly && item.variantCount > 1 && (
-                              <span className="absolute top-1.5 right-1.5 text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary opacity-70 group-hover:opacity-100 group-hover:bg-primary-500/20 group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                                {item.variantCount}
-                              </span>
-                            )}
                           </button>
                         );
                       })}
@@ -450,7 +376,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                   // Empty search state
                   <div className="flex flex-col items-center justify-center h-64 text-center text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                     <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center mb-3">
-                      <Icon name="SearchMd" className="text-2xl text-primary-500" />
+                      <Icon name="MagnifyingGlass" className="text-2xl text-primary-500" />
                     </div>
                     <p className="text-sm font-bold text-light-text dark:text-white">
                       No icons found for &ldquo;{searchTerm}&rdquo;
@@ -485,15 +411,10 @@ const IconPicker: React.FC<IconPickerProps> = ({
                       <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-md shrink-0">
                         {activeHoverIcon.category}
                       </span>
-                      {activeHoverIcon.variantCount > 1 && (
-                        <span className="text-2xs text-primary-600 dark:text-primary-400 font-mono">
-                          ({activeHoverIcon.variantCount} variants)
-                        </span>
-                      )}
                     </div>
                   ) : (
                     <span className="text-light-text-secondary dark:text-dark-text-secondary text-2xs truncate">
-                      Click any icon to select. {showFirstVariantOnly ? 'Summary mode: primary variants.' : 'Showing all variations.'}
+                      Click any icon to select. All icons render in Phosphor Duotone.
                     </span>
                   )}
                 </div>

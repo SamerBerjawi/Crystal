@@ -25,7 +25,7 @@ import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { DotsVertical } from '@untitledui/icons';
+import { DotsThreeVertical as DotsVertical } from '@phosphor-icons/react';
 import type { SortDescriptor } from 'react-aria-components';
 import { PaginationPageMinimalCenter } from '@/components/application/pagination/pagination';
 import { Table, TableCard } from '@/components/application/table/table';

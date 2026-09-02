@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
+import { IconContext } from '@phosphor-icons/react';
 
 // Automatically reload when a new service worker version is installed and takes control
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -25,7 +26,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <IconContext.Provider value={{ weight: 'duotone', mirrored: false }}>
+        <App />
+      </IconContext.Provider>
     </QueryClientProvider>
   </React.StrictMode>
 );

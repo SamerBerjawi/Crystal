@@ -31,24 +31,22 @@ const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary
     trend?: { val: string; positive: boolean };
     colorClass?: 'primary' | 'emerald' | 'rose' | 'amber' | 'blue' | 'indigo' | 'orange' | 'purple';
 }) => {
-    const colors = {
-        primary: 'bg-primary-500/10 text-primary-500',
-        emerald: 'bg-emerald-500/10 text-emerald-500',
-        rose: 'bg-rose-500/10 text-rose-500',
-        amber: 'bg-amber-500/10 text-amber-500',
-        blue: 'bg-blue-500/10 text-blue-500',
-        indigo: 'bg-indigo-500/10 text-indigo-500',
-        orange: 'bg-orange-500/10 text-orange-500',
-        purple: 'bg-purple-500/10 text-purple-500',
+    const textColors = {
+        primary: 'text-primary-500',
+        emerald: 'text-emerald-500',
+        rose: 'text-rose-500',
+        amber: 'text-amber-500',
+        blue: 'text-blue-500',
+        indigo: 'text-indigo-500',
+        orange: 'text-orange-500',
+        purple: 'text-purple-500',
     };
 
     return (
         <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-3xl p-6 relative overflow-hidden group hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5 transition-all duration-500 h-full">
-            <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
+            <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${textColors[colorClass].replace('text-', 'bg-')}`}></div>
             <div className="flex justify-between items-start relative z-10">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
-                    <Icon name={icon} className="text-2xl" />
-                </div>
+                <Icon name={icon} className={`text-3xl ${textColors[colorClass]}`} />
                 {trend && (
                     <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                          <Icon name={trend.positive ? 'trending_up' : 'trending_down'} className="text-xs" />

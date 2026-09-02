@@ -11,20 +11,20 @@
  */
 
 import {
-  Bell01 as Bell,
-  UserCircle as CircleUserRound,
-  Edit02 as Edit2,
-  FileDownload01 as FileDown,
-  Grid01 as Frame,
-  LayersThree01 as Layers,
-  Lock01 as Lock,
-  NavigationPointer01 as MousePointer2,
-  Move,
+  Bell,
+  UserCircle,
+  PencilSimple as Edit2,
+  DownloadSimple as FileDown,
+  SquaresFour as Frame,
+  Stack as Layers,
+  Lock,
+  Cursor as MousePointer2,
+  ArrowsOutCardinal as Move,
   Palette,
-  Grid01 as Shapes,
-  Share01 as Share2,
-  Sliders01 as SlidersHorizontal,
-} from "@untitledui/icons";
+  Shapes,
+  ShareNetwork as Share2,
+  FadersHorizontal as SlidersHorizontal,
+} from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -56,7 +56,7 @@ const DEFAULT_TOOLBAR_ITEMS: ToolbarItem[] = [
   { id: "export", title: "Export", icon: FileDown },
   { id: "share", title: "Share", icon: Share2 },
   { id: "notifications", title: "Notifications", icon: Bell },
-  { id: "profile", title: "Profile", icon: CircleUserRound },
+  { id: "profile", title: "Profile", icon: UserCircle },
   { id: "appearance", title: "Appearance", icon: Palette },
 ];
 

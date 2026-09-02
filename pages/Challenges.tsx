@@ -10,7 +10,6 @@ import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
-import { RefreshCw01 as RefreshCw } from '@untitledui/icons';
 import Icon from '../components/ui/Icon';
 
 const CACHE_KEYS = {

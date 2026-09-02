@@ -1,5 +1,5 @@
 import { type ComponentPropsWithoutRef, type ReactNode } from "react"
-import { ArrowRightIcon } from "@radix-ui/react-icons"
+import { ArrowRight as ArrowRightIcon } from "@phosphor-icons/react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -52,15 +52,16 @@ const BentoCard = ({
     if (!Icon) return null
     if (typeof Icon === "string") {
       return (
-        <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary-500/10 text-primary-500 border border-primary-500/20 origin-left transform-gpu transition-all duration-300 ease-in-out group-hover:scale-90">
-          <AppIcon name={Icon} className="text-2xl" />
-        </div>
+        <AppIcon 
+          name={Icon} 
+          className="text-3xl text-primary-500 origin-left transform-gpu transition-all duration-300 ease-in-out group-hover:scale-110" 
+        />
       )
     }
     if (typeof Icon === "function") {
       const IconComponent = Icon as React.ElementType
       return (
-        <IconComponent className="h-12 w-12 origin-left transform-gpu text-neutral-700 dark:text-neutral-300 transition-all duration-300 ease-in-out group-hover:scale-75" />
+        <IconComponent className="h-8 w-8 origin-left transform-gpu text-primary-500 transition-all duration-300 ease-in-out group-hover:scale-110" />
       )
     }
     return <>{Icon}</>

@@ -1,4 +1,4 @@
-import { Plus } from "@untitledui/icons";
+import { Plus } from "@phosphor-icons/react";
 import type { ButtonProps as AriaButtonProps } from "react-aria-components";
 import { Tooltip as AriaTooltip, TooltipTrigger as AriaTooltipTrigger } from "@/components/base/tooltip/tooltip";
 import { cx } from "@/lib/utils/cx";

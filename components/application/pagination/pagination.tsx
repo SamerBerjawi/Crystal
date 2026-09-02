@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight } from "@untitledui/icons";
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { cx } from "@/lib/utils/cx";
 
 export interface PaginationPageMinimalCenterProps {

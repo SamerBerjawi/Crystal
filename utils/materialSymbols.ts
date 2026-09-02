@@ -1,5 +1,5 @@
 import { ICON_NAME_MAP } from '../components/ui/Icon';
-import { ALL_UNTITLED_UI_ICON_NAMES, UNTITLED_UI_ICONS } from './untitleduiIcons';
+import { ALL_PHOSPHOR_ICON_NAMES, PHOSPHOR_ICONS } from './phosphorIcons';
 
 const EXTRA_TAGS: Record<string, string[]> = {
   weekend: ['couch', 'sofa', 'relax', 'sleep'],
@@ -16,9 +16,9 @@ const EXTRA_TAGS: Record<string, string[]> = {
   bathtub: ['bathroom', 'tub', 'shower'],
 };
 
-// Combine all 1,179 Untitled UI icons with existing legacy keys for backward compatibility
+// Combine all Phosphor icons with existing legacy keys for backward compatibility
 export const ICON_LIBRARY: string[] = Array.from(
-  new Set([...ALL_UNTITLED_UI_ICON_NAMES, ...Object.keys(ICON_NAME_MAP)])
+  new Set([...ALL_PHOSPHOR_ICON_NAMES, ...Object.keys(ICON_NAME_MAP)])
 );
 
 const fuzzyMatch = (needle: string, haystack: string): boolean => {
@@ -45,7 +45,7 @@ const buildTags = (name: string): string[] => {
 };
 
 const MATERIAL_SYMBOL_METADATA = [
-  ...UNTITLED_UI_ICONS.map(item => ({
+  ...PHOSPHOR_ICONS.map(item => ({
     name: item.name,
     tags: item.tags,
   })),

@@ -85,12 +85,14 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
             <Icon name="drag_indicator" className="absolute left-2 text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-50 cursor-grab text-base" title="Drag to reorder" />
 
             <div className="flex items-center gap-3 pl-6 min-w-0 flex-grow">
-                <div className={`flex-shrink-0 rounded-lg flex items-center justify-center ${isSubCategory ? 'w-6 h-6' : 'w-10 h-10'}`} style={{ backgroundColor: `${category.color}20` }}>
-                    <Icon name={category.icon || 'category'} style={{
-                            fontSize: isSubCategory ? '16px' : '20px',
-                            color: category.color,
-                        }} />
-                </div>
+                <Icon 
+                    name={category.icon || 'category'} 
+                    className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
+                    style={{
+                        fontSize: isSubCategory ? '18px' : '24px',
+                        color: category.color,
+                    }} 
+                />
                 
                 <span className={`font-semibold text-light-text dark:text-dark-text truncate ${isSubCategory ? 'text-sm' : 'text-base'}`}>
                     {category.name}

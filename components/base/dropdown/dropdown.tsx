@@ -1,5 +1,5 @@
 import { type FC, type RefAttributes, useCallback } from "react";
-import { Check, ChevronRight, DotsVertical } from "@untitledui/icons";
+import { Check, CaretRight as ChevronRight, DotsThreeVertical as DotsVertical } from "@phosphor-icons/react";
 import type {
     ButtonProps as AriaButtonProps,
     MenuItemProps as AriaMenuItemProps,
