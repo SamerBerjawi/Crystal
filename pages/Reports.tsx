@@ -123,9 +123,7 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
 
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
-            <Icon name={icon} className="text-lg" />
-          </div>
+          <Icon name={icon} className="text-xl text-light-text-secondary dark:text-dark-text-secondary group-hover:scale-110 transition-transform" />
           <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
         </div>
 
@@ -1224,7 +1222,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
               {insights.map((item, idx) => (
                 <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/15 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300"
                   style={{ animationDelay: `${idx * 150}ms` }}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/10 ${item.tone === 'warning' ? 'bg-amber-500/20 text-amber-300' : item.tone === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/20 text-white'}`}>
+                  <div className={`w-5 h-5 flex items-center justify-center shrink-0 ${item.tone === 'warning' ? 'text-amber-300' : item.tone === 'positive' ? 'text-emerald-300' : 'text-white'}`}>
                     <Icon name={item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'} className="text-base" />
                   </div>
                   <p className="text-xs font-bold leading-relaxed privacy-blur drop-shadow-sm">{item.text}</p>
@@ -1288,9 +1286,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
               {anomalyCandidates.map(row => (
                 <div key={row.id} className="flex items-center justify-between p-3 rounded-xl border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-lg hover:shadow-black/5 group/anomaly">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 border border-rose-500/10 group-hover/anomaly:scale-110 transition-transform">
-                      <Icon name="warning" className="text-xl" />
-                    </div>
+                    <Icon name="warning" className="text-xl text-rose-500 group-hover/anomaly:scale-110 transition-transform shrink-0" />
                     <div>
                       <p className="text-xs font-bold tracking-tight truncate max-w-[120px] leading-none mb-1">{row.merchant}</p>
                       <p className="text-xs text-light-text-secondary font-medium opacity-60">{row.date}</p>
@@ -1320,9 +1316,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
               {recurringCandidates.slice(0, 5).map(candidate => (
                 <div key={candidate.merchant} className="flex items-center justify-between group/recurring">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0 border border-primary-500/10 group-hover/recurring:rotate-12 transition-transform">
-                      <Icon name="event_repeat" className="text-base" />
-                    </div>
+                    <Icon name="event_repeat" className="text-lg text-primary-500 group-hover/recurring:rotate-12 transition-transform shrink-0" />
                     <div>
                       <p className="text-xs font-bold tracking-tight leading-none mb-1">{candidate.merchant}</p>
                       <p className="text-xs text-light-text-secondary font-medium opacity-60">{candidate.frequency}</p>
@@ -1371,9 +1365,10 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
                     <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
                       <td className="py-2 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center text-light-text-secondary group-hover:bg-white dark:group-hover:bg-neutral-800 transition-colors shadow-sm">
-                            <Icon name={findCategoryByName(row.categoryName, allCategories)?.icon || 'category'} className="text-base" />
-                          </div>
+                          <Icon
+                            name={findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
+                            className="text-lg text-light-text-secondary group-hover:scale-110 transition-transform"
+                          />
                           <span className="text-xs font-bold tracking-tight">{row.categoryName}</span>
                         </div>
                       </td>

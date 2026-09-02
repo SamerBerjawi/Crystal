@@ -405,10 +405,10 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       
       {/* Stats Overview */}
       <BentoGrid className="grid-cols-2 md:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Ingress" value={stats.imports} icon="download" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
-          <StatCard title="Egress" value={stats.exports} icon="upload" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Restored" value={stats.restores} icon="refresh" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-          <StatCard title="Uptime" value={stats.lastActivity} icon="history" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
+          <StatCard title="Ingress" value={stats.imports} icon="download" colorClass="text-blue-600 dark:text-blue-400" />
+          <StatCard title="Egress" value={stats.exports} icon="upload" colorClass="text-indigo-600 dark:text-indigo-400" />
+          <StatCard title="Restored" value={stats.restores} icon="refresh" colorClass="text-emerald-600 dark:text-emerald-400" />
+          <StatCard title="Uptime" value={stats.lastActivity} icon="history" colorClass="text-amber-600 dark:text-amber-400" />
       </BentoGrid>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">

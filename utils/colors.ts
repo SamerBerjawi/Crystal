@@ -1,6 +1,9 @@
 export const getColorClasses = (color: string, isActive: boolean = true): string => {
-  if (!isActive) return 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300';
+  if (!isActive) return 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200';
+  return getIconColorClasses(color);
+};
 
+export const getIconColorClasses = (color: string): string => {
   switch (color) {
     case 'indigo': return 'text-indigo-600 dark:text-indigo-400';
     case 'emerald': return 'text-emerald-600 dark:text-emerald-400';
@@ -8,13 +11,13 @@ export const getColorClasses = (color: string, isActive: boolean = true): string
     case 'purple': return 'text-purple-600 dark:text-purple-400';
     case 'cyan': return 'text-cyan-600 dark:text-cyan-400';
     case 'blue': return 'text-blue-600 dark:text-blue-400';
-    case 'teal': return 'text-teal-600 dark:text-teal-400 font-bold';
+    case 'teal': return 'text-teal-600 dark:text-teal-400 font-semibold';
     case 'orange': return 'text-orange-600 dark:text-orange-400';
-    case 'rose': return 'text-rose-600 dark:text-rose-400 font-bold';
+    case 'rose': return 'text-rose-600 dark:text-rose-400 font-semibold';
     case 'violet': return 'text-violet-600 dark:text-violet-400';
     case 'slate': return 'text-slate-600 dark:text-slate-400';
     case 'lime': return 'text-lime-600 dark:text-lime-400';
-    case 'gray': return 'text-gray-600 dark:text-gray-400';
+    case 'gray': return 'text-slate-600 dark:text-slate-400';
     case 'sky': return 'text-sky-600 dark:text-sky-400';
     case 'pink': return 'text-pink-600 dark:text-pink-400';
     default: return 'text-indigo-600 dark:text-indigo-400';

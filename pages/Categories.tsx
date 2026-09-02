@@ -254,10 +254,10 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
       {/* Stats Row */}
       <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Major Nodes" value={stats.parents} icon="folder" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
-          <StatCard title="Sub-Nodes" value={stats.subs} icon="folder" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Total Schema" value={stats.total} icon="folder" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-          <StatCard title="Search" value={searchTerm ? '1' : '0'} icon="sliders" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
+          <StatCard title="Major Nodes" value={stats.parents} icon="folder" colorClass="text-blue-600 dark:text-blue-400" />
+          <StatCard title="Sub-Nodes" value={stats.subs} icon="folder" colorClass="text-indigo-600 dark:text-indigo-400" />
+          <StatCard title="Total Schema" value={stats.total} icon="folder" colorClass="text-emerald-600 dark:text-emerald-400" />
+          <StatCard title="Search" value={searchTerm ? '1' : '0'} icon="sliders" colorClass="text-amber-600 dark:text-amber-400" />
       </BentoGrid>
 
       {/* Controls Section */}

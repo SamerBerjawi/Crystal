@@ -76,12 +76,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 mt-3 w-80 sm:w-96 bg-light-card dark:bg-dark-card rounded-3xl shadow-2xl border border-black/10 dark:border-white/10 z-50 overflow-hidden"
+            className="absolute right-0 mt-3 w-80 sm:w-96 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-200/50 dark:border-slate-800/50 z-50 overflow-hidden"
           >
+            {/* Ambient Top Gradient Glow */}
+            <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-primary-500/10 via-primary-500/5 to-transparent pointer-events-none -z-1" />
+
             {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
+            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
               <div className="flex items-center gap-2.5">
-                <Icon name="event_upcoming" className="text-xl text-amber-500" />
+                <Icon name="event_upcoming" className="text-xl text-amber-500 shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm tracking-tight text-light-text dark:text-dark-text leading-none">
                     Bill Alerts

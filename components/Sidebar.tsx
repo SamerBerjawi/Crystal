@@ -3,7 +3,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem, ITEM_COLORS } from '../constants';
 import ThemeToggle from './ThemeToggle';
-import { getColorClasses, getGlowClasses, getBgClasses } from '../utils/colors';
+import { getColorClasses, getGlowClasses, getBgClasses, getIconColorClasses } from '../utils/colors';
 import { APP_VERSION } from '../version';
 import Icon from './ui/Icon';
 
@@ -84,6 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const baseClasses = `group flex items-center rounded-2xl transition-all duration-300 cursor-pointer select-none mx-2.5 my-0.5 relative`;
     const layoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-start px-3.5 py-2.5';
     const colorClass = getColorClasses(itemColor, isActive);
+    const iconAccentColor = getIconColorClasses(itemColor);
 
     return (
       <li key={item.name} className="mb-0.5 relative flex items-center">
@@ -132,7 +133,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Icon & Label */}
           <div className={`flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3.5 min-w-0'}`}>
-            <Icon name={item.icon} className={`text-xl flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_10px_currentColor]' : 'group-hover:scale-110 opacity-70'}`} />
+            <Icon 
+              name={item.icon} 
+              className={`text-xl flex-shrink-0 transition-all duration-300 ${iconAccentColor} ${
+                isActive 
+                  ? 'scale-110 drop-shadow-[0_0_10px_currentColor] opacity-100' 
+                  : 'opacity-80 group-hover:opacity-100 group-hover:scale-110'
+              }`} 
+            />
             <span className={`whitespace-nowrap text-sm font-medium tracking-tight truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden invisible' : 'w-auto opacity-100'}`}>
               {item.name}
             </span>
@@ -204,7 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div key={group.title} className={index > 0 ? 'mt-3' : ''}>
                       {!isSidebarCollapsed && (
                         <div className="px-6 mb-2">
-                          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 tracking-wider uppercase">
                             {group.title}
                           </span>
                         </div>
@@ -243,7 +251,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               {!isSidebarOpen && (
                 <button
                   onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-                  className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300"
+                  className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300"
                   title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                 >
                   <Icon name={isSidebarCollapsed ? 'ChevronRight' : 'ChevronLeft'} className="text-lg" />
@@ -265,14 +273,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                     >
-                      <Icon name="person" className="text-lg text-gray-400 group-hover:text-primary-500 transition-colors" />
+                      <Icon name="person" className="text-lg text-gray-500 group-hover:text-primary-500 transition-colors" />
                       <span className="font-semibold">My Account</span>
                     </button>
                     <button
                       onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
                       className="w-full text-left px-4 py-3 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-2xl transition-all duration-200 group"
                     >
-                      <Icon name="settings" className="text-lg text-gray-400 group-hover:text-primary-500 transition-colors" />
+                      <Icon name="settings" className="text-lg text-gray-500 group-hover:text-primary-500 transition-colors" />
                       <span className="font-semibold">Preferences</span>
                     </button>
                     <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-3"></div>
@@ -307,12 +315,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {!isSidebarCollapsed && (
-                  <Icon name="unfold_more" className="text-gray-400 text-lg mr-1" />
+                  <Icon name="unfold_more" className="text-gray-500 dark:text-gray-400 text-lg mr-1" />
                 )}
               </button>
             </div>
             {!isSidebarCollapsed && (
-              <div className="pt-2 text-xs font-mono font-medium text-gray-400 dark:text-gray-500 tracking-wide text-center select-none opacity-70">
+              <div className="pt-2 text-xs font-mono font-medium text-gray-500 dark:text-gray-500 tracking-wide text-center select-none opacity-70">
                 {APP_VERSION}
               </div>
             )}

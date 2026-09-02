@@ -538,36 +538,28 @@ const Subscriptions: React.FC = () => {
                                     {activeSegment === 'loyalty' ? (
                                         <>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
-                                                <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                                                    <Icon name="wallet" className="text-base text-amber-500" />
-                                                </div>
+                                                <Icon name="wallet" className="text-lg text-amber-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Total Cards</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{memberships.length}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-orange-500/[0.04] dark:bg-orange-500/[0.03]">
-                                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                                                    <Icon name="timer" className="text-base text-orange-500" />
-                                                </div>
+                                                <Icon name="timer" className="text-lg text-orange-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Expiring 30d</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{expiringMemberships}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
-                                                <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
-                                                    <Icon name="category" className="text-base text-primary-500" />
-                                                </div>
+                                                <Icon name="category" className="text-lg text-primary-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Categories</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{sortedMembershipCategories.length}</span>
                                                 </div>
                                             </div>
                                             <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/[0.04] dark:bg-emerald-500/[0.03]">
-                                                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                                                    <Icon name="loyalty" className="text-base text-emerald-500" />
-                                                </div>
+                                                <Icon name="loyalty" className="text-lg text-emerald-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
                                                     <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{memberships.length - expiringMemberships}</span>
@@ -577,18 +569,14 @@ const Subscriptions: React.FC = () => {
                                     ) : (
                                         <>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-rose-500/[0.04] dark:bg-rose-500/[0.03]">
-                                                <div className="w-9 h-9 rounded-xl bg-rose-500/10 flex items-center justify-center shrink-0">
-                                                    <Icon name="event_upcoming" className="text-base text-rose-500" />
-                                                </div>
+                                                <Icon name="event_upcoming" className="text-lg text-rose-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Due 7 Days</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{dueSoonCount}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
-                                                <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
-                                                    <Icon name="subscriptions" className="text-base text-primary-500" />
-                                                </div>
+                                                <Icon name="subscriptions" className="text-lg text-primary-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{totalCount}</span>
@@ -596,8 +584,8 @@ const Subscriptions: React.FC = () => {
                                             </div>
                                             {detectedSubscriptions.length > 0 && (
                                                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
-                                                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 relative">
-                                                        <Icon name="radar" className="text-base text-amber-500" />
+                                                    <div className="relative shrink-0">
+                                                        <Icon name="radar" className="text-lg text-amber-500" />
                                                         <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse border-2 border-white dark:border-dark-card" />
                                                     </div>
                                                     <div className="flex flex-col min-w-0">
@@ -657,8 +645,8 @@ const Subscriptions: React.FC = () => {
                                     <div className="relative z-10 p-6 md:p-8">
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center relative">
-                                                    <Icon name="radar" className="text-base text-primary-500" />
+                                                <div className="relative shrink-0">
+                                                    <Icon name="radar" className="text-lg text-primary-500" />
                                                     <span className="absolute inset-0 rounded-xl border border-primary-500/30 animate-ping opacity-30" />
                                                 </div>
                                                 <div>
@@ -747,9 +735,7 @@ const Subscriptions: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {activeSubscriptions.length === 0 ? (
                                             <div className="col-span-full py-16 text-center">
-                                                <div className="w-16 h-16 rounded-2xl bg-light-fill dark:bg-dark-fill flex items-center justify-center mx-auto mb-4">
-                                                    <Icon name="subscriptions" className="text-3xl text-light-text-secondary/30 dark:text-dark-text-secondary/30" />
-                                                </div>
+                                                <Icon name="subscriptions" className="text-4xl text-light-text-secondary/30 dark:text-dark-text-secondary/30 block mx-auto mb-4" />
                                                 <h4 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight mb-1">No active services</h4>
                                                 <p className="text-xs text-light-text-secondary/50 dark:text-dark-text-secondary/50 mb-6">Add your first subscription to start tracking.</p>
                                                 <HeaderButton variant="primary" icon="add" onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}>

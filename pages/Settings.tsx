@@ -15,6 +15,7 @@ interface SettingCardProps {
   title: string;
   description: string;
   colorClass: string;
+  iconColor: string;
   badge?: string;
   badgeColor?: string;
   onClick: (page: Page) => void;
@@ -26,6 +27,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
   title,
   description,
   colorClass,
+  iconColor,
   badge,
   badgeColor = 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20',
   onClick,
@@ -36,9 +38,10 @@ const SettingCard: React.FC<SettingCardProps> = ({
     className="w-full flex items-center justify-between p-4 sm:p-5 bg-white dark:bg-dark-card hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-2xl border border-black/5 dark:border-white/5 hover:border-primary-500/30 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group text-left relative overflow-hidden"
   >
     <div className="flex items-center gap-4 min-w-0">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-200 shrink-0`}>
-        <Icon name={icon} className="text-xl" />
-      </div>
+      <Icon
+        name={icon}
+        className={`text-2xl group-hover:scale-110 transition-transform duration-200 shrink-0 ${iconColor}`}
+      />
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-light-text dark:text-dark-text text-sm sm:text-base tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
@@ -154,6 +157,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Preferences"
                 description="Theme modes, primary currency, date formats & privacy blur"
                 colorClass="bg-blue-500 text-white"
+                iconColor="text-blue-600 dark:text-blue-400"
                 onClick={handleNavigation}
               />
               <SettingCard
@@ -162,6 +166,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Integrations & APIs"
                 description="Twelve Data, Brandfetch logos, Open Banking & AI"
                 colorClass="bg-indigo-500 text-white"
+                iconColor="text-indigo-600 dark:text-indigo-400"
                 onClick={handleNavigation}
               />
             </div>
@@ -182,6 +187,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Rule Engine"
                 description="Custom IF-WHEN-THEN rules for auto-categorization"
                 colorClass="bg-teal-500 text-white"
+                iconColor="text-teal-600 dark:text-teal-400"
                 badge="Active"
                 badgeColor="bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20"
                 onClick={handleNavigation}
@@ -192,6 +198,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Merchants & Institutions"
                 description="Metadata enrichment, logos, and regex routing rules"
                 colorClass="bg-emerald-500 text-white"
+                iconColor="text-emerald-600 dark:text-emerald-400"
                 onClick={handleNavigation}
               />
             </div>
@@ -215,6 +222,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Categories"
                 description="Parent & sub-node structure for expenses and income"
                 colorClass="bg-orange-500 text-white"
+                iconColor="text-orange-600 dark:text-orange-400"
                 onClick={handleNavigation}
               />
               <SettingCard
@@ -223,6 +231,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Tags"
                 description="Custom labels, lifestyle markers, and project tagging"
                 colorClass="bg-pink-500 text-white"
+                iconColor="text-pink-600 dark:text-pink-400"
                 onClick={handleNavigation}
               />
             </div>
@@ -243,6 +252,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Data Management"
                 description="Atomic CSV/JSON imports, export ledgers, backups"
                 colorClass="bg-cyan-500 text-white"
+                iconColor="text-cyan-600 dark:text-cyan-400"
                 onClick={handleNavigation}
               />
               <SettingCard
@@ -251,6 +261,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Knowledge Base"
                 description="Detailed user guide, system design, and API specs"
                 colorClass="bg-slate-500 text-white"
+                iconColor="text-slate-600 dark:text-slate-400"
                 onClick={handleNavigation}
               />
             </div>

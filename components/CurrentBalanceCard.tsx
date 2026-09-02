@@ -17,9 +17,7 @@ const CurrentBalanceCard: React.FC<CurrentBalanceCardProps> = ({ balance, curren
       <div>
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
-          <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
-            <Icon name="savings" className="text-lg" />
-          </div>
+          <Icon name="savings" className="text-xl text-violet-600 dark:text-violet-400 shrink-0" />
         </div>
         <p className="text-2xl font-extrabold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(balance, currency)}</p>
       </div>

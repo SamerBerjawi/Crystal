@@ -43,12 +43,12 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
     <div className="flex flex-col h-full space-y-4">
       <div className="flex justify-between items-center px-1">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Growth momentum</p>
-          <div className="flex items-center gap-2">
-            <h3 className={`text-2xl font-bold tracking-tight ${currentDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Growth momentum</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <h3 className={`text-2xl font-bold tracking-tight ${currentDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {currentDelta >= 0 ? '+' : ''}{formatCurrency(currentDelta, 'EUR')}
             </h3>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400'}`}>
               {isAccelerating ? 'Accelerating' : 'Stabilizing'}
             </span>
           </div>

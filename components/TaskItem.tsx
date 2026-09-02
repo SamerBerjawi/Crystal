@@ -84,9 +84,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
                     )}
                     
                     {task.reminderDate && (
-                         <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">
-                              <Icon name="notifications" className="text-base" />
-                         </div>
+                        <Icon name="notifications" className="text-base text-slate-400 dark:text-slate-500 group-hover:text-primary-500 transition-colors shrink-0" />
                     )}
                 </div>
             </div>

@@ -20,7 +20,12 @@ const StatCard: React.FC<StatCardProps> = ({
     colorClass = "text-primary-500",
     className
 }) => {
-    const textColor = colorClass.replace(/\bbg-[^\s]+/g, '').replace(/\bborder-[^\s]+/g, '').trim() || 'text-primary-500';
+    // Strip bg, border, shadow, and text-white classes so bare icon gets semantic or fallback text color
+    const cleaned = colorClass
+        .replace(/\b(bg|border|shadow)-[^\s]+/g, '')
+        .replace(/\btext-white\b/g, '')
+        .trim();
+    const textColor = cleaned || 'text-primary-500';
 
     return (
         <BentoCard 

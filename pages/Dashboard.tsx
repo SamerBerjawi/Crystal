@@ -153,20 +153,25 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
   pending_matches: []
 };
 
-const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-  <BentoCard className="!col-span-1 !p-0 min-h-[110px]">
-    <div className="flex items-center gap-3.5 sm:gap-5 w-full">
-      <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm group-hover:scale-105 transition-transform`}>
-        <Icon name={icon} className="text-2xl sm:text-3xl" />
+const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => {
+  const textColor = colorClass.replace(/\bbg-[^\s]+/g, '').replace(/\bborder-[^\s]+/g, '').trim() || 'text-primary-500';
+
+  return (
+    <BentoCard className="!col-span-1 !p-0 min-h-[110px]">
+      <div className="flex items-center gap-3.5 sm:gap-5 w-full">
+        <Icon 
+          name={icon} 
+          className={`text-3xl sm:text-4xl shrink-0 transition-transform duration-300 group-hover:scale-110 ${textColor}`} 
+        />
+        <div className="min-w-0 relative z-10 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">{title}</p>
+          <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight truncate">{value}</p>
+          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-70">{subtext}</p>
+        </div>
       </div>
-      <div className="min-w-0 relative z-10 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">{title}</p>
-        <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight truncate">{value}</p>
-        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-70">{subtext}</p>
-      </div>
-    </div>
-  </BentoCard>
-);
+    </BentoCard>
+  );
+};
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
   const { confirm, ConfirmDialog } = useConfirm();

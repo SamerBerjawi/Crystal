@@ -746,10 +746,10 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
         {/* Metrics Overview */}
       <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="bg-blue-500 text-white shadow-blue-500/20" />
-          <StatCard title="Institutions" value={stats.totalInstitutions} icon="bank" colorClass="bg-indigo-500 text-white shadow-indigo-500/20" />
-          <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="bg-emerald-500 text-white shadow-emerald-500/20" />
-          <StatCard title="Unassigned" value={stats.missingCount} icon="help_outline" colorClass="bg-orange-500 text-white shadow-orange-500/20" />
+          <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="text-blue-600 dark:text-blue-400" />
+          <StatCard title="Institutions" value={stats.totalInstitutions} icon="bank" colorClass="text-indigo-600 dark:text-indigo-400" />
+          <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="text-emerald-600 dark:text-emerald-400" />
+          <StatCard title="Unassigned" value={stats.missingCount} icon="help_outline" colorClass="text-amber-600 dark:text-amber-400" />
       </BentoGrid>
 
       {/* Controls */}

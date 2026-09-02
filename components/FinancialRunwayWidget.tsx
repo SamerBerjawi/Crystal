@@ -42,15 +42,15 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
 
   return (
     <div className="flex flex-col h-full justify-between">
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Survival runway</span>
-          <h2 className="text-4xl font-semibold text-light-text dark:text-dark-text mt-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Survival runway</span>
+          <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">
             {runway >= 99 ? '∞' : runway.toFixed(1)} <span className="text-lg font-medium opacity-40">Months</span>
           </h2>
         </div>
-        <div className={`px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider flex items-center gap-1.5 ${status.color} shadow-sm`}>
-          <Icon name={status.icon} className="text-sm" />
+        <div className={`px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider flex items-center gap-1.5 shrink-0 ${status.color} shadow-sm`}>
+          <Icon name={status.icon} className="text-sm shrink-0" />
           {status.label}
         </div>
       </div>

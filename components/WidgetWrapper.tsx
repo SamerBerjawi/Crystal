@@ -53,29 +53,29 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
         onMouseUp={onMouseUp}
         onTouchEnd={onTouchEnd}
     >
-      <Card className={`flex flex-col h-full transition-all duration-200 !rounded-[2rem] ${isCompact ? '!p-3' : '!p-5'} ${isEditMode ? 'border-dashed border-primary-500/50 ring-2 ring-primary-500/20' : ''}`}>
-        <header className={`flex items-start justify-between ${isCompact ? 'mb-2' : 'mb-4'} drag-handle ${isEditMode ? 'cursor-move' : ''}`}>
-          <div className="flex items-center gap-2.5 overflow-hidden">
+      <Card className={`flex flex-col h-full transition-all duration-200 !rounded-[2rem] ${isCompact ? '!p-3.5' : '!p-5'} ${isEditMode ? 'border-dashed border-primary-500/50 ring-2 ring-primary-500/20' : ''}`}>
+        <header className={`flex items-center justify-between gap-3 ${isCompact ? 'mb-2.5' : 'mb-4'} drag-handle ${isEditMode ? 'cursor-move' : ''}`}>
+          <div className="flex items-center gap-2.5 min-w-0 overflow-hidden">
             {icon && (
-               <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-10 h-10 rounded-xl'} bg-primary-100 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/10`}>
-                  <Icon name={icon} className="text-lg" />
+               <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/15`}>
+                  <Icon name={icon} className={isCompact ? 'text-base' : 'text-lg'} />
                </div>
             )}
-            <div className="overflow-hidden">
-              <h2 className={`${isCompact ? 'text-xs' : 'text-base'} font-bold text-light-text dark:text-dark-text tracking-tight`}>{title}</h2>
+            <div className="min-w-0 overflow-hidden">
+              <h2 className={`${isCompact ? 'text-xs' : 'text-base'} font-semibold text-slate-900 dark:text-slate-100 tracking-tight truncate leading-tight`}>{title}</h2>
               {subtitle && (
-                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">{subtitle}</p>
+                <p className="text-xs font-normal text-slate-500 dark:text-slate-400 mt-0.5 truncate leading-tight">{subtitle}</p>
               )}
             </div>
           </div>
           
-          <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 shrink-0" onMouseDown={(e) => e.stopPropagation()}>
             {isEditMode && onWidthChange && (
               <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-lg p-0.5 mr-1">
                 <select 
                   value={currentWidth} 
                   onChange={(e) => onWidthChange(Number(e.target.value))}
-                  className="bg-transparent text-xs font-bold px-1 outline-none cursor-pointer text-light-text-secondary dark:text-dark-text-secondary"
+                  className="bg-transparent text-xs font-semibold px-1 outline-none cursor-pointer text-slate-600 dark:text-slate-400"
                 >
                   {widthOptions.map(opt => (
                     <option key={opt.value} value={opt.value} className="bg-white dark:bg-gray-800 text-light-text dark:text-dark-text">{opt.label}</option>
@@ -86,8 +86,9 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
             {isEditMode && (
               <button 
                 onClick={(e) => { e.stopPropagation(); onRemove(); }} 
-                className="text-light-text-secondary dark:text-dark-text-secondary p-1.5 rounded-full hover:bg-rose-500/10 hover:text-rose-500 transition-colors cursor-pointer shrink-0" 
+                className="text-slate-400 hover:text-rose-500 p-1.5 rounded-full hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0" 
                 title="Remove widget"
+                aria-label="Remove widget"
               >
                 <Icon name="delete" className="text-base" />
               </button>
