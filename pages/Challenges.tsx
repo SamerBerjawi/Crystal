@@ -109,8 +109,8 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl"></div>
 
                  {/* Icon Medal */}
-                <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${styles.iconBg} text-white shadow-md transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
-                    <Icon name={badge.icon} className="text-3xl drop-shadow-md" />
+                <div className="relative z-10 mb-4 flex flex-col items-center">
+                    <Icon name={badge.icon} className={`text-5xl drop-shadow-md transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${styles.text}`} />
                     <div className="absolute -bottom-2 -right-2 bg-white dark:bg-dark-card rounded-full p-1 shadow-sm">
                          <div className="bg-green-500 rounded-full w-5 h-5 flex items-center justify-center">
                             <Icon name="check" className="text-xs font-bold text-white" />
@@ -139,9 +139,9 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
     return (
         <div className="group relative flex flex-col items-center p-5 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]">
              {/* Locked Icon */}
-            <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 shadow-inner">
-                <Icon name={badge.icon} className="text-3xl" />
-                 <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-black/20 rounded-2xl backdrop-blur-[1px]">
+            <div className="relative mb-4 flex items-center justify-center">
+                <Icon name={badge.icon} className="text-5xl text-gray-400 dark:text-gray-500" />
+                 <div className="absolute inset-0 flex items-center justify-center">
                      <Icon name="lock" className="text-2xl text-gray-500 dark:text-gray-400 drop-shadow-sm" />
                  </div>
             </div>

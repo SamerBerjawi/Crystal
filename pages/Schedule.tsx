@@ -1134,9 +1134,7 @@ const SchedulePage: React.FC = () => {
                             <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-rose-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-rose-500/10 dark:border-rose-500/20 flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                                            <Icon name="credit_card" className="text-sm" />
-                                        </div>
+                                        <Icon name="credit_card" className="text-base text-rose-600 dark:text-rose-400" />
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">30-Day Outflow</span>
                                     </div>
                                     <span className="text-4xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
@@ -1165,9 +1163,7 @@ const SchedulePage: React.FC = () => {
                             <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-emerald-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-emerald-500/10 dark:border-emerald-500/20 flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                                            <Icon name="download" className="text-sm" />
-                                        </div>
+                                        <Icon name="download" className="text-base text-emerald-600 dark:text-emerald-400" />
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Expected Income</span>
                                     </div>
                                     <span className="text-4xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -1196,9 +1192,7 @@ const SchedulePage: React.FC = () => {
                             <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-amber-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-amber-500/10 dark:border-amber-500/20 flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                                            <Icon name="warning" className="text-sm" />
-                                        </div>
+                                        <Icon name="warning" className="text-base text-amber-600 dark:text-amber-400" />
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Overdue Items</span>
                                     </div>
                                     <span className={`text-4xs font-bold px-2 py-0.5 rounded-full ${
@@ -1231,9 +1225,7 @@ const SchedulePage: React.FC = () => {
                             <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-primary-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-primary-500/10 dark:border-primary-500/20 flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                                            <Icon name="event_repeat" className="text-sm" />
-                                        </div>
+                                        <Icon name="event_repeat" className="text-base text-primary-500" />
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Active Rules</span>
                                     </div>
                                     <span className="text-4xs font-bold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full">
@@ -1395,9 +1387,7 @@ const SchedulePage: React.FC = () => {
                              {oldUnpaidBills.length > 0 && (
                                 <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
-                                            <Icon name="event_busy" className="text-2xl" />
-                                        </div>
+                                        <Icon name="event_busy" className="text-2xl text-amber-600 dark:text-amber-400 flex-shrink-0" />
                                         <div>
                                             <h4 className="font-bold text-sm text-light-text dark:text-dark-text">
                                                 {oldUnpaidBills.length} One-Time Bill(s) Older Than 7 Days
@@ -1455,9 +1445,10 @@ const SchedulePage: React.FC = () => {
                                     <div className="relative z-10 flex flex-col h-full justify-between gap-6">
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${rt.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                                    <Icon name={rt.type === 'transfer' ? 'sync_alt' : rt.type === 'income' ? 'download' : 'upload'} className="text-xl" />
-                                                </div>
+                                                <Icon
+                                                  name={rt.type === 'transfer' ? 'sync_alt' : rt.type === 'income' ? 'download' : 'upload'}
+                                                  className={`text-xl ${rt.type === 'income' ? 'text-emerald-500' : 'text-light-text-secondary'}`}
+                                                />
                                                 <div className="min-w-0">
                                                     <h4 className="font-bold text-base truncate pr-8">{rt.description}</h4>
                                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60">{rt.frequency} cycle</span>
@@ -1490,9 +1481,7 @@ const SchedulePage: React.FC = () => {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/5 dark:border-white/5">
                                     <div>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                                                <Icon name="inventory_2" className="text-2xl" />
-                                            </div>
+                                        <Icon name="inventory_2" className="text-2xl text-amber-500" />
                                             <div>
                                                 <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Expired & Archived Bills</h3>
                                                 <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
@@ -1516,9 +1505,7 @@ const SchedulePage: React.FC = () => {
 
                                 {expiredBills.length === 0 ? (
                                     <div className="py-16 text-center space-y-3">
-                                        <div className="w-16 h-16 rounded-3xl bg-gray-100 dark:bg-white/5 mx-auto flex items-center justify-center text-light-text-secondary">
-                                            <Icon name="inbox" className="text-3xl" />
-                                        </div>
+                                        <Icon name="inbox" className="text-4xl text-light-text-secondary block mx-auto mb-3" />
                                         <h4 className="font-bold text-base text-light-text dark:text-dark-text">No Expired Bills Archived</h4>
                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">
                                             One-time bills marked as expired or older than 7 days will be safely moved here so they no longer clutter active schedules.

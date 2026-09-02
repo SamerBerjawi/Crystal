@@ -18,16 +18,13 @@ interface AccountBreakdownCardProps {
 const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, totalValue, breakdownData }) => {
     const isAsset = title === 'Assets';
     const iconColor = isAsset ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-    const iconBg = isAsset ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30';
     const iconName = isAsset ? 'account_balance' : 'credit_card';
 
     return (
         <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm h-full flex flex-col justify-between">
             <div>
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} ${iconColor}`}>
-                        <Icon name={iconName} className="text-xl" />
-                    </div>
+                    <Icon name={iconName} className={`text-2xl ${iconColor}`} />
                         <div className="text-right">
                         <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
                         <h3 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</h3>

@@ -157,9 +157,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
           {/* Header matching CategoryModal */}
           <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-purple-500/5 to-transparent shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-md transition-transform hover:scale-105">
-                <Icon name={isEditing ? 'edit' : 'pie_chart'} className="text-2xl" />
-              </div>
+              <Icon name={isEditing ? 'edit' : 'pie_chart'} className="text-2xl text-purple-500 shrink-0" />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
@@ -190,9 +188,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
               <div className="p-4.5 rounded-3xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
-                      <Icon name={selectedCategoryObj?.icon || 'pie_chart'} className="text-lg" />
-                    </div>
+                    <Icon name={selectedCategoryObj?.icon || 'pie_chart'} className="text-xl text-purple-500 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-2xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                         Monthly Allocation Threshold

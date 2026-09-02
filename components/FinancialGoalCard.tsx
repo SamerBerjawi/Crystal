@@ -177,9 +177,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             {/* Header - Aligned Row */}
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                     <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${iconColorClass} border border-black/5 dark:border-white/10`}>
-                        <Icon name={iconName} className="text-xl" />
-                    </div>
+                     <Icon name={iconName} className={`text-2xl flex-shrink-0 ${iconColorClass}`} />
                     <div>
                         <h4 className="font-bold text-base text-light-text dark:text-dark-text tracking-tight truncate leading-tight" title={goal.name}>{goal.name}</h4>
                         {paymentAccountName && (

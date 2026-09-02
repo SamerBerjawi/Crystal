@@ -81,9 +81,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             {/* Header */}
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-xs">
-                  <Icon name="event_upcoming" className="text-lg" />
-                </div>
+                <Icon name="event_upcoming" className="text-xl text-amber-500" />
                 <div>
                   <h3 className="font-semibold text-sm tracking-tight text-light-text dark:text-dark-text leading-none">
                     Bill Alerts
@@ -108,9 +106,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <div className="max-h-[380px] overflow-y-auto p-3 space-y-3 custom-scrollbar">
               {notifications.length === 0 ? (
                 <div className="py-12 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
-                    <Icon name="verified" className="text-2xl" />
-                  </div>
+                  <Icon name="verified" className="text-4xl text-emerald-500 block mx-auto mb-2" />
                   <p className="text-xs font-semibold text-light-text dark:text-dark-text">No Upcoming Bill Alerts</p>
                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-[220px] mx-auto opacity-70">
                     All recurring bills for the next 3 days are settled or clear.
@@ -198,13 +194,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
     >
       <div className="flex justify-between items-start gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-              isUrgent ? 'bg-rose-500/15 text-rose-500' : 'bg-amber-500/15 text-amber-500'
-            }`}
-          >
-            <Icon name={isUrgent ? 'priority_high' : 'schedule'} className="text-lg" />
-          </div>
+          <Icon
+            name={isUrgent ? 'priority_high' : 'schedule'}
+            className={`text-xl shrink-0 ${isUrgent ? 'text-rose-500' : 'text-amber-500'}`}
+          />
 
           <div className="min-w-0">
             <h4 className="font-semibold text-xs text-light-text dark:text-dark-text truncate leading-tight">

@@ -1234,9 +1234,7 @@ const Rules: React.FC<RulesProps> = ({
         {/* Statistics Indicator & Tabs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-              <Icon name="sliders" className="text-2xl" />
-            </div>
+            <Icon name="sliders" className="text-2xl text-indigo-500" />
             <div>
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Engine Capacity</span>
               <h4 className="text-xl font-bold mt-0.5" id="stat-active-rules">{existingRules.length} Defined Rules</h4>
@@ -1244,9 +1242,7 @@ const Rules: React.FC<RulesProps> = ({
           </Card>
 
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <Icon name="check_circle" className="text-2xl" />
-            </div>
+            <Icon name="check_circle" className="text-2xl text-amber-500" />
             <div>
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Historical Matches</span>
               <h4 className="text-xl font-bold mt-0.5" id="stat-matched-txs">{historicalRuleCalculations.length} Pending Actions</h4>
@@ -1254,9 +1250,7 @@ const Rules: React.FC<RulesProps> = ({
           </Card>
 
           <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center">
-              <Icon name="building" className="text-2xl" />
-            </div>
+            <Icon name="building" className="text-2xl text-teal-500" />
             <div>
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Merchant Priority</span>
               <h4 className="text-xl font-bold mt-0.5 text-teal-600 dark:text-teal-400 font-mono">Registry Active</h4>
@@ -2059,9 +2053,7 @@ const Rules: React.FC<RulesProps> = ({
                 className="bg-amber-500/[0.04] border border-amber-500/20 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                    <Icon name="history" className="text-2xl font-black" />
-                  </div>
+                  <Icon name="history" className="text-2xl text-amber-500 shrink-0" />
                   <div>
                     <h5 className="font-bold text-xs text-amber-800 dark:text-amber-400 tracking-wide">Optimization Rollback Point Available</h5>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -2211,9 +2203,7 @@ const Rules: React.FC<RulesProps> = ({
           <div className="space-y-6">
             <div className="bg-teal-500/10 border border-teal-500/20 text-teal-950 dark:text-teal-300 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-                  <Icon name="storefront" className="text-xl" />
-                </div>
+                <Icon name="storefront" className="text-xl text-teal-600 dark:text-teal-400 shrink-0" />
                 <div>
                   <h5 className="font-bold text-xs tracking-wider text-teal-800 dark:text-teal-400">Merchant Priority Overrides</h5>
                   <p className="text-xs mt-1 leading-relaxed text-gray-500 dark:text-gray-400 max-w-xl">
@@ -3106,9 +3096,7 @@ const Rules: React.FC<RulesProps> = ({
                 {/* Simulation Summary DashCards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
                   <div className="bg-gray-50 dark:bg-white/[0.01] border border-black/5 dark:border-white/5 p-4 rounded-2xl flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gray-500/10 text-gray-500 flex items-center justify-center shrink-0">
-                      <Icon name="receipt" className="text-lg" />
-                    </div>
+                    <Icon name="receipt" className="text-xl text-gray-500 shrink-0" />
                     <div>
                       <span className="text-xs font-semibold text-gray-400 block tracking-wider uppercase">Total Ledger</span>
                       <span className="text-sm font-black text-light-text dark:text-dark-text">{transactions.length} records</span>
@@ -3116,9 +3104,7 @@ const Rules: React.FC<RulesProps> = ({
                   </div>
 
                   <div className="bg-emerald-500/[0.02] border border-emerald-500/10 p-4 rounded-2xl flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                      <Icon name="published_with_changes" className="text-lg" />
-                    </div>
+                    <Icon name="published_with_changes" className="text-xl text-emerald-500 shrink-0" />
                     <div>
                       <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block tracking-wider uppercase font-sans">Proposed Changes</span>
                       <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{historicalRuleCalculations.length} would change</span>
@@ -3126,9 +3112,7 @@ const Rules: React.FC<RulesProps> = ({
                   </div>
 
                   <div className="bg-indigo-500/[0.02] border border-indigo-500/10 p-4 rounded-2xl flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
-                      <Icon name="verified" className="text-lg" />
-                    </div>
+                    <Icon name="verified" className="text-xl text-indigo-500 shrink-0" />
                     <div>
                       <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 block tracking-wider uppercase font-sans">Healthy / Aligned</span>
                       <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{transactions.length - historicalRuleCalculations.length} clean</span>

@@ -285,9 +285,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                         >
                             <div className="space-y-8">
                                 <div className="flex items-center gap-6">
-                                    <div className={`w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center ${section.iconColor} group-hover:scale-110 transition-transform`}>
-                                        <Icon name={section.icon} className="text-3xl" />
-                                    </div>
+                                    <Icon name={section.icon} className={`text-4xl group-hover:scale-110 transition-transform ${section.iconColor}`} />
                                     <div>
                                         <h2 className="text-xl md:text-2xl font-semibold tracking-tight leading-snug text-light-text dark:text-dark-text">{section.title}</h2>
                                         <div className="h-1 w-12 bg-primary-500 mt-2 rounded-full transform origin-left group-hover:scale-x-150 transition-transform"></div>

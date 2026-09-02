@@ -116,9 +116,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
             <div className="p-6 pt-8 flex flex-col items-center text-center gap-4">
               {/* Icon */}
-              <div className={`w-14 h-14 rounded-2xl ${config.iconBg} border border-black/5 dark:border-white/5 flex items-center justify-center shadow-xs`}>
-                <Icon name={displayIcon} className={`text-2xl ${config.iconColor}`} />
-              </div>
+              <Icon name={displayIcon} className={`text-4xl ${config.iconColor}`} />
 
               {/* Title & Message */}
               <div className="space-y-2">
