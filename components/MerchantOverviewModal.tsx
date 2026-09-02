@@ -245,7 +245,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
         </div>
 
         {/* Scrollable Container */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pb-8 safe-bottom custom-scrollbar">
           
           {/* 1. TOP HERO MULTI-LOCATION MAP VIEWPORT */}
           <div className="relative w-full h-[300px] sm:h-[330px] bg-[#12141a] overflow-hidden shrink-0">
