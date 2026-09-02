@@ -413,7 +413,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
            {/* External Data */}
-           <div className="relative group">
+           <div className="relative group rounded-3xl overflow-hidden">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
               <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
                   <div className="flex items-center gap-4 mb-6">
@@ -442,7 +442,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
            </div>
 
            {/* Backup & Restore */}
-           <div className="relative group">
+           <div className="relative group rounded-3xl overflow-hidden">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-3xl blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
               <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
                   <div className="flex items-center gap-4 mb-6">

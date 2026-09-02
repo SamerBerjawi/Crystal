@@ -86,7 +86,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       />
 
       {/* User Profile Banner Card */}
-      <div className="relative group">
+      <div className="relative group rounded-3xl overflow-hidden">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-3xl blur-sm opacity-10 group-hover:opacity-20 transition duration-500"></div>
         <div className="relative bg-white dark:bg-dark-card rounded-2xl p-6 sm:p-7 shadow-sm border border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left min-w-0">

@@ -961,7 +961,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
         </div>
 
         {/* Scrollable Container */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pb-8 safe-bottom custom-scrollbar">
           {/* 1. TOP HERO DYNAMIC BANNER (RELEVANT PER ACCOUNT TYPE) */}
           <div
             className={`relative w-full h-[320px] sm:h-[345px] bg-gradient-to-b ${themeStyles.gradient} overflow-hidden shrink-0 flex flex-col justify-between`}
