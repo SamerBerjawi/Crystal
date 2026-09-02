@@ -73,7 +73,7 @@ router.post('/register', async (req, res) => {
             return res.status(409).json({ message: 'Email already in use.' });
         }
 
-        const hashedPassword = bcrypt.hashSync(password, PASSWORD_HASH_ROUNDS);
+        const hashedPassword = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
         const profilePic = `https://i.pravatar.cc/150?u=${email}`;
 
         const userSql = `INSERT INTO users (first_name, last_name, email, password, profile_picture_url, last_login) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, email`;
@@ -112,7 +112,8 @@ router.post('/login', loginRateLimiter, async (req, res) => {
         const userResult = await db.query(userSql, [email.toLowerCase()]);
         const user = userResult.rows[0];
 
-        if (!user || !bcrypt.compareSync(password, user.password)) {
+        const passwordMatches = user ? await bcrypt.compare(password, user.password) : false;
+        if (!user || !passwordMatches) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 

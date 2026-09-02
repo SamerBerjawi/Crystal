@@ -36,28 +36,25 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const body = req.body || {}; // Data is already a JSON object from body-parser
     const allowEmpty = Boolean(body.allowEmpty);
     
-    // Use INSERT ... ON CONFLICT for an upsert operation in PostgreSQL
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const upsertSql = `
-        INSERT INTO financial_data (user_id, data) 
-        VALUES ($1, $2)
-        ON CONFLICT (user_id) 
-        DO UPDATE SET data = EXCLUDED.data;
-    `;
-
+    const client = await db.connect();
     try {
-        const existing = await db.query(selectSql, [userId]);
+        await client.query('BEGIN');
+
+        // Use SELECT ... FOR UPDATE to lock the row and avoid concurrency races
+        const selectSql = `SELECT data FROM financial_data WHERE user_id = $1 FOR UPDATE`;
+        const existing = await client.query(selectSql, [userId]);
         const currentData = existing.rows?.[0]?.data || {};
         const isPartial = Boolean(body.partial);
         const incomingData = isPartial ? (body.data || {}) : { ...body };
         delete incomingData.partial;
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;
-
         delete incomingData.allowEmpty;
+
         const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
         const currentUpdatedAt = currentData.lastUpdatedAt as string | undefined;
         if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {
+            await client.query('ROLLBACK');
             return res.status(409).json({
                 message: 'Data conflict: your local copy is stale. Please refresh and try again.',
                 currentUpdatedAt,
@@ -101,6 +98,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         };
 
         if (!isPartial && !allowEmpty && hasMaterialData(currentData) && !hasMaterialData(incomingData)) {
+            await client.query('ROLLBACK');
             return res.status(409).json({
                 message: 'Refusing to overwrite existing data with an empty payload.',
                 currentUpdatedAt,
@@ -109,13 +107,23 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 
         const nextUpdatedAt = (body.lastUpdatedAt as string | undefined) || new Date().toISOString();
         const mergedData = { ...currentData, ...incomingData, lastUpdatedAt: nextUpdatedAt };
-        await db.query(upsertSql, [userId, mergedData]);
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
+        
+        const upsertSql = `
+            INSERT INTO financial_data (user_id, data) 
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) 
+            DO UPDATE SET data = EXCLUDED.data;
+        `;
+        await client.query(upsertSql, [userId, mergedData]);
+        await client.query('COMMIT');
+        
         res.json({ message: 'Data saved successfully', lastUpdatedAt: nextUpdatedAt });
     } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
         console.error(err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Failed to save data' });
+    } finally {
+        client.release();
     }
 });
 

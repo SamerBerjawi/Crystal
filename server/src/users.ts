@@ -59,12 +59,12 @@ router.post('/me/change-password', authenticateToken, passwordChangeRateLimiter,
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const passwordIsValid = bcrypt.compareSync(currentPassword, user.password);
+        const passwordIsValid = await bcrypt.compare(currentPassword, user.password);
         if (!passwordIsValid) {
             return res.status(401).json({ message: 'Incorrect current password' });
         }
 
-        const hashedNewPassword = bcrypt.hashSync(newPassword, PASSWORD_HASH_ROUNDS);
+        const hashedNewPassword = await bcrypt.hash(newPassword, PASSWORD_HASH_ROUNDS);
         const updateSql = `UPDATE users SET password = $1 WHERE id = $2`;
         await db.query(updateSql, [hashedNewPassword, userId]);
         await db.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);

@@ -58,3 +58,30 @@ export const createRateLimiter = ({
         return next();
     };
 };
+
+export const sweepExpiredEntries = (now = Date.now()) => {
+    let sweptCount = 0;
+    for (const [namespace, store] of stores.entries()) {
+        for (const [key, entry] of store.entries()) {
+            const isBlocked = Boolean(entry.blockedUntil && entry.blockedUntil > now);
+            const isWindowActive = entry.resetAt > now;
+            if (!isBlocked && !isWindowActive) {
+                store.delete(key);
+                sweptCount++;
+            }
+        }
+        if (store.size === 0) {
+            stores.delete(namespace);
+        }
+    }
+    return sweptCount;
+};
+
+// Periodic sweep every 60 seconds to prevent unbounded memory growth
+const sweepInterval = setInterval(() => {
+    sweepExpiredEntries();
+}, 60000);
+
+if (sweepInterval.unref) {
+    sweepInterval.unref();
+}

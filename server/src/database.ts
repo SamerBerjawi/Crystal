@@ -6,6 +6,10 @@ export const db = new Pool({
     user: process.env.DATABASE_USER,
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
+    max: parseInt(process.env.DATABASE_POOL_MAX || '20', 10),
+    idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
+    connectionTimeoutMillis: parseInt(process.env.DATABASE_CONN_TIMEOUT_MS || '5000', 10),
+    statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT_MS || '10000', 10),
 });
 
 export const initializeDatabase = async () => {

@@ -807,33 +807,6 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty]);
 
-  const handleEnterDemoMode = () => {
-    loadAllFinancialData(null, { useDemoDefaults: true });
-    setDemoUser(createDemoUser());
-    setIsDemoMode(true);
-  };
-
-  useEffect(() => {
-    const authAndLoad = async () => {
-      const data = await checkAuthStatus();
-      if (data) { loadAllFinancialData(data, { skipNextSave: true }); }
-      else { setIsDataLoaded(true); }
-    };
-    if (!isDemoMode) { authAndLoad(); }
-  }, [isDemoMode]);
-
-  useEffect(() => {
-    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
-      const timer = setTimeout(() => { setIsOnboardingOpen(true); }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding]);
-
-  const handleOnboardingFinish = () => {
-    setHasCompletedOnboarding(true);
-    setIsOnboardingOpen(false);
-  };
-
   const handleSetUser = useCallback((updates: Partial<User>) => {
     if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); }
     else { setUser(updates); }
@@ -854,33 +827,11 @@ const App: React.FC = () => {
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
 
-  useEffect(() => { latestDataRef.current = dataToSave; }, [dataToSave]);
-
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('accounts'); }, [accounts, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('transactions'); }, [transactions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('investmentTransactions'); }, [investmentTransactions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('recurringTransactions'); }, [recurringTransactions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('recurringTransactionOverrides'); }, [recurringTransactionOverrides, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('loanPaymentOverrides'); }, [loanPaymentOverrides, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('financialGoals'); }, [financialGoals, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('budgets'); }, [budgets, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tasks'); }, [tasks, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('warrants'); }, [warrants, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('memberships'); }, [memberships, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('manualWarrantPrices'); }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('priceHistory'); }, [priceHistory, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('importExportHistory'); }, [importExportHistory, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('incomeCategories'); }, [incomeCategories, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('expenseCategories'); }, [expenseCategories, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('preferences'); }, [preferences, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('billsAndPayments'); }, [billsAndPayments, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('accountOrder'); }, [accountOrder, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('taskOrder'); }, [taskOrder, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tags'); }, [tags, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('invoices'); }, [invoices, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
+  const isDevEnvironment = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    Boolean((import.meta as any)?.env?.DEV)
+  );
 
   const postData = useCallback(
     async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
@@ -921,6 +872,94 @@ const App: React.FC = () => {
       return succeeded;
     }, [postData]
   );
+
+  useEffect(() => {
+    latestDataRef.current = dataToSave;
+    if (isDevEnvironment && hasMaterialData(dataToSave)) {
+      safeLocalStorage.setItem('crystal_dev_financial_data_cache', JSON.stringify(dataToSave));
+    }
+  }, [dataToSave, isDevEnvironment]);
+
+  const handleEnterDemoMode = () => {
+    loadAllFinancialData(null, { useDemoDefaults: true });
+    setDemoUser(createDemoUser());
+    setIsDemoMode(true);
+  };
+
+  useEffect(() => {
+    const authAndLoad = async () => {
+      const data = await checkAuthStatus();
+      if (data && hasMaterialData(data)) {
+        if (isDevEnvironment) {
+          safeLocalStorage.setItem('crystal_dev_financial_data_cache', JSON.stringify(data));
+        }
+        loadAllFinancialData(data, { skipNextSave: true });
+      } else {
+        if (isDevEnvironment) {
+          try {
+            const cached = safeLocalStorage.getItem('crystal_dev_financial_data_cache');
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (hasMaterialData(parsed)) {
+                console.info('[Dev Cache] Restoring financial data from local browser cache...');
+                loadAllFinancialData(parsed);
+                if (data !== null) {
+                  saveData(parsed, { suppressErrors: true }).catch(() => {});
+                }
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn('[Dev Cache] Failed to load cached dev data', e);
+          }
+        }
+        if (data) {
+          loadAllFinancialData(data, { skipNextSave: true });
+        } else {
+          setIsDataLoaded(true);
+        }
+      }
+    };
+    if (!isDemoMode) { authAndLoad(); }
+  }, [isDemoMode, isDevEnvironment, loadAllFinancialData, saveData]);
+
+  useEffect(() => {
+    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
+      const timer = setTimeout(() => { setIsOnboardingOpen(true); }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding]);
+
+  const handleOnboardingFinish = () => {
+    setHasCompletedOnboarding(true);
+    setIsOnboardingOpen(false);
+  };
+
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('accounts'); }, [accounts, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('transactions'); }, [transactions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('investmentTransactions'); }, [investmentTransactions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('recurringTransactions'); }, [recurringTransactions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('recurringTransactionOverrides'); }, [recurringTransactionOverrides, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('loanPaymentOverrides'); }, [loanPaymentOverrides, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('financialGoals'); }, [financialGoals, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('budgets'); }, [budgets, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tasks'); }, [tasks, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('warrants'); }, [warrants, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('memberships'); }, [memberships, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('manualWarrantPrices'); }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('priceHistory'); }, [priceHistory, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('importExportHistory'); }, [importExportHistory, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('incomeCategories'); }, [incomeCategories, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('expenseCategories'); }, [expenseCategories, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('preferences'); }, [preferences, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('billsAndPayments'); }, [billsAndPayments, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('accountOrder'); }, [accountOrder, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('taskOrder'); }, [taskOrder, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tags'); }, [tags, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('invoices'); }, [invoices, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
+  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   const saveDataWithRetry = useCallback(
     async (data: FinancialData, options?: { attempts?: number }): Promise<boolean> => {
@@ -995,11 +1034,34 @@ const App: React.FC = () => {
     if (dirtySlicesRef.current.size === 0) return;
     const persistDirtySlices = async () => {
       const currentData = latestDataRef.current;
+      const dirtyKeys = Array.from(dirtySlicesRef.current);
+      if (dirtyKeys.length === 0) return;
+
       const payloadSignature = JSON.stringify(currentData);
       if (payloadSignature === lastSavedSignatureRef.current) { dirtySlicesRef.current.clear(); return; }
-      if (!allowEmptySaveRef.current && !hasMaterialData(currentData)) { dirtySlicesRef.current.clear(); lastSavedSignatureRef.current = payloadSignature; return; }
+
       const allowEmpty = allowEmptySaveRef.current;
-      const succeeded = await saveData(currentData, { allowEmpty });
+      if (!allowEmpty && !hasMaterialData(currentData)) {
+        dirtySlicesRef.current.clear();
+        lastSavedSignatureRef.current = payloadSignature;
+        return;
+      }
+
+      // Build partial payload with only modified slices
+      const partialPayload: Partial<FinancialData> = {};
+      for (const key of dirtyKeys) {
+        if (key in currentData) {
+          (partialPayload as any)[key] = (currentData as any)[key];
+        }
+      }
+
+      let succeeded = false;
+      if (allowEmpty || dirtyKeys.length >= Object.keys(currentData).length) {
+        succeeded = await saveData(currentData, { allowEmpty });
+      } else {
+        succeeded = await savePartialData(partialPayload);
+      }
+
       if (succeeded) {
         dirtySlicesRef.current.clear();
         lastSavedSignatureRef.current = payloadSignature;
@@ -1007,7 +1069,7 @@ const App: React.FC = () => {
       }
     };
     persistDirtySlices();
-  }, [debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData, savePartialData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') return;
