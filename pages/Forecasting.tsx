@@ -34,6 +34,9 @@ import { useCategoryContext, useGoalsContext, useScheduleContext } from '../cont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import SegmentedControl from '../components/ui/SegmentedControl';
 import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
@@ -62,26 +65,8 @@ const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
 };
 
-const MetricCard: React.FC<{ title: string; value: string; subValue?: string; icon: string; colorClass: string; trend?: 'up' | 'down' | 'neutral' }> = ({ title, value, subValue, icon, colorClass, trend }) => (
-    <div className="glass-tile p-4 sm:p-5 rounded-2xl shadow-card hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full relative overflow-hidden group select-none cursor-pointer">
-        <div className="flex justify-between items-center mb-2.5 relative z-10">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate tracking-tight">{title}</span>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${colorClass} bg-slate-900/[0.04] dark:bg-white/[0.06] border border-slate-900/[0.08] dark:border-white/10 group-hover:scale-105 transition-transform duration-200`}>
-                <Icon name={icon} className="text-base" />
-            </div>
-        </div>
-        <div className="relative z-10">
-            <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">{value}</p>
-            {subValue && (
-                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-white/5">
-                     {trend === 'up' && <Icon name="trending_up" className="text-xs text-emerald-500 font-bold" />}
-                     {trend === 'down' && <Icon name="trending_down" className="text-xs text-rose-500 font-bold" />}
-                     <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{subValue}</p>
-                </div>
-            )}
-        </div>
-    </div>
-);
+// KPI stat cards: use the shared HeroMetricCard from '../components/ui/HeroMetricCard'
+
 
 const Forecasting: React.FC = () => {
   const { activeGoalIds, setActiveGoalIds } = useInsightsView();
@@ -1025,6 +1010,7 @@ const Forecasting: React.FC = () => {
             ) : (
                 <div className="space-y-8 pb-12 animate-fade-in-up">
             <PageHeader
+                accentColor="purple"
                 markerIcon="PresentationChart01"
                 markerLabel="Forward View"
                 title="Financial Forecast"
@@ -1032,7 +1018,7 @@ const Forecasting: React.FC = () => {
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
                         <HeaderButton
-                            variant={isPlaygroundOpen ? 'accent' : 'secondary'}
+                            variant={isPlaygroundOpen ? 'primary' : 'secondary'}
                             icon="sliders"
                             onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)}
                         >
@@ -1043,13 +1029,12 @@ const Forecasting: React.FC = () => {
                             <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                         </div>
 
-                        <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl h-9 items-center overflow-x-auto no-scrollbar">
-                            {durationOptions.map(opt => (
-                                <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive} !px-2.5 text-xs`}>
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            mode="tabs"
+                            items={durationOptions.map(opt => ({ id: opt.value, label: opt.label }))}
+                            activeTab={forecastDuration}
+                            onTabChange={(id) => setForecastDuration(id as ForecastDuration)}
+                        />
 
                         <HeaderButton
                             variant="primary"
@@ -1130,133 +1115,48 @@ const Forecasting: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            {/* --- Bento Grid Hero --- */}
-            <BentoGrid className="grid-cols-1 md:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4">
-                {/* Main Forecast Card */}
-                <BentoCard 
-                    className="md:col-span-2 relative overflow-hidden flex flex-col justify-between min-h-[220px]"
-                    background={
-                        <div className="absolute top-0 right-0 w-[40%] h-full bg-primary-500/5 dark:bg-primary-500/10 blur-[80px] rounded-full pointer-events-none -z-1" />
-                    }
-                >
-                    <div className="relative z-10 flex flex-col justify-between h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-500">
-                                    <Icon name="line_chart_up" className="text-lg" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Wealth Projection</p>
-                                    <p className="text-xs font-medium text-light-text-secondary/60">{forecastDuration} horizon</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 pt-1">
-                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                    <Icon name="trending_up" className="text-xs" />
-                                    {((endBalance / startBalance - 1) * 100).toFixed(1)}% Growth
-                                </div>
-                                <div className="h-3 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
-                                <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary privacy-blur">
-                                    {formatCurrency(endBalance - startBalance, 'EUR', { showPlusSign: true })} 
-                                    <span className="text-xs ml-1 opacity-50">Delta</span>
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                             <div className="space-y-0">
-                                <h2 className="text-4xl font-bold tracking-tighter privacy-blur leading-none">
-                                    {formatCurrency(endBalance, 'EUR')}
-                                </h2>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary ml-1 opacity-60">Estimated Liquid Value</p>
-                            </div>
-                        </div>
-                    </div>
-                </BentoCard>
-
-                {/* Net Change Card */}
-                <BentoCard className="!col-span-1 flex flex-col justify-between min-h-[160px] sm:min-h-[180px]">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-0.5">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Portfolio Shift</p>
-                            <h2 className={`text-4xl font-bold tracking-tight privacy-blur ${netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, 'EUR')}
-                            </h2>
-                        </div>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${netChange >= 0 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
-                            <Icon name={netChange >= 0 ? 'trending_up' : 'trending_down'} className="text-lg" />
-                        </div>
-                    </div>
-                    <div className="space-y-3 mt-4">
-                        <div className="flex items-center gap-2">
-                             <div className="flex -space-x-1.5">
-                                {selectedAccounts.slice(0, 3).map((acc, i) => (
-                                    <div key={acc.id} className="w-5 h-5 rounded-full border border-white dark:border-dark-card bg-gray-100 dark:bg-white/10 flex items-center justify-center text-xs font-bold" style={{ zIndex: 10 - i }}>
-                                        {acc.name.charAt(0)}
-                                    </div>
-                                ))}
-                             </div>
-                             <span className="text-xs font-medium text-light-text-secondary opacity-70">
-                                {selectedAccounts.length} Account{selectedAccounts.length !== 1 ? 's' : ''}
-                             </span>
-                        </div>
-                        <div className="pt-2.5 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
-                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">Term: {forecastDuration}</p>
-                            <span className="text-xs font-semibold text-emerald-500">Active</span>
-                        </div>
-                    </div>
-                </BentoCard>
-
-                {/* Progress Mini Card */}
-                <BentoCard className="!col-span-1 flex flex-col justify-between min-h-[160px] sm:min-h-[180px]">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-0.5">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Global Performance</p>
-                            <h2 className="text-3xl font-bold tracking-tight text-primary-500">
-                                {goalProgress.toFixed(0)}%
-                            </h2>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/10 text-primary-500 border border-primary-500/20">
-                            <Icon name="pie_chart" className="text-lg" />
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-2 mt-4">
-                        {/* Savings Progress */}
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-xs font-medium">
-                                <span className="text-primary-500">Savings</span>
-                                <span className="text-light-text dark:text-dark-text">{savingsProgress.toFixed(0)}%</span>
-                            </div>
-                            <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary-500 rounded-full" style={{ width: `${savingsProgress}%` }} />
-                            </div>
-                        </div>
-
-                        {/* Income Progress */}
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-xs font-medium">
-                                <span className="text-emerald-500">Income</span>
-                                <span className="text-light-text dark:text-dark-text">{incomeProgress.toFixed(0)}%</span>
-                            </div>
-                            <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${incomeProgress}%` }} />
-                            </div>
-                        </div>
-
-                        {/* Expense Progress */}
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center text-xs font-medium">
-                                <span className="text-rose-500">Expenses</span>
-                                <span className="text-light-text dark:text-dark-text">{expenseProgress.toFixed(0)}%</span>
-                            </div>
-                            <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${expenseProgress}%` }} />
-                            </div>
-                        </div>
-                    </div>
-                </BentoCard>
-            </BentoGrid>
+            {/* --- Metric Card Row Hero --- */}
+            <MetricCardRow columns={4}>
+                <HeroMetricCard
+                    variant="primary"
+                    label="Wealth Projection"
+                    value={formatCurrency(endBalance, 'EUR')}
+                    subtext={`Estimated Liquid Value (${forecastDuration} horizon)`}
+                    icon="line_chart_up"
+                    iconColor="purple"
+                    trend={endBalance >= startBalance ? 'up' : 'down'}
+                    badgeText={`${((endBalance / startBalance - 1) * 100).toFixed(1)}% Growth`}
+                    badgeVariant="optimal"
+                    privacyBlur
+                />
+                <HeroMetricCard
+                    variant="secondary"
+                    label="Portfolio Shift"
+                    value={`${netChange >= 0 ? '+' : ''}${formatCurrency(netChange, 'EUR')}`}
+                    subtext={`${selectedAccounts.length} Account${selectedAccounts.length !== 1 ? 's' : ''} Active`}
+                    icon={netChange >= 0 ? 'trending_up' : 'trending_down'}
+                    iconColor={netChange >= 0 ? 'emerald' : 'rose'}
+                    trend={netChange >= 0 ? 'up' : 'down'}
+                    privacyBlur
+                />
+                <HeroMetricCard
+                    variant="secondary"
+                    label="Global Performance"
+                    value={`${goalProgress.toFixed(0)}%`}
+                    subtext={`Savings ${savingsProgress.toFixed(0)}% • Exp ${expenseProgress.toFixed(0)}%`}
+                    icon="pie_chart"
+                    iconColor="purple"
+                />
+                <HeroMetricCard
+                    variant="secondary"
+                    label="Forecast Shift"
+                    value={formatCurrency(endBalance - startBalance, 'EUR', { showPlusSign: true })}
+                    subtext={`Period delta across ${forecastDuration}`}
+                    icon="coins_stacked"
+                    iconColor="amber"
+                    privacyBlur
+                />
+            </MetricCardRow>
 
             
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />

@@ -8,6 +8,7 @@ import BudgetModal from '../components/BudgetModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import SegmentedControl from '../components/ui/SegmentedControl';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { useConfirm } from '../components/ConfirmationModal';
@@ -282,41 +283,35 @@ const Budgeting: React.FC<BudgetingProps> = ({
             }
           />
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 glass-subwell p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card relative z-10">
-           <div className="flex items-center gap-2 glass-tile p-1 rounded-xl w-full md:w-auto justify-between md:justify-start shadow-xs">
-                <button onClick={() => handleMonthChange(-1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
-                    <Icon name="chevron_left" className="text-lg leading-none group-hover:-translate-x-1 transition-transform" />
-                </button>
-                <div className="flex flex-col items-center px-6 min-w-[140px]">
-                    <span className="text-xs font-semibold uppercase tracking-wider opacity-60 leading-none mb-1">Active cycle</span>
-                    <span className="text-xs font-bold leading-none">{monthName}</span>
-                </div>
-                <button onClick={() => handleMonthChange(1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
-                    <Icon name="chevron_right" className="text-lg leading-none group-hover:translate-x-1 transition-transform" />
-                </button>
-           </div>
-           
-           <div className="flex items-center gap-2 w-full md:w-auto group">
-                <div className="flex rounded-xl shadow-xs glass-tile overflow-hidden">
-                    <button
-                        onClick={handleQuickCreateDefault}
-                        className="flex items-center gap-3 px-6 py-3 hover:bg-primary-500/10 transition-colors group/btn"
-                        title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
-                    >
-                        <Icon name="zap" className="text-lg text-primary-500 group-hover/btn:scale-125 transition-transform" />
-                        <span className="text-xs font-semibold tracking-wide whitespace-nowrap">Quick budget</span>
-                    </button>
-                    <div className="w-[1px] bg-slate-200/60 dark:bg-white/10"></div>
-                    <button
-                        onClick={() => setQuickBudgetModalOpen(true)}
-                        className="px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                        title="More Quick Create Options"
-                    >
-                        <Icon name="expand_more" className="text-lg leading-none" />
-                    </button>
-                </div>
-           </div>
-      </div>
+      <SegmentedControl
+        mode="stepper"
+        stepperLabel="Active cycle"
+        stepperValue={monthName}
+        onPrev={() => handleMonthChange(-1)}
+        onNext={() => handleMonthChange(1)}
+        rightSlot={
+          <div className="flex rounded-xl shadow-xs glass-tile overflow-hidden min-h-[44px]">
+            <button
+              type="button"
+              onClick={handleQuickCreateDefault}
+              className="flex items-center gap-2.5 px-4 py-2 hover:bg-primary-500/10 transition-colors group/btn cursor-pointer"
+              title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
+            >
+              <Icon name="zap" className="text-base text-primary-500 group-hover/btn:scale-125 transition-transform" />
+              <span className="text-xs font-semibold tracking-wide whitespace-nowrap">Quick budget</span>
+            </button>
+            <div className="w-[1px] bg-slate-200/60 dark:bg-white/10" />
+            <button
+              type="button"
+              onClick={() => setQuickBudgetModalOpen(true)}
+              className="px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer flex items-center justify-center"
+              title="More Quick Create Options"
+            >
+              <Icon name="expand_more" className="text-base leading-none" />
+            </button>
+          </div>
+        }
+      />
 
       <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 relative z-10">
           <BentoCard 

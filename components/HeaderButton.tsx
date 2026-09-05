@@ -45,11 +45,11 @@ const variantStyles: Record<HeaderButtonVariant, string> = {
 };
 
 const sizeStyles: Record<HeaderButtonSize, string> = {
-  default: 'h-9 px-3.5 text-xs rounded-xl gap-2',
-  sm: 'h-8 px-2.5 text-xs rounded-lg gap-1.5',
-  lg: 'h-10 px-4 text-xs rounded-xl gap-2',
-  icon: 'h-9 w-9 p-0 rounded-xl justify-center text-xs',
-  'icon-sm': 'h-8 w-8 p-0 rounded-lg justify-center text-xs',
+  default: 'min-h-[40px] sm:min-h-[44px] h-10 sm:h-11 px-3.5 sm:px-4 text-xs font-semibold rounded-xl gap-2',
+  sm: 'min-h-[36px] h-9 px-3 text-xs font-semibold rounded-lg gap-1.5',
+  lg: 'min-h-[44px] h-12 px-5 text-sm font-semibold rounded-xl gap-2.5',
+  icon: 'min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] h-10 w-10 sm:h-11 sm:w-11 p-0 rounded-xl justify-center text-xs',
+  'icon-sm': 'min-h-[36px] min-w-[36px] h-9 w-9 p-0 rounded-lg justify-center text-xs',
 };
 
 const HeaderButton = React.forwardRef<HTMLButtonElement, HeaderButtonProps>(

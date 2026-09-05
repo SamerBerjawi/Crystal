@@ -11,6 +11,7 @@ import PredictionModal from '../components/PredictionModal';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
+import SegmentedControl from '../components/ui/SegmentedControl';
 
 const CACHE_KEYS = {
   AI_CHALLENGES: 'crystal_ai_challenges'
@@ -964,26 +965,15 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       />
 
       {/* Navigation Tabs with Golden Accent */}
-      <div className="sticky top-0 z-30 py-4 -mx-4 px-4 md:mx-0 md:px-0 bg-transparent overflow-x-auto no-scrollbar">
-          <div className="inline-flex glass-subwell p-1.5 rounded-2xl min-w-full md:min-w-0 shadow-xs border border-amber-500/20">
-              {navItems.map(item => {
-                  const isActive = activeSection === item.id;
-                  return (
-                      <button
-                          key={item.id}
-                          onClick={() => setActiveSection(item.id as ChallengeSection)}
-                          className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 whitespace-nowrap flex-1 justify-center cursor-pointer
-                              ${isActive 
-                                  ? 'glass-tile text-amber-600 dark:text-amber-300 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] scale-[1.02]' 
-                                  : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-amber-600 dark:hover:text-amber-400 hover:glass-tile opacity-75'
-                              }`}
-                      >
-                          <Icon name={item.icon} className={`text-xl transition-all duration-300 ${isActive ? 'text-amber-500 dark:text-yellow-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)] scale-110' : ''}`} />
-                          {item.label}
-                      </button>
-                  );
-              })}
-          </div>
+      <div className="sticky top-0 z-30 py-4 -mx-4 px-4 md:mx-0 md:px-0 bg-transparent">
+        <SegmentedControl
+          items={navItems}
+          activeId={activeSection}
+          onChange={(id) => setActiveSection(id as ChallengeSection)}
+          accentColor="amber"
+          scrollable
+          className="border-amber-500/20"
+        />
       </div>
 
       {/* Dynamic Content */}

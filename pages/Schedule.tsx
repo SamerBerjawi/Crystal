@@ -17,6 +17,7 @@ import { useCategoryContext, useScheduleContext, useTagsContext, useGoalsContext
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
 import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CalendarView from '../components/CalendarView';
@@ -989,6 +990,7 @@ const SchedulePage: React.FC = () => {
             ) : (
                 <div className="space-y-6 pb-12 animate-fade-in-up">
                 <PageHeader 
+                    accentColor="rose"
                     markerIcon="clock"
                     markerLabel="Future Outflows"
                     title="Recurring & Bilateral Obligations"
@@ -1126,132 +1128,48 @@ const SchedulePage: React.FC = () => {
 
                         {/* RIGHT HALF (lg:col-span-6): 2x2 GRID FOR 4 KPI CARDS */}
                         <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-                            {/* KPI 1: 30-Day Outflow */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                                            <Icon name="credit_card" className="text-sm" />
-                                        </div>
-                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">30-Day Outflow</span>
-                                    </div>
-                                    <span className="text-4xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
-                                        {summaryMetrics.expCount} Ops
-                                    </span>
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">
-                                        {formatCurrency(summaryMetrics.expense, 'EUR')}
-                                    </h2>
-                                </div>
-                                <div className="pt-2 border-t border-rose-500/10 dark:border-rose-500/15 flex items-center justify-between text-2xs min-w-0">
-                                    {majorOutflow ? (
-                                        <div className="flex items-center gap-1.5 min-w-0 truncate text-rose-600 dark:text-rose-400">
-                                            <Icon name="upload" className="text-xs shrink-0" />
-                                            <span className="truncate font-semibold text-3xs">{majorOutflow.description}</span>
-                                            <span className="text-3xs font-black font-mono shrink-0">(-{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-3xs text-light-text-secondary dark:text-dark-text-secondary/60">No major outflow scheduled</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* KPI 2: Expected Income */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                            <Icon name="download" className="text-sm" />
-                                        </div>
-                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Expected Income</span>
-                                    </div>
-                                    <span className="text-4xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                        {summaryMetrics.incCount} Ops
-                                    </span>
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">
-                                        {formatCurrency(summaryMetrics.income, 'EUR')}
-                                    </h2>
-                                </div>
-                                <div className="pt-2 border-t border-emerald-500/10 dark:border-emerald-500/15 flex items-center justify-between text-2xs min-w-0">
-                                    {majorInflow ? (
-                                        <div className="flex items-center gap-1.5 min-w-0 truncate text-emerald-600 dark:text-emerald-400">
-                                            <Icon name="download" className="text-xs shrink-0" />
-                                            <span className="truncate font-semibold text-3xs">{majorInflow.description}</span>
-                                            <span className="text-3xs font-black font-mono shrink-0">(+{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-3xs text-light-text-secondary dark:text-dark-text-secondary/60">No major inflow scheduled</span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* KPI 3: Overdue Obligations */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                            <Icon name="warning" className="text-sm" />
-                                        </div>
-                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Overdue Items</span>
-                                    </div>
-                                    <span className={`text-4xs font-bold px-2 py-0.5 rounded-full ${
-                                        (groupedItems['Overdue']?.length || 0) > 0 
-                                             ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10' 
-                                            : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
-                                    }`}>
-                                        {(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Pending` : 'All Clear'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <h2 className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${(groupedItems['Overdue']?.length || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
-                                        {groupedItems['Overdue']?.length || 0} <span className="text-sm font-semibold font-sans text-light-text-secondary dark:text-dark-text-secondary">Items</span>
-                                    </h2>
-                                </div>
-                                <div className="pt-2 border-t border-amber-500/10 dark:border-amber-500/15 flex items-center justify-between text-2xs min-w-0">
-                                    {(groupedItems['Overdue']?.length || 0) > 0 ? (
-                                        <span className="text-3xs font-bold font-mono text-rose-600 dark:text-rose-400 truncate">
-                                            {formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} unpaid total
-                                        </span>
-                                    ) : (
-                                        <span className="text-3xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                                            All obligations on track
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* KPI 4: Active Rules */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary-500/10 text-primary-500">
-                                            <Icon name="event_repeat" className="text-sm" />
-                                        </div>
-                                        <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Active Rules</span>
-                                    </div>
-                                    <span className="text-4xs font-bold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full">
-                                        {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden
-                                    </span>
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">
-                                        {recurringTransactions.length} <span className="text-sm font-semibold font-sans text-light-text-secondary dark:text-dark-text-secondary">Rules</span>
-                                    </h2>
-                                </div>
-                                <div className="pt-2 border-t border-primary-500/10 dark:border-primary-500/15 flex items-center justify-between text-2xs min-w-0">
-                                    {(() => {
-                                        const net = summaryMetrics.income - summaryMetrics.expense;
-                                        return (
-                                            <span className={`text-3xs font-bold font-mono truncate ${net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                                Net Projected: {net >= 0 ? '+' : ''}{formatCurrency(net, 'EUR')}
-                                            </span>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
+                            <HeroMetricCard
+                                variant="primary"
+                                label="30-Day Outflow"
+                                value={formatCurrency(summaryMetrics.expense, 'EUR')}
+                                subtext={majorOutflow ? `${majorOutflow.description} (-${formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})` : 'No major outflow scheduled'}
+                                icon="credit_card"
+                                iconColor="rose"
+                                badgeText={`${summaryMetrics.expCount} Ops`}
+                                badgeVariant="elevated"
+                                privacyBlur
+                            />
+                            <HeroMetricCard
+                                variant="secondary"
+                                label="Expected Income"
+                                value={formatCurrency(summaryMetrics.income, 'EUR')}
+                                subtext={majorInflow ? `${majorInflow.description} (+${formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})` : 'No major inflow scheduled'}
+                                icon="download"
+                                iconColor="emerald"
+                                badgeText={`${summaryMetrics.incCount} Ops`}
+                                badgeVariant="optimal"
+                                privacyBlur
+                            />
+                            <HeroMetricCard
+                                variant="secondary"
+                                label="Overdue Items"
+                                value={`${groupedItems['Overdue']?.length || 0}`}
+                                subtext={(groupedItems['Overdue']?.length || 0) > 0 ? `${formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} unpaid total` : 'All obligations on track'}
+                                icon="warning"
+                                iconColor={(groupedItems['Overdue']?.length || 0) > 0 ? 'rose' : 'emerald'}
+                                badgeText={(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Pending` : 'All Clear'}
+                                badgeVariant={(groupedItems['Overdue']?.length || 0) > 0 ? 'elevated' : 'optimal'}
+                            />
+                            <HeroMetricCard
+                                variant="secondary"
+                                label="Active Rules"
+                                value={`${recurringTransactions.length}`}
+                                subtext={`Net Projected: ${summaryMetrics.income - summaryMetrics.expense >= 0 ? '+' : ''}${formatCurrency(summaryMetrics.income - summaryMetrics.expense, 'EUR')}`}
+                                icon="event_repeat"
+                                iconColor="primary"
+                                badgeText={`${summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden`}
+                                badgeVariant="normal"
+                            />
                         </div>
                     </div>
 

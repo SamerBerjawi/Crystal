@@ -10,7 +10,8 @@ import PortfolioDistributionChart from '../components/PortfolioDistributionChart
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
-import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
 
 interface WarrantsProps {
   warrants: Warrant[];
@@ -106,6 +107,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
             )}
             
             <PageHeader
+                accentColor="emerald"
                 markerIcon="verified"
                 markerLabel="Equity Extras"
                 title="Warrants"
@@ -126,29 +128,37 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 </p>
             )}
 
-            <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 sm:gap-6">
-                <BentoCard className="!col-span-1 !p-0">
-                    <div className="p-6 flex flex-col justify-between h-full">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</p>
-                        <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text mt-2">{formatCurrency(totalCurrentValue, 'EUR')}</p>
-                    </div>
-                </BentoCard>
-                <BentoCard className="!col-span-1 !p-0">
-                    <div className="p-6 flex flex-col justify-between h-full">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Gain/Loss</p>
-                        <div className="mt-2">
-                            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{formatCurrency(totalGainLoss, 'EUR')}</p>
-                            <p className={`text-xs font-mono font-bold mt-1 ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{totalGainLoss >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(2)}%</p>
-                        </div>
-                    </div>
-                </BentoCard>
-                <BentoCard className="!col-span-1 !p-0">
-                    <div className="p-6 flex flex-col justify-between h-full">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Holdings</p>
-                        <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text mt-2">{holdings.length}</p>
-                    </div>
-                </BentoCard>
-            </BentoGrid>
+            <MetricCardRow columns={3}>
+                <HeroMetricCard 
+                    variant="primary"
+                    label="Portfolio Value"
+                    value={formatCurrency(totalCurrentValue, 'EUR')}
+                    subtext="Total estimated equity value"
+                    icon="wallet"
+                    iconColor="emerald"
+                    privacyBlur
+                />
+                <HeroMetricCard 
+                    variant="secondary"
+                    label="Total Gain/Loss"
+                    value={formatCurrency(totalGainLoss, 'EUR')}
+                    subtext={`${totalGainLoss >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(2)}% on grant basis`}
+                    icon={totalGainLoss >= 0 ? "trending_up" : "trending_down"}
+                    iconColor={totalGainLoss >= 0 ? "emerald" : "rose"}
+                    trend={totalGainLoss >= 0 ? "up" : "down"}
+                    badgeText={`${totalGainLoss >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(1)}%`}
+                    badgeVariant={totalGainLoss >= 0 ? "optimal" : "elevated"}
+                    privacyBlur
+                />
+                <HeroMetricCard 
+                    variant="secondary"
+                    label="Holdings"
+                    value={holdings.length}
+                    subtext={`${warrants.length} grant allocations`}
+                    icon="pie_chart"
+                    iconColor="indigo"
+                />
+            </MetricCardRow>
             
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                 <div className="lg:col-span-2">

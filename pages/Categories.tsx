@@ -9,8 +9,10 @@ import { v4 as uuidv4 } from 'uuid';
 import CategoryItem from '../components/CategoryItem';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
-import StatCard from '../components/StatCard';
-import { BentoGrid } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import FilterBar from '../components/ui/FilterBar';
 import Icon from '../components/ui/Icon';
 
 const generateId = () => `cat-${uuidv4()}`;
@@ -236,6 +238,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
+         accentColor="indigo"
          markerIcon="folder"
          markerLabel="Taxonomy Blueprint"
          title="Categories"
@@ -253,41 +256,53 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
        />
 
       {/* Stats Row */}
-      <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Major Nodes" value={stats.parents} icon="folder" colorClass="text-blue-600 dark:text-blue-400" />
-          <StatCard title="Sub-Nodes" value={stats.subs} icon="folder" colorClass="text-indigo-600 dark:text-indigo-400" />
-          <StatCard title="Total Schema" value={stats.total} icon="folder" colorClass="text-emerald-600 dark:text-emerald-400" />
-          <StatCard title="Search" value={searchTerm ? '1' : '0'} icon="sliders" colorClass="text-amber-600 dark:text-amber-400" />
-      </BentoGrid>
+      <MetricCardRow columns={3}>
+          <HeroMetricCard 
+              variant="primary"
+              label="Total Schema" 
+              value={stats.total} 
+              icon="folder" 
+              iconColor="emerald"
+              subtext="Active category nodes"
+          />
+          <HeroMetricCard 
+              variant="secondary"
+              label="Major Nodes" 
+              value={stats.parents} 
+              icon="folder" 
+              iconColor="blue"
+              subtext="Primary classification groups"
+          />
+          <HeroMetricCard 
+              variant="secondary"
+              label="Sub-Nodes" 
+              value={stats.subs} 
+              icon="folder" 
+              iconColor="indigo"
+              subtext="Nested classification points"
+          />
+      </MetricCardRow>
 
       {/* Controls Section */}
-      <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">
+      <div className="flex flex-col sm:flex-row justify-between gap-6 px-2 items-center">
         {/* Tab Switcher */}
-        <div className="flex glass-subwell p-1.5 rounded-2xl w-full sm:w-auto shadow-xs">
-            <button 
-                onClick={() => setActiveTab('expense')} 
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${activeTab === 'expense' ? 'glass-tile text-primary-500 shadow-card' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
-            >
-                Debit (Expenses)
-            </button>
-            <button 
-                onClick={() => setActiveTab('income')} 
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${activeTab === 'income' ? 'glass-tile text-primary-500 shadow-card' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
-            >
-                Credit (Income)
-            </button>
-        </div>
+        <SegmentedControl
+          items={[
+            { id: 'expense', label: 'Debit (Expenses)', icon: 'arrow_upward' },
+            { id: 'income', label: 'Credit (Income)', icon: 'arrow_downward' },
+          ]}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as 'expense' | 'income')}
+          className="w-full sm:w-auto"
+        />
 
         {/* Search */}
-        <div className="relative flex-grow max-w-md group">
-             <Icon name="Search01" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors pointer-events-none" />
-             <input 
-                type="text" 
-                placeholder="Query taxonomy structure..." 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                className="w-full glass-tile rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium text-light-text dark:text-dark-text placeholder:text-light-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card"
-             />
+        <div className="w-full sm:max-w-md">
+          <FilterBar.Search
+            placeholder="Query taxonomy structure..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
         </div>
       </div>
 

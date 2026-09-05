@@ -22,6 +22,9 @@ import { useDebounce } from '../hooks/useDebounce';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import FilterBar from '../components/ui/FilterBar';
 import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -46,47 +49,7 @@ interface TransactionsProps {
   isSyncingBanks?: boolean;
 }
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
-  return (
-    <div className="group relative glass-tile p-4 sm:p-5 rounded-2xl flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 overflow-hidden h-full shadow-card hover:shadow-md cursor-pointer select-none">
-      <div className="relative z-10 flex flex-col justify-between h-full">
-        <div>
-          {/* ROW 1: Icon & Label */}
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-900/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-slate-900/[0.08] dark:border-white/10 transition-transform group-hover:scale-105">
-              <Icon name={icon} className="text-base" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
-              Activity
-            </span>
-          </div>
 
-          {/* ROW 2: Metric Title */}
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate tracking-tight">
-            {label}
-          </h3>
-
-          {/* ROW 3: Big Metric Value */}
-          <div className="mt-1">
-            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${colorClass}`}>{value}</p>
-          </div>
-        </div>
-
-        {/* ROW 4: Footer */}
-        {subtitle && (
-          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-white/5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 truncate">
-            {subtitle}
-          </div>
-        )}
-      </div>
-
-      {/* Background Icon Accent */}
-      <div className="absolute -right-4 -bottom-4 text-current opacity-[0.02] dark:opacity-[0.04] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
-        <Icon name={icon} className="text-8xl" />
-      </div>
-    </div>
-  );
-});
 
 // Column Header Filter Popover
 export type TableRenderItem =
@@ -252,6 +215,30 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
   const [locationSearch, setLocationSearch] = useState('');
   const [openFilterCol, setOpenFilterCol] = useState<'description' | 'account' | 'category' | 'location' | 'tags' | 'amount' | null>(null);
   const handleCloseFilterCol = useCallback(() => setOpenFilterCol(null), []);
+
+  const activeFilterCount = useMemo(() => {
+    return (
+      (selectedAccountIds.length > 0 ? 1 : 0) +
+      (selectedCategoryNames.length > 0 ? 1 : 0) +
+      (selectedTagIds.length > 0 ? 1 : 0) +
+      (selectedLocations.length > 0 ? 1 : 0) +
+      (typeFilter !== 'all' ? 1 : 0) +
+      (startDate || endDate ? 1 : 0) +
+      (minAmount || maxAmount ? 1 : 0) +
+      (merchantFilter ? 1 : 0)
+    );
+  }, [
+    selectedAccountIds.length,
+    selectedCategoryNames.length,
+    selectedTagIds.length,
+    selectedLocations.length,
+    typeFilter,
+    startDate,
+    endDate,
+    minAmount,
+    maxAmount,
+    merchantFilter,
+  ]);
 
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -1918,147 +1905,187 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           />
 
           {/* Metrics Summary */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            <div
-              className="group relative bg-primary-600 dark:bg-primary-700 p-4 sm:p-5 rounded-2xl shadow-lg shadow-primary-500/20 border-none text-white overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-0.5"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
-              {/* Texture Overlay */}
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
-                    <Icon name="receipt" className="text-base sm:text-lg" />
-                  </div>
-                  <p className="text-xs font-semibold text-white/80">Total transactions</p>
-                </div>
-
-                <div className="flex flex-col">
-                  <p className="text-xl sm:text-2xl font-black tracking-tight">{filteredTransactions.length}</p>
-                  <p className="text-xs text-white/70 mt-0.5 sm:mt-1 font-semibold">in selected period</p>
-                </div>
-              </div>
-
-              <div className="absolute -right-4 -bottom-4 text-white opacity-10 transition-transform group-hover:scale-110 duration-500 hidden sm:block">
-                <Icon name="receipt" className="text-8xl" />
-              </div>
-            </div>
-            <MetricCard
+          <MetricCardRow columns={4}>
+            <HeroMetricCard
+              variant="primary"
+              label="Total Transactions"
+              value={filteredTransactions.length}
+              icon="receipt"
+              iconColor="primary"
+              subtext="in selected period"
+            />
+            <HeroMetricCard
               label="Total Income"
               value={formatCurrency(totalIncome, 'EUR')}
-              colorClass="text-green-600 dark:text-green-400"
+              iconColor="emerald"
               icon="arrow_downward"
-              subtitle="Cash inflows"
-              glowColor="rgba(16, 185, 129, 0.15)"
+              subtext="Cash inflows"
             />
-            <MetricCard
+            <HeroMetricCard
               label="Total Expenses"
               value={formatCurrency(totalExpense, 'EUR')}
-              colorClass="text-red-600 dark:text-red-400"
+              iconColor="rose"
               icon="arrow_upward"
-              subtitle="Cash outflows"
-              glowColor="rgba(244, 63, 94, 0.15)"
+              subtext="Cash outflows"
             />
-            <MetricCard
+            <HeroMetricCard
               label="Net Cash Flow"
               value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })}
-              colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}
+              iconColor={netFlow >= 0 ? 'emerald' : 'rose'}
               icon="wallet"
-              subtitle="Net difference"
-              glowColor={netFlow >= 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)"}
+              subtext="Net difference"
+              trend={netFlow >= 0 ? 'up' : 'down'}
             />
-          </div>
+          </MetricCardRow>
 
           {/* Filter Toolbar */}
-          <div className={`p-4 sm:p-6 glass-section rounded-2xl shadow-card transition-all duration-300 relative`}>
-            {/* Subtle Glow */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(var(--primary-500-rgb), 0.05) 0%, transparent 40%)' }}></div>
-
-            <div className="relative z-10 flex flex-col gap-6">
-              {/* Main Row */}
-              <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-end">
-                <div className="flex-grow w-full xl:w-auto">
-                  <label htmlFor="search" className={labelStyle}>Search registry</label>
-                  <div className="relative">
-                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none opacity-50" />
-                    <input ref={searchInputRef} type="text" id="search" placeholder="Type to search transactions, merchants, categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full xl:w-auto">
-                  <div>
-                    <label htmlFor="type-filter" className={labelStyle}>Transfer type</label>
-                    <div className={`${SELECT_WRAPPER_STYLE} !rounded-2xl`}>
-                      <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
-                        {TYPE_FILTER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="sort-by" className={labelStyle}>Display order</label>
-                    <div className={`${SELECT_WRAPPER_STYLE} !rounded-2xl`}>
-                      <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
-                        <option value="date-desc">Date (Newest First)</option>
-                        <option value="date-asc">Date (Oldest First)</option>
-                        <option value="amount-desc">Value (Highest First)</option>
-                        <option value="amount-asc">Value (Lowest First)</option>
-                        <option value="merchant-asc">Merchant (Alphabetical)</option>
-                        <option value="merchant-desc">Merchant (Reverse)</option>
-                        <option value="category-asc">Category (A-Z)</option>
-                        <option value="category-desc">Category (Z-A)</option>
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                    </div>
-                  </div>
-                  <div className="col-span-2 md:col-span-2 flex items-end">
-                    <button
-                      onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                      className={`w-full h-[42px] flex items-center justify-center gap-2 rounded-2xl font-semibold text-xs tracking-wider transition-all ${isFiltersExpanded ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10'}`}
-                    >
-                      <Icon name={isFiltersExpanded ? 'keyboard_double_arrow_up' : 'tune'} className="text-lg" />
-                      {isFiltersExpanded ? 'Collapse filters' : 'Advanced filters'}
-                    </button>
-                  </div>
-                </div>
+          <FilterBar>
+            {/* Main Row */}
+            <FilterBar.Row>
+              <div className="flex-1 min-w-0">
+                <FilterBar.Field label="Search registry" htmlFor="search">
+                  <FilterBar.Search
+                    ref={searchInputRef}
+                    id="search"
+                    placeholder="Type to search transactions, merchants, categories..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </FilterBar.Field>
               </div>
 
-              {/* Expanded Filters */}
-              {isFiltersExpanded && (
-                <div className="pt-6 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 animate-fade-in-up">
-                  <div>
-                    <label className={labelStyle}>Source account</label>
-                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Accounting category</label>
-                    <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories" />
-                  </div>
-                  <div>
-                    <label className={labelStyle}>Organization tags</label>
-                    <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags" />
-                  </div>
-                  <div>
-                    <label htmlFor="merchant-filter" className={labelStyle}>Merchant entity</label>
-                    <input id="merchant-filter" type="text" placeholder="Search by merchant name..." value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} />
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full xl:w-auto items-end">
+                <FilterBar.Field label="Transfer type" htmlFor="type-filter">
+                  <FilterBar.Select
+                    id="type-filter"
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value as any)}
+                  >
+                    {TYPE_FILTER_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </FilterBar.Select>
+                </FilterBar.Field>
 
-                  <div className="md:col-span-2 flex items-end gap-3">
-                    <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} /></div>
-                    <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} /></div>
-                  </div>
-                  <div className="md:col-span-2 flex items-end gap-3">
-                    <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min threshold</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} /></div>
-                    <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max threshold</label><input id="max-amount" type="number" placeholder="No limit" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} /></div>
-                  </div>
-                  <div className="xl:col-span-4 flex justify-between items-center py-2">
-                    <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-40 tracking-wider">Fine-tune your activity feed</p>
-                    <button onClick={clearFilters} className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors">Reset all parameters</button>
-                  </div>
+                <FilterBar.Field label="Display order" htmlFor="sort-by">
+                  <FilterBar.Select
+                    id="sort-by"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="date-desc">Date (Newest First)</option>
+                    <option value="date-asc">Date (Oldest First)</option>
+                    <option value="amount-desc">Value (Highest First)</option>
+                    <option value="amount-asc">Value (Lowest First)</option>
+                    <option value="merchant-asc">Merchant (Alphabetical)</option>
+                    <option value="merchant-desc">Merchant (Reverse)</option>
+                    <option value="category-asc">Category (A-Z)</option>
+                    <option value="category-desc">Category (Z-A)</option>
+                  </FilterBar.Select>
+                </FilterBar.Field>
+
+                <div className="col-span-2 md:col-span-2 flex items-end">
+                  <FilterBar.AdvancedToggle
+                    isExpanded={isFiltersExpanded}
+                    onToggle={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                    activeCount={activeFilterCount}
+                    className="w-full"
+                  />
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </FilterBar.Row>
+
+            {/* Expanded Filters */}
+            {isFiltersExpanded && (
+              <div className="pt-5 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 animate-fade-in-up">
+                <FilterBar.Field label="Source account">
+                  <MultiAccountFilter
+                    accounts={accounts}
+                    selectedAccountIds={selectedAccountIds}
+                    setSelectedAccountIds={setSelectedAccountIds}
+                  />
+                </FilterBar.Field>
+                <FilterBar.Field label="Accounting category">
+                  <MultiSelectFilter
+                    options={categoryOptions}
+                    selectedValues={selectedCategoryNames}
+                    onChange={setSelectedCategoryNames}
+                    placeholder="All Categories"
+                  />
+                </FilterBar.Field>
+                <FilterBar.Field label="Organization tags">
+                  <MultiSelectFilter
+                    options={tagOptions}
+                    selectedValues={selectedTagIds}
+                    onChange={setSelectedTagIds}
+                    placeholder="All Tags"
+                  />
+                </FilterBar.Field>
+                <FilterBar.Field label="Merchant entity" htmlFor="merchant-filter">
+                  <FilterBar.Input
+                    id="merchant-filter"
+                    type="text"
+                    placeholder="Search by merchant name..."
+                    value={merchantFilter}
+                    onChange={(e) => setMerchantFilter(e.target.value)}
+                  />
+                </FilterBar.Field>
+
+                <div className="md:col-span-2 grid grid-cols-2 gap-3 items-end">
+                  <FilterBar.Field label="From date" htmlFor="start-date">
+                    <FilterBar.Input
+                      id="start-date"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </FilterBar.Field>
+                  <FilterBar.Field label="To date" htmlFor="end-date">
+                    <FilterBar.Input
+                      id="end-date"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </FilterBar.Field>
+                </div>
+                <div className="md:col-span-2 grid grid-cols-2 gap-3 items-end">
+                  <FilterBar.Field label="Min threshold" htmlFor="min-amount">
+                    <FilterBar.Input
+                      id="min-amount"
+                      type="number"
+                      placeholder="0.00"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                    />
+                  </FilterBar.Field>
+                  <FilterBar.Field label="Max threshold" htmlFor="max-amount">
+                    <FilterBar.Input
+                      id="max-amount"
+                      type="number"
+                      placeholder="No limit"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                    />
+                  </FilterBar.Field>
+                </div>
+                <div className="xl:col-span-4 flex justify-between items-center pt-2">
+                  <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-40 tracking-wider">
+                    Fine-tune your activity feed
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
+                  >
+                    Reset all parameters
+                  </button>
+                </div>
+              </div>
+            )}
+          </FilterBar>
           {/* Untitled UI Table Card with Alternating Fills */}
           <div className="flex-1 min-w-0 relative">
             <TableCard.Root className="shadow-card border-0 rounded-2xl">

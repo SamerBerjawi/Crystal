@@ -15,8 +15,8 @@ import { arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../ut
 import PageHeader from '../components/PageHeader';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import Icon from '../components/ui/Icon';
-import StatCard from '../components/StatCard';
-import { BentoGrid } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
 
 interface DataImportExportProps {
   accounts: Account[];
@@ -394,22 +394,51 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       )}
 
 
-       {/* Navigation & Header */}
-       <SettingsSubpageHeader
-         markerIcon="download"
-         markerLabel="Systems Core"
-         title="Data Management"
-         subtitle="Atomic data operations: maintain snapshots, import external ledgers, and manage system state."
-         setCurrentPage={props.setCurrentPage}
-       />
+        {/* Navigation & Header */}
+        <SettingsSubpageHeader
+          accentColor="indigo"
+          markerIcon="download"
+          markerLabel="Systems Core"
+          title="Data Management"
+          subtitle="Atomic data operations: maintain snapshots, import external ledgers, and manage system state."
+          setCurrentPage={props.setCurrentPage}
+        />
       
-      {/* Stats Overview */}
-      <BentoGrid className="grid-cols-2 md:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Ingress" value={stats.imports} icon="download" colorClass="text-blue-600 dark:text-blue-400" />
-          <StatCard title="Egress" value={stats.exports} icon="upload" colorClass="text-indigo-600 dark:text-indigo-400" />
-          <StatCard title="Restored" value={stats.restores} icon="refresh" colorClass="text-emerald-600 dark:text-emerald-400" />
-          <StatCard title="Uptime" value={stats.lastActivity} icon="history" colorClass="text-amber-600 dark:text-amber-400" />
-      </BentoGrid>
+       {/* Stats Overview */}
+       <MetricCardRow columns={4}>
+           <HeroMetricCard 
+               variant="primary"
+               label="Ingress" 
+               value={stats.imports} 
+               icon="download" 
+               iconColor="blue"
+               subtext="Completed file imports"
+           />
+           <HeroMetricCard 
+               variant="secondary"
+               label="Egress" 
+               value={stats.exports} 
+               icon="upload" 
+               iconColor="indigo"
+               subtext="Generated data exports"
+           />
+           <HeroMetricCard 
+               variant="secondary"
+               label="Restored" 
+               value={stats.restores} 
+               icon="refresh" 
+               iconColor="emerald"
+               subtext="Snapshot recoveries"
+           />
+           <HeroMetricCard 
+               variant="secondary"
+               label="Last Operation" 
+               value={stats.lastActivity} 
+               icon="history" 
+               iconColor="amber"
+               subtext="Recent pipeline activity"
+           />
+       </MetricCardRow>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
            {/* External Data */}

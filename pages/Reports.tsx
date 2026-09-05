@@ -33,6 +33,10 @@ import { convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import FilterBar from '../components/ui/FilterBar';
+import SegmentedControl from '../components/ui/SegmentedControl';
 import { motion } from 'motion/react';
 import Icon from '../components/ui/Icon';
 
@@ -108,47 +112,6 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
-  return (
-    <div className="group relative glass-tile p-4 sm:p-5 rounded-2xl flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 overflow-hidden h-full shadow-card hover:shadow-md cursor-pointer select-none">
-      <div className="relative z-10 flex flex-col justify-between h-full">
-        <div>
-          {/* ROW 1: Icon & Label */}
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-900/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-slate-900/[0.08] dark:border-white/10 transition-transform group-hover:scale-105">
-              <Icon name={icon} className="text-base" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
-              Metric
-            </span>
-          </div>
-
-          {/* ROW 2: Metric Title */}
-          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate tracking-tight">
-            {label}
-          </h3>
-
-          {/* ROW 3: Big Metric Value */}
-          <div className="mt-1">
-            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${colorClass}`}>{value}</p>
-          </div>
-        </div>
-
-        {/* ROW 4: Footer */}
-        {subtitle && (
-          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-white/5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 truncate">
-            {subtitle}
-          </div>
-        )}
-      </div>
-
-      {/* Background Icon Accent */}
-      <div className="absolute -right-4 -bottom-4 text-current opacity-[0.02] dark:opacity-[0.04] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
-        <Icon name={icon} className="text-8xl" />
-      </div>
-    </div>
-  );
-});
 
 interface ReportsProps {
   setCurrentPage?: (page: Page) => void;
@@ -744,172 +707,172 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
       />
 
       {/* Hero Section: Key Metrics */}
-      <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-        <MetricCard
+      <MetricCardRow columns={5}>
+        <HeroMetricCard
+          variant="primary"
           label="Total Spend"
           value={`€${totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon="credit_card"
-          subtitle={`vs last period`}
-          colorClass="text-light-text dark:text-dark-text"
-          glowColor="rgba(99, 102, 241, 0.15)"
+          iconColor="indigo"
+          subtext="vs last period"
         />
 
-        <MetricCard
+        <HeroMetricCard
           label="Savings Rate"
           value={`${savingsRate.toFixed(1)}%`}
           icon="piggy_bank"
-          subtitle={savingsRate >= 20 ? 'Excellent saving' : 'Aim for 20% target'}
-          colorClass={savingsRate >= 20 ? 'text-emerald-500' : savingsRate > 0 ? 'text-primary-500' : 'text-rose-500'}
-          glowColor={savingsRate >= 20 ? "rgba(16, 185, 129, 0.15)" : "rgba(var(--primary-500-rgb), 0.15)"}
+          iconColor={savingsRate >= 20 ? 'emerald' : savingsRate > 0 ? 'primary' : 'rose'}
+          subtext={savingsRate >= 20 ? 'Excellent saving' : 'Aim for 20% target'}
+          trend={savingsRate >= 20 ? 'up' : savingsRate <= 0 ? 'down' : 'neutral'}
         />
 
-        <MetricCard
+        <HeroMetricCard
           label="Transactions"
           value={totals.transactionCount.toString()}
           icon="receipt"
-          subtitle="Processed in range"
-          glowColor="rgba(99, 102, 241, 0.15)"
+          iconColor="blue"
+          subtext="Processed in range"
         />
 
-        <MetricCard
+        <HeroMetricCard
           label="Avg. Transaction"
           value={`€${totals.averageEur.toFixed(2)}`}
           icon="calculator"
-          subtitle="Per expense item"
-          glowColor="rgba(99, 102, 241, 0.15)"
+          iconColor="purple"
+          subtext="Per expense item"
         />
 
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1">
-          <MetricCard
-            label="Recurring Impact"
-            value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
-            icon="clock"
-            subtitle="Est. Monthly Total"
-            glowColor="rgba(244, 63, 94, 0.15)"
-          />
-        </div>
-      </section>
+        <HeroMetricCard
+          label="Recurring Impact"
+          value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
+          icon="clock"
+          iconColor="rose"
+          subtext="Est. Monthly Total"
+        />
+      </MetricCardRow>
 
       {/* Filters & Saved Views */}
-      <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl md:rounded-[2rem]">
-        <div className="glass-subwell p-4 sm:p-6 md:p-8 border-b border-slate-200/60 dark:border-white/5 relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 relative z-10">
-            <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Configuration</h2>
-              <p className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: 'Last 7 Days', value: 'last7' },
-                { label: 'Last 30 Days', value: 'last30' },
-                { label: 'This Month', value: 'thisMonth' },
-                { label: 'Last Month', value: 'lastMonth' },
-                { label: 'This Year', value: 'thisYear' },
-                { label: 'Last Year', value: 'lastYear' },
-              ].map(p => (
-                <button
-                  key={p.value}
-                  onClick={() => setPredefinedPeriod(p.value)}
-                  className="px-4 py-2 rounded-xl glass-tile text-xs font-semibold uppercase tracking-wider hover:border-primary-500/60 hover:text-primary-500 transition-all shadow-xs"
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+      <FilterBar>
+        {/* Header with Predefined Periods */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Configuration</h2>
+            <p className="text-base sm:text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
           </div>
 
-          {savedViews.length > 0 && (
-            <div className="flex flex-wrap gap-3 mb-4 relative z-10">
-              {savedViews.map(view => (
-                <div key={view.id} className="group flex items-center gap-2 glass-tile rounded-xl pl-4 pr-2 py-2 shadow-xs transition-all hover:border-primary-500/50 hover:shadow-md">
-                  <button
-                    onClick={() => applyView(view)}
-                    className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text hover:text-primary-500 transition-colors"
-                  >
-                    {view.name}
-                  </button>
-                  <button
-                    onClick={() => deleteView(view.id)}
-                    className="w-6 h-6 flex items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-rose-500 hover:text-white transition-all transform scale-90 group-hover:scale-100"
-                  >
-                    <Icon name="XClose" className="text-base" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { label: 'Last 7 Days', value: 'last7' },
+              { label: 'Last 30 Days', value: 'last30' },
+              { label: 'This Month', value: 'thisMonth' },
+              { label: 'Last Month', value: 'lastMonth' },
+              { label: 'This Year', value: 'thisYear' },
+              { label: 'Last Year', value: 'lastYear' },
+            ].map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setPredefinedPeriod(p.value)}
+                className="px-3 py-1.5 rounded-xl glass-tile text-xs font-semibold hover:border-primary-500/60 hover:text-primary-500 transition-all shadow-xs cursor-pointer min-h-[36px]"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
-            <div className="space-y-2">
-              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Account</label>
-              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`}>
-                <option value="all">All Accounts</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+        {/* Saved Views Bar */}
+        {savedViews.length > 0 && (
+          <FilterBar.SavedViews
+            views={savedViews}
+            onSelect={applyView}
+            onDelete={deleteView}
+          />
+        )}
+
+        {/* Multi-Field Filter Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 pt-2">
+          <FilterBar.Field label="Account">
+            <FilterBar.Select
+              value={accountFilter}
+              onChange={(e) => setAccountFilter(e.target.value)}
+            >
+              <option value="all">All Accounts</option>
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name}
+                </option>
+              ))}
+            </FilterBar.Select>
+          </FilterBar.Field>
+
+          <FilterBar.Field label="Start date">
+            <FilterBar.Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </FilterBar.Field>
+
+          <FilterBar.Field label="End date">
+            <FilterBar.Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </FilterBar.Field>
+
+          <FilterBar.Field label="Merchant">
+            <FilterBar.Input
+              type="text"
+              value={merchantFilter}
+              onChange={(e) => setMerchantFilter(e.target.value)}
+              placeholder="Filter by name..."
+            />
+          </FilterBar.Field>
+
+          <FilterBar.Field label="Category">
+            <FilterBar.Select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="all">All Categories</option>
+              <optgroup label="Expenses">
+                {expenseCategories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
                 ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Start date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`} />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">End date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`} />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Merchant</label>
-              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`} />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`}>
-                <option value="all">All Categories</option>
-                <optgroup label="Expenses">
-                  {expenseCategories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Income">
-                  {incomeCategories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Group by</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-sm font-bold  tracking-tight`}>
-                <option value="merchant">Merchant</option>
-                <option value="category">Category</option>
-              </select>
-            </div>
-          </div>
+              </optgroup>
+              <optgroup label="Income">
+                {incomeCategories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </optgroup>
+            </FilterBar.Select>
+          </FilterBar.Field>
+
+          <FilterBar.Field label="Group by">
+            <FilterBar.Select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+            >
+              <option value="merchant">Merchant</option>
+              <option value="category">Category</option>
+            </FilterBar.Select>
+          </FilterBar.Field>
         </div>
 
-        <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full space-y-2">
-            <label className="block text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Save report settings</label>
-            <div className="relative">
-              <Icon name="bookmark" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary text-lg" />
-              <input
-                type="text"
-                value={reportName}
-                onChange={(e) => setReportName(e.target.value)}
-                className={`${INPUT_BASE_STYLE} !pl-12 !bg-black/5 dark:!bg-white/5 !border-none !rounded-xl !text-sm font-bold tracking-tight h-12`}
-                placeholder="Name this report view to save it..."
-              />
-            </div>
-          </div>
-          <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto h-12 !rounded-xl !px-8 flex items-center justify-center gap-2 group`}>
-            <Icon name="save" className="text-xl transition-transform group-hover:rotate-12" />
-            <span className="text-xs font-semibold uppercase tracking-wider">Save settings</span>
-          </button>
-        </div>
-      </Card>
+        {/* Save Report View Sub-Bar */}
+        <FilterBar.SaveView
+          value={reportName}
+          onChange={setReportName}
+          onSave={handleSaveView}
+          placeholder="Name this report view to save it..."
+        />
+      </FilterBar>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">

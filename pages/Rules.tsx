@@ -12,6 +12,9 @@ import { normalizeMerchantKey } from '../utils/brandfetch';
 import { evaluateRuleCondition, applyTransactionRulesToFields } from '../utils/rules';
 import { generateSmartRuleSuggestions, SmartRuleSuggestion, convertSuggestionToTransactionRule } from '../utils/ruleSuggestions';
 import Icon from '../components/ui/Icon';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import SegmentedControl from '../components/ui/SegmentedControl';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 
 
@@ -1187,6 +1190,7 @@ const Rules: React.FC<RulesProps> = ({
   return (
     <div className="flex-1 overflow-y-auto" id="rules-view">
       <SettingsSubpageHeader
+        accentColor="indigo"
         markerIcon="smart_toy"
         markerLabel="Rules & Automation"
         title="Rule Engine"
@@ -1231,95 +1235,54 @@ const Rules: React.FC<RulesProps> = ({
       />
 
       <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 space-y-6">
-        {/* Statistics Indicator & Tabs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="glass-tile border border-slate-200/80 dark:border-white/10 shadow-card p-5 flex items-center gap-4">
-            <Icon name="sliders" className="text-2xl text-indigo-500" />
-            <div>
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Engine Capacity</span>
-              <h4 className="text-xl font-black font-mono tracking-tight mt-0.5" id="stat-active-rules">{existingRules.length} Defined Rules</h4>
-            </div>
-          </Card>
-
-          <Card className="glass-tile border border-slate-200/80 dark:border-white/10 shadow-card p-5 flex items-center gap-4">
-            <Icon name="check_circle" className="text-2xl text-amber-500" />
-            <div>
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Historical Matches</span>
-              <h4 className="text-xl font-black font-mono tracking-tight mt-0.5" id="stat-matched-txs">{historicalRuleCalculations.length} Pending Actions</h4>
-            </div>
-          </Card>
-
-          <Card className="glass-tile border border-slate-200/80 dark:border-white/10 shadow-card p-5 flex items-center gap-4">
-            <Icon name="building" className="text-2xl text-teal-500" />
-            <div>
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Merchant Priority</span>
-              <h4 className="text-xl font-black font-mono tracking-tight mt-0.5 text-teal-600 dark:text-teal-400">Registry Active</h4>
-            </div>
-          </Card>
-        </div>
+        {/* Statistics Indicator */}
+        <MetricCardRow columns={3}>
+          <HeroMetricCard
+            variant="primary"
+            label="Engine Capacity"
+            value={`${existingRules.length} Defined`}
+            subtext="Active automation logic"
+            icon="sliders"
+            iconColor="indigo"
+          />
+          <HeroMetricCard
+            variant="secondary"
+            label="Historical Matches"
+            value={`${historicalRuleCalculations.length} Pending`}
+            subtext="Ledger candidates"
+            icon="check_circle"
+            iconColor="amber"
+            badgeText={`${historicalRuleCalculations.length} Matches`}
+            badgeVariant={historicalRuleCalculations.length > 0 ? "elevated" : "optimal"}
+          />
+          <HeroMetricCard
+            variant="secondary"
+            label="Merchant Priority"
+            value="Registry Active"
+            subtext={`${Object.keys(merchantRules).length} overrides active`}
+            icon="building"
+            iconColor="teal"
+          />
+        </MetricCardRow>
 
         {/* Segmented Pill Tab Controls */}
-        <div className="glass-subwell p-1.5 rounded-2xl flex flex-wrap items-center gap-1 border border-slate-200/60 dark:border-white/5 shadow-xs">
-          <button
-            onClick={() => setActiveTab('rules-list')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'rules-list'
-                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-          >
-            <Icon name="sliders" className="text-base" />
-            <span>Rules Workspace</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('merchant-overrides')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'merchant-overrides'
-                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-          >
-            <Icon name="building" className="text-base" />
-            <span>Merchant Overrides</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('rules-sandbox')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'rules-sandbox'
-                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-          >
-            <Icon name="sliders" className="text-base" />
-            <span>Interactive Sandbox</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('execution-logs')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'execution-logs'
-                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-          >
-            <Icon name="receipt" className="text-base" />
-            <span>Execution History & Logs</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('historical-scan')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'historical-scan'
-                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-          >
-            <Icon name="Search01" className="text-base" />
-            <span>Scan Database</span>
-            {historicalRuleCalculations.length > 0 && (
-              <span className="px-1.5 py-0.5 text-xs bg-amber-500 text-white rounded-full font-bold font-mono">
-                {historicalRuleCalculations.length}
-              </span>
-            )}
-          </button>
-        </div>
+        <SegmentedControl
+          items={[
+            { id: 'rules-list', label: 'Rules Workspace', icon: 'sliders' },
+            { id: 'merchant-overrides', label: 'Merchant Overrides', icon: 'building' },
+            { id: 'rules-sandbox', label: 'Interactive Sandbox', icon: 'sliders' },
+            { id: 'execution-logs', label: 'Execution History & Logs', icon: 'receipt' },
+            {
+              id: 'historical-scan',
+              label: 'Scan Database',
+              icon: 'Search01',
+              badge: historicalRuleCalculations.length > 0 ? historicalRuleCalculations.length : undefined,
+            },
+          ]}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as any)}
+          scrollable
+        />
 
         {/* Rule creation drawer form */}
         <AnimatePresence>

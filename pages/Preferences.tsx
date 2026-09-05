@@ -14,8 +14,8 @@ import {
   SELECT_ARROW_STYLE,
 } from '../constants';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
-import StatCard from '../components/StatCard';
-import { BentoGrid } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
 import Icon from '../components/ui/Icon';
 
 interface PreferencesProps {
@@ -117,6 +117,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
     <div className="w-full pb-12 space-y-10 animate-fade-in-up px-4">
       {/* Navigation & Header */}
       <SettingsSubpageHeader
+        accentColor="indigo"
         markerIcon="sliders"
         markerLabel="Personalization"
         title="Preferences"
@@ -124,37 +125,41 @@ export const Preferences: React.FC<PreferencesProps> = ({
         setCurrentPage={setCurrentPage}
       />
 
-      {/* Overview Stats matching other settings pages (Categories, Tags, DataImportExport) */}
-      <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-        <StatCard
-          title="Active Theme"
-          value={theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light'}
-          subtext={theme === 'system' ? 'OS Dynamic Sync' : theme === 'dark' ? 'OLED Contrast' : 'Natural Sunlight'}
-          icon={theme === 'dark' ? 'dark_mode' : theme === 'light' ? 'light_mode' : 'settings_brightness'}
-          colorClass="text-indigo-600 dark:text-indigo-400"
-        />
-        <StatCard
-          title="Active Typeface"
-          value={activeFontDef.label.split(' ')[0]}
-          subtext={activeFontDef.categoryLabel}
-          icon="format_size"
-          colorClass="text-purple-600 dark:text-purple-400"
-        />
-        <StatCard
-          title="Base Currency"
+      {/* Overview Stats */}
+      <MetricCardRow columns={4}>
+        <HeroMetricCard
+          variant="primary"
+          label="Base Currency"
           value={preferences.currency.split(' ')[0]}
           subtext={topCurrencies.find((c) => c.code === preferences.currency)?.label || 'Global Standard'}
           icon="paid"
-          colorClass="text-emerald-600 dark:text-emerald-400"
+          iconColor="emerald"
         />
-        <StatCard
-          title="Date Format"
+        <HeroMetricCard
+          variant="secondary"
+          label="Active Theme"
+          value={theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light'}
+          subtext={theme === 'system' ? 'OS Dynamic Sync' : theme === 'dark' ? 'OLED Contrast' : 'Natural Sunlight'}
+          icon={theme === 'dark' ? 'dark_mode' : theme === 'light' ? 'light_mode' : 'settings_brightness'}
+          iconColor="indigo"
+        />
+        <HeroMetricCard
+          variant="secondary"
+          label="Active Typeface"
+          value={activeFontDef.label.split(' ')[0]}
+          subtext={activeFontDef.categoryLabel}
+          icon="format_size"
+          iconColor="purple"
+        />
+        <HeroMetricCard
+          variant="secondary"
+          label="Date Format"
           value={preferences.dateFormat || 'DD/MM/YYYY'}
           subtext={formattedTodayPreview}
           icon="calendar_today"
-          colorClass="text-amber-600 dark:text-amber-400"
+          iconColor="amber"
         />
-      </BentoGrid>
+      </MetricCardRow>
 
       {/* ── Section 1: Visual & Styling Environment ── */}
       <section className="space-y-6">

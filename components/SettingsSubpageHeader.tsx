@@ -8,6 +8,7 @@ interface SettingsSubpageHeaderProps {
   subtitle?: string;
   markerIcon?: string;
   markerLabel?: string;
+  accentColor?: 'primary' | 'amber' | 'emerald' | 'indigo' | 'cyan' | 'rose' | 'purple' | 'teal' | 'orange';
   actions?: React.ReactNode;
   setCurrentPage?: (page: Page) => void;
   className?: string;
@@ -18,6 +19,7 @@ const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
   subtitle,
   markerIcon,
   markerLabel,
+  accentColor = 'primary',
   actions,
   setCurrentPage,
   className = '',
@@ -48,6 +50,7 @@ const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
         subtitle={subtitle}
         markerIcon={markerIcon}
         markerLabel={markerLabel}
+        accentColor={accentColor}
         actions={actions}
         className="!mb-0 !pb-2"
       />

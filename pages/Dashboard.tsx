@@ -62,6 +62,9 @@ import WealthVelocityWidget from '../components/WealthVelocityWidget';
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import Icon from '../components/ui/Icon';
 import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import SegmentedControl from '../components/ui/SegmentedControl';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -153,25 +156,6 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
   pending_matches: []
 };
 
-const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => {
-  const textColor = colorClass.replace(/\bbg-[^\s]+/g, '').replace(/\bborder-[^\s]+/g, '').trim() || 'text-primary-500';
-
-  return (
-    <BentoCard className="!col-span-1 !p-0 min-h-[110px]">
-      <div className="flex items-center gap-3.5 sm:gap-5 w-full">
-        <Icon 
-          name={icon} 
-          className={`text-3xl sm:text-4xl shrink-0 transition-transform duration-300 group-hover:scale-110 ${textColor}`} 
-        />
-        <div className="min-w-0 relative z-10 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">{title}</p>
-          <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight truncate">{value}</p>
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-70">{subtext}</p>
-        </div>
-      </div>
-    </BentoCard>
-  );
-};
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
   const { confirm, ConfirmDialog } = useConfirm();
@@ -1679,6 +1663,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         {/* Header Section */}
         <div className="mb-6 mt-2 md:mt-0">
           <PageHeader
+            accentColor="emerald"
             markerIcon="Command"
             markerLabel="Command Center"
             title="Dashboard"
@@ -1751,39 +1736,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 bg-white/60 dark:bg-black/20 backdrop-blur-xl p-1.5 sm:p-2 rounded-2xl sm:rounded-[2rem] border border-slate-200/60 dark:border-white/5 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] relative z-30">
-            {/* Redesigned Tabs (Apple Health Glass Segmented Style) */}
-            <div className="flex items-center gap-1 bg-slate-900/[0.04] dark:bg-white/[0.04] p-1 rounded-2xl sm:rounded-[1.5rem] border border-slate-900/[0.06] dark:border-white/[0.06] w-full lg:w-auto overflow-x-auto no-scrollbar min-h-[48px] sm:h-12">
-              {tabs.map((tab) => {
-                const tabConfig = {
-                  overview: { icon: 'layout_alt', label: 'Overview', badge: null },
-                  analysis: { icon: 'bar_chart', label: 'Analysis', badge: null },
-                  activity: { icon: 'receipt', label: 'Activity', badge: null },
-                  pending_matches: {
-                    icon: 'file_check',
+            {/* Unified Tabs (SegmentedControl) */}
+            <div className="w-full lg:w-auto overflow-x-auto no-scrollbar">
+              <SegmentedControl
+                mode="tabs"
+                items={[
+                  { id: 'overview', label: 'Overview', icon: 'layout_alt' },
+                  { id: 'analysis', label: 'Analysis', icon: 'bar_chart' },
+                  { id: 'activity', label: 'Activity', icon: 'receipt' },
+                  {
+                    id: 'pending_matches',
                     label: 'Pending Matches',
-                    badge: totalPendingMatchesCount > 0 ? totalPendingMatchesCount : null
-                  }
-                }[tab] || { icon: 'circle', label: tab, badge: null };
-
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-3 sm:px-6 h-10 sm:h-10 rounded-xl sm:rounded-[1.25rem] text-xs font-semibold tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap flex-1 lg:flex-none ${activeTab === tab
-                      ? 'bg-white/95 dark:bg-white/[0.1] shadow-xs border border-slate-200/80 dark:border-white/10 text-primary-600 dark:text-primary-400 font-bold scale-[1.01]'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                  >
-                    <Icon name={tabConfig.icon} className={`text-lg sm:text-xl ${activeTab === tab ? '' : 'opacity-70'}`} />
-                    <span>{tabConfig.label}</span>
-                    {tabConfig.badge !== null && (
-                      <span className="ml-0.5 px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white shadow-xs">
-                        {tabConfig.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                    icon: 'file_check',
+                    badge: totalPendingMatchesCount > 0 ? totalPendingMatchesCount : undefined,
+                  },
+                ]}
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as DashboardTab)}
+              />
             </div>
 
             {/* Filters */}
@@ -1842,36 +1812,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
         {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">
-            <BentoGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-3 sm:gap-4 lg:gap-6">
-              <AnalysisStatCard
-                title="Liquidity Ratio"
+            <MetricCardRow columns={4}>
+              <HeroMetricCard
+                variant="primary"
+                label="Liquidity Ratio"
                 value={`${liquidityRatio.toFixed(1)} months`}
                 subtext="Runway based on avg. spend"
                 icon="clock"
-                colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                iconColor="blue"
+                privacyBlur
               />
-              <AnalysisStatCard
-                title="Savings Rate"
+              <HeroMetricCard
+                variant="secondary"
+                label="Savings Rate"
                 value={`${savingsRate.toFixed(0)}%`}
                 subtext={`of total income (${duration})`}
                 icon="piggy_bank"
-                colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                iconColor="emerald"
+                privacyBlur
+                trend={savingsRate >= 20 ? 'up' : savingsRate <= 0 ? 'down' : 'neutral'}
               />
-              <AnalysisStatCard
-                title="Debt Ratio"
+              <HeroMetricCard
+                variant="secondary"
+                label="Debt Ratio"
                 value={`${(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth > 0 ? (Math.abs(calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalDebt) / calculateAccountTotals(analyticsAccounts, analyticsTransactions).totalAssets) * 100 : 0).toFixed(1)}%`}
                 subtext="Liabilities / Assets"
                 icon="scale"
-                colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                iconColor="purple"
+                privacyBlur
               />
-              <AnalysisStatCard
-                title="Net Flow"
+              <HeroMetricCard
+                variant="secondary"
+                label="Net Flow"
                 value={formatCurrency(calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth - calculateAccountTotals(analyticsAccounts, analyticsTransactions).netWorth, 'EUR')}
                 subtext="Period change"
                 icon="coins_stacked"
-                colorClass="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+                iconColor="amber"
+                privacyBlur
               />
-            </BentoGrid>
+            </MetricCardRow>
 
             {/* Dynamic widgets grid */}
             {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (

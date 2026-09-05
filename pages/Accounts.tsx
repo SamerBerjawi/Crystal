@@ -407,6 +407,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         ) : (
           <div className="space-y-6">
           <PageHeader 
+              accentColor="amber"
               markerIcon="wallet"
               markerLabel="Portfolio Overview"
               title="Accounts & Portfolio"

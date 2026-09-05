@@ -9,8 +9,9 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
-import StatCard from '../components/StatCard';
-import { BentoGrid } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import FilterBar from '../components/ui/FilterBar';
 import EmptyState from '../components/EmptyState';
 import Icon from '../components/ui/Icon';
 
@@ -164,6 +165,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
+         accentColor="indigo"
          markerIcon="tag"
          markerLabel="Semantic Overlays"
          title="Tags"
@@ -181,22 +183,42 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
        />
 
       {/* Metrics Overview */}
-      <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Total Inventory" value={metrics.totalTags} icon="tag" colorClass="text-indigo-600 dark:text-indigo-400" />
-          <StatCard title="Semantic Density" value={`${metrics.utilization.toFixed(0)}%`} icon="bar_chart" colorClass="text-blue-600 dark:text-blue-400" />
-          <StatCard title="Primary Vector" value={metrics.topTag ? metrics.topTag.name : 'None'} icon="award" colorClass="text-emerald-600 dark:text-emerald-400" />
-      </BentoGrid>
+      <MetricCardRow columns={3}>
+          <HeroMetricCard 
+              variant="primary"
+              label="Total Inventory" 
+              value={metrics.totalTags} 
+              icon="tag" 
+              iconColor="indigo"
+              subtext="Active registered tags"
+          />
+          <HeroMetricCard 
+              variant="secondary"
+              label="Semantic Density" 
+              value={`${metrics.utilization.toFixed(0)}%`} 
+              icon="bar_chart" 
+              iconColor="blue"
+              subtext="Ledger transaction coverage"
+              badgeText={`${metrics.utilization.toFixed(0)}% Usage`}
+              badgeVariant="optimal"
+          />
+          <HeroMetricCard 
+              variant="secondary"
+              label="Primary Vector" 
+              value={metrics.topTag ? metrics.topTag.name : 'None'} 
+              icon="award" 
+              iconColor="emerald"
+              subtext={metrics.topTag ? `${metrics.topTag.count} linked transactions` : 'No tags assigned'}
+          />
+      </MetricCardRow>
 
       {/* Controls Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">
-          <div className="relative flex-1 max-w-md group">
-              <Icon name="Search01" className="absolute left-4 top-1/2 -translate-y-1/2 text-light-text-secondary/40 group-focus-within:text-primary-500 transition-colors" />
-              <input 
-                type="text" 
+          <div className="flex-1 max-w-md">
+              <FilterBar.Search 
                 placeholder="Query semantic labels..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full glass-tile rounded-2xl pl-12 pr-4 py-3.5 text-xs font-bold tracking-wider placeholder:text-light-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card"
               />
           </div>
           

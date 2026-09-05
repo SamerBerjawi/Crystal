@@ -11,7 +11,10 @@ import HeaderButton from '../components/HeaderButton';
 import InvoiceModal from '../components/InvoiceModal';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Icon from '../components/ui/Icon';
-import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import SegmentedControl from '../components/ui/SegmentedControl';
+import FilterBar from '../components/ui/FilterBar';
 
 const STATUS_COLORS: Record<InvoiceStatus, { bg: string, text: string, icon: string }> = {
     draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'Edit02' },
@@ -119,6 +122,7 @@ const InvoicesPage: React.FC = () => {
             />
 
             <PageHeader
+                accentColor="indigo"
                 markerIcon="ReceiptCheck"
                 markerLabel="Ledger & Receivables"
                 title="Invoices & Quotes"
@@ -144,99 +148,85 @@ const InvoicesPage: React.FC = () => {
             />
 
             {/* Financial Intelligence Hub */}
-            <BentoGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-                {[
-                    { label: 'Aggregate Billing', value: metrics.paidMonth, icon: 'receipt', color: 'text-primary-500', bg: 'bg-primary-500/5', desc: 'Total invoices paid (Mo)' },
-                    { label: 'Risk exposure', value: metrics.overdue, icon: 'alert_triangle', color: 'text-rose-500', bg: 'bg-rose-500/5', desc: 'Active overdue receivables' },
-                    { label: 'Liquid Pipeline', value: metrics.outstanding, icon: 'clock', color: 'text-blue-500', bg: 'bg-blue-500/5', desc: 'Outstanding receivables' },
-                    { label: 'Quote Velocity', value: metrics.pendingQuotes, icon: 'file_text', color: 'text-amber-500', bg: 'bg-amber-500/5', desc: 'Active proposals pipeline' },
-                ].map((stat, idx) => (
-                    <BentoCard 
-                        key={idx} 
-                        className="!col-span-1 !p-0 min-h-[160px]"
-                        background={
-                            <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-3xl rounded-full -translate-y-8 translate-x-8 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`} />
-                        }
-                    >
-                        <div className="flex flex-col justify-between h-full gap-5 relative z-10 p-6">
-                            <div className="flex items-center justify-between">
-                                <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center border border-current/10`}>
-                                    <Icon name={stat.icon} className={`${stat.color} text-2xl`} />
-                                </div>
-                                <span className="text-2xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Node {idx + 1}</span>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{stat.label}</p>
-                                <h3 className="text-2xl sm:text-3xl font-black font-mono tabular-nums tracking-tight privacy-blur">
-                                    {formatCurrency(stat.value, currencyCode)}
-                                </h3>
-                                <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-70">{stat.desc}</p>
-                            </div>
-                        </div>
-                    </BentoCard>
-                ))}
-            </BentoGrid>
+            <MetricCardRow columns={4}>
+                <HeroMetricCard
+                    variant="primary"
+                    label="Aggregate Billing"
+                    value={formatCurrency(metrics.paidMonth, currencyCode)}
+                    subtext="Total invoices paid (Mo)"
+                    icon="receipt"
+                    iconColor="primary"
+                    privacyBlur
+                />
+                <HeroMetricCard
+                    variant="secondary"
+                    label="Risk Exposure"
+                    value={formatCurrency(metrics.overdue, currencyCode)}
+                    subtext="Active overdue receivables"
+                    icon="alert_triangle"
+                    iconColor={metrics.overdue > 0 ? "rose" : "emerald"}
+                    badgeText={metrics.overdue > 0 ? "At Risk" : "Clear"}
+                    badgeVariant={metrics.overdue > 0 ? "elevated" : "optimal"}
+                    privacyBlur
+                />
+                <HeroMetricCard
+                    variant="secondary"
+                    label="Liquid Pipeline"
+                    value={formatCurrency(metrics.outstanding, currencyCode)}
+                    subtext="Outstanding receivables"
+                    icon="clock"
+                    iconColor="blue"
+                    privacyBlur
+                />
+                <HeroMetricCard
+                    variant="secondary"
+                    label="Quote Velocity"
+                    value={formatCurrency(metrics.pendingQuotes, currencyCode)}
+                    subtext="Active proposals pipeline"
+                    icon="file_text"
+                    iconColor="amber"
+                    privacyBlur
+                />
+            </MetricCardRow>
 
             {/* Content Switcher & Filters */}
             <div className="glass-section rounded-[2.5rem] shadow-card overflow-hidden">
                 <div className="p-6 sm:p-8 border-b border-slate-200/60 dark:border-white/5 flex flex-col xl:flex-row gap-6 justify-between items-center bg-transparent">
                     <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
                         {/* Tab Switcher */}
-                        <div className="flex glass-subwell p-1.5 rounded-2xl w-full md:w-auto shadow-xs">
-                            <button 
-                                onClick={() => setActiveTab('invoices')} 
-                                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${activeTab === 'invoices' ? 'glass-tile shadow-card text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'}`}
-                            >
-                                <Icon name="receipt_long" className="text-xl" />
-                                Invoices
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('quotes')} 
-                                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${activeTab === 'quotes' ? 'glass-tile shadow-card text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'}`}
-                            >
-                                <Icon name="request_quote" className="text-xl" />
-                                Proposals
-                            </button>
-                        </div>
+                        <SegmentedControl
+                          items={[
+                            { id: 'invoices', label: 'Invoices', icon: 'receipt_long' },
+                            { id: 'quotes',   label: 'Proposals', icon: 'request_quote' },
+                          ]}
+                          activeId={activeTab}
+                          onChange={(id) => setActiveTab(id as 'invoices' | 'quotes')}
+                          className="w-full md:w-auto"
+                        />
 
-                        <div className="relative group w-full md:w-96">
-                            <Icon name="search" className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
-                            <input 
-                                type="text"
+                        <div className="w-full md:w-96">
+                            <FilterBar.Search 
+                                placeholder="Search by identifier or entity..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-900/[0.03] dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/10 rounded-2xl pl-14 pr-6 h-12 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500/20 transition-all placeholder:text-xs placeholder:text-light-text-secondary/40"
-                                placeholder="Search by identifier or entity..."
                             />
                         </div>
                     </div>
 
-                    <div className="flex glass-subwell p-1.5 rounded-2xl w-full xl:w-auto shadow-xs">
-                        <div className="flex flex-wrap gap-1">
-                            <button
-                                onClick={() => setStatusFilter('all')}
-                                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                                    statusFilter === 'all' 
-                                    ? 'glass-tile shadow-card text-primary-500' 
-                                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'
-                                }`}
-                            >
-                                All Status
-                            </button>
-                            {Object.keys(STATUS_COLORS).map(s => (
-                                <button
-                                    key={s}
-                                    onClick={() => setStatusFilter(s as any)}
-                                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                                        statusFilter === s 
-                                        ? 'glass-tile shadow-card text-primary-500' 
-                                        : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'
-                                    }`}
-                                >
-                                    {s}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="w-full xl:w-auto overflow-x-auto no-scrollbar">
+                        <SegmentedControl
+                            items={[
+                                { id: 'all', label: 'All Status' },
+                                ...Object.keys(STATUS_COLORS).map(s => ({
+                                    id: s,
+                                    label: s.charAt(0).toUpperCase() + s.slice(1),
+                                    icon: STATUS_COLORS[s as InvoiceStatus]?.icon,
+                                }))
+                            ]}
+                            activeId={statusFilter}
+                            onChange={(id) => setStatusFilter(id as any)}
+                            scrollable
+                        />
                     </div>
                 </div>
 

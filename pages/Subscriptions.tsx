@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useConfirm } from '../components/ConfirmationModal';
 import Icon from '../components/ui/Icon';
 import { BentoCard, BentoGrid } from '../components/ui/bento-grid';
+import SegmentedControl from '../components/ui/SegmentedControl';
 import { MobileSubscriptionsView } from '../components/MobileSubscriptionsView';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -495,41 +496,12 @@ const Subscriptions: React.FC = () => {
                 />
 
                 {/* ── Pill Segment Tab Bar ── */}
-                <div className="flex items-center gap-1 p-1 bg-black/[0.03] dark:bg-white/[0.03] rounded-2xl w-fit border border-black/5 dark:border-white/5">
-                    {segments.map(seg => {
-                        const isActive = activeSegment === seg.id;
-                        return (
-                            <button
-                                key={seg.id}
-                                onClick={() => setActiveSegment(seg.id)}
-                                className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 select-none ${
-                                    isActive 
-                                        ? 'text-white' 
-                                        : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5'
-                                }`}
-                            >
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="segment-pill"
-                                        className="absolute inset-0 bg-primary-600 dark:bg-primary-500 rounded-xl shadow-md shadow-primary-600/20"
-                                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                                    />
-                                )}
-                                <span className="relative z-10 flex items-center gap-2">
-                                    <Icon name={seg.icon} className="text-sm" />
-                                    <span>{seg.label}</span>
-                                    <span className={`px-1.5 py-0.5 rounded-md text-xs font-semibold tabular-nums leading-none ${
-                                        isActive 
-                                            ? 'bg-white/20 text-white' 
-                                            : 'bg-black/5 dark:bg-white/5 text-light-text-secondary/70 dark:text-dark-text-secondary/70'
-                                    }`}>
-                                        {seg.count}
-                                    </span>
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
+                <SegmentedControl
+                  items={segments}
+                  activeId={activeSegment}
+                  onChange={(id) => setActiveSegment(id as SubscriptionSegment)}
+                  className="w-fit"
+                />
 
                 {/* ── Glassmorphic Hero Metrics Bento Card ── */}
                 <BentoCard 

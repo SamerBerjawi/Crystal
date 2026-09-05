@@ -1,7 +1,34 @@
+/**
+ * StatCard — DEPRECATED
+ *
+ * This component is a backwards-compatible alias for HeroMetricCard.
+ * All new code should import HeroMetricCard from './ui/HeroMetricCard' directly.
+ *
+ * Migration guide:
+ *   Old:  <StatCard title="..." value={...} icon="..." colorClass="text-blue-600" subtext="..." />
+ *   New:  <HeroMetricCard label="..." value={...} icon="..." iconColor="blue" subtext="..." />
+ */
 import React from 'react';
-import Icon from './ui/Icon';
-import { BentoCard } from './ui/bento-grid';
-import { cn } from '../lib/utils';
+import HeroMetricCard from './ui/HeroMetricCard';
+
+// Maps old colorClass strings (e.g. "text-blue-600 dark:text-blue-400") to iconColor keys
+function inferIconColor(colorClass: string = ''): string {
+  if (colorClass.includes('blue'))    return 'blue';
+  if (colorClass.includes('emerald')) return 'emerald';
+  if (colorClass.includes('green'))   return 'emerald';
+  if (colorClass.includes('red'))     return 'rose';
+  if (colorClass.includes('rose'))    return 'rose';
+  if (colorClass.includes('amber'))   return 'amber';
+  if (colorClass.includes('yellow'))  return 'amber';
+  if (colorClass.includes('orange'))  return 'orange';
+  if (colorClass.includes('indigo'))  return 'indigo';
+  if (colorClass.includes('purple'))  return 'purple';
+  if (colorClass.includes('pink'))    return 'pink';
+  if (colorClass.includes('cyan'))    return 'cyan';
+  if (colorClass.includes('teal'))    return 'teal';
+  if (colorClass.includes('primary')) return 'primary';
+  return 'primary';
+}
 
 interface StatCardProps {
   title: string;
@@ -12,38 +39,23 @@ interface StatCardProps {
   className?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ 
-    title, 
-    value, 
-    subtext, 
-    icon, 
-    colorClass = "text-primary-500",
-    className
-}) => {
-    // Strip bg, border, shadow, and text-white classes so bare icon gets semantic or fallback text color
-    const cleaned = colorClass
-        .replace(/\b(bg|border|shadow)-[^\s]+/g, '')
-        .replace(/\btext-white\b/g, '')
-        .trim();
-    const textColor = cleaned || 'text-primary-500';
-
-    return (
-        <BentoCard 
-            className={cn("!col-span-1 !p-0 min-h-[110px] sm:min-h-[120px]", className)}
-        >
-            <div className="flex items-center gap-4 sm:gap-5 w-full">
-                <Icon 
-                    name={icon} 
-                    className={cn("text-3xl sm:text-4xl shrink-0 transition-transform duration-300 group-hover:scale-110", textColor)} 
-                />
-                <div className="min-w-0 relative z-10 w-full">
-                    <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 group-hover:opacity-100 transition-opacity truncate">{title}</p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-black font-mono text-light-text dark:text-dark-text tracking-tight mt-1 leading-tight group-hover:text-primary-500 transition-colors truncate">{value}</p>
-                    {subtext && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-80 leading-normal">{subtext}</p>}
-                </div>
-            </div>
-        </BentoCard>
-    );
-};
+/** @deprecated Use HeroMetricCard instead */
+const StatCard: React.FC<StatCardProps> = ({
+  title,
+  value,
+  subtext,
+  icon,
+  colorClass = 'text-primary-500',
+  className,
+}) => (
+  <HeroMetricCard
+    label={title}
+    value={value}
+    icon={icon}
+    iconColor={inferIconColor(colorClass) as any}
+    subtext={subtext}
+    className={className}
+  />
+);
 
 export default StatCard;

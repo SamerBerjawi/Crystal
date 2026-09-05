@@ -10,8 +10,8 @@ import { parseLocalDate } from '../utils';
 import TaskModal from '../components/TaskModal';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
-import StatCard from '../components/StatCard';
-import { BentoGrid } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
 import EmptyState from '../components/EmptyState';
 import Icon from '../components/ui/Icon';
 
@@ -184,6 +184,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
 
             {/* Header */}
             <SettingsSubpageHeader
+                accentColor="indigo"
                 markerIcon="check_circle"
                 markerLabel="Operational Protocols"
                 title="Action Board"
@@ -201,36 +202,44 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
             />
             
             {/* Productivity Metrics */}
-            <BentoGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-                <StatCard 
-                    title="Completion Matrix" 
+            <MetricCardRow columns={4}>
+                <HeroMetricCard 
+                    variant="primary"
+                    label="Completion Matrix" 
                     value={`${stats.rate}%`} 
                     subtext={`${stats.completed} nodes verified`} 
                     icon="check_circle" 
-                    colorClass="bg-blue-500 text-white shadow-blue-500/20" 
+                    iconColor="blue"
+                    badgeText={`${stats.completed}/${stats.total}`}
+                    badgeVariant="optimal"
                 />
-                <StatCard 
-                    title="Priority Signals" 
+                <HeroMetricCard 
+                    variant="secondary"
+                    label="Priority Signals" 
                     value={stats.pendingHigh} 
                     subtext="Critical latency items" 
                     icon="alert_circle" 
-                    colorClass={stats.pendingHigh > 0 ? "bg-red-500 text-white shadow-red-500/20" : "bg-emerald-500 text-white shadow-emerald-500/20"} 
+                    iconColor={stats.pendingHigh > 0 ? "rose" : "emerald"}
+                    badgeText={stats.pendingHigh > 0 ? `${stats.pendingHigh} High` : 'Clear'}
+                    badgeVariant={stats.pendingHigh > 0 ? "elevated" : "optimal"}
                 />
-                <StatCard 
-                    title="Temporal Window" 
+                <HeroMetricCard 
+                    variant="secondary"
+                    label="Temporal Window" 
                     value={stats.dueSoon} 
                     subtext="Due in 7-day cycle" 
                     icon="Hourglass01" 
-                    colorClass="bg-amber-500 text-white shadow-amber-500/20" 
+                    iconColor="amber"
                 />
-                <StatCard 
-                    title="Active Workload" 
+                <HeroMetricCard 
+                    variant="secondary"
+                    label="Active Workload" 
                     value={stats.total - stats.completed} 
                     subtext="Unreconciled nodes" 
                     icon="bar_chart" 
-                    colorClass="bg-indigo-500 text-white shadow-indigo-500/20" 
+                    iconColor="purple"
                 />
-            </BentoGrid>
+            </MetricCardRow>
 
             {/* Controls Bar */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-2">

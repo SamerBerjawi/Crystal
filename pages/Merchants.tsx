@@ -15,8 +15,9 @@ import { useCategoryContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import RegexCategorizationModal from '../components/RegexCategorizationModal';
 import Icon from '../components/ui/Icon';
-import StatCard from '../components/StatCard';
-import { BentoGrid } from '../components/ui/bento-grid';
+import HeroMetricCard from '../components/ui/HeroMetricCard';
+import MetricCardRow from '../components/ui/MetricCardRow';
+import FilterBar from '../components/ui/FilterBar';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -572,6 +573,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       
        {/* Navigation & Header */}
        <SettingsSubpageHeader
+         accentColor="teal"
          markerIcon="Building02"
          markerLabel="Merchants & Institutions"
          title="Merchants & Institutions"
@@ -745,25 +747,51 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         )}
 
         {/* Metrics Overview */}
-      <BentoGrid className="grid-cols-2 lg:grid-cols-4 auto-rows-auto gap-4 sm:gap-6">
-          <StatCard title="Merchants" value={stats.totalMerchants} icon="shopping_bag" colorClass="text-blue-600 dark:text-blue-400" />
-          <StatCard title="Institutions" value={stats.totalInstitutions} icon="bank" colorClass="text-indigo-600 dark:text-indigo-400" />
-          <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="coins_stacked" colorClass="text-emerald-600 dark:text-emerald-400" />
-          <StatCard title="Unassigned" value={stats.missingCount} icon="help_outline" colorClass="text-amber-600 dark:text-amber-400" />
-      </BentoGrid>
+        <MetricCardRow columns={4}>
+            <HeroMetricCard 
+                variant="primary"
+                label="Total Volume" 
+                value={formatCurrency(stats.totalVolume, 'EUR')} 
+                icon="coins_stacked" 
+                iconColor="emerald"
+                subtext="Aggregated ledger flow"
+                privacyBlur
+            />
+            <HeroMetricCard 
+                variant="secondary"
+                label="Merchants" 
+                value={stats.totalMerchants} 
+                icon="shopping_bag" 
+                iconColor="blue"
+                subtext="Commercial counter-parties"
+            />
+            <HeroMetricCard 
+                variant="secondary"
+                label="Institutions" 
+                value={stats.totalInstitutions} 
+                icon="bank" 
+                iconColor="indigo"
+                subtext="Banking & broker nodes"
+            />
+            <HeroMetricCard 
+                variant="secondary"
+                label="Unassigned" 
+                value={stats.missingCount} 
+                icon="help_outline" 
+                iconColor={stats.missingCount > 0 ? "amber" : "emerald"}
+                badgeText={stats.missingCount > 0 ? `${stats.missingCount} Unmapped` : 'All Mapped'}
+                badgeVariant={stats.missingCount > 0 ? "elevated" : "optimal"}
+                subtext="Missing rules or logos"
+            />
+        </MetricCardRow>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-6 justify-between items-center px-2">
-           <div className="relative w-full md:max-w-md group">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <Icon name="search" className="text-light-text-secondary dark:text-dark-text-secondary opacity-40 group-focus-within:text-primary-500 group-focus-within:opacity-100 transition-all" />
-                </div>
-                <input 
-                    type="text" 
+           <div className="w-full md:max-w-md">
+                <FilterBar.Search
                     placeholder="Search merchants & institutions..." 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full glass-tile border border-slate-200/80 dark:border-white/10 rounded-2xl pl-12 pr-4 py-3.5 text-xs font-semibold placeholder:text-light-text-secondary/40 dark:placeholder:text-dark-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card"
                 />
            </div>
            
