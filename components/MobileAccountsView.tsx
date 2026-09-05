@@ -518,7 +518,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
     return (
       <div className="relative shrink-0">
         <div
-          className={`w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 border border-black/5 dark:border-white/10 shadow-xs overflow-hidden ${
+          className={`w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0 shadow-xs overflow-hidden ${
             isValidLogo ? 'bg-white dark:bg-white/90' : typeConfig.color
           }`}
         >
@@ -526,7 +526,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             <img
               src={logoUrl}
               alt={account.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover p-0 border-0"
               referrerPolicy="no-referrer"
               onError={() => handleLogoError(logoUrl)}
             />
@@ -605,37 +605,37 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
       </div>
 
       {/* 2. Hero Segment Summary Card */}
-      <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white rounded-[24px] p-4 shadow-lg border border-white/15 relative overflow-hidden space-y-3">
+      <div className="glass-section rounded-[24px] p-4.5 border border-slate-200/80 dark:border-white/10 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] relative overflow-hidden space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-white/70">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Net Portfolio Value
           </span>
-          <span className="px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-xs font-bold text-white border border-white/20">
+          <span className="px-2.5 py-0.5 rounded-full bg-slate-900/[0.04] dark:bg-white/10 text-xs font-bold text-slate-800 dark:text-white border border-slate-200/80 dark:border-white/20 font-mono">
             {curr}
           </span>
         </div>
 
         <div>
-          <p className="text-3xl font-bold text-white tracking-tight privacy-blur leading-none">
+          <p className="text-3xl font-black font-mono text-slate-900 dark:text-white tracking-tight privacy-blur leading-none">
             {netWorthFormatted}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
-          <div className="bg-emerald-500/15 rounded-xl p-2 border border-emerald-500/25 flex items-center justify-between">
+          <div className="bg-emerald-500/15 rounded-xl p-2.5 border border-emerald-500/30 flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold uppercase text-emerald-300 block">Total Assets</span>
-              <span className="text-xs font-bold text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-300 block">Total Assets</span>
+              <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
             </div>
-            <Icon name="arrow_upward" className="text-emerald-400 text-sm" />
+            <Icon name="arrow_upward" className="text-emerald-500 text-sm" />
           </div>
 
-          <div className="bg-rose-500/15 rounded-xl p-2 border border-rose-500/25 flex items-center justify-between">
+          <div className="bg-rose-500/15 rounded-xl p-2.5 border border-rose-500/30 flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold uppercase text-rose-300 block">Liabilities</span>
-              <span className="text-xs font-bold text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-300 block">Liabilities</span>
+              <span className="text-xs font-black font-mono text-rose-600 dark:text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
             </div>
-            <Icon name="arrow_downward" className="text-rose-400 text-sm" />
+            <Icon name="arrow_downward" className="text-rose-500 text-sm" />
           </div>
         </div>
       </div>
@@ -648,8 +648,8 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
             onClick={() => setActiveSegment(seg.id)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 active:scale-95 touch-feedback ${
               activeSegment === seg.id
-                ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20'
-                : 'bg-white/80 dark:bg-dark-card/80 text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/10'
+                ? 'bg-primary-500 text-white shadow-xs'
+                : 'glass-tile text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/10'
             }`}
           >
             {seg.label}
@@ -661,15 +661,15 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
       {groupedSections.map((sec) => (
         <div key={sec.title} className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {sec.title}
             </span>
-            <span className={`text-xs font-black privacy-blur ${sec.totalClass}`}>
+            <span className={`text-xs font-mono font-bold privacy-blur ${sec.totalClass}`}>
               {sec.totalFormatted}
             </span>
           </div>
 
-          <div className="bg-white dark:bg-dark-card rounded-[22px] border border-black/5 dark:border-white/10 shadow-xs divide-y divide-black/5 dark:divide-white/5 overflow-hidden">
+          <div className="glass-section rounded-[22px] border border-slate-200/60 dark:border-white/5 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] divide-y divide-slate-200/60 dark:divide-white/5 overflow-hidden">
             {sec.accounts.map((acc) => (
               <MobileAccountItem
                 key={acc.id}

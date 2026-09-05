@@ -1357,6 +1357,46 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   }, [activeTab, allWidgets, widgets, saveLayouts]);
 
 
+  const [currentBreakpoint, setCurrentBreakpoint] = useState<string>('lg');
+  const GRID_COLS = useMemo(() => ({ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }), []);
+
+  const getBreakpointLayout = useCallback((bp: 'lg' | 'md' | 'sm' | 'xs' | 'xxs', baseWidgets: WidgetConfig[]) => {
+    const saved = preferences.dashboardLayouts?.[`${activeTab}-${bp}`];
+    if (saved && saved.length > 0) {
+      return saved.map(w => ({
+        i: w.id,
+        x: w.x,
+        y: w.y,
+        w: w.w,
+        h: w.h,
+        isResizable: isEditMode
+      }));
+    }
+    const maxCols = GRID_COLS[bp];
+    return baseWidgets.map((w, idx) => {
+      const colWidth = Math.min(w.w, maxCols);
+      return {
+        i: w.id,
+        x: (idx * colWidth) % maxCols,
+        y: Math.floor((idx * colWidth) / maxCols) * w.h,
+        w: colWidth,
+        h: w.h,
+        isResizable: isEditMode
+      };
+    });
+  }, [preferences.dashboardLayouts, activeTab, isEditMode, GRID_COLS]);
+
+  const responsiveLayouts = useMemo(() => {
+    const activeWidgets = widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id));
+    return {
+      lg: getBreakpointLayout('lg', activeWidgets),
+      md: getBreakpointLayout('md', activeWidgets),
+      sm: getBreakpointLayout('sm', activeWidgets),
+      xs: getBreakpointLayout('xs', activeWidgets),
+      xxs: getBreakpointLayout('xxs', activeWidgets),
+    };
+  }, [getBreakpointLayout, widgets, activeTab]);
+
   const removeWidget = (widgetId: string) => {
     saveLayouts(widgets.filter(w => w.id !== widgetId));
   };
@@ -1376,6 +1416,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   };
 
   const handleLayoutChange = useCallback((currentLayout: any[]) => {
+    if (!isEditMode) return;
+    const bpKey = `${activeTab}-${currentBreakpoint}`;
     const updated = widgets.map(w => {
       const layoutItem = currentLayout.find(l => l.i === w.id);
       if (layoutItem) {
@@ -1383,11 +1425,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       }
       return w;
     });
-    const isDifferent = JSON.stringify(updated) !== JSON.stringify(widgets);
-    if (isDifferent) {
-      saveLayouts(updated);
-    }
-  }, [widgets, saveLayouts]);
+    setPreferences(prev => ({
+      ...prev,
+      dashboardLayouts: {
+        ...(prev.dashboardLayouts || {}),
+        [bpKey]: updated,
+        ...(currentBreakpoint === 'lg' ? { [layoutKey]: updated } : {})
+      }
+    }));
+  }, [isEditMode, activeTab, currentBreakpoint, widgets, layoutKey, setPreferences]);
 
   const availableWidgetsToAdd = useMemo(() => {
     const currentWidgetIds = widgets.map(w => w.id);
@@ -1704,9 +1750,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         )}
 
         <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 bg-white/70 dark:bg-dark-card/70 backdrop-blur-md p-1.5 sm:p-2 rounded-2xl sm:rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-30">
-            {/* Redesigned Tabs (SwiftUI Segmented Picker Style) */}
-            <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-1 rounded-2xl sm:rounded-[1.5rem] w-full lg:w-auto overflow-x-auto no-scrollbar min-h-[48px] sm:h-12">
+          <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 sm:gap-4 bg-white/60 dark:bg-black/20 backdrop-blur-xl p-1.5 sm:p-2 rounded-2xl sm:rounded-[2rem] border border-slate-200/60 dark:border-white/5 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] relative z-30">
+            {/* Redesigned Tabs (Apple Health Glass Segmented Style) */}
+            <div className="flex items-center gap-1 bg-slate-900/[0.04] dark:bg-white/[0.04] p-1 rounded-2xl sm:rounded-[1.5rem] border border-slate-900/[0.06] dark:border-white/[0.06] w-full lg:w-auto overflow-x-auto no-scrollbar min-h-[48px] sm:h-12">
               {tabs.map((tab) => {
                 const tabConfig = {
                   overview: { icon: 'layout_alt', label: 'Overview', badge: null },
@@ -1724,14 +1770,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`px-3 sm:px-6 h-10 sm:h-10 rounded-xl sm:rounded-[1.25rem] text-xs font-semibold tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap flex-1 lg:flex-none ${activeTab === tab
-                      ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400 font-bold scale-[1.01]'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white'
+                      ? 'bg-white/95 dark:bg-white/[0.1] shadow-xs border border-slate-200/80 dark:border-white/10 text-primary-600 dark:text-primary-400 font-bold scale-[1.01]'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                   >
                     <Icon name={tabConfig.icon} className={`text-lg sm:text-xl ${activeTab === tab ? '' : 'opacity-70'}`} />
                     <span>{tabConfig.label}</span>
                     {tabConfig.badge !== null && (
-                      <span className="ml-0.5 px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white shadow-sm">
+                      <span className="ml-0.5 px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white shadow-xs">
                         {tabConfig.badge}
                       </span>
                     )}
@@ -1742,7 +1788,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end px-0.5 lg:px-0">
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-2xl sm:rounded-[1.5rem] shadow-inner w-full sm:w-auto min-h-[48px] sm:h-12">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-1 bg-slate-900/[0.03] dark:bg-white/[0.03] border border-slate-900/[0.06] dark:border-white/[0.06] p-1 rounded-2xl sm:rounded-[1.5rem] w-full sm:w-auto min-h-[48px] sm:h-12">
                 {/* Forecast Controls (Only visible in overview) */}
                 {activeTab === 'overview' && (
                   <>
@@ -1750,21 +1796,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       <select
                         value={forecastDuration}
                         onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
-                        className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs font-semibold tracking-wide`}
+                        className={`${SELECT_STYLE} !bg-transparent !border-none !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs font-semibold tracking-wide`}
                       >
                         {FORECAST_DURATION_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
+                          <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{opt.label}</option>
                         ))}
                       </select>
                       <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-base" /></div>
                     </div>
 
-                    <div className="w-[1px] h-5 bg-black/10 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
+                    <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
 
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => setShowForecast(!showForecast)}
-                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showForecast ? 'bg-white/95 dark:bg-white/[0.1] shadow-xs border border-slate-200/80 dark:border-white/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/5'}`}
                         title={showForecast ? "Hide Forecast" : "Show Forecast"}
                         aria-label="Toggle Forecast"
                       >
@@ -1773,7 +1819,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                       <button
                         onClick={() => setShowGoals(!showGoals)}
-                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'}`}
+                        className={`w-10 h-10 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl sm:rounded-[1.25rem] transition-all ${showGoals ? 'bg-white/95 dark:bg-white/[0.1] shadow-xs border border-slate-200/80 dark:border-white/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/5'}`}
                         title={showGoals ? "Hide Goals" : "Show Goals"}
                         aria-label="Toggle Goals"
                       >
@@ -1831,21 +1877,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
               <ResponsiveGridLayout
                 className="layout"
-                layouts={{
-                  lg: widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).map(w => ({
-                    i: w.id,
-                    x: w.x,
-                    y: w.y,
-                    w: w.w,
-                    h: w.h,
-                    isResizable: isEditMode
-                  }))
-                }}
+                layouts={responsiveLayouts}
                 breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                 cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
                 rowHeight={180}
                 isDraggable={isEditMode}
                 isResizable={isEditMode}
+                onBreakpointChange={setCurrentBreakpoint}
                 onLayoutChange={handleLayoutChange}
                 draggableHandle=".drag-handle"
                 margin={isMobile ? [12, 12] : [24, 24]}
@@ -2025,21 +2063,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           <div className="animate-fade-in-up">
             <ResponsiveGridLayout
               className="layout"
-              layouts={{
-                lg: widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id)).map(w => ({
-                  i: w.id,
-                  x: w.x,
-                  y: w.y,
-                  w: w.w,
-                  h: w.h,
-                  isResizable: isEditMode
-                }))
-              }}
+              layouts={responsiveLayouts}
               breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
               cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
               rowHeight={180}
               isDraggable={isEditMode}
               isResizable={isEditMode}
+              onBreakpointChange={setCurrentBreakpoint}
               onLayoutChange={handleLayoutChange}
               draggableHandle=".drag-handle"
               margin={isMobile ? [12, 12] : [24, 24]}

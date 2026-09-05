@@ -66,9 +66,9 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
     }
 
     return (
-        <div className="space-y-4 h-full overflow-y-auto pr-2 -mr-4">
+        <div className="space-y-2 h-full overflow-y-auto pr-1">
             {budgetData.slice(0, 4).map(budget => (
-                <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer group hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-xl transition-colors">
+                <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer group p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-all duration-200">
                     <BudgetProgressBar
                         spent={budget.spent}
                         budgeted={budget.amount}

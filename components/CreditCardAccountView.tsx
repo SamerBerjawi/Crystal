@@ -176,7 +176,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                         <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-4">
                             <div className={`w-12 h-12 rounded-2xl ${logoUrl ? 'bg-white dark:bg-white/10' : 'bg-black/5 dark:bg-white/10'} flex items-center justify-center shrink-0 overflow-hidden`}>
                                 {logoUrl ? (
-                                    <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
+                                    <img src={logoUrl} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => setLogoError(true)} />
                                 ) : (
                                     <Icon name="CreditCard01" className="text-primary-500 text-2xl" />
                                 )}
@@ -221,7 +221,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                 </div>
 
                                 {logoUrl ? (
-                                    <img src={logoUrl} alt="" className="w-10 h-10 object-cover rounded-xl shrink-0 overflow-hidden" onError={() => setLogoError(true)} />
+                                    <img src={logoUrl} alt="" className="w-10 h-10 object-cover rounded-xl shrink-0 overflow-hidden p-0 border-0" onError={() => setLogoError(true)} />
                                 ) : (
                                     <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm ">{account.cardNetwork || 'PLATINUM'}</span>
                                 )}

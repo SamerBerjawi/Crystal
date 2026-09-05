@@ -437,11 +437,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                     <span>Client / Counterparty Entity</span>
                   </h4>
                   {showLogo && (
-                    <div className="w-9 h-9 rounded-xl bg-white dark:bg-white/10 p-1 border border-black/5 dark:border-white/10 shadow-xs overflow-hidden flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-white dark:bg-white/10 shadow-xs overflow-hidden flex items-center justify-center">
                       <img
                         src={clientLogo!}
                         alt={entityName}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain p-0 border-0"
                         onError={() => setLogoLoadError(true)}
                       />
                     </div>

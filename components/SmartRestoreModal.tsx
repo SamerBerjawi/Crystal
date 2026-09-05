@@ -267,7 +267,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                     </div>
                 )}
                 
-                <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+                <div className="flex justify-end gap-3 pt-4 pb-2 sm:pb-3 border-t border-black/5 dark:border-white/5">
                     <button onClick={onClose} className={`${BTN_SECONDARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider`}>Cancel</button>
                     <button onClick={handleRestore} disabled={!parsedData} className={`${BTN_PRIMARY_STYLE} h-11 px-6 text-xs font-bold uppercase tracking-wider shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`}>Restore Selected Data</button>
                 </div>

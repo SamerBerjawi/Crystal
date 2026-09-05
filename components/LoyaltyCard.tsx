@@ -107,7 +107,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                         <img 
                             src={logoUrl!} 
                             alt={membership.provider} 
-                            className="w-full h-full object-cover" 
+                            className="w-full h-full object-cover p-0 border-0" 
                             onError={() => setLogoError(true)}
                         />
                     ) : (

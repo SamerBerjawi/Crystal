@@ -50,7 +50,7 @@ const ApiKeyCard = ({
     const [isVisible, setIsVisible] = React.useState(false);
 
     return (
-        <Card className="flex flex-col h-full border border-black/5 dark:border-white/5 hover:border-primary-500/20 shadow-xs hover:shadow-lg transition-all duration-300 rounded-3xl p-6 relative overflow-hidden group">
+        <Card className="flex flex-col h-full glass-tile border border-slate-200/80 dark:border-white/10 hover:border-primary-500/30 shadow-card hover:shadow-xl transition-all duration-300 rounded-3xl p-6 relative overflow-hidden group">
             <div className="flex items-start justify-between mb-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass} shadow-md group-hover:scale-105 transition-transform duration-300`}>
                     <Icon name={icon} className="text-2xl" />
@@ -81,7 +81,7 @@ const ApiKeyCard = ({
                     onChange={(event) => onChange(event.target.value)}
                     onBlur={onBlur}
                     placeholder={placeholder}
-                    className="w-full pl-10 pr-10 py-3 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-xl text-xs font-mono text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                    className="w-full pl-10 pr-10 py-3 glass-subwell border border-slate-200/60 dark:border-white/10 rounded-xl text-xs font-mono text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
                 />
                 <button
                     type="button"
@@ -179,17 +179,15 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
               <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight opacity-60">Synchronization Vault</h3>
           </div>
-          <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
-               <EnableBankingIntegrationCard
-                    connections={enableBankingConnections}
-                    accounts={accounts}
-                    onCreateConnection={onCreateConnection}
-                    onFetchBanks={onFetchBanks}
-                    onDeleteConnection={onDeleteConnection}
-                    onLinkAccount={onLinkAccount}
-                    onTriggerSync={onTriggerSync}
-                />
-          </div>
+          <EnableBankingIntegrationCard
+               connections={enableBankingConnections}
+               accounts={accounts}
+               onCreateConnection={onCreateConnection}
+               onFetchBanks={onFetchBanks}
+               onDeleteConnection={onDeleteConnection}
+               onLinkAccount={onLinkAccount}
+               onTriggerSync={onTriggerSync}
+           />
       </section>
     </div>
   );

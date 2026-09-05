@@ -63,20 +63,20 @@ const CACHE_KEYS = {
 };
 
 const MetricCard: React.FC<{ title: string; value: string; subValue?: string; icon: string; colorClass: string; trend?: 'up' | 'down' | 'neutral' }> = ({ title, value, subValue, icon, colorClass, trend }) => (
-    <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full relative overflow-hidden group">
-        <div className="flex justify-between items-start mb-3 relative z-10">
-            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{title}</span>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClass} bg-opacity-10 dark:bg-opacity-20 group-hover:scale-110 transition-transform duration-300`}>
-                <Icon name={icon} className="text-xl" />
+    <div className="glass-tile p-4 sm:p-5 rounded-2xl shadow-card hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full relative overflow-hidden group select-none cursor-pointer">
+        <div className="flex justify-between items-center mb-2.5 relative z-10">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate tracking-tight">{title}</span>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${colorClass} bg-slate-900/[0.04] dark:bg-white/[0.06] border border-slate-900/[0.08] dark:border-white/10 group-hover:scale-105 transition-transform duration-200`}>
+                <Icon name={icon} className="text-base" />
             </div>
         </div>
         <div className="relative z-10">
-            <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter">{value}</p>
+            <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">{value}</p>
             {subValue && (
-                <div className="flex items-center gap-1 mt-1">
-                     {trend === 'up' && <Icon name="trending_up" className="text-xs text-green-500 font-bold" />}
-                     {trend === 'down' && <Icon name="trending_down" className="text-xs text-red-500 font-bold" />}
-                     <p className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-90">{subValue}</p>
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                     {trend === 'up' && <Icon name="trending_up" className="text-xs text-emerald-500 font-bold" />}
+                     {trend === 'down' && <Icon name="trending_down" className="text-xs text-rose-500 font-bold" />}
+                     <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{subValue}</p>
                 </div>
             )}
         </div>
@@ -1349,10 +1349,10 @@ const Forecasting: React.FC = () => {
                     {/* Simplified Status Column - One big element */}
                     <div className="lg:col-span-3 space-y-4 mb-8 lg:mb-0">
                         {/* Monthly Target Schedule Summary */}
-                        <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
-                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10 flex justify-between items-center">
+                        <Card className="flex flex-col border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl overflow-hidden !p-0">
+                            <div className="p-4 glass-subwell border-b border-slate-200/60 dark:border-white/5 flex justify-between items-center">
                                 <h2 className="text-xs font-semibold uppercase tracking-wider text-primary-500">Monthly Target Schedule</h2>
-                                <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
+                                <div className="flex glass-tile p-0.5 rounded-lg">
                                     <button 
                                         onClick={() => setScheduleMode('account')}
                                         className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
@@ -1464,8 +1464,8 @@ const Forecasting: React.FC = () => {
                                 </div>
                             </div>
                         </Card>
-                        <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
-                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
+                        <Card className="flex flex-col border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl overflow-hidden !p-0">
+                            <div className="p-4 glass-subwell border-b border-slate-200/60 dark:border-white/5">
                                 <h2 className="text-sm font-bold tracking-tight mb-1">Global Performance</h2>
                             </div>
                             
@@ -1700,10 +1700,10 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
 
-                <Card className="overflow-hidden border-0 shadow-xl bg-white dark:bg-dark-card !p-0">
+                <Card className="overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl !p-0">
                     <div className="overflow-x-auto max-h-[700px] no-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
-                             <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
+                             <thead className="sticky top-0 z-30 bg-slate-900/[0.03] dark:bg-white/[0.03] backdrop-blur-md shadow-xs text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary border-b border-slate-200/60 dark:border-white/5">
                                 <tr>
                                     <th className="px-6 py-4">Date</th>
                                     <th className="px-6 py-4">Origin/Account</th>
@@ -1713,7 +1713,7 @@ const Forecasting: React.FC = () => {
                                     <th className="px-6 py-4 text-center">Source</th>
                                 </tr>
                              </thead>
-                             <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
+                             <tbody className="divide-y divide-slate-200/60 dark:divide-white/5 bg-transparent">
                                 {groupedTableData.map((group) => (
                                     <React.Fragment key={group.monthKey}>
                                         <tr className="bg-light-fill/50 dark:bg-dark-fill/30 sticky top-[53px] z-20 backdrop-blur-sm">
@@ -1733,7 +1733,7 @@ const Forecasting: React.FC = () => {
                                             const isLowest = hasForecastData && row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
                                             const isMonthlyLowest = row.balance.toFixed(2) === group.minBalance.toFixed(2);
                                             
-                                            let rowClass = 'hover:bg-gray-50/80 dark:hover:bg-white/5 transition-all duration-150 group cursor-pointer relative';
+                                            let rowClass = 'odd:bg-black/[0.02] dark:odd:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all duration-150 group cursor-pointer relative';
                                             if (isLowest) rowClass += ' bg-red-500/[0.03] hover:!bg-red-500/[0.06]';
                                             else if (isMonthlyLowest) rowClass += ' bg-amber-500/[0.02]';
 

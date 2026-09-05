@@ -74,7 +74,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
         {/* Left Column: Profile Card */}
         <div className="lg:col-span-1">
             <div className="sticky top-6 space-y-6">
-                <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 overflow-hidden">
+                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 overflow-hidden">
                     {/* Hero Background */}
                     <div className="w-full h-24 bg-gradient-to-br from-primary-400 to-primary-600 dark:from-primary-600 dark:to-primary-800 relative">
                          <div className="absolute inset-0 bg-black/10 opacity-20"></div>
@@ -84,17 +84,17 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                     {/* Profile Picture */}
                     <div className="relative -mt-12 flex justify-center px-6">
                         <div className="relative group/photo cursor-pointer" onClick={handlePictureClick}>
-                            <div className="w-28 h-28 rounded-2xl p-1 bg-white dark:bg-dark-card shadow-2xl relative z-10 overflow-hidden">
+                            <div className="w-28 h-28 rounded-2xl p-0 border-0 bg-white dark:bg-dark-card shadow-2xl relative z-10 overflow-hidden">
                                 <img 
                                     src={formData.profilePictureUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop'} 
                                     alt="Profile" 
-                                    className="w-full h-full rounded-xl object-cover"
+                                    className="w-full h-full rounded-2xl object-cover p-0 border-0"
                                 />
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center text-white z-20 backdrop-blur-sm">
                                   <Icon name="Edit02" className="text-3xl" />
                                 </div>
                             </div>
-                            <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white w-8 h-8 flex items-center justify-center rounded-lg border-4 border-white dark:border-dark-card shadow-lg z-30">
+                            <div className="absolute -bottom-2 -right-2 bg-primary-500 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-lg z-30">
                                 <Icon name="refresh" className="text-base" />
                             </div>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
@@ -148,7 +148,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
              <form onSubmit={handleSubmit} className="space-y-8">
                 
                 {/* Identity Section */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 p-8">
+                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 p-8">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
                             <Icon name="badge" className="text-2xl" />
@@ -172,7 +172,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 </div>
 
                 {/* Contact Section */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 p-8">
+                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 p-8">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-12 h-12 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
                             <Icon name="contact_mail" className="text-2xl" />
@@ -220,7 +220,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 </div>
 
                 {/* Security Section */}
-                <div className="bg-white dark:bg-dark-card rounded-3xl shadow-sm border border-black/5 dark:border-white/5 p-8">
+                <div className="glass-section rounded-3xl shadow-card border border-slate-200/60 dark:border-white/5 p-8">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
                             <Icon name="safety_check" className="text-2xl" />
@@ -232,9 +232,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                     </div>
                     
                     <div className="space-y-6">
-                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 group">
+                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl glass-subwell border border-slate-200/60 dark:border-white/10 group shadow-xs">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-dark-card flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary transition-transform group-hover:rotate-12">
+                                <div className="w-10 h-10 rounded-xl glass-tile flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary transition-transform group-hover:rotate-12">
                                   <Icon name="password" />
                                 </div>
                                 <div>
@@ -242,7 +242,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                     <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Updated 45 days ago</p>
                                 </div>
                             </div>
-                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 rounded-xl bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 text-xs font-semibold text-light-text dark:text-dark-text hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-sm">Rotate Credentials</button>
+                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 rounded-xl glass-tile border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-light-text dark:text-dark-text hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-card">Rotate Credentials</button>
                          </div>
                          
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-dashed border-black/20 dark:border-white/20 opacity-60 grayscale">

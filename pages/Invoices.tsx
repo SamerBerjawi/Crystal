@@ -160,14 +160,14 @@ const InvoicesPage: React.FC = () => {
                     >
                         <div className="flex flex-col justify-between h-full gap-5 relative z-10 p-6">
                             <div className="flex items-center justify-between">
-                                <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
+                                <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center border border-current/10`}>
                                     <Icon name={stat.icon} className={`${stat.color} text-2xl`} />
                                 </div>
                                 <span className="text-2xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Node {idx + 1}</span>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{stat.label}</p>
-                                <h3 className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight privacy-blur">
+                                <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{stat.label}</p>
+                                <h3 className="text-2xl sm:text-3xl font-black font-mono tabular-nums tracking-tight privacy-blur">
                                     {formatCurrency(stat.value, currencyCode)}
                                 </h3>
                                 <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-70">{stat.desc}</p>
@@ -178,21 +178,21 @@ const InvoicesPage: React.FC = () => {
             </BentoGrid>
 
             {/* Content Switcher & Filters */}
-            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-black/5 dark:border-white/5 flex flex-col xl:flex-row gap-8 justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
+            <div className="glass-section rounded-[2.5rem] shadow-card overflow-hidden">
+                <div className="p-6 sm:p-8 border-b border-slate-200/60 dark:border-white/5 flex flex-col xl:flex-row gap-6 justify-between items-center bg-transparent">
                     <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
                         {/* Tab Switcher */}
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1.5 rounded-2xl border border-black/5 dark:border-white/5 w-full md:w-auto shadow-inner">
+                        <div className="flex glass-subwell p-1.5 rounded-2xl w-full md:w-auto shadow-xs">
                             <button 
                                 onClick={() => setActiveTab('invoices')} 
-                                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
+                                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${activeTab === 'invoices' ? 'glass-tile shadow-card text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'}`}
                             >
                                 <Icon name="receipt_long" className="text-xl" />
                                 Invoices
                             </button>
                             <button 
                                 onClick={() => setActiveTab('quotes')} 
-                                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeTab === 'quotes' ? 'bg-white dark:bg-dark-card shadow-lg text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'}`}
+                                className={`flex items-center gap-3 px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all ${activeTab === 'quotes' ? 'glass-tile shadow-card text-primary-600 dark:text-primary-400 scale-[1.02]' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'}`}
                             >
                                 <Icon name="request_quote" className="text-xl" />
                                 Proposals
@@ -205,20 +205,20 @@ const InvoicesPage: React.FC = () => {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/5 rounded-2xl pl-14 pr-6 h-14 text-sm font-normal outline-none focus:ring-4 focus:ring-primary-500/10 transition-all placeholder:text-xs placeholder:text-light-text-secondary/40"
+                                className="w-full bg-slate-900/[0.03] dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/10 rounded-2xl pl-14 pr-6 h-12 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-500/20 transition-all placeholder:text-xs placeholder:text-light-text-secondary/40"
                                 placeholder="Search by identifier or entity..."
                             />
                         </div>
                     </div>
 
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1.5 rounded-2xl border border-black/5 dark:border-white/5 w-full xl:w-auto shadow-inner">
+                    <div className="flex glass-subwell p-1.5 rounded-2xl w-full xl:w-auto shadow-xs">
                         <div className="flex flex-wrap gap-1">
                             <button
                                 onClick={() => setStatusFilter('all')}
-                                className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
+                                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                                     statusFilter === 'all' 
-                                    ? 'bg-white dark:bg-dark-card shadow-lg text-primary-500' 
-                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'
+                                    ? 'glass-tile shadow-card text-primary-500' 
+                                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'
                                 }`}
                             >
                                 All Status
@@ -227,10 +227,10 @@ const InvoicesPage: React.FC = () => {
                                 <button
                                     key={s}
                                     onClick={() => setStatusFilter(s as any)}
-                                    className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
+                                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                                         statusFilter === s 
-                                        ? 'bg-white dark:bg-dark-card shadow-lg text-primary-500' 
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-60'
+                                        ? 'glass-tile shadow-card text-primary-500' 
+                                        : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'
                                     }`}
                                 >
                                     {s}
@@ -243,7 +243,7 @@ const InvoicesPage: React.FC = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-100/30 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                            <tr className="bg-slate-900/[0.02] dark:bg-white/[0.02] border-b border-slate-200/60 dark:border-white/5">
                                 <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Reference</th>
                                 <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Entity Designation</th>
                                 <th className="px-6 sm:px-10 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider hidden md:table-cell">Status Details</th>
@@ -283,7 +283,7 @@ const InvoicesPage: React.FC = () => {
                                                              <img 
                                                                  src={logoUrl!} 
                                                                  alt={doc.entityName} 
-                                                                 className="w-full h-full object-cover" 
+                                                                 className="w-full h-full object-cover p-0 border-0" 
                                                                  onError={() => handleLogoError(logoUrl!)}
                                                              />
                                                          ) : (
@@ -311,7 +311,7 @@ const InvoicesPage: React.FC = () => {
                                                  </div>
                                              </td>
                                              <td className="px-6 sm:px-10 py-6 text-right">
-                                                 <span className="text-base sm:text-lg font-bold tabular-nums tracking-tight text-light-text dark:text-dark-text privacy-blur">
+                                                 <span className="text-base sm:text-lg font-black font-mono tabular-nums tracking-tight text-light-text dark:text-dark-text privacy-blur">
                                                      {formatCurrency(doc.total, doc.currency)}
                                                  </span>
                                              </td>
@@ -354,15 +354,15 @@ const InvoicesPage: React.FC = () => {
                      </table>
                  </div>
 
-                 <div className="p-8 bg-gray-50/50 dark:bg-white/[0.01] border-t border-black/5 dark:border-white/5 flex items-center justify-between">
+                 <div className="p-6 sm:p-8 bg-transparent border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between">
                      <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
                          Displaying {displayedDocs.length} of {invoices.length} Records
                      </p>
                     <div className="flex gap-2">
-                         <button className="w-12 h-12 flex items-center justify-center rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
+                         <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
                             <Icon name="chevron_left" className="text-2xl" />
                          </button>
-                         <button className="w-12 h-12 flex items-center justify-center rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
+                         <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
                             <Icon name="chevron_right" className="text-2xl" />
                          </button>
                     </div>

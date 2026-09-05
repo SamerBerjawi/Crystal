@@ -415,7 +415,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
            {/* External Data */}
            <div className="relative group rounded-3xl overflow-hidden">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-3xl blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
-              <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
+              <div className="relative glass-section rounded-3xl p-8 border border-slate-200/60 dark:border-white/5 shadow-card flex flex-col h-full">
                   <div className="flex items-center gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center shadow-xl shadow-blue-500/20">
                           <Icon name="table_chart" className="text-3xl" />
@@ -444,7 +444,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
            {/* Backup & Restore */}
            <div className="relative group rounded-3xl overflow-hidden">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-3xl blur opacity-5 group-hover:opacity-10 transition duration-1000"></div>
-              <div className="relative bg-white dark:bg-dark-card rounded-3xl p-8 border border-black/5 dark:border-white/5 shadow-sm flex flex-col h-full">
+              <div className="relative glass-section rounded-3xl p-8 border border-slate-200/60 dark:border-white/5 shadow-card flex flex-col h-full">
                   <div className="flex items-center gap-4 mb-6">
                       <div className="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-500/20">
                           <Icon name="terminal" className="text-3xl" />
@@ -472,8 +472,8 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       </div>
 
       {/* Activity History */}
-      <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden mb-12">
-          <div className="p-8 border-b border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-black/[0.02] dark:bg-white/[0.02]">
+      <div className="glass-section rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden mb-12">
+          <div className="p-8 border-b border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4">
                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
                     <Icon name="history" />

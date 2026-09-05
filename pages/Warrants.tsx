@@ -130,22 +130,22 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 <BentoCard className="!col-span-1 !p-0">
                     <div className="p-6 flex flex-col justify-between h-full">
                         <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</p>
-                        <p className="text-2xl sm:text-3xl font-bold text-light-text dark:text-dark-text mt-2">{formatCurrency(totalCurrentValue, 'EUR')}</p>
+                        <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text mt-2">{formatCurrency(totalCurrentValue, 'EUR')}</p>
                     </div>
                 </BentoCard>
                 <BentoCard className="!col-span-1 !p-0">
                     <div className="p-6 flex flex-col justify-between h-full">
                         <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Gain/Loss</p>
                         <div className="mt-2">
-                            <p className={`text-2xl sm:text-3xl font-bold ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{formatCurrency(totalGainLoss, 'EUR')}</p>
-                            <p className={`text-xs font-semibold mt-1 ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{totalGainLoss >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(2)}%</p>
+                            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{formatCurrency(totalGainLoss, 'EUR')}</p>
+                            <p className={`text-xs font-mono font-bold mt-1 ${totalGainLoss >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{totalGainLoss >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(2)}%</p>
                         </div>
                     </div>
                 </BentoCard>
                 <BentoCard className="!col-span-1 !p-0">
                     <div className="p-6 flex flex-col justify-between h-full">
                         <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Holdings</p>
-                        <p className="text-2xl sm:text-3xl font-bold text-light-text dark:text-dark-text mt-2">{holdings.length}</p>
+                        <p className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text mt-2">{holdings.length}</p>
                     </div>
                 </BentoCard>
             </BentoGrid>
@@ -174,15 +174,15 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{holding.name}</p>
                                     </div>
                                     <div className="text-left sm:text-center">
-                                        <p className="font-semibold">{holding.quantity}</p>
-                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                        <p className="font-mono font-bold">{holding.quantity}</p>
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-mono">
                                             @ {hasPrice ? formatCurrency(currentPrice as number, 'EUR') : 'N/A'}
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold">{hasPrice ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
+                                        <p className="font-mono font-black">{hasPrice ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
                                         {hasPrice ? (
-                                            <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}</p>
+                                            <p className={`text-sm font-mono font-bold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}</p>
                                         ) : (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set a price</p>
                                         )}

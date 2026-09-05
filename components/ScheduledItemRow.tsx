@@ -121,7 +121,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
     }, [isMenuOpen]);
 
     return (
-      <div className={`group relative flex items-center gap-4 sm:gap-6 ${compact ? 'p-2' : 'p-3'} bg-white dark:bg-dark-card rounded-[1.5rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 ${opacityClass} ${isMenuOpen ? 'z-40' : 'z-0'}`}>
+      <div className={`group relative flex items-center gap-4 sm:gap-6 ${compact ? 'p-2' : 'p-3'} glass-tile rounded-[1.5rem] shadow-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 ${opacityClass} ${isMenuOpen ? 'z-40' : 'z-0'}`}>
         <div className="absolute inset-0 pointer-events-none rounded-[1.5rem] overflow-hidden">
              <div className="absolute -top-12 -right-12 w-32 h-32 blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br from-primary-500 to-indigo-600" />
         </div>
@@ -149,10 +149,10 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
         {/* Merchant / Category Logo Squircle */}
         <div className="relative z-10 shrink-0">
             <div
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-xs ${
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-xs ${
                     showLogo
-                        ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10'
-                        : 'text-white border-transparent'
+                        ? 'bg-white dark:bg-white/10'
+                        : 'text-white'
                 }`}
                 style={showLogo ? undefined : { backgroundColor: categoryInfo.color }}
             >
@@ -160,7 +160,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                     <img
                         src={logoUrl}
                         alt={item.description}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover p-0 border-0"
                         referrerPolicy="no-referrer"
                         onError={() => setLogoLoadError(true)}
                     />
@@ -218,7 +218,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
 
         {/* Amount & Actions */}
         <div className={`relative flex flex-col items-end gap-1.5 ${isMenuOpen ? 'z-50' : 'z-10'}`}>
-             <span className={`${compact ? 'text-lg' : 'text-xl'} font-black tabular-nums tracking-tighter ${amountColor} ${strikethroughClass}`}>
+             <span className={`${compact ? 'text-lg' : 'text-xl'} font-black font-mono tracking-tight tabular-nums ${amountColor} ${strikethroughClass}`}>
                 {formatCurrency(item.amount, 'EUR')}
              </span>
              

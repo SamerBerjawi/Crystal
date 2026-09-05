@@ -48,33 +48,40 @@ interface TransactionsProps {
 
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(var(--primary-500-rgb), 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
   return (
-    <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
-      style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
-      {/* Inner Glow Effect */}
-      <div
-        className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
-        style={{
-          background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 50%)`,
-          opacity: 0.6
-        }}
-      />
-
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
-            <Icon name={icon} className="text-lg" />
+    <div className="group relative glass-tile p-4 sm:p-5 rounded-2xl flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 overflow-hidden h-full shadow-card hover:shadow-md cursor-pointer select-none">
+      <div className="relative z-10 flex flex-col justify-between h-full">
+        <div>
+          {/* ROW 1: Icon & Label */}
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-900/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-slate-900/[0.08] dark:border-white/10 transition-transform group-hover:scale-105">
+              <Icon name={icon} className="text-base" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+              Activity
+            </span>
           </div>
-          <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+
+          {/* ROW 2: Metric Title */}
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate tracking-tight">
+            {label}
+          </h3>
+
+          {/* ROW 3: Big Metric Value */}
+          <div className="mt-1">
+            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${colorClass}`}>{value}</p>
+          </div>
         </div>
 
-        <div className="flex flex-col">
-          <p className={`text-xl font-semibold tracking-tight ${colorClass}`}>{value}</p>
-          {subtitle && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium opacity-60">{subtitle}</p>}
-        </div>
+        {/* ROW 4: Footer */}
+        {subtitle && (
+          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-white/5 text-[10px] font-semibold text-slate-400 dark:text-slate-500 truncate">
+            {subtitle}
+          </div>
+        )}
       </div>
 
       {/* Background Icon Accent */}
-      <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
+      <div className="absolute -right-4 -bottom-4 text-current opacity-[0.02] dark:opacity-[0.04] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
         <Icon name={icon} className="text-8xl" />
       </div>
     </div>
@@ -1919,15 +1926,6 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               {/* Texture Overlay */}
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
 
-              {/* Inner Glow */}
-              <div
-                className="absolute inset-0 pointer-events-none rounded-2xl"
-                style={{
-                  background: `radial-gradient(circle at 0% 0%, rgba(255,255,255,0.2) 0%, transparent 60%)`,
-                  opacity: 0.8
-                }}
-              />
-
               <div className="relative z-10">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                   <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
@@ -1973,7 +1971,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           </div>
 
           {/* Filter Toolbar */}
-          <div className={`p-4 sm:p-6 bg-white dark:bg-dark-card rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 relative`}>
+          <div className={`p-4 sm:p-6 glass-section rounded-2xl shadow-card transition-all duration-300 relative`}>
             {/* Subtle Glow */}
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(var(--primary-500-rgb), 0.05) 0%, transparent 40%)' }}></div>
 
@@ -2063,7 +2061,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
           </div>
           {/* Untitled UI Table Card with Alternating Fills */}
           <div className="flex-1 min-w-0 relative">
-            <TableCard.Root className="shadow-sm border border-secondary rounded-2xl bg-primary">
+            <TableCard.Root className="shadow-card border-0 rounded-2xl">
               <TableCard.Header
                 title="Transactions"
                 badge={`${filteredTransactions.length} records`}
@@ -2338,7 +2336,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                           <Table.Row
                             id={tx.id}
                             className={cx(
-                              "odd:bg-secondary hover:bg-secondary cursor-pointer",
+                              "odd:bg-black/[0.02] dark:odd:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] cursor-pointer",
                               tx.parentTransactionId && "bg-primary-500/[0.03] dark:bg-primary-500/[0.05]"
                             )}
                             onAction={() => handleOpenOverview(tx)}
@@ -2368,7 +2366,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                                 )}
                                 {showMerchantLogo && merchantLogoUrl ? (
                                   <div className="size-10 rounded-xl overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.04]">
-                                    <img src={merchantLogoUrl} alt={tx.merchant || tx.description} className="w-full h-full object-cover" />
+                                    <img src={merchantLogoUrl} alt={tx.merchant || tx.description} className="w-full h-full object-cover p-0 border-0" />
                                   </div>
                                 ) : merchantInitial ? (
                                   <div className="size-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 text-sm shadow-xs" style={{ backgroundColor: categoryColor }}>
@@ -2404,7 +2402,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                               <div className="flex items-center gap-2.5 min-w-0">
                                 {showInstitutionLogo ? (
                                   <div className="size-8 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-black/[0.03] dark:bg-white/[0.04]">
-                                    <img src={institutionLogoUrl} alt={accountName} className="w-full h-full object-cover" />
+                                    <img src={institutionLogoUrl} alt={accountName} className="w-full h-full object-cover p-0 border-0" />
                                   </div>
                                 ) : (
                                   <div className="size-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-white/5 text-tertiary shrink-0">

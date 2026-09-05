@@ -254,9 +254,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 onClick={onClick}
                 className={`
                     relative group cursor-pointer
-                    w-full bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5
+                    w-full glass-tile rounded-2xl border-y border-r border-slate-200/80 dark:border-white/10
                     p-3.5 sm:p-4 flex items-center justify-between gap-4 min-h-[72px]
-                    transition-all duration-200 hover:bg-black/[0.01] dark:hover:bg-white/[0.01] hover:-translate-y-0.5 hover:shadow-sm
+                    transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md
                     ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
                     ${dragClasses} ${dragOverClasses}
                 `}
@@ -280,7 +280,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     <div className="relative shrink-0">
                         <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}>
                             {showLogo ? (
-                                <img src={logoUrl!} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
+                                <img src={logoUrl!} alt="" className="w-full h-full object-cover p-0 border-0" referrerPolicy="no-referrer" onError={() => setLogoError(true)} />
                             ) : (
                                 <Icon name={iconName} className="text-lg sm:text-xl" />
                             )}
@@ -340,7 +340,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 {/* Right Section: Balance and Trend */}
                 <div className="flex items-center gap-3 shrink-0 text-right pr-1">
                     <div className="flex flex-col items-end">
-                        <p className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur truncate leading-none">
+                        <p className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white tracking-tight tabular-nums privacy-blur truncate leading-none">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         <div className="flex items-center gap-1.5 mt-1">
@@ -397,9 +397,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             onClick={onClick}
             className={`
                 relative group cursor-pointer
-                w-full bg-white dark:bg-dark-card rounded-[2rem] border-l-4 border-y border-r border-black/5 dark:border-white/5
+                w-full glass-tile rounded-[2rem] border-l-4 border-y border-r border-slate-200/80 dark:border-white/10 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)]
                 p-4 sm:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] sm:h-[210px]
-                transition-all duration-300 hover:-translate-y-1
+                transition-all duration-300 hover:-translate-y-1 hover:shadow-lg
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
                 ${dragClasses} ${dragOverClasses}
             `}
@@ -452,7 +452,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         <div className="relative shrink-0">
                             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl ${showLogo ? 'bg-white dark:bg-white/10' : `${currentConfig.bg} ${currentConfig.text} border ${currentConfig.border}`} flex items-center justify-center transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
                                 {showLogo ? (
-                                    <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
+                                    <img src={logoUrl!} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => setLogoError(true)} />
                                 ) : (
                                     <Icon name={iconName} className="text-xl sm:text-2xl" />
                                 )}
@@ -490,7 +490,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     </div>
 
                     <div className="space-y-0.5">
-                        <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur truncate">
+                        <p className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-slate-900 dark:text-white tracking-tight tabular-nums privacy-blur truncate">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         {account.currency !== 'EUR' && (

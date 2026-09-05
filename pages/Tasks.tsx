@@ -244,7 +244,7 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                         <select 
                             value={sortBy} 
                             onChange={e => setSortBy(e.target.value as any)} 
-                            className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl px-4 py-3 text-xs font-semibold appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+                            className="w-full glass-tile rounded-2xl px-4 py-3 text-xs font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-card"
                         >
                             <option value="manual">Manual Sequence</option>
                             <option value="priority-desc">Priority Sift</option>

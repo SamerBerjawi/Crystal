@@ -31,43 +31,39 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
     
     let colorClass = '';
     let icon = '';
-    let bgClass = '';
     let accentBg = '';
 
     if (isIncome) {
         colorClass = 'text-emerald-600 dark:text-emerald-400';
-        bgClass = 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30';
         accentBg = 'bg-emerald-500';
         icon = 'ArrowDownLeft';
     } else if (isNet) {
         colorClass = value >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400';
-        bgClass = value >= 0 ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30';
         accentBg = value >= 0 ? 'bg-blue-500' : 'bg-orange-500';
         icon = 'wallet';
     } else {
         colorClass = 'text-rose-600 dark:text-rose-400';
-        bgClass = 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30';
         accentBg = 'bg-rose-500';
         icon = 'ArrowUpRight';
     }
 
     return (
-        <div className={`p-5 rounded-2xl border ${bgClass} flex flex-col justify-between h-full relative overflow-hidden shadow-sm`}>
+        <div className="p-5 rounded-2xl glass-tile flex flex-col justify-between h-full relative overflow-hidden shadow-card">
             <div className="flex justify-between items-start z-10">
                 <div>
-                    <p className="text-xs font-bold  tracking-wider opacity-70 mb-1">{title}</p>
-                    <h3 className={`text-2xl font-bold tracking-tight ${colorClass}`}>{formatCurrency(value, 'EUR')}</h3>
+                    <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 mb-1">{title}</p>
+                    <h3 className={`text-2xl font-black font-mono tracking-tight ${colorClass}`}>{formatCurrency(value, 'EUR')}</h3>
                 </div>
-                <div className="relative w-14 h-14 flex items-center justify-center flex-shrink-0">
+                <div className="relative w-12 h-12 flex items-center justify-center flex-shrink-0">
                     <div className={`absolute inset-0 rounded-full opacity-20 ${accentBg}`}></div>
-                    <div className={`relative w-10 h-10 rounded-full flex items-center justify-center bg-white/50 dark:bg-black/20 ${colorClass}`}>
-                        <Icon name={icon} className="text-2xl leading-none" />
+                    <div className={`relative w-9 h-9 rounded-full flex items-center justify-center bg-white/50 dark:bg-black/20 ${colorClass}`}>
+                        <Icon name={icon} className="text-xl leading-none" />
                     </div>
                 </div>
             </div>
             {count !== undefined && (
                 <div className="mt-3 z-10">
-                    <span className="text-xs font-medium opacity-70">{count} scheduled items</span>
+                    <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">{count} scheduled items</span>
                 </div>
             )}
         </div>
@@ -101,7 +97,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
     }
 
     return (
-        <div className="bg-white/60 dark:bg-dark-card/60 rounded-[2.5rem] p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
+        <div className="glass-section rounded-[2.5rem] p-6 shadow-card overflow-hidden relative group">
             <div className="absolute top-0 right-0 p-8 opacity-5">
                 <Icon name="analytics" className="text-8xl text-primary-500" />
             </div>
@@ -133,7 +129,7 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
                             />
                         </svg>
                         <div className="absolute flex flex-col items-center">
-                            <span className="text-sm font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                            <span className="text-sm font-black font-mono text-light-text dark:text-dark-text tracking-tight tabular-nums">
                                 {Math.round(ratio)}%
                             </span>
                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary/60">ratio</span>
@@ -159,11 +155,11 @@ const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; inc
                     </div>
                 </div>
 
-                <div className="w-full md:w-80 shrink-0 bg-black/5 dark:bg-black/20 p-5 rounded-[1.5rem] border border-black/5 dark:border-white/5 flex flex-col justify-between">
+                <div className="w-full md:w-80 shrink-0 glass-subwell p-5 rounded-[1.5rem] flex flex-col justify-between">
                     <div className="flex justify-between items-baseline mb-2">
                         <span className="text-xs font-semibold uppercase tracking-wider opacity-60">Distribution (30d)</span>
                         <div className="text-right">
-                            <span className="text-xs font-black tabular-nums text-light-text dark:text-dark-text">
+                            <span className="text-xs font-black font-mono tabular-nums text-light-text dark:text-dark-text">
                                 {formatCurrency(outflow, 'EUR')}
                             </span>
                             <span className="text-xs opacity-40 italic"> of {formatCurrency(income, 'EUR')}</span>
@@ -883,7 +879,7 @@ const SchedulePage: React.FC = () => {
         toast.success(`Marked ${oldUnpaidBills.length} old bill(s) as expired and moved to archive.`);
     };
 
-    const PIE_COLORS = ['#38BDF8', '#C084FC', '#F59E0B', '#10B981', '#EF4444', '#6366F1'];
+    const PIE_COLORS = ['#0284C7', '#8B5CF6', '#D97706', '#10B981', '#EF4444', '#06B6D4'];
     const segments: { id: ScheduleSegment; label: string; icon: string; color: string }[] = [
         { id: 'calendar', label: 'Calendar', icon: 'calendar', color: 'primary' },
         { id: 'timeline', label: 'Timeline', icon: 'sliders', color: 'rose' },
@@ -1025,14 +1021,13 @@ const SchedulePage: React.FC = () => {
                 />
 
                 {/* --- Hero Card: Row #1 (Category Breakdown + 2x2 KPIs) & Row #2 (Heatmap with Title Left, Legend Right) --- */}
-                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-6 lg:p-7 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group space-y-6">
-                    <div className={`absolute -top-28 -right-28 w-96 h-96 blur-3xl opacity-25 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
+                <div className="glass-section rounded-[2.5rem] p-6 lg:p-7 shadow-card overflow-hidden relative group space-y-6">
 
                     {/* ROW #1: Category Expenditure Breakdown (Left Half) & 2x2 Grid (Right Half) */}
                     <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
                         
                         {/* LEFT HALF (lg:col-span-6): CATEGORY EXPENDITURE BREAKDOWN */}
-                        <div className="lg:col-span-6 flex flex-col justify-between p-5 sm:p-6 rounded-[2rem] bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
+                        <div className="lg:col-span-6 flex flex-col justify-between p-5 sm:p-6 rounded-[2rem] glass-subwell space-y-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
                                     <Icon name="donut_large" className="text-xs text-primary-500" />
@@ -1045,7 +1040,7 @@ const SchedulePage: React.FC = () => {
 
                             {categoryBreakdown.length > 0 ? (
                                 <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8 py-2 flex-1 justify-center">
-                                    <div className="w-56 h-56 shrink-0 flex items-center justify-center relative">
+                                    <div className="w-60 h-60 shrink-0 flex items-center justify-center relative">
                                         <RingChart
                                             data={categoryBreakdown.map((cat, idx) => ({
                                                 label: cat.name,
@@ -1053,10 +1048,10 @@ const SchedulePage: React.FC = () => {
                                                 maxValue: summaryMetrics.expense > 0 ? summaryMetrics.expense : cat.value,
                                                 color: PIE_COLORS[idx % PIE_COLORS.length],
                                             }))}
-                                            size={224}
-                                            strokeWidth={10}
-                                            ringGap={5}
-                                            baseInnerRadius={44}
+                                            size={240}
+                                            strokeWidth={8}
+                                            ringGap={4}
+                                            baseInnerRadius={54}
                                         >
                                             {categoryBreakdown.map((cat, idx) => (
                                                 <Ring
@@ -1068,8 +1063,9 @@ const SchedulePage: React.FC = () => {
                                             <RingCenter
                                                 defaultLabel="Total Outflow"
                                                 prefix="€"
-                                                valueClassName="text-sm sm:text-base font-extrabold tabular-nums tracking-tight leading-none"
-                                                labelClassName="text-[9px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary/60 mt-1"
+                                                formatOptions={{ notation: 'standard', maximumFractionDigits: 0 }}
+                                                valueClassName="text-sm font-black font-mono tabular-nums tracking-tight whitespace-nowrap leading-none text-light-text dark:text-dark-text"
+                                                labelClassName="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1 truncate max-w-[88px] text-center"
                                             />
                                         </RingChart>
                                     </div>
@@ -1086,12 +1082,12 @@ const SchedulePage: React.FC = () => {
                                                             <span className="truncate font-bold text-light-text dark:text-dark-text">{cat.name}</span>
                                                         </div>
                                                         <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-xs">
-                                                            <span className="font-bold text-light-text dark:text-dark-text">{formatCurrency(cat.value, 'EUR')}</span>
+                                                            <span className="font-black font-mono text-light-text dark:text-dark-text">{formatCurrency(cat.value, 'EUR')}</span>
                                                             <span className="text-light-text-secondary dark:text-dark-text-secondary/70 font-semibold">{pct}%</span>
                                                         </div>
                                                     </div>
                                                     {/* Mini progress bar under each item matching the screenshot */}
-                                                    <div className="w-full bg-black/5 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                                    <div className="w-full bg-slate-200/80 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${Math.min(pct, 100)}%` }}
@@ -1131,10 +1127,12 @@ const SchedulePage: React.FC = () => {
                         {/* RIGHT HALF (lg:col-span-6): 2x2 GRID FOR 4 KPI CARDS */}
                         <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                             {/* KPI 1: 30-Day Outflow */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-rose-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-rose-500/10 dark:border-rose-500/20 flex flex-col justify-between space-y-3">
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="credit_card" className="text-base text-rose-600 dark:text-rose-400" />
+                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                            <Icon name="credit_card" className="text-sm" />
+                                        </div>
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">30-Day Outflow</span>
                                     </div>
                                     <span className="text-4xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
@@ -1142,7 +1140,7 @@ const SchedulePage: React.FC = () => {
                                     </span>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-light-text dark:text-dark-text">
+                                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">
                                         {formatCurrency(summaryMetrics.expense, 'EUR')}
                                     </h2>
                                 </div>
@@ -1151,7 +1149,7 @@ const SchedulePage: React.FC = () => {
                                         <div className="flex items-center gap-1.5 min-w-0 truncate text-rose-600 dark:text-rose-400">
                                             <Icon name="upload" className="text-xs shrink-0" />
                                             <span className="truncate font-semibold text-3xs">{majorOutflow.description}</span>
-                                            <span className="text-3xs font-black shrink-0">(-{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})</span>
+                                            <span className="text-3xs font-black font-mono shrink-0">(-{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})</span>
                                         </div>
                                     ) : (
                                         <span className="text-3xs text-light-text-secondary dark:text-dark-text-secondary/60">No major outflow scheduled</span>
@@ -1160,10 +1158,12 @@ const SchedulePage: React.FC = () => {
                             </div>
 
                             {/* KPI 2: Expected Income */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-emerald-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-emerald-500/10 dark:border-emerald-500/20 flex flex-col justify-between space-y-3">
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="download" className="text-base text-emerald-600 dark:text-emerald-400" />
+                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                            <Icon name="download" className="text-sm" />
+                                        </div>
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Expected Income</span>
                                     </div>
                                     <span className="text-4xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -1171,7 +1171,7 @@ const SchedulePage: React.FC = () => {
                                     </span>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-light-text dark:text-dark-text">
+                                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">
                                         {formatCurrency(summaryMetrics.income, 'EUR')}
                                     </h2>
                                 </div>
@@ -1180,7 +1180,7 @@ const SchedulePage: React.FC = () => {
                                         <div className="flex items-center gap-1.5 min-w-0 truncate text-emerald-600 dark:text-emerald-400">
                                             <Icon name="download" className="text-xs shrink-0" />
                                             <span className="truncate font-semibold text-3xs">{majorInflow.description}</span>
-                                            <span className="text-3xs font-black shrink-0">(+{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})</span>
+                                            <span className="text-3xs font-black font-mono shrink-0">(+{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})</span>
                                         </div>
                                     ) : (
                                         <span className="text-3xs text-light-text-secondary dark:text-dark-text-secondary/60">No major inflow scheduled</span>
@@ -1189,28 +1189,30 @@ const SchedulePage: React.FC = () => {
                             </div>
 
                             {/* KPI 3: Overdue Obligations */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-amber-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-amber-500/10 dark:border-amber-500/20 flex flex-col justify-between space-y-3">
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="warning" className="text-base text-amber-600 dark:text-amber-400" />
+                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                            <Icon name="warning" className="text-sm" />
+                                        </div>
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Overdue Items</span>
                                     </div>
                                     <span className={`text-4xs font-bold px-2 py-0.5 rounded-full ${
                                         (groupedItems['Overdue']?.length || 0) > 0 
-                                            ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10' 
+                                             ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10' 
                                             : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
                                     }`}>
                                         {(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Pending` : 'All Clear'}
                                     </span>
                                 </div>
                                 <div>
-                                    <h2 className={`text-2xl sm:text-3xl font-black tracking-tighter ${(groupedItems['Overdue']?.length || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
-                                        {groupedItems['Overdue']?.length || 0} <span className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">Items</span>
+                                    <h2 className={`text-2xl sm:text-3xl font-black font-mono tracking-tight ${(groupedItems['Overdue']?.length || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
+                                        {groupedItems['Overdue']?.length || 0} <span className="text-sm font-semibold font-sans text-light-text-secondary dark:text-dark-text-secondary">Items</span>
                                     </h2>
                                 </div>
                                 <div className="pt-2 border-t border-amber-500/10 dark:border-amber-500/15 flex items-center justify-between text-2xs min-w-0">
                                     {(groupedItems['Overdue']?.length || 0) > 0 ? (
-                                        <span className="text-3xs font-bold text-rose-600 dark:text-rose-400 truncate">
+                                        <span className="text-3xs font-bold font-mono text-rose-600 dark:text-rose-400 truncate">
                                             {formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} unpaid total
                                         </span>
                                     ) : (
@@ -1222,10 +1224,12 @@ const SchedulePage: React.FC = () => {
                             </div>
 
                             {/* KPI 4: Active Rules */}
-                            <div className="p-4 sm:p-5 rounded-[1.75rem] bg-gradient-to-b from-primary-500/[0.04] to-black/[0.02] dark:to-white/[0.02] border border-primary-500/10 dark:border-primary-500/20 flex flex-col justify-between space-y-3">
+                            <div className="p-4 sm:p-5 rounded-[1.75rem] glass-tile shadow-card flex flex-col justify-between space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="event_repeat" className="text-base text-primary-500" />
+                                        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary-500/10 text-primary-500">
+                                            <Icon name="event_repeat" className="text-sm" />
+                                        </div>
                                         <span className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Active Rules</span>
                                     </div>
                                     <span className="text-4xs font-bold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full">
@@ -1233,15 +1237,15 @@ const SchedulePage: React.FC = () => {
                                     </span>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-light-text dark:text-dark-text">
-                                        {recurringTransactions.length} <span className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">Rules</span>
+                                    <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text">
+                                        {recurringTransactions.length} <span className="text-sm font-semibold font-sans text-light-text-secondary dark:text-dark-text-secondary">Rules</span>
                                     </h2>
                                 </div>
                                 <div className="pt-2 border-t border-primary-500/10 dark:border-primary-500/15 flex items-center justify-between text-2xs min-w-0">
                                     {(() => {
                                         const net = summaryMetrics.income - summaryMetrics.expense;
                                         return (
-                                            <span className={`text-3xs font-bold truncate ${net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                            <span className={`text-3xs font-bold font-mono truncate ${net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                                 Net Projected: {net >= 0 ? '+' : ''}{formatCurrency(net, 'EUR')}
                                             </span>
                                         );
@@ -1252,7 +1256,7 @@ const SchedulePage: React.FC = () => {
                     </div>
 
                     {/* ROW #2: 3 Columns (0.2 Title Left, 0.6 Heatmap Center, 0.2 Legend Right) */}
-                    <div className="relative z-10 p-5 sm:p-6 rounded-[2rem] bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                    <div className="relative z-10 p-5 sm:p-6 rounded-[2rem] glass-subwell">
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-center">
                             {/* Column 1 (20% -> lg:col-span-1): Title & Subtitle */}
                             <div className="lg:col-span-1 flex flex-col justify-center space-y-1.5 min-w-0">
@@ -1305,7 +1309,7 @@ const SchedulePage: React.FC = () => {
                 </div>
 
                 {/* --- Navigation View Switcher with Search --- */}
-                <div className="bg-white dark:bg-dark-card rounded-[2rem] p-3 border border-black/5 dark:border-white/5 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div className="glass-section rounded-[2rem] p-3 shadow-card flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1">
                         {segments.map(seg => {
                             const isActive = activeSegment === seg.id;
@@ -1316,8 +1320,8 @@ const SchedulePage: React.FC = () => {
                                     onClick={() => setActiveSegment(seg.id)}
                                     className={`group relative flex items-center gap-3 p-3.5 rounded-2xl transition-all duration-300 border text-left ${
                                         isActive
-                                            ? 'bg-primary-500/10 border-primary-500/20 shadow-xs'
-                                            : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'
+                                            ? 'glass-tile border-primary-500/30 shadow-xs'
+                                            : 'hover:glass-tile border-transparent'
                                     }`}
                                 >
                                     <div
@@ -1439,7 +1443,7 @@ const SchedulePage: React.FC = () => {
                     {activeSegment === 'rules' && (
                         <motion.div key="rules" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {recurringList.map((rt) => (
-                                <div key={rt.id} className="group relative bg-white dark:bg-dark-card p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300">
+                                <div key={rt.id} className="group relative glass-tile p-6 rounded-[2rem] shadow-card hover:shadow-xl transition-all duration-300">
                                     <div className="absolute inset-0 pointer-events-none rounded-[2rem] overflow-hidden" style={{ background: `radial-gradient(circle at 100% 0%, ${rt.type === 'income' ? 'rgba(16, 185, 129, 0.05)' : rt.type === 'expense' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(59, 130, 246, 0.05)'} 0%, transparent 60%)` }} />
                                     
                                     <div className="relative z-10 flex flex-col h-full justify-between gap-6">
@@ -1462,7 +1466,7 @@ const SchedulePage: React.FC = () => {
                                         <div className="flex items-center justify-between pt-6 border-t border-black/5 dark:border-white/5">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/40">Expected Value</span>
-                                                <span className={`text-lg font-black tabular-nums ${rt.type === 'income' ? 'text-emerald-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(rt.amount, rt.currency)}</span>
+                                                <span className={`text-lg font-black font-mono tracking-tight tabular-nums ${rt.type === 'income' ? 'text-emerald-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(rt.amount, rt.currency)}</span>
                                             </div>
                                             <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} disabled={rt.isSynthetic} className="p-2 hover:bg-primary-500/10 text-primary-500 rounded-xl disabled:opacity-20 transition-all"><Icon name="settings" className="text-lg" /></button>
@@ -1477,7 +1481,7 @@ const SchedulePage: React.FC = () => {
 
                     {activeSegment === 'expired' && (
                         <motion.div key="expired" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm">
+                            <div className="glass-section rounded-[2.5rem] p-8 shadow-card">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/5 dark:border-white/5">
                                     <div>
                                         <div className="flex items-center gap-3">

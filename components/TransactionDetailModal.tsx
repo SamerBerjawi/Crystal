@@ -42,10 +42,10 @@ const createAppleNeonPinIcon = (iconName: string = 'shopping_bag', logoUrl?: str
       <div class="absolute -inset-2 rounded-full bg-[#a3e635]/30 animate-ping opacity-75"></div>
       
       <!-- Glowing Outer Badge -->
-      <div class="relative w-12 h-12 rounded-full bg-[#a3e635] shadow-[0_0_22px_rgba(163,230,53,0.9)] border-2 border-black flex items-center justify-center p-1">
+      <div class="relative w-12 h-12 rounded-full bg-[#a3e635] shadow-[0_0_22px_rgba(163,230,53,0.9)] flex items-center justify-center p-0">
         ${
           logoUrl
-            ? `<img src="${logoUrl}" class="w-full h-full object-cover rounded-full bg-black/10" onerror="this.style.display='none'" />`
+            ? `<img src="${logoUrl}" class="w-full h-full object-cover rounded-full bg-black/10 p-0 border-0" onerror="this.style.display='none'" />`
             : `<div class="w-full h-full flex items-center justify-center text-black font-black text-sm">📍</div>`
         }
       </div>
@@ -252,12 +252,12 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                 <div className="relative z-10 flex flex-col items-center">
                   <div className="relative flex items-center justify-center">
                     <div className="absolute -inset-3.5 rounded-full bg-[#a3e635]/20 animate-ping"></div>
-                    <div className="w-16 h-16 rounded-full bg-[#a3e635] border-2 border-black flex items-center justify-center p-1.5 shadow-[0_0_28px_rgba(163,230,53,0.95)]">
+                    <div className="w-16 h-16 rounded-full bg-[#a3e635] flex items-center justify-center p-0 shadow-[0_0_28px_rgba(163,230,53,0.95)] overflow-hidden">
                       {merchantLogoUrl && !logoLoadError ? (
                         <img
                           src={merchantLogoUrl}
                           alt={merchantQuery}
-                          className="w-full h-full object-cover rounded-full"
+                          className="w-full h-full object-cover rounded-full p-0 border-0"
                           onError={() => setLogoLoadError(true)}
                         />
                       ) : (

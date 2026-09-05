@@ -343,7 +343,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                        <img 
                            src={account.imageUrl || "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=600"} 
                            alt={account.name} 
-                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 p-0 border-0"
                            referrerPolicy="no-referrer"
                        />
                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/30"></div>
@@ -361,7 +361,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                           <img 
                                               src={brandLogoUrl} 
                                               alt={account.make || 'Car Brand'} 
-                                              className="w-full h-full object-cover"
+                                              className="w-full h-full object-cover p-0 border-0"
                                               onError={(e) => { (e.target as HTMLElement).parentElement!.style.display = 'none'; }}
                                               referrerPolicy="no-referrer"
                                           />

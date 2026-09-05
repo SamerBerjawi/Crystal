@@ -35,7 +35,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
   <button
     type="button"
     onClick={() => onClick(page)}
-    className="w-full flex items-center justify-between p-4 sm:p-5 bg-white dark:bg-dark-card hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-2xl border border-black/5 dark:border-white/5 hover:border-primary-500/30 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group text-left relative overflow-hidden"
+    className="w-full flex items-center justify-between p-4 sm:p-5 glass-tile hover:border-primary-500/30 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-card hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group text-left relative overflow-hidden"
   >
     <div className="flex items-center gap-4 min-w-0">
       <Icon
@@ -58,7 +58,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
         </p>
       </div>
     </div>
-    <div className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all shrink-0 ml-3">
+    <div className="w-8 h-8 rounded-xl glass-subwell flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all shrink-0 ml-3">
       <Icon name="chevron_right" className="text-base group-hover:translate-x-0.5 transition-transform" />
     </div>
   </button>
@@ -88,11 +88,11 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       {/* User Profile Banner Card */}
       <div className="relative group rounded-3xl overflow-hidden">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-3xl blur-sm opacity-10 group-hover:opacity-20 transition duration-500"></div>
-        <div className="relative bg-white dark:bg-dark-card rounded-2xl p-6 sm:p-7 shadow-sm border border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="relative glass-section rounded-2xl p-6 sm:p-7 shadow-card border border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left min-w-0">
             <div className="relative shrink-0">
               {profileImageError || !user.profilePictureUrl ? (
-                <div className="w-20 h-20 rounded-2xl border-2 border-white dark:border-dark-card shadow-md bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-2xl font-bold">
+                <div className="w-20 h-20 rounded-2xl shadow-md bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-2xl font-bold">
                   {user.firstName?.charAt(0)}
                   {user.lastName?.charAt(0)}
                 </div>
@@ -100,12 +100,12 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 <img
                   src={user.profilePictureUrl}
                   alt={`${user.firstName} ${user.lastName}`}
-                  className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-dark-card shadow-md"
+                  className="w-20 h-20 rounded-2xl object-cover p-0 border-0 shadow-md"
                   loading="lazy"
                   onError={() => setProfileImageError(true)}
                 />
               )}
-              <div className="absolute -bottom-1 -right-1 bg-primary-500 text-white w-6 h-6 flex items-center justify-center rounded-lg border-2 border-white dark:border-dark-card shadow-xs">
+              <div className="absolute -bottom-1 -right-1 bg-primary-500 text-white w-6 h-6 flex items-center justify-center rounded-lg shadow-xs">
                 <Icon name="Edit02" className="text-xs" />
               </div>
             </div>

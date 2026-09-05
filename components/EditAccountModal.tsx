@@ -907,7 +907,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                           >
                             {vehicleImage ? (
                               <>
-                                <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
+                                <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover p-0 border-0" />
                                 <div className="absolute inset-x-0 bottom-0 bg-black/60 p-2 text-white text-2xs font-bold uppercase tracking-wider text-center">
                                   Change Image
                                 </div>

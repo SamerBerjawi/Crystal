@@ -42,6 +42,13 @@
   --chart-scale-04: oklch(0.68 0.02 106);
   --chart-scale-05: oklch(0.55 0.025 106);
   --chart-scale-pattern-color: oklch(0.96 0.005 106);
+  --border: rgba(0, 0, 0, 0.08);
+  --ring-background: rgba(0, 0, 0, 0.06);
+}
+
+.dark {
+  --border: rgba(255, 255, 255, 0.08);
+  --ring-background: rgba(255, 255, 255, 0.08);
 }
 
 [data-font="plus-jakarta"], [data-font="plus-jakarta-sans"] {
@@ -117,24 +124,24 @@
   --color-primary-800: var(--primary-800, #995111);
   --color-primary-900: var(--primary-900, #7d4312);
 
-  --color-light-bg: #F4F4F5;
-  --color-light-card: rgba(255, 255, 255, 1);
-  --color-light-text: #111111;
-  --color-light-text-secondary: #3A3A3A;
-  --color-light-separator: rgba(209, 213, 219, 0.8);
-  --color-light-fill: rgba(243, 244, 246, 0.9);
+  --color-light-bg: #fafafa;
+  --color-light-card: rgba(255, 255, 255, 0.45);
+  --color-light-text: #171717;
+  --color-light-text-secondary: #525252;
+  --color-light-separator: rgba(0, 0, 0, 0.08);
+  --color-light-fill: rgba(0, 0, 0, 0.03);
 
-  --color-dark-bg: #050505;
-  --color-dark-card: rgba(23, 23, 23, 0.6);
-  --color-dark-text: #FFFFFF;
-  --color-dark-text-secondary: #D1D5DB;
-  --color-dark-separator: rgba(255, 255, 255, 0.05);
-  --color-dark-fill: rgba(38, 38, 38, 0.4);
+  --color-dark-bg: #0a0a0a;
+  --color-dark-card: rgba(255, 255, 255, 0.035);
+  --color-dark-text: #fafafa;
+  --color-dark-text-secondary: #a3a3a3;
+  --color-dark-separator: rgba(255, 255, 255, 0.08);
+  --color-dark-fill: rgba(255, 255, 255, 0.04);
 
-  --color-semantic-red: #FF3B30;
-  --color-semantic-green: #34C759;
-  --color-semantic-yellow: #FFCC00;
-  --color-semantic-blue: #007AFF;
+  --color-semantic-red: #EF4444;
+  --color-semantic-green: #10B981;
+  --color-semantic-yellow: #F59E0B;
+  --color-semantic-blue: #06B6D4;
 
   --color-utility-neutral-50: #f8f9fa;
   --color-utility-neutral-100: #f1f3f5;
@@ -221,7 +228,8 @@
   --color-utility-sky-500: #0ea5e9;
   --color-utility-sky-700: #0369a1;
 
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 4px 6px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card-dark: 4px 6px 12px rgba(0, 0, 0, 0.25);
   --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   --shadow-neu-raised-light: 2px 2px 4px rgba(0,0,0,0.1), -2px -2px 4px rgba(255,255,255,0.8);
   --shadow-neu-inset-light: inset 2px 2px 4px rgba(0,0,0,0.05), inset -2px -2px 4px rgba(255,255,255,0.5);
@@ -312,55 +320,108 @@
 @utility bg-brand-solid {
   background-color: var(--primary-600, #fa9a1d);
 }
-/* ─── Apple HIG Frosted Glassmorphic Surface Utilities ─── */
+/* ─── Apple Health & Frosted Glass Architecture Utilities ─── */
 @utility glass-surface-primary {
-  background-color: rgba(255, 255, 255, 0.7);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
 }
 :where(.dark, .dark *) .glass-surface-primary {
-  background-color: rgba(23, 23, 23, 0.7);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 6px 16px rgba(0, 0, 0, 0.40), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
 @utility glass-surface-card {
-  background-color: rgba(255, 255, 255, 0.6);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  backdrop-filter: blur(16px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.50);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
 }
 :where(.dark, .dark *) .glass-surface-card {
-  background-color: rgba(23, 23, 23, 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 6px 16px rgba(0, 0, 0, 0.40), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+@utility glass-section {
+  background-color: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+:where(.dark, .dark *) .glass-section {
+  background-color: rgba(20, 20, 20, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.50), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+@utility glass-tile {
+  background-color: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-tile:hover {
+  background-color: rgba(255, 255, 255, 0.80);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+:where(.dark, .dark *) .glass-tile {
+  background-color: rgba(24, 24, 24, 0.68);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.25);
+}
+:where(.dark, .dark *) .glass-tile:hover {
+  background-color: rgba(32, 32, 32, 0.85);
+}
+
+@utility glass-subwell {
+  background-color: rgba(255, 255, 255, 0.40);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+:where(.dark, .dark *) .glass-subwell {
+  background-color: rgba(16, 16, 16, 0.60);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 @utility glass-surface-elevated {
-  background-color: rgba(255, 255, 255, 0.85);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.12);
+  background-color: rgba(255, 255, 255, 0.70);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
 }
 :where(.dark, .dark *) .glass-surface-elevated {
-  background-color: rgba(23, 23, 23, 0.85);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  background-color: rgba(18, 18, 18, 0.85);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
 }
 
 @utility glass-border {
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 :where(.dark, .dark *) .glass-border {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 @utility glass-highlight {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
 }
+
 
 /* ─── Apple HIG Typography Utilities ─── */
 @utility typo-h1 {
@@ -516,26 +577,35 @@
   100% { background-position: 0% center; }
 }
 
+html.dark, body.dark, html.dark #root {
+  background-color: #0a0a0a;
+  color: #fafafa;
+}
+
+html:not(.dark), body:not(.dark), html:not(.dark) #root {
+  background-color: #fafafa;
+  color: #171717;
+}
+
 html {
-  background-color: #F4F4F5;
-  color: #111111;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-html.dark {
-  background-color: #050505;
-  color: #FFFFFF;
-}
-
 body {
-  background-color: inherit;
-  color: inherit;
   font-family: inherit;
   min-height: 100vh;
 }
+
+/* Strict Image Standard: 0 padding and no borders across all images */
+img {
+  padding: 0 !important;
+  border: none !important;
+  border-width: 0 !important;
+}
+
 
 :root {
   --chart-1: oklch(0.32 0 none);

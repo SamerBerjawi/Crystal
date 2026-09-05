@@ -645,7 +645,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
         {/* SMART AUTO-CATEGORIZATION SUGGESTIONS */}
         {smartSuggestions.length > 0 && (
-          <Card className="bg-teal-500/[0.02] border border-dashed border-teal-500/30 p-5 rounded-3xl space-y-4">
+          <Card className="glass-section border border-dashed border-teal-500/30 p-5 rounded-3xl space-y-4 shadow-card">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
@@ -673,7 +673,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {smartSuggestions.slice(0, 3).map((sug) => (
-                <div key={sug.id} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-xs">
+                <div key={sug.id} className="glass-tile border border-slate-200/80 dark:border-white/10 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-card">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="font-mono font-bold text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-lg truncate">
@@ -763,7 +763,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     placeholder="Search merchants & institutions..." 
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-xs font-semibold placeholder:text-light-text-secondary/40 dark:placeholder:text-dark-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                    className="w-full glass-tile border border-slate-200/80 dark:border-white/10 rounded-2xl pl-12 pr-4 py-3.5 text-xs font-semibold placeholder:text-light-text-secondary/40 dark:placeholder:text-dark-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card"
                 />
            </div>
            
@@ -782,18 +782,18 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 transition-colors">Show Hidden</span>
                </label>
 
-               <div className="h-8 w-px bg-black/5 dark:bg-white/5"></div>
+               <div className="h-8 w-px bg-slate-200/60 dark:border-white/10"></div>
 
-               <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl">
+               <div className="flex glass-subwell p-1 rounded-xl shadow-xs">
                    <button 
                       onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
+                      className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'glass-tile shadow-card text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
                        <Icon name="grid_view" className="text-lg" />
                    </button>
                    <button 
                       onClick={() => setViewMode('list')}
-                      className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
+                      className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'glass-tile shadow-card text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
                        <Icon name="view_list" className="text-lg" />
                    </button>
@@ -803,7 +803,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                    <select 
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value as any)} 
-                        className="appearance-none bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-xl pl-4 pr-10 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm cursor-pointer"
+                        className="appearance-none glass-tile border border-slate-200/80 dark:border-white/10 rounded-xl pl-4 pr-10 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card cursor-pointer"
                    >
                        <option value="count">Most Frequent</option>
                        <option value="value">Highest Volume</option>
@@ -818,7 +818,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       </div>
 
       {filteredEntities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
+          <div className="flex flex-col items-center justify-center py-32 glass-subwell rounded-3xl border border-dashed border-slate-200/60 dark:border-white/10">
               <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-6">
                 <Icon name="search_off" className="text-3xl opacity-20" />
               </div>
@@ -846,12 +846,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     key={entity.id} 
                     onClick={() => { setOverviewEntity(entity); setIsOverviewModalOpen(true); }}
                     onContextMenu={(e) => { e.preventDefault(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
-                    className={`relative group bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-3xl p-6 cursor-pointer hover:border-primary-500/20 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 ${isHidden ? 'opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
+                    className={`relative group glass-tile shadow-card border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 cursor-pointer hover:border-primary-500/30 hover:shadow-xl hover:shadow-primary-500/10 transition-all duration-300 ${isHidden ? 'opacity-40 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
                 >
                     <div className="flex justify-between items-start mb-6">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gradient-to-br from-black/[0.02] to-black/[0.1] dark:from-white/[0.02] dark:to-white/[0.1]'}`}>
                             {hasLogo && previewUrl ? (
-                              <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
+                              <img src={previewUrl} className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(previewUrl)} alt="" />
                             ) : (
                               <span className="text-xl font-bold text-light-text-secondary/40">{initialLetter}</span>
                             )}
@@ -921,11 +921,11 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                             </div>
                         </div>
                         
-                        <div className="pt-4 border-t border-black/5 dark:border-white/5">
+                        <div className="pt-4 border-t border-slate-200/60 dark:border-white/5">
                             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">
                                 Cumulative
                             </p>
-                            <p className={`font-mono font-bold text-xl tracking-tight ${accentColor}`}>
+                            <p className={`font-mono font-black text-xl tracking-tight ${accentColor}`}>
                                 {formatCurrency(entity.totalValue, 'EUR')}
                             </p>
                         </div>
@@ -935,10 +935,10 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             })}
           </div>
       ) : (
-          <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+          <div className="glass-section rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden">
               <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                      <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                      <tr className="bg-slate-900/[0.02] dark:bg-white/[0.02] border-b border-slate-200/60 dark:border-white/5">
                           <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Identifier</th>
                           <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Classification</th>
                           <th className="px-8 py-5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary text-right">Frequency</th>
@@ -948,7 +948,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                           <th className="px-8 py-5 w-20"></th>
                       </tr>
                   </thead>
-                  <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                  <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
                       {filteredEntities.map(entity => {
                           const previewUrl = getPreviewUrl(entity.name, entity.rule);
                           const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
@@ -966,7 +966,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                       <div className="flex items-center gap-4">
                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-black/5 dark:bg-white/5'}`}>
                                                 {hasLogo && previewUrl ? (
-                                                    <img src={previewUrl} className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} alt="" />
+                                                    <img src={previewUrl} className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(previewUrl)} alt="" />
                                                 ) : (
                                                     <span className="font-bold text-xs text-light-text-secondary/40">{initialLetter}</span>
                                                 )}
@@ -1021,7 +1021,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                           <Sparkline data={spendTrendsMap[entity.id] || [0, 0, 0, 0, 0, 0]} />
                                       </div>
                                   </td>
-                                  <td className={`px-8 py-5 text-right font-mono font-bold text-base tracking-tight ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
+                                  <td className={`px-8 py-5 text-right font-mono font-black text-base tracking-tight ${entity.totalValue >= 0 ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
                                       {formatCurrency(entity.totalValue, 'EUR')}
                                   </td>
                                   <td className="px-8 py-5 text-right">

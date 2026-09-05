@@ -68,20 +68,23 @@ const calculateFrequency = (intervals: number[]): RecurrenceFrequency | null => 
     // Set variable tolerances based on subscription frequency average interval (in days)
     // - Daily: avg ~1 day, max stdDev = 0.5
     // - Weekly: avg ~7 days, max stdDev = 2.5 (allows 1-2 days weekend shifts)
+    // - Biweekly: avg ~14 days, max stdDev = 3.5 (allows weekend shifts)
     // - Monthly: avg ~30 days, max stdDev = 6.0 (allows variable month lengths + weekends)
     // - Yearly: avg ~365 days, max stdDev = 15.0
     let maxStdDev = 5;
     if (avg >= 0.8 && avg <= 1.5) maxStdDev = 0.5;
     else if (avg >= 5 && avg <= 9) maxStdDev = 2.5;
+    else if (avg >= 12 && avg <= 16) maxStdDev = 3.5;
     else if (avg >= 25 && avg <= 35) maxStdDev = 6.0;
-    else if (avg >= 355 && avg <= 375) maxStdDev = 15.0;
+    else if (avg >= 350 && avg <= 380) maxStdDev = 15.0;
 
     if (stdDev > maxStdDev) return null;
 
     if (avg >= 0.8 && avg <= 1.5) return 'daily';
     if (avg >= 5.5 && avg <= 8.5) return 'weekly';
+    if (avg >= 12 && avg <= 16) return 'biweekly';
     if (avg >= 25 && avg <= 35) return 'monthly';
-    if (avg >= 355 && avg <= 375) return 'yearly';
+    if (avg >= 350 && avg <= 380) return 'yearly';
     
     return null;
 };
@@ -138,6 +141,7 @@ const Subscriptions: React.FC = () => {
             });
 
             const candidates: DetectedSubscription[] = [];
+            const today = new Date();
 
             Object.entries(groups).forEach(([key, groupTxs]) => {
                 // Need at least 2 occurrences to detect a pattern
@@ -154,7 +158,7 @@ const Subscriptions: React.FC = () => {
                 });
                 if (isTracked || ignoredSubscriptions.includes(key)) return;
 
-                // Sort by date
+                // Sort by date ascending
                 groupTxs.sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
 
                 // Calculate intervals
@@ -172,32 +176,54 @@ const Subscriptions: React.FC = () => {
                 const frequency = calculateFrequency(intervals);
                 
                 if (frequency) {
-                    // Calculate average amount
-                    const totalAmount = groupTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-                    const avgAmount = totalAmount / groupTxs.length;
+                    // Calculate amounts
+                    const amounts = groupTxs.map(t => Math.abs(t.amount));
+                    const totalAmount = amounts.reduce((sum, a) => sum + a, 0);
+                    const avgAmount = totalAmount / amounts.length;
                     
-                    // Determine "confidence" based on consistency of amount and timing
-                    const amountVariance = groupTxs.reduce((sum, t) => sum + Math.pow(Math.abs(t.amount) - avgAmount, 2), 0) / groupTxs.length;
+                    // Amount consistency check: real subscriptions have predictable recurring pricing.
+                    // Discard random shopping / variable spending clustered at the same merchant.
+                    const minAmount = Math.min(...amounts);
+                    const maxAmount = Math.max(...amounts);
+                    const amountVariance = amounts.reduce((sum, a) => sum + Math.pow(a - avgAmount, 2), 0) / amounts.length;
                     const amountStdDev = Math.sqrt(amountVariance);
                     
-                    const isAmountConsistent = amountStdDev <= (avgAmount * 0.05); // <=5% variation
+                    // Allow up to 20% stdDev or <=25% max/min spread (for slight FX or tier adjustments)
+                    const isAmountAcceptable = amountStdDev <= (avgAmount * 0.20) || ((maxAmount - minAmount) / (avgAmount || 1) <= 0.25);
+                    if (!isAmountAcceptable && groupTxs.length > 2) return;
+
+                    // Recency check: only detect actively ongoing subscriptions.
+                    // If the service hasn't billed in > 2.5 cycles, it was likely cancelled/abandoned.
+                    const lastTx = groupTxs[groupTxs.length - 1];
+                    const lastTxDate = parseLocalDate(lastTx.date);
+                    const daysSinceLast = Math.round((today.getTime() - lastTxDate.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    const maxDaysSinceLast = 
+                        frequency === 'daily' ? 7 :
+                        frequency === 'weekly' ? 21 :
+                        frequency === 'biweekly' ? 35 :
+                        frequency === 'monthly' ? 65 : 400;
+
+                    if (daysSinceLast > maxDaysSinceLast) return;
+
+                    const isAmountConsistent = amountStdDev <= (avgAmount * 0.06); // <=6% variation
                     const hasManyOccurrences = groupTxs.length >= 3;
                     
                     // Timing consistency check based on standard deviation of intervals
                     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
                     const intervalVariance = intervals.reduce((a, b) => a + Math.pow(b - avgInterval, 2), 0) / intervals.length;
                     const intervalStdDev = Math.sqrt(intervalVariance);
-                    const isTimingConsistent = intervalStdDev <= (frequency === 'weekly' ? 1.0 : frequency === 'monthly' ? 3.0 : 7.0);
+                    const isTimingConsistent = intervalStdDev <= (frequency === 'weekly' ? 1.0 : frequency === 'biweekly' ? 2.0 : frequency === 'monthly' ? 3.0 : 7.0);
 
                     const confidence = (isAmountConsistent && hasManyOccurrences && isTimingConsistent) ? 'high' : 'medium';
 
-                    // Last occurrence info
-                    const lastTx = groupTxs[groupTxs.length - 1];
+                    // Use the latest transaction amount to reflect current subscription tier/pricing
+                    const detectedAmount = Math.round(Math.abs(lastTx.amount) * 100) / 100;
 
                     candidates.push({
                         key,
                         merchant: lastTx.merchant || lastTx.description, // Use the most recent description
-                        amount: avgAmount,
+                        amount: detectedAmount,
                         frequency,
                         confidence,
                         averageDay: lastDate.getDate(),
@@ -234,6 +260,7 @@ const Subscriptions: React.FC = () => {
             if (sub.frequency === 'monthly') monthly += amount;
             else if (sub.frequency === 'yearly') monthly += amount / 12;
             else if (sub.frequency === 'weekly') monthly += amount * 4.33;
+            else if (sub.frequency === 'biweekly') monthly += amount * 2.165;
             else if (sub.frequency === 'daily') monthly += amount * 30;
 
             const nextDue = parseLocalDate(sub.nextDueDate);
@@ -289,12 +316,28 @@ const Subscriptions: React.FC = () => {
 
     const handleTrack = (candidate: DetectedSubscription) => {
         const account = accounts.find(a => a.id === candidate.accountId);
-        // Find next due date
+        // Find next due date starting from last transaction date
         const last = parseLocalDate(candidate.lastDate);
         const next = new Date(last);
-        if (candidate.frequency === 'monthly') next.setMonth(next.getMonth() + 1);
-        else if (candidate.frequency === 'yearly') next.setFullYear(next.getFullYear() + 1);
-        else if (candidate.frequency === 'weekly') next.setDate(next.getDate() + 7);
+
+        const advanceDate = (d: Date) => {
+            if (candidate.frequency === 'monthly') d.setMonth(d.getMonth() + 1);
+            else if (candidate.frequency === 'yearly') d.setFullYear(d.getFullYear() + 1);
+            else if (candidate.frequency === 'biweekly') d.setDate(d.getDate() + 14);
+            else if (candidate.frequency === 'weekly') d.setDate(d.getDate() + 7);
+            else if (candidate.frequency === 'daily') d.setDate(d.getDate() + 1);
+        };
+
+        advanceDate(next);
+
+        // If next due date is in the past, roll it forward until today or future
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        let iterations = 0;
+        while (next < now && iterations < 36) {
+            advanceDate(next);
+            iterations++;
+        }
 
         const newSub: Omit<RecurringTransaction, 'id'> = {
             accountId: candidate.accountId,
@@ -491,18 +534,6 @@ const Subscriptions: React.FC = () => {
                 {/* ── Glassmorphic Hero Metrics Bento Card ── */}
                 <BentoCard 
                     className="!p-0 min-h-[220px]"
-                    background={
-                        <>
-                            <div 
-                                className="absolute -top-32 -right-32 w-80 h-80 blur-[100px] pointer-events-none transition-all duration-1000"
-                                style={{ background: heroGlowColor }}
-                            />
-                            <div 
-                                className="absolute -bottom-24 -left-24 w-56 h-56 blur-[80px] pointer-events-none transition-all duration-1000 opacity-50"
-                                style={{ background: heroGlowColor }}
-                            />
-                        </>
-                    }
                 >
                     <div className="relative z-10 flex flex-col justify-between h-full">
                         {/* Primary Metric */}
@@ -513,7 +544,7 @@ const Subscriptions: React.FC = () => {
                                     <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Monthly Commitment</span>
                                 </div>
                                 <div className="flex items-baseline gap-3">
-                                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text">
+                                    <h2 className="text-4xl md:text-5xl font-black font-mono tracking-tight privacy-blur text-light-text dark:text-dark-text">
                                         {formatCurrency(monthlySpend, 'EUR')}
                                     </h2>
                                     <span className="text-sm font-semibold text-light-text-secondary/50 dark:text-dark-text-secondary/50 tracking-tight">/mo</span>
@@ -525,7 +556,7 @@ const Subscriptions: React.FC = () => {
                         </div>
 
                         {/* Stats Grid */}
-                        <BentoGrid className="grid-cols-2 sm:grid-cols-4 auto-rows-auto gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                        <BentoGrid className="grid-cols-2 sm:grid-cols-4 auto-rows-auto gap-4 pt-6 border-t border-slate-200/60 dark:border-white/5">
                             <AnimatePresence mode="wait">
                                 <motion.div 
                                     key={activeSegment}
@@ -634,13 +665,10 @@ const Subscriptions: React.FC = () => {
                                 <motion.div 
                                     initial={{ opacity: 0, y: 12 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white dark:bg-dark-card rounded-3xl border border-primary-500/20 dark:border-primary-400/10 overflow-hidden relative"
+                                    className="glass-section rounded-2xl border border-primary-500/20 dark:border-primary-400/10 shadow-card overflow-hidden relative"
                                 >
                                     {/* Gradient accent bar */}
                                     <div className="h-1 bg-gradient-to-r from-primary-500 via-violet-500 to-primary-600" />
-                                    
-                                    {/* Ambient glow */}
-                                    <div className="absolute -top-20 right-0 w-60 h-60 blur-[80px] bg-primary-500/10 pointer-events-none" />
                                     
                                     <div className="relative z-10 p-6 md:p-8">
                                         <div className="flex items-center justify-between mb-6">
@@ -668,13 +696,13 @@ const Subscriptions: React.FC = () => {
                                                         initial={{ opacity: 0, y: 8 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.05 }}
-                                                        className="group flex flex-col justify-between bg-light-fill/60 dark:bg-dark-fill/40 rounded-2xl p-4 border border-black/5 dark:border-white/5 hover:border-primary-500/20 hover:shadow-lg transition-all duration-300"
+                                                        className="group flex flex-col justify-between glass-tile rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 hover:border-primary-500/30 hover:shadow-md transition-all duration-200"
                                                     >
                                                         <div className="flex items-start justify-between gap-3 mb-4">
                                                             <div className="flex items-center gap-3 min-w-0">
-                                                                <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ring-2 ring-black/5 dark:ring-white/5 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-primary-500/10'}`}>
+                                                                <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-primary-500/10'}`}>
                                                                     {hasLogo ? (
-                                                                        <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />
+                                                                        <img src={logoUrl!} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(logoUrl!)} />
                                                                     ) : (
                                                                         <span className="text-base font-bold text-primary-500">{sub.merchant.charAt(0).toUpperCase()}</span>
                                                                     )}
@@ -718,7 +746,7 @@ const Subscriptions: React.FC = () => {
                             )}
 
                             {/* ── Active Subscriptions Grid ── */}
-                            <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+                            <div className="glass-section rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden">
                                 <div className="flex items-center justify-between p-6 md:px-8 md:pt-8 pb-0">
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center">
@@ -771,7 +799,7 @@ const Subscriptions: React.FC = () => {
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: index * 0.03, duration: 0.3 }}
                                                         onClick={() => handleEditActive(sub)}
-                                                        className="group cursor-pointer relative bg-light-fill/50 dark:bg-dark-fill/30 rounded-2xl border border-black/[0.03] dark:border-white/[0.03] hover:border-primary-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
+                                                        className="group cursor-pointer relative glass-tile rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-primary-500/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
                                                     >
                                                         {/* Left accent bar */}
                                                         <div 
@@ -783,9 +811,9 @@ const Subscriptions: React.FC = () => {
                                                             {/* Top: Logo + Name + Amount */}
                                                             <div className="flex items-start justify-between gap-3">
                                                                 <div className="flex items-center gap-3 min-w-0">
-                                                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-black/5 dark:ring-white/5 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-100 dark:bg-white/5'}`}>
+                                                                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${hasLogo ? 'bg-white dark:bg-white/10' : 'bg-gray-100 dark:bg-white/5'}`}>
                                                                         {hasLogo ? (
-                                                                            <img src={logoUrl!} alt="" className="w-full h-full object-cover" onError={() => handleLogoError(logoUrl!)} />
+                                                                            <img src={logoUrl!} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => handleLogoError(logoUrl!)} />
                                                                         ) : (
                                                                             <span className="text-lg font-bold text-gray-400 dark:text-gray-500">{merchantName.charAt(0)}</span>
                                                                         )}
@@ -797,7 +825,7 @@ const Subscriptions: React.FC = () => {
                                                                         </span>
                                                                     </div>
                                                                 </div>
-                                                                <p className="font-bold text-lg text-light-text dark:text-dark-text tracking-tighter tabular-nums shrink-0 privacy-blur">{formatCurrency(sub.amount, sub.currency)}</p>
+                                                                <p className="font-black font-mono text-lg text-light-text dark:text-dark-text tracking-tighter tabular-nums shrink-0 privacy-blur">{formatCurrency(sub.amount, sub.currency)}</p>
                                                             </div>
 
                                                             {/* Bottom: Status + Delete */}

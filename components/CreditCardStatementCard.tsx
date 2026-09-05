@@ -76,31 +76,31 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
         const isPreviousCredit = previousStatementBalance > 0;
         const isPaid = (data.amountPaid || 0) >= previousStatementDebt && previousStatementDebt > 0;
         return (
-            <div className={`p-3 rounded-xl border ${isHighlight ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-gray-50 dark:bg-white/5 border-transparent'}`}>
+            <div className={`p-3 rounded-2xl border ${isHighlight ? 'glass-tile border-cyan-500/30' : 'glass-subwell border-slate-200/80 dark:border-white/5'}`}>
                 <div className="flex justify-between items-center mb-1.5">
-                    <h4 className={`text-xs font-semibold tracking-tight ${isHighlight ? 'text-blue-700 dark:text-blue-300' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{title}</h4>
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${isHighlight ? 'text-cyan-600 dark:text-cyan-300' : 'text-slate-500 dark:text-slate-400'}`}>{title}</h4>
                 </div>
                 <div className="space-y-0.5">
                     <div className="flex justify-between items-end">
-                        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Balance</span>
-                        <span className="text-base font-bold text-light-text dark:text-dark-text">{formatCurrency(data.balance, currency)}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Balance</span>
+                        <span className="text-base font-black font-mono tracking-tight text-slate-900 dark:text-white">{formatCurrency(data.balance, currency)}</span>
                     </div>
                     <div className="flex justify-between items-end">
-                        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Due Date</span>
-                        <span className={`text-xs font-semibold ${title.includes("Current") ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{data.dueDate}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Due Date</span>
+                        <span className={`text-xs font-semibold ${title.includes("Current") ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>{data.dueDate}</span>
                     </div>
                 </div>
                 {title.includes("Current") && hasPreviousStatement && (
-                     <div className="mt-2 pt-1.5 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs">
+                     <div className="mt-2 pt-1.5 border-t border-slate-200/60 dark:border-white/5 flex justify-between items-center text-xs">
                         <div className="flex items-center gap-2 text-xs">
-                            <span className="text-light-text-secondary dark:text-dark-text-secondary">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
+                            <span className="text-slate-500 dark:text-slate-400">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
                             {isPaid && (
-                                <span className="flex items-center gap-1 font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded text-xs">
+                                <span className="flex items-center gap-1 font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">
                                     <Icon name="check" className="text-xs" /> Paid
                                 </span>
                             )}
                         </div>
-                        <span className="font-mono">{formatCurrency(Math.abs(previousStatementBalance), currency)}</span>
+                        <span className="font-mono font-bold text-slate-900 dark:text-white">{formatCurrency(Math.abs(previousStatementBalance), currency)}</span>
                      </div>
                 )}
             </div>

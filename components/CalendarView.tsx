@@ -100,34 +100,34 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const todayStr = toLocalISOString(new Date());
 
   return (
-    <div className="rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl overflow-hidden font-sans">
+    <div className="glass-section rounded-2xl shadow-card overflow-hidden font-sans">
       {/* Untitled UI Calendar Top Header */}
-      <div className="px-6 py-5 border-b border-neutral-200/80 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-neutral-900">
+      <div className="px-6 py-5 border-b border-neutral-300 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-transparent">
         <div className="flex items-center gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
+            <h2 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
               {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
           </div>
 
           {/* Navigation Controls Button Group */}
-          <div className="flex items-center rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/40 p-0.5 shadow-sm">
+          <div className="flex items-center rounded-lg border border-neutral-300 dark:border-white/10 bg-white/70 dark:bg-white/5 p-0.5 shadow-xs">
             <button
               onClick={prevMonth}
-              className="p-1.5 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-700/60 rounded-md transition-all duration-150"
+              className="p-1.5 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-white/10 rounded-md transition-all duration-150"
               title="Previous Month"
             >
               <Icon name="chevron_left" className="text-lg leading-none" />
             </button>
             <button
               onClick={goToToday}
-              className="px-3 py-1 text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-700/60 rounded-md transition-all duration-150 border-x border-neutral-200/60 dark:border-neutral-800"
+              className="px-3 py-1 text-xs font-bold text-neutral-800 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-white/10 rounded-md transition-all duration-150 border-x border-neutral-300 dark:border-white/10"
             >
               Today
             </button>
             <button
               onClick={nextMonth}
-              className="p-1.5 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-700/60 rounded-md transition-all duration-150"
+              className="p-1.5 text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-white/10 rounded-md transition-all duration-150"
               title="Next Month"
             >
               <Icon name="chevron_right" className="text-lg leading-none" />
@@ -137,31 +137,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
         {/* Legend Pills */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100/90 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300 text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-500"></span>
             Income
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-100/90 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/40 text-rose-900 dark:text-rose-300 text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-500"></span>
             Expense
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-700 dark:text-sky-300 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-100/90 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-800/40 text-sky-900 dark:text-sky-300 text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-600 dark:bg-sky-500"></span>
             Transfer
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 text-amber-700 dark:text-amber-300 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/40 text-amber-900 dark:text-amber-300 text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-500"></span>
             Goal
           </div>
         </div>
       </div>
 
       {/* Weekday Header Row */}
-      <div className="grid grid-cols-7 border-b border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/80">
+      <div className="grid grid-cols-7 border-b border-neutral-300 dark:border-white/10 bg-neutral-100/80 dark:bg-white/[0.02]">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
           <div
             key={day}
-            className="py-2.5 text-center text-xs font-semibold text-neutral-500 dark:text-neutral-400 tracking-wider uppercase"
+            className="py-2.5 text-center text-xs font-bold text-neutral-800 dark:text-neutral-300 tracking-wider uppercase"
           >
             {day}
           </div>
@@ -169,7 +169,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 auto-rows-fr bg-neutral-200/60 dark:bg-neutral-800/60 gap-px">
+      <div className="grid grid-cols-7 auto-rows-fr bg-neutral-300 dark:bg-white/[0.08] gap-px">
         {calendarDays.map((date, idx) => {
           const dateStr = toLocalISOString(date);
           const isCurrentMonth = date.getMonth() === currentDate.getMonth();
@@ -180,20 +180,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           return (
             <div
               key={idx}
-              className={`min-h-[135px] p-2 bg-white dark:bg-neutral-900 transition-colors duration-150 hover:bg-neutral-50/70 dark:hover:bg-neutral-800/40 flex flex-col justify-between group ${
-                !isCurrentMonth ? 'bg-neutral-50/40 dark:bg-neutral-950/40 opacity-45' : ''
+              className={`min-h-[135px] p-2 transition-colors duration-150 flex flex-col justify-between group ${
+                isCurrentMonth
+                  ? 'bg-white/90 dark:bg-black/20 hover:bg-white dark:hover:bg-white/[0.06]'
+                  : 'bg-neutral-100/70 dark:bg-black/40 opacity-60 hover:bg-neutral-100 dark:hover:bg-black/50'
               }`}
             >
               <div>
                 {/* Date Header */}
                 <div className="flex items-center justify-between mb-1.5">
                   <span
-                    className={`inline-flex items-center justify-center text-xs font-medium w-6 h-6 rounded-full transition-all ${
+                    className={`inline-flex items-center justify-center text-xs w-6 h-6 rounded-full transition-all ${
                       isToday
-                        ? 'bg-primary-600 text-white font-semibold shadow-md shadow-primary-500/30'
+                        ? 'bg-primary-600 text-white font-bold shadow-md shadow-primary-500/30'
                         : isCurrentMonth
-                        ? 'text-neutral-700 dark:text-neutral-300 group-hover:text-primary-600 dark:group-hover:text-primary-400'
-                        : 'text-neutral-400 dark:text-neutral-600'
+                        ? 'text-neutral-900 font-bold dark:text-neutral-100 group-hover:text-primary-600 dark:group-hover:text-primary-400'
+                        : 'text-neutral-500 font-medium dark:text-neutral-500'
                     }`}
                   >
                     {date.getDate()}
@@ -208,23 +210,23 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     const isSkipped = item.isSkipped;
 
                     let badgeClass =
-                      'bg-rose-50/90 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/70 dark:border-rose-900/40';
-                    let dotColor = 'bg-rose-500';
+                      'bg-rose-50 text-rose-900 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-900/50';
+                    let dotColor = 'bg-rose-600 dark:bg-rose-500';
 
                     if (isTransfer) {
                       badgeClass =
-                        'bg-sky-50/90 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200/70 dark:border-sky-900/40';
-                      dotColor = 'bg-sky-500';
+                        'bg-sky-50 text-sky-900 border-sky-300 dark:bg-sky-950/40 dark:text-sky-200 dark:border-sky-900/50';
+                      dotColor = 'bg-sky-600 dark:bg-sky-500';
                     } else if (isIncome) {
                       badgeClass =
-                        'bg-emerald-50/90 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-900/40';
-                      dotColor = 'bg-emerald-500';
+                        'bg-emerald-50 text-emerald-900 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-900/50';
+                      dotColor = 'bg-emerald-600 dark:bg-emerald-500';
                     }
 
                     return (
                       <div
                         key={item.id}
-                        className={`group/item flex items-center justify-between gap-1.5 px-2 py-1 rounded-md border text-xs font-medium transition-all duration-150 hover:shadow-sm cursor-pointer ${badgeClass} ${
+                        className={`group/item flex items-center justify-between gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold transition-all duration-150 hover:shadow-xs cursor-pointer ${badgeClass} ${
                           isSkipped ? 'opacity-40 line-through' : ''
                         }`}
                         onClick={() => onEditItem(item)}
@@ -235,7 +237,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       >
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`}></span>
-                          <span className="truncate font-medium">{item.description}</span>
+                          <span className="truncate">{item.description}</span>
                         </div>
                         {!isSkipped && (
                           <button
@@ -243,7 +245,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               e.stopPropagation();
                               onPostItem(item);
                             }}
-                            className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded text-neutral-500 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all flex-shrink-0"
+                            className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded text-neutral-600 hover:text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all flex-shrink-0"
                             title="Post Transaction"
                           >
                             <Icon name="check" className="text-xs leading-none" />
@@ -256,13 +258,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {dayGoals.map((goal) => (
                     <div
                       key={goal.id}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-medium truncate cursor-default shadow-2xs"
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-300 dark:border-amber-900/50 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 text-xs font-semibold truncate cursor-default shadow-2xs"
                       title={`Goal: ${goal.name} - Contribution: ${formatCurrency(
                         goal.monthlyContribution || 0,
                         goal.currency || 'EUR'
                       )}`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-500 flex-shrink-0"></span>
                       <span className="truncate">{goal.name}</span>
                     </div>
                   ))}

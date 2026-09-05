@@ -52,7 +52,6 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           <div className="space-y-1.5">
             <label htmlFor="email" className="block text-sm font-semibold text-light-text dark:text-dark-text">Email</label>
             <div className="relative">
-                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                     id="email"
                     type="email"
@@ -63,6 +62,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                     required
                     autoComplete="email"
                 />
+                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             </div>
           </div>
 
@@ -72,7 +72,6 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                  <button type="button" className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot password?</button>
             </div>
             <div className="relative">
-                <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                     id="password"
                     type="password"
@@ -83,6 +82,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                     required
                     autoComplete="current-password"
                 />
+                <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             </div>
           </div>
 

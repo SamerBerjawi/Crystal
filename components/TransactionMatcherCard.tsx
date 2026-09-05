@@ -14,10 +14,7 @@ export const TransactionMatcherCard: React.FC<TransactionMatcherCardProps> = ({
   onDismiss,
 }) => {
   return (
-    <div className="relative overflow-hidden mb-6 p-5 rounded-[2rem] bg-gradient-to-r from-primary-500/10 via-primary-500/5 to-transparent border border-primary-500/20 shadow-sm animate-fade-in-up flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      {/* Background radial glow */}
-      <div className="absolute -right-12 -top-12 w-48 h-48 bg-primary-500/10 blur-3xl rounded-full pointer-events-none" />
-      
+    <div className="relative overflow-hidden mb-6 p-5 rounded-[2rem] glass-section border border-primary-500/25 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] animate-fade-in-up flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div className="flex items-center gap-4 relative z-10">
         <div className="h-12 w-12 rounded-2xl bg-primary-100 dark:bg-primary-950/40 flex items-center justify-center text-primary-600 dark:text-primary-400 border border-primary-500/20 shrink-0">
           <Icon name="SwitchHorizontal01" className="text-2.5xl animate-pulse" />

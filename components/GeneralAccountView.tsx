@@ -327,7 +327,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         <div className="flex justify-between items-start mb-8 sm:mb-12">
                              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                                   {logoUrl ? (
-                                      <img src={logoUrl} alt="" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
+                                      <img src={logoUrl} alt="" className="w-full h-full object-cover p-0 border-0" onError={() => setLogoError(true)} />
                                   ) : (
                                       <Icon name="credit_card" className="text-2xl sm:text-3xl font-light" />
                                   )}

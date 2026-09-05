@@ -500,11 +500,11 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
 
             {/* Institution Monogram or Logo without padding */}
             {institutionLogoUrl && !logoLoadError ? (
-              <div className="w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center overflow-hidden border border-white/20">
+              <div className="w-9 h-9 rounded-xl bg-white/90 shadow-sm flex items-center justify-center overflow-hidden">
                 <img
                   src={institutionLogoUrl}
                   alt={account.financialInstitution || account.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover p-0 border-0"
                   onError={() => setLogoLoadError(true)}
                 />
               </div>
@@ -530,7 +530,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
                 <img
                   src={cardNetworkLogoUrl}
                   alt={account.cardNetwork || 'Network'}
-                  className="h-4 sm:h-5 object-contain"
+                  className="h-4 sm:h-5 object-contain p-0 border-0"
                 />
               ) : account.currency ? (
                 <span className="text-2xs font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80 border border-white/10">

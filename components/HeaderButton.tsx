@@ -8,6 +8,7 @@ export type HeaderButtonVariant =
   | 'emerald'
   | 'indigo'
   | 'amber'
+  | 'gold'
   | 'danger'
   | 'ghost';
 
@@ -35,6 +36,8 @@ const variantStyles: Record<HeaderButtonVariant, string> = {
     'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-semibold border border-indigo-500/20',
   amber:
     'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/20',
+  gold:
+    'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-neutral-950 font-bold shadow-md shadow-amber-500/20 border border-amber-400/40 active:scale-[0.98]',
   danger:
     'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold border border-rose-500/20',
   ghost:

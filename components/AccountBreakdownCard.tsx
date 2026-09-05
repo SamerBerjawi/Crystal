@@ -21,13 +21,15 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
     const iconName = isAsset ? 'account_balance' : 'credit_card';
 
     return (
-        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm h-full flex flex-col justify-between">
+        <div className="glass-tile rounded-2xl p-5 border border-slate-200/80 dark:border-white/10 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] h-full flex flex-col justify-between">
             <div>
                 <div className="flex justify-between items-start mb-4">
-                    <Icon name={iconName} className={`text-2xl ${iconColor}`} />
-                        <div className="text-right">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60 mb-1">{title}</p>
-                        <h3 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">{formatCurrency(totalValue, 'EUR')}</h3>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${isAsset ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-500' : 'bg-rose-500/15 border-rose-500/30 text-rose-500'}`}>
+                        <Icon name={iconName} className="text-lg" />
+                    </div>
+                    <div className="text-right">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">{title}</p>
+                        <h3 className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white">{formatCurrency(totalValue, 'EUR')}</h3>
                     </div>
                 </div>
                 

@@ -1233,37 +1233,37 @@ const Rules: React.FC<RulesProps> = ({
       <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 space-y-6">
         {/* Statistics Indicator & Tabs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
+          <Card className="glass-tile border border-slate-200/80 dark:border-white/10 shadow-card p-5 flex items-center gap-4">
             <Icon name="sliders" className="text-2xl text-indigo-500" />
             <div>
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Engine Capacity</span>
-              <h4 className="text-xl font-bold mt-0.5" id="stat-active-rules">{existingRules.length} Defined Rules</h4>
+              <h4 className="text-xl font-black font-mono tracking-tight mt-0.5" id="stat-active-rules">{existingRules.length} Defined Rules</h4>
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
+          <Card className="glass-tile border border-slate-200/80 dark:border-white/10 shadow-card p-5 flex items-center gap-4">
             <Icon name="check_circle" className="text-2xl text-amber-500" />
             <div>
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Historical Matches</span>
-              <h4 className="text-xl font-bold mt-0.5" id="stat-matched-txs">{historicalRuleCalculations.length} Pending Actions</h4>
+              <h4 className="text-xl font-black font-mono tracking-tight mt-0.5" id="stat-matched-txs">{historicalRuleCalculations.length} Pending Actions</h4>
             </div>
           </Card>
 
-          <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm p-5 flex items-center gap-4">
+          <Card className="glass-tile border border-slate-200/80 dark:border-white/10 shadow-card p-5 flex items-center gap-4">
             <Icon name="building" className="text-2xl text-teal-500" />
             <div>
               <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wider uppercase">Merchant Priority</span>
-              <h4 className="text-xl font-bold mt-0.5 text-teal-600 dark:text-teal-400 font-mono">Registry Active</h4>
+              <h4 className="text-xl font-black font-mono tracking-tight mt-0.5 text-teal-600 dark:text-teal-400">Registry Active</h4>
             </div>
           </Card>
         </div>
 
         {/* Segmented Pill Tab Controls */}
-        <div className="bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl flex flex-wrap items-center gap-1 border border-black/5 dark:border-white/5">
+        <div className="glass-subwell p-1.5 rounded-2xl flex flex-wrap items-center gap-1 border border-slate-200/60 dark:border-white/5 shadow-xs">
           <button
             onClick={() => setActiveTab('rules-list')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'rules-list'
-                ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
@@ -1274,7 +1274,7 @@ const Rules: React.FC<RulesProps> = ({
           <button
             onClick={() => setActiveTab('merchant-overrides')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'merchant-overrides'
-                ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
@@ -1285,7 +1285,7 @@ const Rules: React.FC<RulesProps> = ({
           <button
             onClick={() => setActiveTab('rules-sandbox')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'rules-sandbox'
-                ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
@@ -1296,7 +1296,7 @@ const Rules: React.FC<RulesProps> = ({
           <button
             onClick={() => setActiveTab('execution-logs')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'execution-logs'
-                ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
@@ -1307,7 +1307,7 @@ const Rules: React.FC<RulesProps> = ({
           <button
             onClick={() => setActiveTab('historical-scan')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'historical-scan'
-                ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
+                ? 'glass-tile text-primary-600 dark:text-primary-400 shadow-card'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
           >
@@ -1331,8 +1331,8 @@ const Rules: React.FC<RulesProps> = ({
               transition={{ duration: 0.2 }}
               className="overflow-hidden mb-6"
             >
-              <Card className="bg-gray-50/50 dark:bg-white/[0.01] border-2 border-dashed border-black/5 dark:border-white/5 p-6 rounded-2xl space-y-6">
-                <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3">
+              <Card className="glass-section border-2 border-dashed border-slate-200/80 dark:border-white/10 p-6 rounded-2xl space-y-6 shadow-card">
+                <div className="flex justify-between items-center border-b border-slate-200/60 dark:border-white/5 pb-3">
                   <h3 className="text-sm font-bold tracking-tight text-light-text dark:text-dark-text">
                     {editingRuleId ? 'Modify Configured Rule' : 'Design Custom IF-WHEN-THEN Rule'}
                   </h3>
@@ -1414,7 +1414,7 @@ const Rules: React.FC<RulesProps> = ({
 
                     <div className="space-y-3">
                       {conditions.map((cond, idx) => (
-                        <div key={idx} className="flex flex-col md:flex-row gap-3 items-end md:items-center bg-white dark:bg-dark-card p-3 rounded-xl border border-black/5 dark:border-white/5 shadow-xs">
+                        <div key={idx} className="flex flex-col md:flex-row gap-3 items-end md:items-center glass-subwell p-3 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-xs">
                           {/* Condition field descriptor */}
                           <div className="w-full md:w-1/4">
                             <span className="block text-xs text-gray-400 font-semibold tracking-wider uppercase mb-1">Target Field</span>
@@ -1526,7 +1526,7 @@ const Rules: React.FC<RulesProps> = ({
 
                     <div className="space-y-3">
                       {actions.map((act, idx) => (
-                        <div key={idx} className="flex flex-col md:flex-row gap-3 items-end md:items-center bg-white dark:bg-dark-card p-3 rounded-xl border border-black/5 dark:border-white/5 shadow-xs">
+                        <div key={idx} className="flex flex-col md:flex-row gap-3 items-end md:items-center glass-subwell p-3 rounded-xl border border-slate-200/60 dark:border-white/5 shadow-xs">
                           {/* target block */}
                           <div className="w-full md:w-1/3">
                             <span className="block text-xs text-gray-400 font-semibold tracking-wider uppercase mb-1">Action Destination</span>
@@ -1668,7 +1668,7 @@ const Rules: React.FC<RulesProps> = ({
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {suggestedRules.map((sug, idx) => (
-                          <div key={sug.id} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 rounded-xl space-y-3 relative overflow-hidden group">
+                          <div key={sug.id} className="glass-tile border border-slate-200/80 dark:border-white/10 p-4 rounded-xl space-y-3 relative overflow-hidden group shadow-card">
                             <div className="flex justify-between items-start gap-2">
                               <div>
                                 <h5 className="font-bold text-xs text-light-text dark:text-dark-text">{sug.name}</h5>
@@ -1823,9 +1823,9 @@ const Rules: React.FC<RulesProps> = ({
                             setDragOverRuleId(null);
                             toast.success(`Successfully updated rule priority! "${draggedItem.name}" is now prioritized.`);
                           }}
-                          className={`bg-white dark:bg-dark-card border rounded-2xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all duration-200 cursor-grab active:cursor-grabbing ${isDragged ? 'opacity-30 border-dashed border-gray-300 dark:border-white/10 scale-[0.98]' :
-                              isDragOver ? 'border-2 border-dashed border-primary-500 bg-primary-500/[0.03] scale-[1.01] shadow-md' :
-                                'border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 hover:shadow-xs'
+                          className={`glass-tile border rounded-2xl p-5 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all duration-200 cursor-grab active:cursor-grabbing ${isDragged ? 'opacity-30 border-dashed border-slate-300 dark:border-white/10 scale-[0.98]' :
+                              isDragOver ? 'border-2 border-dashed border-primary-500 bg-primary-500/[0.05] scale-[1.01] shadow-lg' :
+                                'border-slate-200/80 dark:border-white/10 hover:border-primary-500/30'
                             }`}
                         >
                           <div className="flex items-start md:items-center gap-3 flex-1 min-w-0">
@@ -1964,7 +1964,7 @@ const Rules: React.FC<RulesProps> = ({
 
                 {/* Right Column - Visual Summary Chart */}
                 <div className="space-y-4">
-                  <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4 lg:sticky lg:top-6">
+                  <Card className="glass-section border border-slate-200/60 dark:border-white/5 p-5 shadow-card space-y-4 lg:sticky lg:top-6">
                     <div>
                       <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-1.5">
                         <Icon name="bar_chart" className="text-base text-teal-500" />
@@ -2080,7 +2080,7 @@ const Rules: React.FC<RulesProps> = ({
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {preferences.ruleExecutionHistory.map((batch, idx) => (
-                    <div key={batch.id || idx} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                    <div key={batch.id || idx} className="glass-tile border border-slate-200/80 dark:border-white/10 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-card">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs text-light-text dark:text-dark-text">{batch.ruleName || 'Optimization Run'}</span>
@@ -2106,7 +2106,7 @@ const Rules: React.FC<RulesProps> = ({
             )}
 
             {/* Execution logs table */}
-            <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
+            <Card className="glass-section border border-slate-200/60 dark:border-white/5 p-5 shadow-card space-y-4">
               <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-3">
                 <div>
                   <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
@@ -2360,7 +2360,7 @@ const Rules: React.FC<RulesProps> = ({
               <Card className="bg-teal-500/[0.02] border border-dashed border-teal-500/30 p-5 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-tight flex items-center gap-1.5">
+<h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-tight flex items-center gap-1.5">
                       <Icon name="auto_awesome" className="text-base" />
                       <span>Smart Rule Suggestions ({smartRuleSuggestions.length})</span>
                     </h4>
@@ -2372,7 +2372,7 @@ const Rules: React.FC<RulesProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {smartRuleSuggestions.slice(0, 6).map((sug) => (
-                    <div key={sug.id} className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-xs">
+                    <div key={sug.id} className="glass-tile border border-slate-200/80 dark:border-white/10 p-3.5 rounded-2xl flex flex-col justify-between gap-3 shadow-card">
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <span className="font-mono font-bold text-xs bg-teal-500/10 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-lg truncate">
@@ -2392,11 +2392,12 @@ const Rules: React.FC<RulesProps> = ({
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-white/5">
                         <span className="text-2xs text-gray-400 font-mono">
                           Vol: {formatCurrency(sug.totalAmount, 'EUR')}
                         </span>
                         <button
+                          type="button"
                           onClick={() => handleDeploySmartSuggestion(sug)}
                           className="px-2.5 py-1 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
                         >
@@ -2412,6 +2413,26 @@ const Rules: React.FC<RulesProps> = ({
 
             {/* MANAGE ACTIVE OVERRIDES MODULE */}
             <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
+                    Explicit Merchant Registry ({Object.keys(merchantRules).length})
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Highest priority rules engine mapping. Exact merchant records overwrite all fallback heuristics.
+                  </p>
+                </div>
+                {!isAddingMerchantOverride && (
+                  <button
+                    onClick={() => setIsAddingMerchantOverride(true)}
+                    className="px-3.5 py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <Icon name="add_circle" className="text-sm" />
+                    <span>Add Custom Override</span>
+                  </button>
+                )}
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="relative flex-1">
@@ -2440,16 +2461,6 @@ const Rules: React.FC<RulesProps> = ({
                     <span className={SELECT_ARROW_STYLE}>expand_more</span>
                   </div>
                 </div>
-
-                {!isAddingMerchantOverride && (
-                  <button
-                    onClick={() => setIsAddingMerchantOverride(true)}
-                    className={`${BTN_PRIMARY_STYLE} flex items-center gap-1.5 justify-center leading-none`}
-                  >
-                    <Icon name="add" className="text-sm leading-none" />
-                    <span>Add Custom Override</span>
-                  </button>
-                )}
               </div>
 
               {Object.keys(merchantRules).length === 0 ? (
@@ -2459,7 +2470,7 @@ const Rules: React.FC<RulesProps> = ({
                   <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Create rules specifically mapped to merchant names for instant automated categorization.</p>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl overflow-hidden shadow-xs">
+                <div className="glass-section border border-slate-200/60 dark:border-white/5 rounded-2xl overflow-hidden shadow-card">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
@@ -2492,12 +2503,12 @@ const Rules: React.FC<RulesProps> = ({
                                 <td className="p-3">
                                   <div className="flex items-center gap-3">
                                     {rule.logo ? (
-                                      <div className="w-8 h-8 rounded-lg bg-white border border-black/5 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-xs">
+                                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
                                         <img
                                           src={`https://logo.clearbit.com/${rule.logo}`}
                                           alt=""
                                           onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                                          className="w-full h-full object-contain"
+                                          className="w-full h-full object-contain p-0 border-0"
                                           referrerPolicy="no-referrer"
                                         />
                                       </div>
@@ -2619,7 +2630,7 @@ const Rules: React.FC<RulesProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Input Simulator Panel */}
               <div className="lg:col-span-1 space-y-4">
-                <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
+                <Card className="glass-section border border-slate-200/60 dark:border-white/5 p-5 shadow-card space-y-4">
                   <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-2">
                     <div>
                       <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
@@ -2743,7 +2754,7 @@ const Rules: React.FC<RulesProps> = ({
               {/* Real-time Processing & Resulting Fields */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Visual Comparative Board */}
-                <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-4">
+                <Card className="glass-section border border-slate-200/60 dark:border-white/5 p-5 shadow-card space-y-4">
                   <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-2">
                     <div>
                       <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
@@ -2826,7 +2837,7 @@ const Rules: React.FC<RulesProps> = ({
                 </Card>
 
                 {/* Rules Pipeline Diagnostic Match list */}
-                <Card className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-5 shadow-sm space-y-3.5">
+                <Card className="glass-section border border-slate-200/60 dark:border-white/5 p-5 shadow-card space-y-3.5">
                   <div className="border-b border-black/5 dark:border-white/5 pb-2">
                     <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight">
                       Automation Pipeline Diagnostics & Trace
@@ -2925,7 +2936,7 @@ const Rules: React.FC<RulesProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-between items-center bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5">
+                <div className="flex justify-between items-center glass-tile shadow-card p-4 rounded-xl border border-slate-200/80 dark:border-white/10">
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -2952,7 +2963,7 @@ const Rules: React.FC<RulesProps> = ({
                   </button>
                 </div>
 
-                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl overflow-hidden">
+                <div className="glass-section border border-slate-200/60 dark:border-white/5 rounded-2xl overflow-hidden shadow-card">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
@@ -3059,7 +3070,7 @@ const Rules: React.FC<RulesProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSimulateModalOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 bg-black/40 backdrop-blur-xl"
             />
 
             {/* Modal Body */}
@@ -3069,7 +3080,7 @@ const Rules: React.FC<RulesProps> = ({
                 animate={{ transform: 'scale(1)', opacity: 1 }}
                 exit={{ transform: 'scale(0.95)', opacity: 0 }}
                 transition={{ type: 'spring', duration: 0.3 }}
-                className="relative bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl max-w-4xl w-full shadow-2xl p-6 sm:p-8 space-y-6 overflow-hidden max-h-[85vh] flex flex-col font-sans"
+                className="relative bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-3xl max-w-4xl w-full shadow-2xl p-6 sm:p-8 space-y-6 overflow-hidden max-h-[85vh] flex flex-col font-sans"
               >
                 {/* Header */}
                 <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-4 shrink-0">
@@ -3269,7 +3280,7 @@ const Rules: React.FC<RulesProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setLedgerPickerOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 bg-black/40 backdrop-blur-xl"
             />
 
             <div className="flex min-h-full items-center justify-center p-4">
@@ -3278,7 +3289,7 @@ const Rules: React.FC<RulesProps> = ({
                 animate={{ transform: 'scale(1)', opacity: 1 }}
                 exit={{ transform: 'scale(0.95)', opacity: 0 }}
                 transition={{ type: 'spring', duration: 0.3 }}
-                className="relative bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl max-w-xl w-full shadow-2xl p-6 space-y-4 max-h-[80vh] flex flex-col font-sans"
+                className="relative bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-3xl max-w-xl w-full shadow-2xl p-6 space-y-4 max-h-[80vh] flex flex-col font-sans"
               >
                 <div className="flex justify-between items-start border-b border-black/5 dark:border-white/5 pb-3 shrink-0">
                   <div>
@@ -3342,7 +3353,7 @@ const Rules: React.FC<RulesProps> = ({
                           setLedgerPickerOpen(false);
                           toast.success(`Loaded "${tx.description || tx.merchant}" into Sandbox simulator.`);
                         }}
-                        className="p-3 rounded-xl border border-black/5 dark:border-white/5 bg-gray-50/50 hover:bg-primary-500/[0.04] hover:border-primary-500/30 dark:bg-white/[0.01] dark:hover:bg-primary-500/[0.04] transition-all cursor-pointer flex justify-between items-center gap-3 text-xs"
+                        className="p-3 rounded-xl border border-slate-200/80 dark:border-white/10 glass-tile hover:border-primary-500/30 transition-all cursor-pointer flex justify-between items-center gap-3 text-xs shadow-xs"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-light-text dark:text-dark-text truncate">
@@ -3353,7 +3364,7 @@ const Rules: React.FC<RulesProps> = ({
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="font-mono font-bold text-light-text dark:text-dark-text block">
+                          <span className="font-mono font-black text-light-text dark:text-dark-text block">
                             {Number(tx.amount).toFixed(2)} {tx.currency || 'EUR'}
                           </span>
                           <span className="text-xs font-semibold uppercase text-gray-400 font-mono">
@@ -3380,7 +3391,7 @@ const Rules: React.FC<RulesProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setConfirmConfig(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 bg-black/40 backdrop-blur-xl"
             />
 
             {/* Modal Body */}
@@ -3390,7 +3401,7 @@ const Rules: React.FC<RulesProps> = ({
                 animate={{ transform: 'scale(1)', opacity: 1 }}
                 exit={{ transform: 'scale(0.95)', opacity: 0 }}
                 transition={{ type: 'spring', duration: 0.25 }}
-                className="relative bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl max-w-md w-full shadow-2xl p-6 sm:p-7 space-y-5 overflow-hidden font-sans"
+                className="relative bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-3xl max-w-md w-full shadow-2xl p-6 sm:p-7 space-y-5 overflow-hidden font-sans"
               >
                 {/* Header / Icon */}
                 <div className="flex items-start gap-4">

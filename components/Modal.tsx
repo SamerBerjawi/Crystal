@@ -106,7 +106,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
         </header>
 
         {/* Modal Body */}
-        <div className="p-6 max-h-[calc(95vh-100px)] md:max-h-[calc(90vh-80px)] overflow-y-auto custom-scrollbar scroll-touch safe-bottom">
+        <div className="p-6 pb-7 max-h-[calc(95vh-100px)] md:max-h-[calc(90vh-80px)] overflow-y-auto custom-scrollbar scroll-touch safe-bottom">
           {children}
         </div>
       </div>

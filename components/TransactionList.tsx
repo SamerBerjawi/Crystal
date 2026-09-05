@@ -193,7 +193,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
               <li
                 key={tx.id}
                 tabIndex={0}
-                className="flex items-center justify-between group cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.025] px-3.5 py-2.5 rounded-[1.25rem] transition-all duration-200 border border-transparent hover:border-black/5 dark:hover:border-white/5 relative focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+                className="flex items-center justify-between group cursor-pointer hover:bg-white/80 dark:hover:bg-white/[0.04] px-3.5 py-2.5 rounded-2xl transition-all duration-200 border border-transparent hover:border-slate-200/80 dark:hover:border-white/10 hover:shadow-xs relative focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
                 style={{ 
                     height: `${ROW_HEIGHT - 8}px`,
                     marginBottom: '8px',
@@ -310,7 +310,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                 <div className="flex items-center gap-2 sm:gap-4 text-right shrink-0 relative z-10 pl-2">
                   <div className="flex flex-col items-end">
                     <p
-                      className={`${density === 'high' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} font-extrabold tracking-tight privacy-blur ${
+                      className={`${density === 'high' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} font-black font-mono tracking-tight privacy-blur ${
                         isTransfer 
                           ? 'text-light-text dark:text-dark-text' 
                           : (tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-light-text dark:text-dark-text')

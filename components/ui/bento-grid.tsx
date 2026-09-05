@@ -71,11 +71,8 @@ const BentoCard = ({
     <div
       key={name}
       className={cn(
-        "group relative col-span-3 flex flex-col justify-between overflow-hidden rounded-3xl",
-        // light styles
-        "bg-white text-light-text [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)] border border-black/5",
-        // dark styles
-        "dark:bg-dark-card dark:text-dark-text transform-gpu dark:[box-shadow:0_-20px_80px_-20px_#ffffff14_inset] dark:border-white/5",
+        "group relative col-span-3 flex flex-col justify-between overflow-hidden rounded-2xl glass-section shadow-card",
+        "text-light-text dark:text-dark-text transform-gpu",
         className
       )}
       {...props}

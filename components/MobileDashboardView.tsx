@@ -693,12 +693,12 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10">
+                    <div className="w-7 h-7 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center overflow-hidden">
                       {isValidLogo ? (
                         <img
                           src={logoUrl}
                           alt={acc.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover p-0 border-0"
                           referrerPolicy="no-referrer"
                           onError={() => handleLogoError(logoUrl)}
                         />

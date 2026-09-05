@@ -98,10 +98,10 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
       {/* Floating Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-6 z-50 pointer-events-none flex justify-center">
         <nav
-          className="pointer-events-auto w-full max-w-lg p-1.5 flex items-center justify-around rounded-[1.75rem] sm:rounded-3xl bg-white/60 dark:bg-dark-card/65 backdrop-blur-[32px] saturate-[190%] border border-black/10 dark:border-white/15 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.18),0_4px_12px_rgba(0,0,0,0.06)] dark:shadow-[0_16px_40px_-6px_rgba(0,0,0,0.7),0_0_1px_rgba(255,255,255,0.15)] ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300"
+          className="pointer-events-auto w-full max-w-lg p-1.5 flex items-center justify-around rounded-[1.75rem] sm:rounded-3xl bg-white/75 dark:bg-neutral-900/85 backdrop-blur-2xl border border-neutral-200/60 dark:border-white/10 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.35)] transition-all duration-300"
           style={{
             marginBottom: 'env(safe-area-inset-bottom, 0px)',
-            WebkitBackdropFilter: 'blur(32px) saturate(190%)',
+            WebkitBackdropFilter: 'blur(24px)',
           }}
           role="tabbar"
         >
@@ -208,7 +208,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 350, damping: 35 }}
-              className="relative z-10 bg-white dark:bg-gray-900 rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-2xl max-h-[82vh] flex flex-col overflow-hidden"
+              className="relative z-10 bg-white/90 dark:bg-neutral-900/95 backdrop-blur-2xl rounded-t-[32px] border-t border-neutral-200/60 dark:border-white/10 shadow-2xl max-h-[82vh] flex flex-col overflow-hidden"
               style={{ paddingBottom: `calc(5.5rem + env(safe-area-inset-bottom, 0px))` }}
             >
               {/* Sheet Drag Handle */}

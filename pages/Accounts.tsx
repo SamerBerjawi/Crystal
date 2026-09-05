@@ -440,9 +440,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           />
 
         {/* --- Consolidated Header & Portfolio --- */}
-        <div className="bg-white dark:bg-dark-card rounded-3xl p-4 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
-            {/* Subtle background glow based on active segment */}
-            <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
+        <div className="glass-section rounded-3xl p-4 sm:p-6 border border-slate-200/60 dark:border-white/5 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] overflow-hidden relative group">
 
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8">
                 {/* Left Side: Portfolio Display */}
@@ -453,15 +451,17 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             className="cursor-pointer group/nw min-w-0"
                         >
                             <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                                <Icon name="wallet" className="text-primary-500 text-sm" />
-                                <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                                <div className="w-6 h-6 rounded-lg bg-primary-500/15 border border-primary-500/30 text-primary-500 flex items-center justify-center">
+                                    <Icon name="wallet" className="text-xs" />
+                                </div>
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Portfolio Value</span>
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                                <h2 className="text-xl sm:text-3xl lg:text-4xl font-black font-mono tracking-tight privacy-blur text-slate-900 dark:text-white group-hover/nw:text-primary-500 transition-colors">
                                     {formatCurrency(segmentValues.all, 'EUR')}
                                 </h2>
                                 {activeSegment === 'all' && (
-                                    <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                                    <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(250,154,29,0.8)]" />
                                 )}
                             </div>
                         </div>
@@ -485,7 +485,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                 <Area 
                                     type="monotone" 
                                     dataKey="value" 
-                                    stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} 
+                                    stroke={activeSegment === 'all' ? "#fa9a1d" : "#94a3b8"} 
                                     strokeWidth={2} 
                                     fill="transparent" 
                                     animationDuration={2000}
@@ -494,7 +494,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         </ResponsiveContainer>
                     </div>
 
-                    <div className="hidden xl:block w-px h-16 bg-black/5 dark:bg-white/10" />
+                    <div className="hidden xl:block w-px h-16 bg-slate-200/60 dark:bg-white/10" />
 
                     {/* Segment Grid - High Density Tiles - scrollable on mobile */}
                     <div className="flex-1 lg:flex-[2] flex overflow-x-auto lg:grid lg:grid-cols-4 gap-2 sm:gap-4 pb-1 lg:pb-0 no-scrollbar snap-x snap-mandatory max-w-full">
@@ -505,22 +505,22 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                 <div 
                                     key={seg.id}
                                     onClick={() => setActiveSegment(seg.id)}
-                                    className={`group cursor-pointer p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all border shrink-0 sm:shrink lg:shrink-0 w-[120px] sm:w-auto snap-start ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent bg-black/[0.01] dark:bg-white/[0.01]'}`}
+                                    className={`group cursor-pointer p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all border shrink-0 sm:shrink lg:shrink-0 w-[120px] sm:w-auto snap-start ${isActive ? 'bg-primary-500/10 border-primary-500/30 dark:bg-primary-500/15' : 'glass-tile border-slate-200/60 dark:border-white/5 hover:border-slate-300'}`}
                                 >
                                     <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-                                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center border ${isActive ? 'bg-primary-500/20 border-primary-500/40 text-primary-500' : 'bg-slate-100 dark:bg-white/5 border-slate-200/60 dark:border-white/10 text-slate-500 dark:text-slate-400'}`}>
                                             <Icon name={seg.icon} className="text-base sm:text-lg" />
                                         </div>
-                                        {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
+                                        {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(250,154,29,0.8)]" />}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-xs font-semibold uppercase tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
-                                        <span className={`text-sm sm:text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                        <span className={`text-[11px] font-bold uppercase tracking-wider ${isActive ? 'text-primary-500' : 'text-slate-500 dark:text-slate-400'}`}>{seg.label}</span>
+                                        <span className={`text-sm sm:text-base font-black font-mono tracking-tight privacy-blur ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
                                             {formatCurrency(val, 'EUR')}
                                         </span>
                                     </div>
                                 </div>
-                            )
+                            );
                         })}
                     </div>
                 </div>

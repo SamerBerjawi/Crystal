@@ -23,8 +23,8 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <style>
     :root {
-      --light-card: rgba(255, 255, 255, 1);
-      --dark-card: rgba(23, 23, 23, 0.6);
+      --light-card: rgba(255, 255, 255, 0.6);
+      --dark-card: rgba(0, 0, 0, 0.2);
       --tooltip-bg: #ffffff;
       --tooltip-text: #171717;
       --tooltip-text-secondary: #525252;
@@ -32,11 +32,12 @@
     }
 
     .dark {
-      --light-card: rgba(23, 23, 23, 0.6);
-      --tooltip-bg: #121212;
-      --tooltip-text: #f5f5f5;
+      --light-card: rgba(0, 0, 0, 0.2);
+      --dark-card: rgba(0, 0, 0, 0.2);
+      --tooltip-bg: #171717;
+      --tooltip-text: #fafafa;
       --tooltip-text-secondary: #a3a3a3;
-      --tooltip-border: rgba(255, 255, 255, 0.15);
+      --tooltip-border: rgba(255, 255, 255, 0.08);
     }
 
     /* Global Recharts Tooltip Overrides */
@@ -191,20 +192,45 @@
       border-bottom-color: rgba(255, 255, 255, 0.4);
     }
 
-    /* Clean Apple HIG Glassmorphism Styling */
-    .ios-regular, .glass-card {
+    /* Apple Health & Frosted Glass Architecture Surfaces */
+    .ios-regular, .glass-card, .glass-section {
       background-color: var(--light-card);
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(226, 232, 240, 0.6);
       border-radius: 1.5rem;
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       backdrop-filter: blur(20px) saturate(180%);
-      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.05);
+      box-shadow: 4px 6px 12px rgba(0, 0, 0, 0.06);
     }
 
-    .dark .ios-regular, .dark .glass-card {
+    .dark .ios-regular, .dark .glass-card, .dark .glass-section {
       background-color: var(--dark-card);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 4px 6px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-tile {
+      background-color: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-tile:hover {
+      background-color: rgba(255, 255, 255, 0.95);
+    }
+    .dark .glass-tile {
+      background-color: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    }
+    .dark .glass-tile:hover {
+      background-color: rgba(255, 255, 255, 0.07);
+    }
+
+    .glass-subwell {
+      background-color: rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+    .dark .glass-subwell {
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
   </style>
   <script>

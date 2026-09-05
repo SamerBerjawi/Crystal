@@ -169,8 +169,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className={`
           flex-1 flex flex-col m-3 md:m-4 h-[calc(100%-24px)] md:h-[calc(100%-32px)]
-          ios-regular shadow-2xl rounded-3xl 
-          border border-black/5 dark:border-white/10
+          glass-section shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] rounded-3xl 
+          border border-slate-200/60 dark:border-white/5
           relative safe-top
         `}>
           {/* Background overlay clipping container for subtle top inner gradient */}
@@ -267,7 +267,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className={`absolute bottom-[calc(100%+12px)] z-50 p-1.5 ios-regular rounded-3xl shadow-2xl border border-white/20 dark:border-white/10 ring-1 ring-black/5 min-w-[210px] ${isSidebarCollapsed ? 'left-0 md:left-full md:ml-3 md:bottom-0' : 'left-0 right-0'}`}
+                    className={`absolute bottom-[calc(100%+12px)] z-50 p-1.5 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-neutral-200/80 dark:border-white/10 ring-1 ring-black/5 min-w-[210px] ${isSidebarCollapsed ? 'left-0 md:left-full md:ml-3 md:bottom-0' : 'left-0 right-0'}`}
                   >
                     <button
                       onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
@@ -305,8 +305,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 `}
               >
                 <div className="relative flex-shrink-0">
-                  <img className="h-8 w-8 rounded-full object-cover bg-gray-200 border border-white/20" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#1a1a1a] rounded-full"></div>
+                  <img className="h-8 w-8 rounded-full object-cover bg-gray-200 p-0 border-0" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full"></div>
                 </div>
 
                 <div className={`flex-grow text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>

@@ -263,16 +263,16 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
       {/* Controls Section */}
       <div className="flex flex-col sm:flex-row justify-between gap-6 px-2">
         {/* Tab Switcher */}
-        <div className="flex bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl w-full sm:w-auto">
+        <div className="flex glass-subwell p-1.5 rounded-2xl w-full sm:w-auto shadow-xs">
             <button 
                 onClick={() => setActiveTab('expense')} 
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 ${activeTab === 'expense' ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${activeTab === 'expense' ? 'glass-tile text-primary-500 shadow-card' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
             >
                 Debit (Expenses)
             </button>
             <button 
                 onClick={() => setActiveTab('income')} 
-                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 ${activeTab === 'income' ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${activeTab === 'income' ? 'glass-tile text-primary-500 shadow-card' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
             >
                 Credit (Income)
             </button>
@@ -286,7 +286,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
                 placeholder="Query taxonomy structure..." 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
-                className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-normal text-light-text dark:text-dark-text placeholder:text-light-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                className="w-full glass-tile rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium text-light-text dark:text-dark-text placeholder:text-light-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card"
              />
         </div>
       </div>
@@ -315,11 +315,11 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
               ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 bg-white/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/5 dark:border-white/5">
+          <div className="flex flex-col items-center justify-center py-32 glass-subwell rounded-3xl border border-dashed border-slate-300 dark:border-white/10">
               <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
                 <Icon name="folder" className="text-4xl opacity-20" />
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Schema Nullified</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Schema Nullified</p>
               {!searchTerm && (
                   <button onClick={() => openModal('add', activeTab)} className="mt-6 px-6 py-3 bg-primary-500 text-white rounded-2xl text-xs font-semibold tracking-wide shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
                       Initialize Root Category

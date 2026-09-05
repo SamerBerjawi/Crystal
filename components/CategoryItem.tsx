@@ -59,8 +59,8 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   // Top Level vs Sub Item container styles
   const containerBase = "group relative flex items-center justify-between transition-all duration-200 cursor-pointer select-none";
   const containerStyles = isSubCategory 
-    ? `${containerBase} p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-sm ml-6 border-l-2 border-black/10 dark:border-white/10`
-    : `${containerBase} bg-light-card dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md hover:border-primary-500/30 z-10`;
+    ? `${containerBase} p-3 rounded-xl hover:glass-tile text-sm ml-6 border-l-2 border-slate-200 dark:border-white/10`
+    : `${containerBase} glass-tile p-4 rounded-2xl shadow-card hover:shadow-md hover:border-primary-500/40 z-10`;
 
   return (
     <div 

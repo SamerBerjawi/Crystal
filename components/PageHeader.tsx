@@ -5,6 +5,7 @@ import Icon from './ui/Icon';
 interface PageHeaderProps {
   markerIcon?: string;
   markerLabel?: string;
+  markerClassName?: string;
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -20,6 +21,7 @@ interface PageHeaderProps {
 const PageHeader: React.FC<PageHeaderProps> = ({
   markerIcon,
   markerLabel,
+  markerClassName,
   title,
   subtitle,
   actions,
@@ -48,7 +50,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
       {/* Sentinel element — when this scrolls out of view, title compacts */}
       <div ref={sentinelRef} className="h-0 w-0 md:hidden" aria-hidden="true" />
 
-      <header className={`flex flex-col gap-3 pb-4 mb-6 border-b border-black/5 dark:border-white/5 ${className}`}>
+      <header className={`flex flex-col gap-3 pb-4 mb-6 border-b border-slate-200/60 dark:border-white/5 ${className}`}>
         {/* Mobile: Compact inline bar (visible after scroll) */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Left Side: Mobile Menu Toggle + Marker + Title + Subtitle */}
@@ -56,7 +58,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
             {onOpenSidebar && (
               <button
                 onClick={onOpenSidebar}
-                className="md:hidden p-2 rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0 mt-0.5 min-h-[44px] min-w-[44px] flex items-center justify-center touch-feedback"
+                className="md:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-white/5 transition-colors shrink-0 mt-0.5 min-h-[44px] min-w-[44px] flex items-center justify-center touch-feedback"
                 aria-label="Open navigation menu"
               >
                 <Icon name="menu" className="text-xl" />
@@ -65,8 +67,13 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 
             <div className="flex flex-col gap-1 min-w-0">
               {markerIcon && markerLabel && (
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wider uppercase">
-                  <Icon name={markerIcon} className="text-sm leading-none" />
+                <div
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full w-fit text-[11px] font-bold tracking-wider uppercase mb-0.5 ${
+                    markerClassName ||
+                    'bg-primary-500/10 dark:bg-primary-500/15 border border-primary-500/20 text-primary-600 dark:text-primary-400'
+                  }`}
+                >
+                  <Icon name={markerIcon} className="text-xs leading-none" />
                   <span className="leading-none">{markerLabel}</span>
                 </div>
               )}

@@ -42,10 +42,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
         <div 
             onClick={() => onEdit(task)} 
             className={`
-                group relative bg-white dark:bg-dark-card p-5 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm 
-                hover:shadow-xl hover:-translate-y-1 transition-all duration-500 cursor-pointer overflow-hidden
+                group relative glass-tile p-5 rounded-[2rem] shadow-card
+                hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden
                 ${isJustCompleted ? 'animate-celebrate ring-2 ring-primary-500' : ''} 
-                ${task.status === 'Done' ? 'opacity-60 bg-gray-50/50 dark:bg-black/10' : ''}
+                ${task.status === 'Done' ? 'opacity-60' : ''}
             `}
         >
             <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />

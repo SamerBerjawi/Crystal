@@ -544,9 +544,9 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                         {/* Merchant Identity & Metrics Hero */}
                         <div className="px-6 pb-5 space-y-4">
                             <div className="flex items-center gap-4">
-                                <div className="relative group w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 shadow-sm flex items-center justify-center">
+                                <div className="relative group w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-white dark:bg-white/10 shadow-sm flex items-center justify-center">
                                     {previewLogoUrl ? (
-                                        <img src={previewLogoUrl} alt={merchantName} className="w-full h-full object-cover" />
+                                        <img src={previewLogoUrl} alt={merchantName} className="w-full h-full object-cover p-0 border-0" />
                                     ) : (
                                         <span className="text-2xl font-black text-primary-500">{merchantName.charAt(0).toUpperCase()}</span>
                                     )}
@@ -1279,9 +1279,9 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         <label className={labelStyle}>Active Branding Asset</label>
                                         <div className="flex items-center justify-between p-3.5 bg-white dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
                                             <div className="flex items-center gap-3.5">
-                                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-white/10 flex items-center justify-center shrink-0">
                                                     {previewLogoUrl ? (
-                                                        <img src={previewLogoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                                        <img src={previewLogoUrl} alt="Logo" className="w-full h-full object-cover p-0 border-0" />
                                                     ) : (
                                                         <span className="font-bold text-lg text-gray-400">{merchantName.charAt(0)}</span>
                                                     )}

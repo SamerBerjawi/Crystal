@@ -40,13 +40,13 @@ const CircularGauge: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg' }> = ({
   let tone = 'text-red-500';
   
   if (clamped >= 75) {
-      colorStart = '#10b981'; // Emerald
-      colorEnd = '#34d399';
-      tone = 'text-emerald-500';
-  } else if (clamped >= 50) {
-      colorStart = '#f59e0b'; // Amber
+      colorStart = '#f59e0b'; // Amber / Gold
       colorEnd = '#fbbf24';
-      tone = 'text-amber-500';
+      tone = 'text-amber-500 dark:text-amber-400';
+  } else if (clamped >= 50) {
+      colorStart = '#eab308'; // Golden Yellow
+      colorEnd = '#fde047';
+      tone = 'text-yellow-600 dark:text-yellow-400';
   }
 
   const gaugeGradient = `conic-gradient(${colorStart} ${angle}deg, rgba(255,255,255,0.1) 0deg)`;
@@ -72,8 +72,8 @@ const CircularGauge: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg' }> = ({
         className={`relative ${dimClasses[size]} rounded-full flex items-center justify-center shadow-lg bg-gray-200 dark:bg-gray-800`}
         style={{ background: gaugeGradient }}
       >
-        <div className={`${innerDimClasses[size]} rounded-full bg-white dark:bg-dark-card flex flex-col items-center justify-center shadow-inner`}>
-          <p className={`${textSizeClasses[size]} font-black ${tone} tracking-tighter`}>{clamped}</p>
+        <div className={`${innerDimClasses[size]} rounded-full bg-white/90 dark:bg-black/40 flex flex-col items-center justify-center shadow-inner backdrop-blur-md`}>
+          <p className={`${textSizeClasses[size]} font-black font-mono ${tone} tracking-tight`}>{clamped}</p>
         </div>
       </div>
   );
@@ -103,7 +103,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
 
     if (badge.unlocked) {
         return (
-            <div className={`group relative flex flex-col items-center p-5 rounded-3xl border ${styles.border} bg-white dark:bg-dark-card shadow-lg ${styles.shadow} transition-all duration-300 hover:-translate-y-1 overflow-hidden`}>
+            <div className={`group relative flex flex-col items-center p-5 rounded-3xl glass-tile shadow-card transition-all duration-300 hover:-translate-y-1 overflow-hidden`}>
                 {/* Background Glow */}
                 <div className={`absolute inset-0 bg-gradient-to-b ${styles.bg} opacity-50`}></div>
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl"></div>
@@ -111,7 +111,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
                  {/* Icon Medal */}
                 <div className="relative z-10 mb-4 flex flex-col items-center">
                     <Icon name={badge.icon} className={`text-5xl drop-shadow-md transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${styles.text}`} />
-                    <div className="absolute -bottom-2 -right-2 bg-white dark:bg-dark-card rounded-full p-1 shadow-sm">
+                    <div className="absolute -bottom-2 -right-2 bg-white/90 dark:bg-black/40 rounded-full p-1 shadow-sm">
                          <div className="bg-green-500 rounded-full w-5 h-5 flex items-center justify-center">
                             <Icon name="check" className="text-xs font-bold text-white" />
                          </div>
@@ -137,7 +137,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
 
     // Locked State
     return (
-        <div className="group relative flex flex-col items-center p-5 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]">
+        <div className="group relative flex flex-col items-center p-5 rounded-3xl border border-dashed border-slate-300 dark:border-white/10 glass-subwell transition-all duration-300 hover:glass-tile">
              {/* Locked Icon */}
             <div className="relative mb-4 flex items-center justify-center">
                 <Icon name={badge.icon} className="text-5xl text-gray-400 dark:text-gray-500" />
@@ -198,50 +198,73 @@ const PersonalBestLeaderboard: React.FC<{
              lastYearDate = oldest.date;
         }
 
-        const entries = [
-            { label: 'All-Time High', value: allTimeHigh, date: isNewRecord ? 'Right Now!' : 'Previous Best', isAth: true },
-            { label: 'Current Status', value: currentNetWorth, date: 'Today', isCurrent: true },
-            { label: '1 Year Ago', value: lastYearValue, date: lastYearDate, isBenchmark: true }
-        ];
+        const entries: { label: string; date: string; value: number; change?: number; isCurrent?: boolean; isAth?: boolean }[] = [];
 
-        // Filter duplicates if ATH is Current
+        // 1. All-Time High
+        entries.push({
+            label: 'All-Time High',
+            date: isNewRecord ? 'Current' : 'Peak recorded',
+            value: allTimeHigh,
+            isAth: true,
+        });
+
+        // 2. Current
+        entries.push({
+            label: 'Current Standing',
+            date: 'Live ledger',
+            value: currentNetWorth,
+            change: allTimeHigh > 0 ? ((currentNetWorth - allTimeHigh) / allTimeHigh) * 100 : 0,
+            isCurrent: true
+        });
+
+        // 3. 1 Year Ago Benchmark
+        if (lastYearValue > 0) {
+            entries.push({
+                label: '1 Year Ago',
+                date: lastYearDate,
+                value: lastYearValue,
+                change: ((currentNetWorth - lastYearValue) / lastYearValue) * 100
+            });
+        }
+
+        // Filter duplicates if current is ATH
         const uniqueEntries = isNewRecord 
-            ? [entries[0], entries[2]] 
+            ? entries.filter(e => e.label !== 'Current Standing') 
             : entries;
 
         return { ath: allTimeHigh, isNewRecord, data: uniqueEntries };
     }, [currentNetWorth, history]);
 
     return (
-        <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-xl">
-             {/* Header Background - Redesigned to remove the "black box" starkness */}
-             <div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-primary-500/10 to-transparent z-0">
+        <div className="relative overflow-hidden rounded-3xl glass-section shadow-card border border-amber-500/20">
+             {/* Header Background - Golden ambient glow */}
+             <div className="absolute top-0 inset-x-0 h-44 bg-gradient-to-b from-amber-500/15 via-yellow-500/5 to-transparent z-0">
                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 dark:opacity-20 mix-blend-overlay"></div>
              </div>
 
              <div className="relative z-10 p-6 sm:p-8">
                  <div className="flex justify-between items-start mb-8">
                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-light-text dark:text-white">
-                            <Icon name="emoji_events" className="text-yellow-400 text-3xl" />
+                        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2.5 text-light-text dark:text-white">
+                            <Icon name="emoji_events" className="text-amber-400 text-3xl drop-shadow-sm" />
                             Hall of Fame
                         </h2>
-                        <p className="text-light-text-secondary dark:text-gray-400 text-sm font-bold  tracking-widest opacity-60 mt-1">Personal Wealth Records</p>
+                        <p className="text-light-text-secondary dark:text-gray-400 text-sm font-bold tracking-widest opacity-60 mt-1">Personal Wealth Records</p>
                      </div>
                      {isNewRecord && (
-                         <div className="animate-bounce bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-bold  tracking-wider shadow-lg transform rotate-3">
-                             New Record!
+                         <div className="animate-bounce bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-neutral-950 px-3.5 py-1 rounded-full text-xs font-black tracking-wider shadow-lg shadow-amber-500/30 transform rotate-3">
+                             ★ New Record!
                          </div>
                      )}
                  </div>
 
                  {/* Main ATH Display */}
-                 <div className="bg-white dark:bg-[#1E1E20] rounded-2xl p-6 shadow-lg border border-black/5 dark:border-white/10 mb-2 relative overflow-hidden">
-                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                 <div className="glass-tile rounded-2xl p-6 shadow-card border border-amber-500/20 mb-2 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none text-amber-500">
                          <Icon name="military_tech" className="text-8xl" />
                      </div>
                      
-                     <p className="text-xs font-bold  tracking-widest text-gray-500 dark:text-gray-400 mb-1">All-Time High Net Worth</p>
+                     <p className="text-xs font-bold tracking-widest text-amber-600 dark:text-amber-400 uppercase mb-1">All-Time High Net Worth</p>
                      <h3 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
                          {formatCurrency(ath, 'EUR')}
                      </h3>
@@ -251,12 +274,12 @@ const PersonalBestLeaderboard: React.FC<{
                          <div className="mt-4">
                              <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
                                  <span>Current Progress</span>
-                                 <span>{((currentNetWorth / ath) * 100).toFixed(1)}%</span>
+                                 <span className="text-amber-600 dark:text-amber-400">{((currentNetWorth / ath) * 100).toFixed(1)}%</span>
                              </div>
                              <div className="w-full h-3 bg-gray-100 dark:bg-black/40 rounded-full overflow-hidden">
-                                 <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(currentNetWorth / ath) * 100}%` }}></div>
+                                 <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full shadow-xs" style={{ width: `${(currentNetWorth / ath) * 100}%` }}></div>
                              </div>
-                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium text-right">
+                             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-semibold text-right">
                                  {formatCurrency(ath - currentNetWorth, 'EUR')} to go
                              </p>
                          </div>
@@ -270,7 +293,7 @@ const PersonalBestLeaderboard: React.FC<{
                              <div className="flex items-center gap-4">
                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 ${
                                      entry.isAth 
-                                        ? 'bg-yellow-100 border-yellow-400 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' 
+                                        ? 'bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shadow-sm' 
                                         : entry.isCurrent 
                                             ? 'bg-gray-100 border-gray-300 text-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
                                             : 'bg-orange-100 border-orange-300 text-orange-700 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-400'
@@ -317,7 +340,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
         : { color: 'amber', icon: 'shield', label: 'Savings Guardian' };
 
     return (
-        <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md group`}>
+        <div className={`relative overflow-hidden rounded-2xl glass-tile shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group`}>
             {isDefeated && (
                 <div className="absolute inset-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-md flex items-center justify-center animate-fade-in-up">
                     <div className="transform -rotate-6 bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-bold text-lg tracking-wide rounded-xl">
@@ -341,7 +364,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                         </div>
                     </div>
                     <div className="text-right">
-                         <span className="block text-2xl font-bold text-light-text dark:text-dark-text leading-none">{healthPercent.toFixed(0)}%</span>
+                         <span className="block text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text leading-none">{healthPercent.toFixed(0)}%</span>
                          <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">HP Left</span>
                     </div>
                 </div>
@@ -360,11 +383,11 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
             </div>
 
             {/* Stats Footer */}
-            <div className="bg-gray-50 dark:bg-white/5 p-3 flex justify-between items-center text-xs border-t border-black/5 dark:border-white/5">
+            <div className="glass-subwell p-3 flex justify-between items-center text-xs border-t border-slate-200/60 dark:border-white/5">
                 <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">Recent Hits</span>
                 <div className="flex gap-1">
                      {boss.hits.slice(0, 3).map((hit, idx) => (
-                        <span key={idx} className="bg-white dark:bg-black/20 border border-black/5 dark:border-white/10 px-1.5 py-0.5 rounded text-xs font-mono">
+                        <span key={idx} className="glass-tile px-1.5 py-0.5 rounded text-xs font-mono font-semibold">
                             -{formatCurrency(hit.amount, currency)}
                         </span>
                     ))}
@@ -411,12 +434,12 @@ const CategoryMasteryCard: React.FC<CategoryMasteryProps> = ({
     const title = titles[Math.min(titles.length - 1, Math.max(0, level - 1))];
 
     return (
-        <div className={`relative overflow-hidden rounded-3xl p-6 border ${style.border} ${style.bg} ${style.shadow} transition-all duration-500 hover:scale-[1.02] hover:shadow-lg group flex flex-col items-center`}>
+        <div className={`relative overflow-hidden rounded-3xl p-6 glass-tile ${style.shadow} transition-all duration-500 hover:scale-[1.02] hover:shadow-lg group flex flex-col items-center`}>
             {/* Background Glow */}
             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 pointer-events-none"></div>
             
             {/* Level Badge */}
-            <div className={`absolute top-4 right-4 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md ${style.text}`}>
+            <div className={`absolute top-4 right-4 text-xs font-semibold px-2.5 py-0.5 rounded-full glass-subwell backdrop-blur-md ${style.text}`}>
                 Lvl {level}
             </div>
 
@@ -445,7 +468,7 @@ const CategoryMasteryCard: React.FC<CategoryMasteryProps> = ({
                 </svg>
                 
                 {/* Icon */}
-                <div className="w-16 h-16 rounded-full bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center relative z-10">
+                <div className="w-16 h-16 rounded-full glass-tile shadow-sm flex items-center justify-center relative z-10">
                     <Icon name={icon} className="text-3xl" style={{ color: categoryColor }} />
                 </div>
 
@@ -460,7 +483,7 @@ const CategoryMasteryCard: React.FC<CategoryMasteryProps> = ({
             <h3 className="font-semibold text-lg text-light-text dark:text-dark-text mb-1 text-center">{categoryName}</h3>
             <p className={`text-xs font-semibold tracking-wider mb-4 ${style.text}`}>{title}</p>
             
-            <div className="w-full bg-white/50 dark:bg-black/20 rounded-xl p-3 flex justify-between items-center text-sm">
+            <div className="w-full glass-subwell rounded-xl p-3 flex justify-between items-center text-sm">
                 <div className="text-left">
                     <span className="block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">Spent</span>
                     <span className={`font-mono font-bold ${isOverBudget ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(spent, 'EUR')}</span>
@@ -822,49 +845,51 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       
       let rank = "Financial Novice";
       let rankColor = "text-gray-500";
-      if (healthScore >= 90) { rank = "Wealth Tycoon"; rankColor = "text-purple-500"; }
-      else if (healthScore >= 75) { rank = "Money Master"; rankColor = "text-emerald-500"; }
-      else if (healthScore >= 50) { rank = "Wealth Builder"; rankColor = "text-blue-500"; }
-      else if (healthScore >= 30) { rank = "Budget Conscious"; rankColor = "text-amber-500"; }
+      if (healthScore >= 90) { rank = "Wealth Tycoon"; rankColor = "text-amber-500 dark:text-amber-400"; }
+      else if (healthScore >= 75) { rank = "Money Master"; rankColor = "text-amber-600 dark:text-amber-500"; }
+      else if (healthScore >= 50) { rank = "Wealth Builder"; rankColor = "text-yellow-600 dark:text-yellow-500"; }
+      else if (healthScore >= 30) { rank = "Budget Conscious"; rankColor = "text-amber-700 dark:text-amber-600"; }
 
       return (
           <div className="space-y-6 animate-fade-in-up">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Main Score Card */}
-                  <Card className="md:col-span-2 relative overflow-hidden bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-md flex flex-col sm:flex-row items-center sm:items-start gap-8 p-8">
-                      <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                           <Icon name="health_and_safety" className="text-9xl" />
+                  {/* Main Score Card with Golden Highlight & Glow */}
+                  <Card className="md:col-span-2 relative overflow-hidden shadow-card border border-amber-500/25 dark:border-amber-500/30 flex flex-col sm:flex-row items-center sm:items-start gap-8 p-8">
+                      <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-amber-500/15 via-yellow-500/5 to-transparent pointer-events-none"></div>
+                      <div className="absolute top-0 right-0 p-8 opacity-15 pointer-events-none text-amber-500">
+                           <Icon name="health_and_safety" className="text-9xl drop-shadow-[0_0_30px_rgba(245,158,11,0.4)]" />
                       </div>
                       
                       <div className="relative z-10 flex-shrink-0">
+                          <div className="absolute -inset-2 bg-amber-400/20 dark:bg-amber-400/25 rounded-full blur-xl pointer-events-none"></div>
                           <CircularGauge value={healthScore} size="lg" />
                       </div>
                       
                       <div className="relative z-10 flex-grow text-center sm:text-left">
                           <h3 className="text-lg font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-tight mb-1">Financial Health Score</h3>
-                          <h2 className={`text-4xl font-bold ${rankColor} mb-2`}>{rank}</h2>
+                          <h2 className={`text-4xl font-black font-mono tracking-tight ${rankColor} mb-2`}>{rank}</h2>
                           <p className="text-light-text dark:text-dark-text leading-relaxed max-w-md">
                               Your score is based on key financial pillars including savings rate, liquidity runway, debt management, and portfolio diversity.
                           </p>
                       </div>
                   </Card>
 
-                  {/* Streak Card */}
-                  <Card className="bg-gradient-to-br from-orange-500 to-amber-600 text-white border-none shadow-lg relative overflow-hidden flex flex-col justify-between p-6">
-                      <div className="absolute -right-4 -top-4 opacity-20">
-                          <Icon name="local_fire_department" className="text-9xl" />
+                  {/* Streak Card - Golden Molten Gradient */}
+                  <Card className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 text-white border-none shadow-xl shadow-amber-500/25 relative overflow-hidden flex flex-col justify-between p-6">
+                      <div className="absolute -right-4 -top-4 opacity-25">
+                          <Icon name="local_fire_department" className="text-9xl text-amber-200" />
                       </div>
                       <div className="relative z-10">
-                          <p className="font-bold text-orange-100  tracking-wider text-xs mb-1">Login Streak</p>
+                          <p className="font-bold text-amber-100 tracking-wider text-xs mb-1">Login Streak</p>
                           <div className="flex items-baseline gap-2">
-                             <h3 className="text-5xl font-bold">{currentStreak}</h3>
-                             <span className="text-xl font-bold opacity-80">Days</span>
+                             <h3 className="text-5xl font-black font-mono tracking-tight text-white drop-shadow-sm">{currentStreak}</h3>
+                             <span className="text-xl font-bold opacity-90">Days</span>
                           </div>
                       </div>
                       <div className="relative z-10 mt-4 pt-4 border-t border-white/20">
                           <div className="flex justify-between items-center text-sm font-medium">
                               <span>Best Streak</span>
-                              <span>{longestStreak} Days</span>
+                              <span className="font-mono font-bold">{longestStreak} Days</span>
                           </div>
                       </div>
                   </Card>
@@ -875,16 +900,16 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 px-1">Score Factors</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {healthScoreDetails.map(factor => (
-                          <div key={factor.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                          <div key={factor.id} className="glass-tile p-5 rounded-2xl shadow-card hover:shadow-md transition-shadow">
                               <div className="flex justify-between items-start mb-3">
                                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${factor.color}-100 dark:bg-${factor.color}-900/30 text-${factor.color}-600 dark:text-${factor.color}-400`}>
                                       <Icon name={factor.icon} className="text-xl" />
                                   </div>
-                                  <span className="text-lg font-bold text-light-text dark:text-dark-text">{factor.score.toFixed(0)}<span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-normal">/{factor.max}</span></span>
+                                  <span className="text-lg font-black font-mono tracking-tight text-light-text dark:text-dark-text">{factor.score.toFixed(0)}<span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-normal font-sans">/{factor.max}</span></span>
                               </div>
                               
                               <h4 className="font-bold text-light-text dark:text-dark-text mb-1">{factor.label}</h4>
-                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">Current: <span className="font-mono">{factor.value}</span></p>
+                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">Current: <span className="font-mono font-semibold">{factor.value}</span></p>
                               
                               <div className="w-full h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                                   <div 
@@ -911,18 +936,24 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   ];
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in-up">
+    <div className="space-y-8 pb-12 animate-fade-in-up relative">
+      {/* Radiant Golden Background Glow Orbs */}
+      <div className="absolute -top-20 -left-20 w-[550px] h-[550px] bg-gradient-to-br from-amber-400/20 via-yellow-500/15 to-transparent rounded-full blur-3xl pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '8s' }}></div>
+      <div className="absolute top-10 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-yellow-400/15 via-amber-500/10 to-transparent rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div className="absolute top-44 left-1/3 w-[400px] h-[400px] bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
       {isPredictionModalOpen && <PredictionModal onClose={() => setPredictionModalOpen(false)} onSave={savePrediction} accounts={accounts} expenseCategories={expenseCategories} investmentTransactions={investmentTransactions} warrants={warrants} />}
       
       <PageHeader
-        markerIcon="GamingPad01"
+        markerIcon="emoji_events"
         markerLabel="Gamification"
+        markerClassName="bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 border border-amber-400/50 text-amber-700 dark:text-amber-300 font-black shadow-[0_0_20px_rgba(245,158,11,0.4)]"
         title="Financial Health"
         subtitle="Level up your finances by completing challenges, unlocking badges, and beating your personal bests."
         actions={
           activeSection === 'prediction' ? (
             <HeaderButton
-              variant="primary"
+              variant="gold"
               icon="PlusCircle"
               onClick={() => setPredictionModalOpen(true)}
             >
@@ -932,22 +963,22 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         }
       />
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs with Golden Accent */}
       <div className="sticky top-0 z-30 py-4 -mx-4 px-4 md:mx-0 md:px-0 bg-transparent overflow-x-auto no-scrollbar">
-          <div className="inline-flex bg-white/40 dark:bg-black/10 backdrop-blur-xl p-1.5 rounded-2xl border border-black/5 dark:border-white/10 min-w-full md:min-w-0 shadow-xl shadow-black/5 dark:shadow-black/20">
+          <div className="inline-flex glass-subwell p-1.5 rounded-2xl min-w-full md:min-w-0 shadow-xs border border-amber-500/20">
               {navItems.map(item => {
                   const isActive = activeSection === item.id;
                   return (
                       <button
                           key={item.id}
                           onClick={() => setActiveSection(item.id as ChallengeSection)}
-                          className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-300 whitespace-nowrap flex-1 justify-center
+                          className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 whitespace-nowrap flex-1 justify-center cursor-pointer
                               ${isActive 
-                                  ? 'bg-white dark:bg-gray-800 text-primary-500 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] dark:shadow-black/50 scale-[1.02]' 
-                                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 opacity-60'
+                                  ? 'glass-tile text-amber-600 dark:text-amber-300 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] scale-[1.02]' 
+                                  : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-amber-600 dark:hover:text-amber-400 hover:glass-tile opacity-75'
                               }`}
                       >
-                          <Icon name={item.icon} className={`text-xl ${isActive ? '' : ''}`} />
+                          <Icon name={item.icon} className={`text-xl transition-all duration-300 ${isActive ? 'text-amber-500 dark:text-yellow-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)] scale-110' : ''}`} />
                           {item.label}
                       </button>
                   );
@@ -1075,7 +1106,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-2">{sprint.description}</p>
                                    <div className="flex justify-between items-center mt-auto pt-3 border-t border-black/5 dark:border-white/5">
                                        <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">{sprint.durationDays} Days</span>
-                                       <span className="text-xs font-semibold text-primary-500">Start</span>
+                                       <span className="text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:text-amber-500 transition-colors">Start</span>
                                    </div>
                                </Card>
                            ))}
@@ -1088,7 +1119,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                <div className="space-y-8 animate-fade-in-up">
                    <div className="flex justify-between items-center">
                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Prediction Markets</h3>
-                       <HeaderButton variant="primary" icon="add" onClick={() => setPredictionModalOpen(true)}>Create Prediction</HeaderButton>
+                       <HeaderButton variant="gold" icon="add" onClick={() => setPredictionModalOpen(true)}>Create Prediction</HeaderButton>
                    </div>
                    
                    {predictions.length > 0 ? (

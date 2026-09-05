@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
@@ -186,13 +186,44 @@ const Investments: React.FC<InvestmentsProps> = ({
             ? investmentAccounts 
             : investmentAccounts.filter(a => a.subType === (activeSegment as any));
 
-        const entries: { date: string; price: number }[] = [];
-        matchingAccounts.forEach(acc => {
-            if (acc.priceHistory && acc.priceHistory.length > 0) {
-                entries.push(...acc.priceHistory);
-            }
+        const accountsWithHistory = matchingAccounts.filter(acc => acc.priceHistory && acc.priceHistory.length > 0);
+        if (accountsWithHistory.length === 0) {
+            return [];
+        }
+
+        if (accountsWithHistory.length === 1 && matchingAccounts.length === 1) {
+            return [...(accountsWithHistory[0].priceHistory || [])].sort(
+                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            );
+        }
+
+        // Collect all distinct dates across accounts with history
+        const allDates = Array.from(
+            new Set(
+                accountsWithHistory.flatMap(acc => (acc.priceHistory || []).map(entry => entry.date))
+            )
+        ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        // For each date, calculate cumulative portfolio/segment valuation
+        return allDates.map(date => {
+            const totalOnDate = matchingAccounts.reduce((sum, acc) => {
+                const history = acc.priceHistory || [];
+                if (history.length === 0) {
+                    return sum + (acc.balance || 0);
+                }
+                const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                const pastEntries = sorted.filter(e => e.date <= date);
+                if (pastEntries.length > 0) {
+                    return sum + pastEntries[pastEntries.length - 1].price;
+                }
+                return sum + (sorted[0]?.price ?? acc.balance ?? 0);
+            }, 0);
+
+            return {
+                date,
+                price: Number(totalOnDate.toFixed(2))
+            };
         });
-        return entries;
     }, [investmentAccounts, activeSegment]);
 
     const accountBySymbol = useMemo(() => {
@@ -896,15 +927,13 @@ const Investments: React.FC<InvestmentsProps> = ({
                 />
 
                 {/* --- Unified Top Row: 1/3 Hero Portfolio Command & 2/3 Candlestick Performance --- */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     {/* --- Left 1/3 (Col 4): Investment Portfolio Command Hero Card --- */}
-                    <div className="lg:col-span-4 bg-white dark:bg-dark-card rounded-3xl p-5 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative flex flex-col justify-between group">
-                        <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
-
-                        <div className="relative z-10 space-y-4">
+                    <div className="lg:col-span-4 glass-section rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-white/5 shadow-card overflow-hidden relative flex flex-col gap-3 group">
+                        <div className="relative z-10 space-y-3">
                             {/* Header: Valuation & Sparkline */}
                             <div>
-                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center justify-between gap-2 mb-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center">
                                             <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-500 text-sm" />
@@ -926,10 +955,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 </div>
 
                                 <div className="flex items-baseline justify-between gap-3">
-                                    <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight privacy-blur text-light-text dark:text-dark-text">
+                                    <h2 className="text-2.5xl sm:text-3xl font-black font-mono tracking-tight privacy-blur text-light-text dark:text-dark-text">
                                         {formatCurrency(segmentValues[activeSegment] || segmentValues.all, 'EUR')}
                                     </h2>
-                                    <div className="w-20 h-7 opacity-60">
+                                    <div className="w-20 h-6 opacity-60">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <AreaChart data={trendData}>
                                                 <Area type="monotone" dataKey="value" stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} strokeWidth={2} fill="transparent" animationDuration={1500} />
@@ -940,11 +969,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </div>
 
                             {/* Middle: Segment Allocation Grid */}
-                            <div className="space-y-1.5">
+                            <div className="space-y-1">
                                 <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                                     Allocation by Segment
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 gap-1.5">
                                     {segments.map(seg => {
                                         const isActive = activeSegment === seg.id;
                                         const val = segmentValues[seg.id as keyof typeof segmentValues];
@@ -953,10 +982,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 key={seg.id}
                                                 type="button"
                                                 onClick={() => setActiveSegment(seg.id)}
-                                                className={`p-2.5 rounded-xl transition-all border text-left flex items-center justify-between cursor-pointer ${
+                                                className={`p-2 rounded-xl transition-all border text-left flex items-center justify-between cursor-pointer ${
                                                     isActive
-                                                        ? 'bg-primary-500/10 border-primary-500/30 text-primary-600 dark:text-primary-400 shadow-xs'
-                                                        : 'bg-gray-50/70 dark:bg-white/[0.02] hover:bg-gray-100/80 dark:hover:bg-white/[0.05] border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary'
+                                                        ? 'bg-primary-500/15 border-primary-500/35 text-primary-600 dark:text-primary-400 shadow-xs'
+                                                        : 'glass-tile text-light-text-secondary dark:text-dark-text-secondary'
                                                 }`}
                                             >
                                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -980,20 +1009,20 @@ const Investments: React.FC<InvestmentsProps> = ({
                         </div>
 
                         {/* Footer: Dynamic Segment Metrics & Inactive Toggle */}
-                        <div className="relative z-10 mt-4 pt-4 border-t border-black/5 dark:border-white/5 space-y-3">
-                            <div className="grid grid-cols-3 gap-2">
+                        <div className="relative z-10 mt-3 pt-3 border-t border-slate-200/60 dark:border-white/5 space-y-2">
+                            <div className="grid grid-cols-3 gap-1.5">
                                 {segmentMetrics.details.map((detail, i) => (
-                                    <div key={i} className="p-2 rounded-xl bg-gray-50 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 flex flex-col">
+                                    <div key={i} className="p-1.5 px-2 rounded-xl glass-subwell flex flex-col">
                                         <span className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary/70 truncate">{detail.label}</span>
-                                        <span className="text-xs font-black text-light-text dark:text-dark-text privacy-blur truncate mt-0.5">{detail.value}</span>
+                                        <span className="text-xs font-black font-mono text-light-text dark:text-dark-text privacy-blur truncate mt-0.5">{detail.value}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="flex items-center justify-between text-xs pt-1">
+                            <div className="flex items-center justify-between text-xs pt-0.5">
                                 <span className="text-2xs font-semibold uppercase tracking-wider text-gray-400">Display Options</span>
                                 <label className="flex items-center gap-1.5 text-2xs bg-light-fill dark:bg-dark-fill px-2.5 py-1 rounded-lg font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                    <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-3 h-3" />
+                                    <input type="checkbox" checked={showInactiveHoldings} onChange={(event) => setShowInactiveHoldings(event.target.checked)} className={CHECKBOX_STYLE} />
                                     <span>Show Inactive</span>
                                 </label>
                             </div>
@@ -1006,13 +1035,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                             title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
                             subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
                             currentValue={segmentMetrics.totalValue}
-                            costBasis={activeSegment === 'all' ? totalCostBasis : undefined}
+                            costBasis={totalCostBasis}
                             isNegativeTrend={segmentMetrics.totalValue < (totalCostBasis || 0)}
                             priceHistory={segmentPriceHistory}
                             transactions={investmentTransactions}
                             currency="EUR"
-                            height={220}
-                            className="h-full"
                         />
                     </div>
                 </div>
@@ -1020,17 +1047,17 @@ const Investments: React.FC<InvestmentsProps> = ({
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                     {/* Main Table Column */}
                     <div className="xl:col-span-8 space-y-8">
-                        <Card className="!p-0 overflow-hidden border-none shadow-sm">
-                            <div className="px-6 py-5 flex justify-between items-center border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                                <div className="flex items-center gap-3 text-xs font-bold  tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
+                        <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl">
+                            <div className="px-6 py-5 flex justify-between items-center border-b border-slate-200/60 dark:border-white/5 glass-subwell">
+                                <div className="flex items-center gap-3 text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
                                     <Icon name="list_alt" className="text-primary-500" />
                                     <span>{activeSegment === 'all' ? 'All Holdings' : `${segments.find(s => s.id === activeSegment)?.label} Positions`}</span>
                                 </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
-                                    <thead className="bg-white dark:bg-dark-card">
-                                        <tr className="text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-black/5 dark:border-white/5">
+                                    <thead className="bg-slate-900/[0.03] dark:bg-white/[0.03] backdrop-blur-md">
+                                        <tr className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-200/60 dark:border-white/5">
                                             <th className="py-4 pl-4 sm:pl-6">Instrument</th>
                                             <th className="py-4 text-right hidden sm:table-cell">Last Price</th>
                                             <th className="py-4 text-right hidden lg:table-cell">Qty</th>
@@ -1040,7 +1067,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             <th className="py-4 text-center pr-4 sm:pr-6 w-32">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
+                                    <tbody className="divide-y divide-slate-200/60 dark:divide-white/5 bg-transparent">
                                         {holdingsByType.length === 0 ? (
                                             <tr>
                                                 <td colSpan={7} className="py-12 text-center text-gray-400 italic">
@@ -1229,18 +1256,18 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </div>
                         </Card>
 
-                    <Card className="!p-0 overflow-hidden">
-                        <div className="px-6 py-5 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                    <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl">
+                        <div className="px-6 py-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell">
                             <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-3">
                                 <Icon name="history" className="text-primary-500" />
                                 Activity Log
                             </h3>
                         </div>
-                        <div className="divide-y divide-black/5 dark:divide-white/5">
+                        <div className="divide-y divide-slate-200/60 dark:divide-white/5">
                             {recentActivity.slice(0, 10).map(item => (
                                 <div 
                                     key={item.id} 
-                                    className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                                    className="px-6 py-4 flex items-center justify-between hover:bg-white/60 dark:hover:bg-white/[0.04] transition-colors cursor-pointer group"
                                     onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
                                 >
                                     <div className="flex items-center gap-4">
@@ -1257,7 +1284,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur">{item.quantity} units @ {formatCurrency(item.price, 'EUR')}</p>
                                         </div>
                                         <div className="min-w-[100px]">
-                                            <p className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                            <p className="text-sm font-bold font-mono text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button 
@@ -1277,7 +1304,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 {/* Sidebar Column */}
                 <div className="xl:col-span-4 space-y-8">
                      {/* Exposure Chart */}
-                    <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
+                    <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
                             <button className="text-xs font-semibold text-primary-500 uppercase tracking-wider hover:underline">Analysis</button>
@@ -1303,7 +1330,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-semibold tracking-wider uppercase">
                                                 {label}
                                             </span>
-                                            <span className="text-base font-bold text-light-text dark:text-dark-text privacy-blur">
+                                            <span className="text-base font-bold font-mono text-light-text dark:text-dark-text privacy-blur">
                                                 {formatCurrency(isHovered ? value : totalValue, 'EUR')}
                                             </span>
                                         </div>
@@ -1319,7 +1346,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{item.name}</span>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-xs font-bold text-light-text dark:text-dark-text privacy-blur">{formatPercent(item.value, 0)}%</p>
+                                        <p className="text-xs font-bold font-mono text-light-text dark:text-dark-text privacy-blur">{formatPercent(item.value, 0)}%</p>
                                     </div>
                                 </div>
                             ))}
@@ -1327,7 +1354,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     </Card>
 
                     {/* Performance Rankings */}
-                    <Card>
+                    <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
                         <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
                         <div className="space-y-4">
                             {displayHoldings
@@ -1352,7 +1379,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     </Card>
 
                     {/* Historic Performance / Realized Gains Widget */}
-                    <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
+                    <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
                                 <Icon name="workspace_premium" className="text-primary-500 text-lg" />

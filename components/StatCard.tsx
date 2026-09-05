@@ -37,8 +37,8 @@ const StatCard: React.FC<StatCardProps> = ({
                     className={cn("text-3xl sm:text-4xl shrink-0 transition-transform duration-300 group-hover:scale-110", textColor)} 
                 />
                 <div className="min-w-0 relative z-10 w-full">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 group-hover:opacity-100 transition-opacity truncate">{title}</p>
-                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-light-text dark:text-dark-text tracking-tight mt-1 leading-tight group-hover:text-primary-500 transition-colors truncate">{value}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 group-hover:opacity-100 transition-opacity truncate">{title}</p>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-black font-mono text-light-text dark:text-dark-text tracking-tight mt-1 leading-tight group-hover:text-primary-500 transition-colors truncate">{value}</p>
                     {subtext && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-normal truncate opacity-80 leading-normal">{subtext}</p>}
                 </div>
             </div>

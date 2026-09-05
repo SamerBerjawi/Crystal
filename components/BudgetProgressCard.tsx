@@ -16,7 +16,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
   const hasBudget = budgeted > 0;
 
   return (
-    <Card className="flex flex-col gap-4 group transition-all duration-300 hover:-translate-y-1 !p-5 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-xl relative overflow-hidden">
+    <Card className="flex flex-col gap-4 group transition-all duration-300 hover:-translate-y-1 !p-5 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card relative overflow-hidden">
       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-transparent to-black/5 dark:to-white/5 rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
       
       {/* Header */}
@@ -57,10 +57,10 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
             showThresholdTicks={true}
           />
         ) : (
-          <div className="text-center bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 group-hover:bg-white dark:group-hover:bg-neutral-800 transition-colors">
+          <div className="text-center glass-subwell p-4 rounded-xl border border-slate-200/60 dark:border-white/5 transition-colors">
             <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-2 leading-none">Unscheduled Spending</p>
             <div className="flex items-center justify-center gap-1">
-                <span className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text privacy-blur leading-none">€{spent.toLocaleString()}</span>
+                <span className="text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur leading-none">€{spent.toLocaleString()}</span>
             </div>
             <button 
                 onClick={onEdit}

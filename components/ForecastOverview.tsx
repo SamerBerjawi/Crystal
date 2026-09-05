@@ -44,7 +44,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                         amountColor = 'text-amber-600 dark:text-amber-400';
                         icon = 'alert_circle';
                     } else {
-                         statusColor = 'bg-white dark:bg-white/5 border border-black/5 dark:border-white/5';
+                         statusColor = 'glass-tile';
                          amountColor = 'text-emerald-600 dark:text-emerald-400';
                          icon = 'check_circle';
                     }
@@ -54,19 +54,19 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                     return (
                         <div 
                             key={item.period} 
-                            className={`p-3 rounded-xl border ${statusColor}`}
+                            className={`p-3.5 rounded-2xl border transition-all duration-200 select-none shadow-xs hover:shadow-md ${statusColor}`}
                         >
                             <div className="flex justify-between items-start mb-1.5">
-                                <span className="text-xs font-semibold uppercase tracking-wider opacity-70">{item.period}</span>
-                                <Icon name={icon} className={`text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`} />
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{item.period}</span>
+                                <Icon name={icon} className={`text-base ${isLow ? 'text-rose-500' : 'opacity-40 text-slate-400'}`} />
                             </div>
 
-                            <p className={`text-xl font-bold tracking-tight privacy-blur ${amountColor}`}>
+                            <p className={`text-xl font-black font-mono tracking-tight privacy-blur ${amountColor}`}>
                                 {formatCurrency(item.lowestBalance, currency as Currency)}
                             </p>
                             
-                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-xs opacity-70">
-                                <Icon name="calendar" className="text-sm" />
+                            <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                                <Icon name="calendar" className="text-xs" />
                                 <span>On {formattedDate}</span>
                             </div>
                         </div>
@@ -80,7 +80,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
     }
 
     return (
-        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-dark-card dark:to-black/20 border border-black/5 dark:border-white/5 shadow-sm">
+        <Card className="glass-section border border-slate-200/60 dark:border-white/5 shadow-card">
             {content}
         </Card>
     );

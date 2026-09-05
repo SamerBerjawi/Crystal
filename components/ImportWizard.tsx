@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Currency, AccountType } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { flattenCategories, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
 
@@ -939,7 +939,7 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                         {filteredData.map(row => (
                             <tr key={row.originalIndex} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 transition-opacity ${excludedRows.has(row.originalIndex) ? 'opacity-40 bg-gray-100 dark:bg-gray-800' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.01]'}`}>
                                 <td className="p-2 sm:p-3 text-center">
-                                    <input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className="w-5 h-5 rounded cursor-pointer text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" />
+                                    <input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className={CHECKBOX_STYLE} />
                                 </td>
                                 {headers.map(header => {
                                     const hasError = errors[row.originalIndex]?.[header];

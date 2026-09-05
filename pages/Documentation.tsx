@@ -236,7 +236,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
             <div className="flex flex-col lg:flex-row gap-16">
                 {/* Sticky Navigation Sidebar */}
                 <aside className="hidden lg:block w-72 flex-shrink-0">
-                    <div className="sticky top-24 space-y-2 p-2 bg-black/[0.02] dark:bg-white/[0.02] rounded-3xl border border-black/5 dark:border-white/5">
+                    <div className="sticky top-24 space-y-2 p-2 glass-section rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-card">
                         <p className="px-4 py-4 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                             Manual Index
                         </p>
@@ -246,7 +246,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                 onClick={() => scrollToSection(section.id)}
                                 className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center gap-4 ${
                                     activeSection === section.id
-                                        ? 'bg-white dark:bg-dark-card text-primary-500 shadow-xl shadow-black/5 -translate-y-0.5'
+                                        ? 'glass-tile text-primary-500 shadow-card -translate-y-0.5'
                                         : 'text-light-text-secondary opacity-60 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5'
                                 }`}
                             >

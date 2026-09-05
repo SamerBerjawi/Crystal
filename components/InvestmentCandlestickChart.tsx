@@ -240,7 +240,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     // BRANCH B: WEEKLY GROUPED MODE OR FALLBACK FOR UNLOGGED DAYS
     const candleCount = granularity === 'weekly'
       ? Math.max(4, Math.ceil(daysOffset / 7))
-      : Math.min(90, daysOffset);
+      : Math.min(30, Math.max(6, Math.ceil(daysOffset / 4)));
 
     // Baseline price sequence for smooth interpolation
     const prices: number[] = [startValue];
@@ -356,20 +356,20 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
   return (
     <div
-      className={`bg-white dark:bg-dark-card rounded-3xl p-5 sm:p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden flex flex-col justify-between ${className}`}
+      className={`glass-section rounded-2xl p-4 sm:p-5 border border-slate-200/60 dark:border-white/5 shadow-card relative overflow-hidden flex flex-col justify-between ${className}`}
     >
       {/* Top Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
-            <Icon name="candlestick_chart" className="text-primary-500 text-base" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0">
+            <Icon name="candlestick_chart" className="text-primary-500 text-sm" />
           </div>
           <div>
-            <h3 className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
+            <h3 className="text-xs sm:text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
               <span>{title}</span>
             </h3>
             {subtitle && (
-              <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+              <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate max-w-md">
                 {subtitle}
               </p>
             )}
@@ -377,13 +377,13 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
         </div>
 
         {/* View Mode & Timeframe Selector */}
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
           {/* Granularity / Grouping Selector */}
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 text-2xs">
+          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-0.5 rounded-lg border border-black/5 dark:border-white/5 text-2xs">
             <button
               type="button"
               onClick={() => setGranularity('raw')}
-              className={`px-2.5 py-1 rounded-lg font-semibold tracking-wider uppercase transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'raw'
                   ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -394,7 +394,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
             <button
               type="button"
               onClick={() => setGranularity('weekly')}
-              className={`px-2.5 py-1 rounded-lg font-semibold tracking-wider uppercase transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'weekly'
                   ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -405,13 +405,13 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
           </div>
 
           {/* Timeframe Selector (1M, 3M, 6M, 1Y, ALL) */}
-          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5 text-2xs">
+          <div className="flex items-center bg-gray-100 dark:bg-white/5 p-0.5 rounded-lg border border-black/5 dark:border-white/5 text-2xs">
             {(['1M', '3M', '6M', '1Y', 'ALL'] as TimeframeOption[]).map((tf) => (
               <button
                 key={tf}
                 type="button"
                 onClick={() => setTimeframe(tf)}
-                className={`px-2 py-1 rounded-lg font-semibold tracking-wider uppercase transition-all cursor-pointer ${
+                className={`px-1.5 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                   timeframe === tf
                     ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -425,7 +425,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       </div>
 
       {/* Summary OHLC Metric Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-2.5 bg-gray-50/80 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-2xl mb-4 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-gray-50/80 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-xl mb-2 text-xs">
         <div className="flex flex-col px-2">
           <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Period Start</span>
           <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text mt-0.5">
@@ -477,13 +477,13 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       </div>
 
       {/* Main Candlestick Chart Area */}
-      <div className="w-full relative flex-1 min-h-[220px]" style={{ height }}>
+      <div className="w-full relative h-[180px] min-h-[175px] max-h-[180px]">
         <CandlestickChart
           key={`${timeframe}-${granularity}`}
           revealSignature={`${timeframe}-${granularity}`}
           data={ohlcData}
           margin={{ top: 12, right: 16, bottom: 28, left: 16 }}
-          style={{ height: '100%', minHeight: height }}
+          style={{ height: 180, minHeight: 175 }}
           candleGap={0.25}
         >
           <Grid horizontal stroke="rgba(128,128,128,0.12)" />

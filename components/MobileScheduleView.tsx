@@ -589,10 +589,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                 {/* Squircle Logo or Category Icon */}
                                 <div className="relative shrink-0">
                                   <div
-                                    className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-xs ${
+                                    className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-xs ${
                                       showLogo
-                                        ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10'
-                                        : 'text-white border-transparent'
+                                        ? 'bg-white dark:bg-white/10'
+                                        : 'text-white'
                                     }`}
                                     style={showLogo ? undefined : { backgroundColor: categoryColor }}
                                   >
@@ -600,7 +600,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                       <img
                                         src={logoUrl}
                                         alt={item.description}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover p-0 border-0"
                                         referrerPolicy="no-referrer"
                                         onError={() => handleLogoError(logoUrl)}
                                       />
@@ -733,10 +733,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                 {/* Squircle Logo or Category Icon */}
                                 <div className="relative shrink-0">
                                   <div
-                                    className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-xs ${
+                                    className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shadow-xs ${
                                       showLogo
-                                        ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10'
-                                        : 'text-white border-transparent'
+                                        ? 'bg-white dark:bg-white/10'
+                                        : 'text-white'
                                     }`}
                                     style={showLogo ? undefined : { backgroundColor: categoryColor }}
                                   >
@@ -744,7 +744,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                       <img
                                         src={logoUrl}
                                         alt={item.description}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover p-0 border-0"
                                         referrerPolicy="no-referrer"
                                         onError={() => handleLogoError(logoUrl)}
                                       />
@@ -879,10 +879,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shrink-0 shadow-xs ${
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 shadow-xs ${
                           showLogo
-                            ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10'
-                            : 'text-white border-transparent'
+                            ? 'bg-white dark:bg-white/10'
+                            : 'text-white'
                         }`}
                         style={showLogo ? undefined : { backgroundColor: categoryColor }}
                       >
@@ -890,7 +890,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                           <img
                             src={logoUrl}
                             alt={rule.description}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover p-0 border-0"
                             referrerPolicy="no-referrer"
                             onError={() => handleLogoError(logoUrl)}
                           />
@@ -1098,10 +1098,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden border shrink-0 ${
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${
                           showLogo
-                            ? 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10'
-                            : 'text-white border-transparent'
+                            ? 'bg-white dark:bg-white/10'
+                            : 'text-white'
                         }`}
                         style={showLogo ? undefined : { backgroundColor: categoryColor }}
                       >
@@ -1109,7 +1109,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                           <img
                             src={logoUrl}
                             alt={item.description}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover p-0 border-0"
                             referrerPolicy="no-referrer"
                             onError={() => handleLogoError(logoUrl)}
                           />

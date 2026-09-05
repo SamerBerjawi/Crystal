@@ -275,7 +275,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     <div className="relative z-10 p-6 flex flex-col h-full justify-between">
                          <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200 mb-1">Current Value</p>
-                            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
+                            <h2 className="text-3xl sm:text-4xl font-black font-mono tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
                          </div>
                          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 w-fit">
                             <span className="text-xs font-medium text-indigo-100">Book Value:</span>
@@ -296,7 +296,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     <div className="relative z-10 p-6 flex flex-col h-full justify-between">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Return</p>
-                            <p className={`text-2xl sm:text-3xl font-black tracking-tight privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                             </p>
                         </div>
@@ -315,7 +315,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     <div className="p-6 flex items-center justify-between w-full h-full">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Avg Cost</p>
-                            <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(averageCost, 'EUR')}</p>
+                            <p className="text-xl sm:text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur">{formatCurrency(averageCost, 'EUR')}</p>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Per Unit</p>
                         </div>
                         <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
@@ -329,7 +329,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     <div className="p-6 flex items-center justify-between w-full h-full">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Market Price</p>
-                            <p className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</p>
+                            <p className="text-xl sm:text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</p>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Last Logged</p>
                         </div>
                         <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -345,10 +345,10 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     {chartViewMode === 'candlestick' ? (
                         <div className="space-y-3">
                             <div className="flex justify-end">
-                                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5 text-xs font-bold">
+                                <div className="flex glass-subwell p-1 rounded-2xl border border-slate-200/60 dark:border-white/5 text-xs font-bold shadow-xs">
                                     <button
                                         onClick={() => setChartViewMode('candlestick')}
-                                        className="px-3 py-1 rounded-xl transition-all bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400"
+                                        className="px-3 py-1 rounded-xl transition-all glass-tile shadow-card text-primary-600 dark:text-primary-400"
                                     >
                                         Candlestick OHLC
                                     </button>
@@ -378,7 +378,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                      <Icon name="show_chart" className="text-primary-500" />
                                      Performance Trend
                                 </h3>
-                                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5 text-xs font-bold">
+                                <div className="flex glass-subwell p-1 rounded-2xl border border-slate-200/60 dark:border-white/5 text-xs font-bold shadow-xs">
                                     <button
                                         onClick={() => setChartViewMode('candlestick')}
                                         className="px-3 py-1 rounded-xl transition-all text-gray-400 hover:text-gray-600"
@@ -387,7 +387,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                     </button>
                                     <button
                                         onClick={() => setChartViewMode('line')}
-                                        className="px-3 py-1 rounded-xl transition-all bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400"
+                                        className="px-3 py-1 rounded-xl transition-all glass-tile shadow-card text-primary-600 dark:text-primary-400"
                                     >
                                         Line Trend
                                     </button>

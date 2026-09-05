@@ -123,7 +123,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
             <div className="space-y-1.5">
               <label htmlFor="email-signup" className="block text-sm font-semibold text-light-text dark:text-dark-text">Email Address</label>
               <div className="relative">
-                 <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                  <input
                     id="email-signup"
                     type="email"
@@ -134,13 +133,13 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
                     required
                     autoComplete="email"
                  />
+                 <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label htmlFor="password-signup" className="block text-sm font-semibold text-light-text dark:text-dark-text">Password</label>
               <div className="relative">
-                 <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                  <input
                     id="password-signup"
                     type="password"
@@ -151,6 +150,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
                     required
                     autoComplete="new-password"
                  />
+                 <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
               </div>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                   Must be at least 8 characters long.

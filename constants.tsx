@@ -75,41 +75,65 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
   );
 }
 
-// Common Styles based on Apple HIG
-export const BTN_PRIMARY_STYLE = "h-9 inline-flex items-center justify-center bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs px-4 rounded-xl shadow-md shadow-primary-600/20 border border-primary-500/30 dark:bg-primary-500 dark:hover:bg-primary-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-[0.98] whitespace-nowrap cursor-pointer";
-export const BTN_SECONDARY_STYLE = "h-9 inline-flex items-center justify-center bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text dark:text-dark-text font-semibold text-xs px-4 rounded-xl border border-black/5 dark:border-white/5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-[0.98] whitespace-nowrap cursor-pointer";
-export const BTN_DANGER_STYLE = "h-9 inline-flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold text-xs px-4 rounded-xl border border-rose-500/20 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500 active:scale-[0.98] whitespace-nowrap cursor-pointer";
-export const INPUT_BASE_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-xl px-4 border-none hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200 text-sm touch-feedback";
-export const SELECT_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-bold text-xs tracking-wider pl-4 pr-10 rounded-xl border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 whitespace-nowrap cursor-pointer touch-feedback";
+// Common Styles based on Apple Health & Frosted Glass Architecture
+export const BTN_PRIMARY_STYLE = "h-9 inline-flex items-center justify-center bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs px-4 rounded-xl shadow-sm border border-primary-500/30 dark:bg-primary-500 dark:hover:bg-primary-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/40 active:scale-[0.98] whitespace-nowrap cursor-pointer";
+export const BTN_SECONDARY_STYLE = "h-9 inline-flex items-center justify-center bg-white/45 dark:bg-white/[0.06] hover:bg-white/75 dark:hover:bg-white/[0.12] text-neutral-900 dark:text-neutral-100 font-semibold text-xs px-4 rounded-xl border border-neutral-200/80 dark:border-white/10 backdrop-blur-md shadow-xs transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/30 active:scale-[0.98] whitespace-nowrap cursor-pointer";
+export const BTN_DANGER_STYLE = "h-9 inline-flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold text-xs px-4 rounded-xl border border-rose-500/20 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500/30 active:scale-[0.98] whitespace-nowrap cursor-pointer";
+export const INPUT_BASE_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-white/50 dark:bg-white/[0.04] text-neutral-900 dark:text-neutral-100 rounded-xl px-4 border border-neutral-300/80 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500/40 backdrop-blur-md transition-all duration-200 text-sm touch-feedback";
+export const SELECT_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-white/50 dark:bg-white/[0.04] text-neutral-900 dark:text-neutral-100 font-bold text-xs tracking-wider pl-4 pr-10 rounded-xl border border-neutral-300/80 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/20 backdrop-blur-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/40 whitespace-nowrap cursor-pointer touch-feedback";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
-export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-light-text-secondary dark:text-dark-text-secondary";
-export const CHECKBOX_STYLE = "h-5 w-5 rounded text-white bg-light-bg dark:bg-dark-fill border border-gray-400 dark:border-gray-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-light-card dark:focus:ring-offset-dark-card focus:ring-primary-500 checked:bg-primary-500 checked:border-transparent cursor-pointer touch-feedback";
+export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 dark:text-neutral-400";
+export const CHECKBOX_STYLE = "h-5 w-5 rounded-lg text-white bg-white/50 dark:bg-white/[0.06] border border-neutral-300 dark:border-white/20 focus:ring-2 focus:ring-primary-500 checked:bg-primary-500 checked:border-transparent cursor-pointer touch-feedback";
 
 // Icon Button Styles — Minimum 44x44px touch targets per Apple HIG
-export const ICON_BUTTON_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer shrink-0 touch-feedback";
-export const ICON_BUTTON_SM_STYLE = "w-9 h-9 min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer shrink-0 touch-feedback";
-export const CLOSE_BTN_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer shrink-0";
+export const ICON_BUTTON_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer shrink-0 touch-feedback";
+export const ICON_BUTTON_SM_STYLE = "w-9 h-9 min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer shrink-0 touch-feedback";
+export const CLOSE_BTN_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer shrink-0";
 
-// Semantic Status Color Tokens
+// Semantic Status Tokens from Design System Blueprint
+export const STATUS_TOKENS = {
+  optimal: {
+    badge: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30',
+    lightBadge: 'bg-emerald-50 text-emerald-900 border-emerald-200/80',
+    hex: '#10B981',
+  },
+  elevated: {
+    badge: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30',
+    lightBadge: 'bg-rose-50 text-rose-900 border-rose-200/80',
+    hex: '#EF4444',
+  },
+  low: {
+    badge: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30',
+    lightBadge: 'bg-amber-50 text-amber-950 border-amber-200/90',
+    hex: '#F59E0B',
+  },
+  normal: {
+    badge: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30',
+    lightBadge: 'bg-cyan-50 text-cyan-900 border-cyan-200/80',
+    hex: '#06B6D4',
+  },
+} as const;
+
+// Backward-compatible Status Color Tokens
 export const STATUS_DANGER_TEXT = "text-rose-600 dark:text-rose-400";
 export const STATUS_DANGER_BG = "bg-rose-500/10 dark:bg-rose-500/20";
 export const STATUS_DANGER_BORDER = "border-rose-500/20 dark:border-rose-500/30";
-export const STATUS_DANGER_BADGE = "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+export const STATUS_DANGER_BADGE = "bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30";
 
 export const STATUS_SUCCESS_TEXT = "text-emerald-600 dark:text-emerald-400";
 export const STATUS_SUCCESS_BG = "bg-emerald-500/10 dark:bg-emerald-500/20";
 export const STATUS_SUCCESS_BORDER = "border-emerald-500/20 dark:border-emerald-500/30";
-export const STATUS_SUCCESS_BADGE = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+export const STATUS_SUCCESS_BADGE = "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30";
 
 export const STATUS_WARNING_TEXT = "text-amber-600 dark:text-amber-400";
 export const STATUS_WARNING_BG = "bg-amber-500/10 dark:bg-amber-500/20";
 export const STATUS_WARNING_BORDER = "border-amber-500/20 dark:border-amber-500/30";
-export const STATUS_WARNING_BADGE = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+export const STATUS_WARNING_BADGE = "bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30";
 
-export const STATUS_INFO_TEXT = "text-blue-600 dark:text-blue-400";
-export const STATUS_INFO_BG = "bg-blue-500/10 dark:bg-blue-500/20";
-export const STATUS_INFO_BORDER = "border-blue-500/20 dark:border-blue-500/30";
-export const STATUS_INFO_BADGE = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+export const STATUS_INFO_TEXT = "text-cyan-600 dark:text-cyan-400";
+export const STATUS_INFO_BG = "bg-cyan-500/10 dark:bg-cyan-500/20";
+export const STATUS_INFO_BORDER = "border-cyan-500/20 dark:border-cyan-500/30";
+export const STATUS_INFO_BADGE = "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30";
 
 // Stacking Order Hierarchy
 export const Z_INDEX = {
@@ -175,21 +199,21 @@ export const ITEM_COLORS: Record<string, string> = {
   'Transactions': 'amber',
   'Reports': 'blue',
   'Budget': 'purple',
-  'Forecasting': 'cyan',
+  'Forecasting': 'teal',
   'Investments': 'teal',
-  'Challenges': 'slate',
+  'Challenges': 'gold',
   'Schedule & Bills': 'orange',
   'Subscriptions': 'rose',
   'Quotes & Invoices': 'violet',
   'Tasks': 'lime',
-  'Settings': 'gray',
-  'Categories': 'sky',
+  'Settings': 'neutral',
+  'Categories': 'amber',
   'Tags': 'pink',
-  'Merchants': 'indigo',
+  'Merchants': 'neutral',
   'Rules': 'teal',
   'Integrations': 'emerald',
   'Data Management': 'amber',
-  'Documentation': 'blue',
+  'Documentation': 'neutral',
 };
 
 export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending'];

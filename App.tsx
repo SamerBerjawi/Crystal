@@ -418,26 +418,72 @@ const App: React.FC = () => {
     return ITEM_COLORS[currentPage as string] || 'indigo';
   }, [currentPage]);
 
-  const GLOW_COLOR = useMemo(() => {
-    const colors: Record<string, string> = {
-      indigo: 'rgba(99, 102, 241, 0.2)',
-      emerald: 'rgba(16, 185, 129, 0.2)',
-      amber: 'rgba(245, 158, 11, 0.2)',
-      blue: 'rgba(59, 130, 246, 0.2)',
-      purple: 'rgba(168, 85, 247, 0.2)',
-      cyan: 'rgba(6, 182, 212, 0.2)',
-      teal: 'rgba(20, 184, 166, 0.2)',
-      slate: 'rgba(100, 116, 139, 0.2)',
-      orange: 'rgba(249, 115, 22, 0.2)',
-      rose: 'rgba(244, 63, 94, 0.2)',
-      violet: 'rgba(139, 92, 246, 0.2)',
-      lime: 'rgba(132, 204, 22, 0.2)',
-      gray: 'rgba(107, 114, 128, 0.2)',
-      sky: 'rgba(14, 165, 233, 0.2)',
-      pink: 'rgba(236, 72, 153, 0.2)',
-    };
-    return colors[currentPageColor] || colors.indigo;
-  }, [currentPageColor]);
+  const isDarkMode = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }, [theme]);
+
+  const PAGE_GLOW_PALETTES: Record<string, { primary: string; secondary: string; tertiary: string }> = {
+    neutral: { primary: '#737373', secondary: '#525252', tertiary: '#404040' },
+    indigo: { primary: '#6366f1', secondary: '#818cf8', tertiary: '#a5b4fc' },
+    emerald: { primary: '#10b981', secondary: '#34d399', tertiary: '#6ee7b7' },
+    amber: { primary: '#f59e0b', secondary: '#fbbf24', tertiary: '#fcd34d' },
+    gold: { primary: '#f59e0b', secondary: '#fbbf24', tertiary: '#fde047' },
+    blue: { primary: '#3b82f6', secondary: '#60a5fa', tertiary: '#93c5fd' },
+    purple: { primary: '#a855f7', secondary: '#c084fc', tertiary: '#d8b4fe' },
+    cyan: { primary: '#06b6d4', secondary: '#22d3ee', tertiary: '#67e8f9' },
+    teal: { primary: '#14b8a6', secondary: '#2dd4bf', tertiary: '#5eead4' },
+    slate: { primary: '#64748b', secondary: '#94a3b8', tertiary: '#cbd5e1' },
+    orange: { primary: '#f97316', secondary: '#fb923c', tertiary: '#fdba74' },
+    rose: { primary: '#f43f5e', secondary: '#fb7185', tertiary: '#fda4af' },
+    violet: { primary: '#8b5cf6', secondary: '#a78bfa', tertiary: '#c4b5fd' },
+    lime: { primary: '#84cc16', secondary: '#a3e635', tertiary: '#bef264' },
+    gray: { primary: '#6b7280', secondary: '#9ca3af', tertiary: '#d1d5db' },
+    sky: { primary: '#0ea5e9', secondary: '#38bdf8', tertiary: '#7dd3fc' },
+    pink: { primary: '#ec4899', secondary: '#f472b6', tertiary: '#f9a8d4' },
+  };
+
+  const currentAmbientGradient = useMemo(() => {
+    const palette = PAGE_GLOW_PALETTES[currentPageColor] || PAGE_GLOW_PALETTES.neutral;
+    const primary = palette.primary;
+    const secondary = palette.secondary;
+    const tertiary = palette.tertiary;
+    if (isDarkMode) {
+      return [
+        `radial-gradient(circle min(46vw, 520px) at 68% 10%, ${primary}22 0%, ${primary}18 24%, ${primary}0e 48%, ${primary}04 72%, transparent 100%)`,
+        `radial-gradient(circle min(40vw, 440px) at 22% 88%, ${secondary}1c 0%, ${secondary}14 24%, ${secondary}0a 48%, ${secondary}03 72%, transparent 100%)`,
+        `radial-gradient(circle min(32vw, 360px) at 40% 42%, ${tertiary}14 0%, ${tertiary}0e 24%, ${tertiary}07 48%, ${tertiary}02 72%, transparent 100%)`
+      ].join(', ');
+    } else {
+      return [
+        `radial-gradient(circle min(46vw, 520px) at 68% 10%, ${primary}32 0%, ${primary}24 24%, ${primary}16 48%, ${primary}06 72%, transparent 100%)`,
+        `radial-gradient(circle min(40vw, 440px) at 22% 88%, ${secondary}2a 0%, ${secondary}1e 24%, ${secondary}10 48%, ${secondary}05 72%, transparent 100%)`,
+        `radial-gradient(circle min(32vw, 360px) at 40% 42%, ${tertiary}20 0%, ${tertiary}16 24%, ${tertiary}0c 48%, ${tertiary}04 72%, transparent 100%)`
+      ].join(', ');
+    }
+  }, [currentPageColor, isDarkMode]);
+
+  const [ambientLayers, setAmbientLayers] = useState<{ id: string; gradient: string }[]>([
+    { id: `${currentPageColor}-${isDarkMode ? 'dark' : 'light'}`, gradient: currentAmbientGradient }
+  ]);
+
+  useEffect(() => {
+    const newId = `${currentPageColor}-${isDarkMode ? 'dark' : 'light'}`;
+    setAmbientLayers(prev => {
+      const last = prev[prev.length - 1];
+      if (last && last.id === newId) return prev;
+      return [
+        { ...last },
+        { id: newId, gradient: currentAmbientGradient }
+      ];
+    });
+
+    const timer = setTimeout(() => {
+      setAmbientLayers([{ id: newId, gradient: currentAmbientGradient }]);
+    }, 750);
+
+    return () => clearTimeout(timer);
+  }, [currentPageColor, isDarkMode, currentAmbientGradient]);
 
   useEffect(() => {
     applyPageAccentTheme(currentPageColor);
@@ -2563,7 +2609,7 @@ const App: React.FC = () => {
     // Update meta theme-color for iOS / Android PWA status bar
     const metaThemeColor = document.getElementById('theme-color-meta');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', isDark ? '#050505' : '#FAFAFA');
+      metaThemeColor.setAttribute('content', isDark ? '#020617' : '#f8fafc');
     }
   }, [theme]);
 
@@ -2697,20 +2743,22 @@ const App: React.FC = () => {
       <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
         <Toaster position="top-center" expand={true} richColors closeButton />
         <div className={`flex h-screen relative bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
-          {/* Persistent Background Tint, Glow & Dot Pattern */}
+          {/* CANVAS (Mathematical Radial Bloom Ambient Background matching had-homeassistantdashboard) */}
           <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-            <motion.div
-              className="absolute inset-0 opacity-[0.4] dark:opacity-[0.6] transition-colors duration-1000"
-              animate={{ backgroundColor: GLOW_COLOR.split(',').slice(0, 3).join(',') + ', 0.04)' }}
-            />
-            <motion.div
-              className="absolute top-0 right-0 w-[600px] h-[600px] blur-[140px] rounded-full pointer-events-none -mr-48 -mt-48 opacity-60 z-0 transition-all duration-1000"
-              animate={{ backgroundColor: GLOW_COLOR }}
-            />
-            <motion.div
-              className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none -ml-32 -mb-32 opacity-40 z-0 transition-all duration-1000"
-              animate={{ backgroundColor: GLOW_COLOR }}
-            />
+            {ambientLayers.map((layer, index) => {
+              const isTop = index === ambientLayers.length - 1;
+              return (
+                <div
+                  key={layer.id}
+                  className={`absolute inset-0 transform-gpu will-change-[opacity] transition-opacity duration-700 ease-in-out ${
+                    isTop ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{
+                    backgroundImage: layer.gradient,
+                  }}
+                />
+              );
+            })}
           </div>
           <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">

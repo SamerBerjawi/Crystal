@@ -198,21 +198,21 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
 
       {/* Bottom Metrics Row */}
       <div className="flex justify-between items-center text-xs font-semibold tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-subwell">
           <span className="opacity-60">Utilized:</span>
-          <span className={`font-bold ${textColor}`}>{percentage.toFixed(0)}%</span>
+          <span className={`font-mono font-bold ${textColor}`}>{percentage.toFixed(0)}%</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+          <div className="px-2.5 py-1 rounded-lg glass-subwell">
             <span className="opacity-60">Spent: </span>
-            <span className="font-black text-light-text dark:text-dark-text privacy-blur">
+            <span className="font-mono font-black text-light-text dark:text-dark-text privacy-blur">
               {formatCurrency(spent, currency)}
             </span>
           </div>
-          <div className="px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+          <div className="px-2.5 py-1 rounded-lg glass-subwell">
             <span className="opacity-60">Limit: </span>
-            <span className="font-black text-primary-500 privacy-blur">
+            <span className="font-mono font-black text-primary-500 privacy-blur">
               {formatCurrency(budgeted, currency)}
             </span>
           </div>

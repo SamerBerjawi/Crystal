@@ -282,8 +282,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
             }
           />
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl relative z-10">
-           <div className="flex items-center gap-2 bg-white/50 dark:bg-black/50 p-1 rounded-[1.5rem] w-full md:w-auto justify-between md:justify-start border border-black/5 dark:border-white/5 shadow-lg">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 glass-subwell p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card relative z-10">
+           <div className="flex items-center gap-2 glass-tile p-1 rounded-xl w-full md:w-auto justify-between md:justify-start shadow-xs">
                 <button onClick={() => handleMonthChange(-1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
                     <Icon name="chevron_left" className="text-lg leading-none group-hover:-translate-x-1 transition-transform" />
                 </button>
@@ -297,7 +297,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
            </div>
            
            <div className="flex items-center gap-2 w-full md:w-auto group">
-                <div className="flex rounded-[1.5rem] shadow-lg bg-white/50 dark:bg-black/50 border border-black/5 dark:border-white/5 overflow-hidden">
+                <div className="flex rounded-xl shadow-xs glass-tile overflow-hidden">
                     <button
                         onClick={handleQuickCreateDefault}
                         className="flex items-center gap-3 px-6 py-3 hover:bg-primary-500/10 transition-colors group/btn"
@@ -306,7 +306,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         <Icon name="zap" className="text-lg text-primary-500 group-hover/btn:scale-125 transition-transform" />
                         <span className="text-xs font-semibold tracking-wide whitespace-nowrap">Quick budget</span>
                     </button>
-                    <div className="w-[1px] bg-black/5 dark:bg-white/10"></div>
+                    <div className="w-[1px] bg-slate-200/60 dark:bg-white/10"></div>
                     <button
                         onClick={() => setQuickBudgetModalOpen(true)}
                         className="px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
@@ -320,7 +320,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
 
       <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4 relative z-10">
           <BentoCard 
-              className="md:col-span-2 !p-0 bg-[#121214] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[200px] border-white/5"
+              className="md:col-span-2 !p-0 glass-section text-light-text dark:text-white shadow-card relative overflow-hidden flex flex-col justify-between min-h-[200px]"
               background={
                   <>
                       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[120px] -mr-64 -mt-64 pointer-events-none transition-opacity group-hover:opacity-20"></div>
@@ -332,8 +332,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-xs font-semibold uppercase tracking-wider text-white/60 mb-2 block">Available Liquidity</h2>
-                            <h2 className="text-4xl font-bold tracking-tight leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
+                            <h2 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60 mb-2 block">Available Liquidity</h2>
+                            <h2 className="text-4xl font-black font-mono tracking-tight leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${totalRemaining >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'} animate-pulse`}></div>
                                 <span className={`text-xs font-semibold ${totalRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -342,26 +342,26 @@ const Budgeting: React.FC<BudgetingProps> = ({
                             </div>
                         </div>
                         <div className="flex flex-col items-end">
-                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform">
+                            <div className="w-12 h-12 rounded-xl glass-subwell flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform">
                                 <Icon name="wallet" className="text-2xl opacity-40" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="relative z-10 grid grid-cols-2 gap-8 mt-6 bg-white/5 p-4 rounded-xl border border-white/5 backdrop-blur-md">
+                <div className="relative z-10 grid grid-cols-2 gap-8 mt-6 glass-subwell p-4 rounded-xl backdrop-blur-md">
                      <div>
-                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">Total budgeted</p>
-                        <p className="text-xl font-bold tracking-tight">{formatCurrency(totalBudgeted, 'EUR')}</p>
+                        <p className="text-light-text-secondary dark:text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">Total budgeted</p>
+                        <p className="text-xl font-bold font-mono tracking-tight">{formatCurrency(totalBudgeted, 'EUR')}</p>
                      </div>
                      <div>
-                        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">Total spent</p>
-                        <p className="text-xl font-bold tracking-tight opacity-100">{formatCurrency(totalSpent, 'EUR')}</p>
+                        <p className="text-light-text-secondary dark:text-white/50 text-xs font-semibold uppercase tracking-wider mb-1">Total spent</p>
+                        <p className="text-xl font-bold font-mono tracking-tight opacity-100">{formatCurrency(totalSpent, 'EUR')}</p>
                      </div>
                 </div>
                 
                 <div className="relative z-10 mt-6">
-                     <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/10 p-[1px]">
+                     <div className="w-full bg-slate-900/[0.04] dark:bg-white/5 rounded-full h-2 overflow-hidden border border-slate-900/[0.08] dark:border-white/10 p-[1px]">
                         <div 
                             className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(255,255,255,0.1)] ${overallProgress > 100 ? 'bg-rose-500' : 'bg-primary-500'}`} 
                             style={{ width: `${Math.min(overallProgress, 100)}%` }}
@@ -369,16 +369,16 @@ const Budgeting: React.FC<BudgetingProps> = ({
                     </div>
                      <div className="flex justify-between items-center mt-3">
                         <div className="flex items-center gap-2">
-                             <span className="text-xs font-semibold uppercase tracking-wider text-white/60">Utilization</span>
-                             <span className="text-sm font-bold tracking-tight">{overallProgress.toFixed(0)}%</span>
+                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60">Utilization</span>
+                             <span className="text-sm font-bold font-mono tracking-tight">{overallProgress.toFixed(0)}%</span>
                         </div>
                         {daysRemaining > 0 ? (
                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-white/60">Active range</span>
+                                <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60">Active range</span>
                                 <span className="text-xs font-bold tracking-wide">{daysRemaining} DAYS REMAINING</span>
                            </div>
                         ) : (
-                           <span className="text-xs font-semibold uppercase tracking-wider text-white/60">Cycle closed</span>
+                           <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-white/60">Cycle closed</span>
                         )}
                     </div>
                 </div>
@@ -386,7 +386,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           </BentoCard>
 
           <BentoCard 
-              className="!col-span-1 !p-0 shadow-2xl flex flex-col justify-center relative overflow-hidden"
+              className="!col-span-1 !p-0 shadow-card flex flex-col justify-center relative overflow-hidden"
               background={
                   <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover:opacity-40 transition-opacity"></div>
               }
@@ -396,8 +396,8 @@ const Budgeting: React.FC<BudgetingProps> = ({
                         <Icon name="coins_stacked" className="text-2xl" />
                   </div>
                   <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-1">Daily safe spend</p>
-                  <h3 className="text-3xl font-bold tracking-tight text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
-                  <div className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                  <h3 className="text-3xl font-black font-mono tracking-tight text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
+                  <div className="px-3 py-1 rounded-full glass-subwell">
                     <p className="text-xs font-medium opacity-70 leading-none">
                         Available per day / {daysRemaining}d
                     </p>
@@ -453,7 +453,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           </div>
 
           <div className="space-y-4">
-              <Card className="flex flex-col !p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-2xl relative overflow-hidden group min-h-[320px]">
+              <Card className="flex flex-col !p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card relative overflow-hidden group min-h-[320px]">
                   <div className="absolute top-0 left-0 w-32 h-32 bg-primary-500/5 rounded-full blur-[60px] -ml-16 -mt-16 pointer-events-none"></div>
                   
                   <div className="flex items-center justify-between mb-6 relative z-10">
@@ -485,7 +485,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                             <span className="text-xs font-semibold uppercase tracking-wider opacity-60 leading-none mb-1">
                               {label}
                             </span>
-                            <span className="text-sm font-bold tracking-tight leading-none">
+                            <span className="text-sm font-bold font-mono tracking-tight leading-none">
                               {formatCurrency(isHovered ? value : totalBudgeted, 'EUR')}
                             </span>
                           </div>
@@ -504,7 +504,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                   </div>
               </Card>
 
-              <Card className="!p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-2xl relative overflow-hidden group">
+              <Card className="!p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card relative overflow-hidden group">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-0.5">Critical</p>
@@ -526,10 +526,10 @@ const Budgeting: React.FC<BudgetingProps> = ({
                                 const pct = (b.spent / b.amount) * 100;
                                 const isOver = pct > 100;
                                 return (
-                                    <div key={b.id} className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 hover:scale-[1.01] transition-transform duration-300">
+                                    <div key={b.id} className="flex justify-between items-center p-3 glass-tile rounded-xl transition-all duration-200 hover:shadow-xs">
                                         <span className="text-xs font-semibold tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
-                                        <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-600' : 'bg-amber-500/10 text-amber-600'}`}>
-                                            <span className="text-xs font-bold tracking-tight leading-none">{pct.toFixed(0)}</span>
+                                        <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'}`}>
+                                            <span className="text-xs font-bold font-mono tracking-tight leading-none">{pct.toFixed(0)}</span>
                                             <span className="text-xs font-normal opacity-50">%</span>
                                         </div>
                                     </div>

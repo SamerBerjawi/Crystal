@@ -93,11 +93,11 @@ const AccountLogoOrIcon: React.FC<{
 
   if (logoUrl && !imgError) {
     return (
-      <div className={`${dimensions} overflow-hidden bg-white dark:bg-white/10 border border-black/10 dark:border-white/10 flex items-center justify-center shrink-0 shadow-2xs`}>
+      <div className={`${dimensions} overflow-hidden bg-white dark:bg-white/10 flex items-center justify-center shrink-0 shadow-2xs`}>
         <img
           src={logoUrl}
           alt={account.financialInstitution || account.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover p-0 border-0"
           onError={() => setImgError(true)}
         />
       </div>
@@ -2064,7 +2064,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             <img
                               src={currentMerchantLogoUrl}
                               alt={merchant}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover p-0 border-0"
                               onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                             />
                           ) : (
@@ -2128,7 +2128,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                       <img
                                         src={logoUrl}
                                         alt={item.name}
-                                        className="w-5 h-5 rounded-md object-cover bg-gray-100 dark:bg-gray-800 shrink-0"
+                                        className="w-5 h-5 rounded-md object-cover bg-gray-100 dark:bg-gray-800 shrink-0 p-0 border-0"
                                         onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                       />
                                     ) : (

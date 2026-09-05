@@ -112,10 +112,10 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
     }
 
     const cardBorder = prediction.status === 'won' 
-        ? 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-900/10' 
+        ? 'border-emerald-500/40 bg-emerald-500/5' 
         : prediction.status === 'lost' 
-            ? 'border-red-500/50 bg-red-50/50 dark:bg-red-900/10'
-            : 'border-black/5 dark:border-white/5 bg-white dark:bg-dark-card';
+            ? 'border-rose-500/40 bg-rose-500/5'
+            : '';
 
     // Badge styling based on type
     const badgeStyle = isSpending 
@@ -127,18 +127,18 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
     const typeLabel = isSpending ? 'Spending Cap' : isPriceTarget ? 'Price Target' : 'Wealth Goal';
 
     return (
-        <Card className={`relative overflow-hidden border ${cardBorder} transition-all hover:shadow-md group`}>
+        <Card className={`relative overflow-hidden ${cardBorder} transition-all hover:shadow-card hover:-translate-y-0.5 group`}>
             <div className="flex justify-between items-start mb-4">
                 <div>
-                     <span className={`text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeStyle}`}>
+                     <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeStyle}`}>
                          {typeLabel}
                      </span>
-                     <h3 className="font-semibold text-lg mt-2 truncate max-w-[200px]" title={prediction.targetName}>{prediction.targetName}</h3>
+                     <h3 className="font-bold text-lg mt-2 truncate max-w-[200px]" title={prediction.targetName}>{prediction.targetName}</h3>
                 </div>
                 
                 {/* Result Badge */}
                 {!isActive && (
-                    <div className={`rotate-12 px-3 py-1 border-2 font-black  tracking-widest text-sm rounded-lg ${prediction.status === 'won' ? 'border-emerald-500 text-emerald-600 bg-white/80' : 'border-red-500 text-red-600 bg-white/80'}`}>
+                    <div className={`rotate-12 px-3 py-1 border-2 font-black tracking-widest text-sm rounded-lg ${prediction.status === 'won' ? 'border-emerald-500 text-emerald-600 bg-white/80 dark:bg-black/60' : 'border-red-500 text-red-600 bg-white/80 dark:bg-black/60'}`}>
                         {prediction.status}
                     </div>
                 )}
@@ -151,8 +151,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
 
             <div className="space-y-2">
                  <div className="flex justify-between items-end">
-                     <span className="text-2xl font-bold font-mono">{formatCurrency(currentValue, 'EUR')}</span>
-                     <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Target: {formatCurrency(prediction.targetAmount, 'EUR')}</span>
+                     <span className="text-2xl font-black font-mono tracking-tight">{formatCurrency(currentValue, 'EUR')}</span>
+                     <span className="text-xs font-mono text-light-text-secondary dark:text-dark-text-secondary mb-1">Target: {formatCurrency(prediction.targetAmount, 'EUR')}</span>
                  </div>
                  
                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">

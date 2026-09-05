@@ -196,16 +196,16 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                 placeholder="Query semantic labels..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-xs font-bold  tracking-widest placeholder:text-light-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-sm"
+                className="w-full glass-tile rounded-2xl pl-12 pr-4 py-3.5 text-xs font-bold tracking-wider placeholder:text-light-text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card"
               />
           </div>
           
           <div className="flex gap-4">
-                <div className="bg-black/5 dark:bg-white/5 p-1 rounded-2xl flex">
+                <div className="glass-subwell p-1 rounded-2xl flex shadow-xs">
                    <select 
                      value={sortBy} 
                      onChange={(e) => setSortBy(e.target.value as SortOption)}
-                     className="bg-transparent text-xs font-semibold text-light-text dark:text-dark-text px-4 py-2 focus:outline-none cursor-pointer"
+                     className="bg-transparent text-xs font-bold text-light-text dark:text-dark-text px-4 py-2 focus:outline-none cursor-pointer"
                    >
                        <option value="count">Utility Rank</option>
                        <option value="amount">Volume Rank</option>
@@ -213,16 +213,16 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                    </select>
                 </div>
                 
-                <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-2xl">
+                <div className="flex glass-subwell p-1 rounded-2xl shadow-xs">
                     <button 
                        onClick={() => setViewMode('grid')}
-                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-xl text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
+                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'glass-tile shadow-card text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                     >
                         <Icon name="layout_alt" className="text-sm" />
                     </button>
                     <button 
                        onClick={() => setViewMode('list')}
-                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-xl text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
+                       className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'glass-tile shadow-card text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                     >
                         <Icon name="list" className="text-sm" />
                     </button>
@@ -239,7 +239,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                        <div 
                            key={tag.id} 
                            onClick={() => handleTagClick(tag.id)}
-                           className="group bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 hover:border-primary-500/30 hover:shadow-2xl hover:shadow-black/5 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                           className="group glass-tile rounded-3xl p-6 shadow-card hover:border-primary-500/30 hover:shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden"
                        >
                            <div className="flex justify-between items-start mb-8">
                                <div className="flex items-center gap-4">
@@ -292,9 +292,9 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                </ResponsiveContainer>
                            </div>
                            
-                           <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 px-4 py-3 rounded-2xl">
+                           <div className="flex justify-between items-center glass-subwell px-4 py-3 rounded-2xl">
                                <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Cumulative Volume</span>
-                               <span className="font-mono font-bold text-sm text-light-text dark:text-dark-text">
+                               <span className="font-mono font-black tracking-tight text-sm text-light-text dark:text-dark-text">
                                    {formatCurrency(tag.netAmount, 'EUR')}
                                </span>
                            </div>
@@ -302,10 +302,10 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                    ))}
                </div>
              ) : (
-                 <div className="bg-white dark:bg-dark-card rounded-3xl border border-black/5 dark:border-white/5 overflow-hidden shadow-sm">
+                 <div className="glass-section rounded-3xl overflow-hidden shadow-card">
                      <table className="w-full text-left border-collapse">
                          <thead>
-                             <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
+                             <tr className="bg-slate-900/[0.02] dark:bg-white/[0.02] border-b border-slate-200/60 dark:border-white/5">
                                  <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Semantic Label</th>
                                  <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider text-right">Node Density</th>
                                  <th className="px-8 py-4 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider text-right">Total Aggregate</th>
@@ -327,7 +327,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                          <span className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">{tag.count} Entries</span>
                                      </td>
                                      <td className="px-8 py-4 text-right">
-                                         <span className="font-mono font-bold text-sm text-light-text dark:text-dark-text">{formatCurrency(tag.netAmount, 'EUR')}</span>
+                                         <span className="font-mono font-black tracking-tight text-sm text-light-text dark:text-dark-text">{formatCurrency(tag.netAmount, 'EUR')}</span>
                                      </td>
                                      <td className="px-8 py-4 text-right">
                                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">

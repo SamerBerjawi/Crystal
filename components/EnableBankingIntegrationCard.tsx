@@ -431,14 +431,14 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       </Card>
 
       {/* Connections List */}
-      <div>
-          <div className="flex items-center justify-between mb-4 px-1">
+      <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Connections</h3>
-              <span className="text-xs font-medium bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md text-light-text-secondary dark:text-dark-text-secondary">{connections.length} total</span>
+              <span className="text-xs font-semibold bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{connections.length} total</span>
           </div>
 
           {connections.length === 0 ? (
-             <div className="p-8 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 text-center">
+             <div className="p-8 sm:p-10 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 text-center bg-black/[0.01] dark:bg-white/[0.01]">
                  <Icon name="link_off" className="text-4xl text-gray-300 dark:text-gray-600 mb-2" />
                  <p className="text-light-text-secondary dark:text-dark-text-secondary font-medium">No active connections</p>
                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Add a bank above to get started.</p>
@@ -450,9 +450,9 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                     const keyPrefix = (accountId: string) => `${connection.id}:${accountId}`;
 
                     return (
-                    <div key={connection.id} className="bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/10 shadow-sm overflow-hidden">
+                    <div key={connection.id} className="bg-white/80 dark:bg-dark-card rounded-2xl border border-black/10 dark:border-white/10 shadow-xs overflow-hidden">
                         {/* Connection Header */}
-                        <div className="p-4 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-3">
                                     <h4 className="text-lg font-bold text-light-text dark:text-dark-text">{connection.selectedBank || 'Bank Connection'}</h4>
@@ -678,7 +678,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                 })}
             </div>
           )}
-      </div>
+      </Card>
     </div>
   );
 };

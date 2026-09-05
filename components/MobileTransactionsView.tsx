@@ -275,17 +275,16 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
     return (
       <div className="relative shrink-0">
         <div
-          className="w-11 h-11 rounded-[16px] flex items-center justify-center overflow-hidden border shadow-xs transition-transform shrink-0"
+          className="w-11 h-11 rounded-[16px] flex items-center justify-center overflow-hidden shadow-xs transition-transform shrink-0"
           style={{
             backgroundColor: isLogoValid ? '#ffffff' : `${catMeta.color}18`,
-            borderColor: isLogoValid ? 'rgba(255,255,255,0.1)' : `${catMeta.color}30`,
           }}
         >
           {isLogoValid ? (
             <img
               src={logoUrl}
               alt={merchantName}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover p-0 border-0"
               referrerPolicy="no-referrer"
               onError={() => handleLogoError(logoUrl)}
             />
