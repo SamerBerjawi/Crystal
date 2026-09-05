@@ -130,7 +130,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
       {/* Slide-over Sidebar Drawer from Right */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-6 md:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl h-screen bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
+          className={`w-screen max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl h-screen bg-light-card dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}

@@ -487,7 +487,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         <div className="fixed inset-0 z-[9999] overflow-hidden">
             {/* Backdrop Blur Overlay */}
             <div 
-                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+                className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
                     isVisible ? 'opacity-100' : 'opacity-0'
                 }`}
                 onClick={handleCloseDrawer}
@@ -496,7 +496,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
             {/* Right-Side Full Height Slide-out Drawer */}
             <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
                 <div 
-                    className={`w-screen max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+                    className={`w-screen max-w-xl md:max-w-2xl h-screen bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
                         isVisible ? 'translate-x-0' : 'translate-x-full'
                     }`}
                     onClick={(e) => e.stopPropagation()}
@@ -1490,7 +1490,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                     </div>
 
                     {/* 3. Sticky Drawer Footer */}
-                    <div className="shrink-0 p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
+                    <div className="shrink-0 p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
                         <button
                             type="button"
                             onClick={() => {
@@ -1503,7 +1503,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 setLocations([]);
                                 toast.info('Reset unsaved fields');
                             }}
-                            className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 transition-colors cursor-pointer"
+                            className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                         >
                             Reset Fields
                         </button>

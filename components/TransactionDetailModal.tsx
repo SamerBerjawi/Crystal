@@ -75,9 +75,19 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   onDelete,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [logoLoadError, setLogoLoadError] = useState(false);
+
+  useEffect(() => {
+    const checkDarkMode = () => document.documentElement.classList.contains('dark');
+    setIsDarkMode(checkDarkMode());
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Entrance & Exit animation handling
   useEffect(() => {
@@ -179,7 +189,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -187,7 +197,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
       {/* Portrait Apple Workout Overview Card */}
       <div
-        className={`relative w-full max-w-[430px] max-h-[94vh] sm:max-h-[90vh] bg-[#0c0d12] text-white rounded-[2.5rem] sm:rounded-[2.75rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] border border-white/10 flex flex-col overflow-hidden transform transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`relative w-full max-w-[430px] max-h-[94vh] sm:max-h-[90vh] bg-white dark:bg-[#0c0d12] text-slate-900 dark:text-white rounded-[2.5rem] sm:rounded-[2.75rem] shadow-2xl dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden transform transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isVisible ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
         }`}
         onClick={e => e.stopPropagation()}
@@ -195,8 +205,8 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         {/* Top Floating Glass Controls (Location Badge & Close Only) */}
         <div className="absolute top-4 left-4 right-4 z-40 flex items-center justify-between pointer-events-none">
           {/* Location Badge (Apple Workout style, e.g. 🧭 Evere) */}
-          <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white text-xs font-semibold shadow-md">
-            <Icon name="marker_pin" className="text-[#a3e635] text-xs" />
+          <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-md border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white text-xs font-semibold shadow-md">
+            <Icon name="marker_pin" className="text-lime-600 dark:text-[#a3e635] text-xs" />
             <span className="truncate max-w-[190px]">{cityName || locationSubtitle}</span>
           </div>
 
@@ -205,7 +215,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95"
+              className="w-9 h-9 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-md border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95"
               title="Close (Esc)"
             >
               <Icon name="close" className="text-base" />
@@ -217,11 +227,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto pb-8 safe-bottom custom-scrollbar">
           
           {/* 1. TOP HERO MAP VIEWPORT */}
-          <div className="relative w-full h-[300px] sm:h-[330px] bg-[#12141a] overflow-hidden shrink-0">
+          <div className="relative w-full h-[300px] sm:h-[330px] bg-slate-100 dark:bg-[#12141a] overflow-hidden shrink-0">
             {hasCoordinates ? (
               <div className="absolute inset-0 z-0 isolate overflow-hidden">
                 <MapContainerAny
-                  key={`apple-map-${primaryTx.id}-${primaryTx.latitude}-${primaryTx.longitude}`}
+                  key={`apple-map-${primaryTx.id}-${primaryTx.latitude}-${primaryTx.longitude}-${isDarkMode}`}
                   center={mapCenter}
                   zoom={15}
                   zoomControl={false}
@@ -233,7 +243,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   className="w-full h-full !z-0"
                 >
                   <TileLayerAny
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    url={
+                      isDarkMode
+                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    }
                     maxZoom={19}
                   />
                   <MarkerAny position={mapCenter} icon={pinIcon} />
@@ -242,16 +256,16 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               </div>
             ) : (
               /* Stylized Apple Vector Topographic / Dark Map Background */
-              <div className="absolute inset-0 z-0 isolate bg-gradient-to-br from-[#0c1624] via-[#09101b] to-[#040608] flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 z-0 isolate bg-gradient-to-br from-slate-100 via-slate-200/70 to-slate-100 dark:from-[#0c1624] dark:via-[#09101b] dark:to-[#040608] flex items-center justify-center overflow-hidden">
                 {/* Cartographic Grid & Geometry */}
-                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                <div className="absolute w-80 h-80 rounded-full border border-sky-500/15 animate-pulse"></div>
-                <div className="absolute w-52 h-52 rounded-full border border-[#a3e635]/20"></div>
+                <div className="absolute inset-0 opacity-25 dark:opacity-20 bg-[radial-gradient(#0284c7_1px,transparent_1px)] dark:bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div className="absolute w-80 h-80 rounded-full border border-sky-500/20 dark:border-sky-500/15 animate-pulse"></div>
+                <div className="absolute w-52 h-52 rounded-full border border-lime-500/25 dark:border-[#a3e635]/20"></div>
 
                 {/* Glowing Apple Neon Pin in Center */}
                 <div className="relative z-10 flex flex-col items-center">
                   <div className="relative flex items-center justify-center">
-                    <div className="absolute -inset-3.5 rounded-full bg-[#a3e635]/20 animate-ping"></div>
+                    <div className="absolute -inset-3.5 rounded-full bg-[#a3e635]/25 dark:bg-[#a3e635]/20 animate-ping"></div>
                     <div className="w-16 h-16 rounded-full bg-[#a3e635] flex items-center justify-center p-0 shadow-[0_0_28px_rgba(163,230,53,0.95)] overflow-hidden">
                       {merchantLogoUrl && !logoLoadError ? (
                         <img
@@ -267,47 +281,47 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       )}
                     </div>
                   </div>
-                  <span className="mt-2.5 text-2xs font-bold uppercase tracking-wider text-[#a3e635] bg-black/60 px-2.5 py-0.5 rounded-full border border-[#a3e635]/30">
+                  <span className="mt-2.5 text-2xs font-bold uppercase tracking-wider text-slate-800 dark:text-[#a3e635] bg-white/90 dark:bg-black/60 px-2.5 py-0.5 rounded-full border border-slate-300 dark:border-[#a3e635]/30 shadow-xs">
                     {locationSubtitle}
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Bottom Gradient Shade Overlay (blends map effortlessly into dark body) */}
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0c0d12] via-[#0c0d12]/85 to-transparent pointer-events-none z-[15]" />
+            {/* Bottom Gradient Shade Overlay (blends map effortlessly into body) */}
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white via-white/85 to-transparent dark:from-[#0c0d12] dark:via-[#0c0d12]/85 dark:to-transparent pointer-events-none z-[15]" />
 
             {/* Float Overlay Content: Title & Highlight Metric over bottom of map */}
             <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 z-[20] space-y-1.5 pointer-events-auto">
-              <div className="flex items-center gap-2 text-2xs font-semibold text-gray-400">
+              <div className="flex items-center gap-2 text-2xs font-semibold text-slate-600 dark:text-gray-400">
                 <span>{formattedFullDate}</span>
                 <span>•</span>
-                <span className="text-gray-300 font-medium">
+                <span className="text-slate-800 dark:text-gray-300 font-bold">
                   {isTransfer ? 'Transfer' : (account?.name || 'Account')}
                 </span>
               </div>
 
-              {/* Big Bold Apple Title (e.g. Racquetball) */}
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate leading-tight drop-shadow-sm">
+              {/* Big Bold Apple Title */}
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate leading-tight drop-shadow-xs dark:drop-shadow-sm">
                 {primaryTx.merchant || primaryTx.description}
               </h2>
 
-              {/* Fluorescent Apple Highlight Metric (e.g. 664CAL / €195.40) */}
+              {/* Fluorescent Apple Highlight Metric */}
               <div className="flex items-baseline gap-2 pt-0.5">
                 <span
                   className={`text-3xl sm:text-4xl font-black font-mono tracking-tight ${
                     isIncome
-                      ? 'text-[#34d399] drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]'
+                      ? 'text-emerald-600 dark:text-[#34d399] dark:drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]'
                       : isTransfer
-                      ? 'text-[#60a5fa] drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]'
-                      : 'text-[#a3e635] drop-shadow-[0_0_15px_rgba(163,230,53,0.55)]'
+                      ? 'text-blue-600 dark:text-[#60a5fa] dark:drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]'
+                      : 'text-lime-600 dark:text-[#a3e635] dark:drop-shadow-[0_0_15px_rgba(163,230,53,0.55)]'
                   }`}
                 >
                   {isIncome ? '+' : ''}
                   {formatCurrency(primaryTx.amount, primaryTx.currency)}
                 </span>
 
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">
+                <span className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider font-mono">
                   {primaryTx.currency}
                 </span>
               </div>
@@ -315,33 +329,33 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
           </div>
 
           {/* 2. APPLE CONTEXT WEATHER / METADATA PILLS */}
-          <div className="px-5 sm:px-6 py-2.5 flex items-center gap-5 text-xs text-gray-300 border-b border-white/5 overflow-x-auto no-scrollbar">
+          <div className="px-5 sm:px-6 py-2.5 flex items-center gap-5 text-xs text-slate-700 dark:text-gray-300 border-b border-slate-200/80 dark:border-white/5 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="loyalty" className="text-amber-400 text-sm shrink-0" />
+              <Icon name="loyalty" className="text-amber-500 dark:text-amber-400 text-sm shrink-0" />
               <div className="flex flex-col">
-                <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Category</span>
-                <span className="font-bold text-white text-xs">{primaryTx.category || 'General'}</span>
+                <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Category</span>
+                <span className="font-bold text-slate-900 dark:text-white text-xs">{primaryTx.category || 'General'}</span>
               </div>
             </div>
 
-            <div className="h-6 w-px bg-white/10 shrink-0" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="credit_card" className="text-sky-400 text-sm shrink-0" />
+              <Icon name="credit_card" className="text-sky-600 dark:text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
-                <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Method</span>
-                <span className="font-bold text-white text-xs">{account?.type || 'Direct'}</span>
+                <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Method</span>
+                <span className="font-bold text-slate-900 dark:text-white text-xs">{account?.type || 'Direct'}</span>
               </div>
             </div>
 
             {(primaryTx as any).status && (
               <>
-                <div className="h-6 w-px bg-white/10 shrink-0" />
+                <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Icon name="check_circle" className="text-emerald-400 text-sm shrink-0" />
+                  <Icon name="check_circle" className="text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Status</span>
-                    <span className="font-bold text-white text-xs capitalize">{(primaryTx as any).status}</span>
+                    <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Status</span>
+                    <span className="font-bold text-slate-900 dark:text-white text-xs capitalize">{(primaryTx as any).status}</span>
                   </div>
                 </div>
               </>
@@ -350,7 +364,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           {/* 3. "TRANSACTION DETAILS >" INTERACTIVE STRIP (Single "Edit Entry" trigger) */}
           <div className="px-5 sm:px-6 py-4 flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
               <span>Transaction Details</span>
             </h3>
 
@@ -361,7 +375,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   handleClose();
                   setTimeout(() => onEdit(primaryTx), 100);
                 }}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#a3e635] hover:text-white transition-colors cursor-pointer group py-1 px-2.5 rounded-xl hover:bg-white/5 active:scale-95"
+                className="inline-flex items-center gap-1 text-xs font-bold text-lime-700 dark:text-[#a3e635] hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer group py-1 px-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95"
               >
                 <span>Edit Entry</span>
                 <Icon name="chevron_right" className="text-sm transition-transform group-hover:translate-x-0.5" />
@@ -371,16 +385,16 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           {/* 4. APPLE WORKOUT 2x2 METRIC GRID CARD WITH SPACIOUS DETAILS */}
           <div className="px-5 sm:px-6 pb-8 space-y-4">
-            <div className="p-5 sm:p-6 rounded-3xl bg-[#181920] border border-white/5 space-y-5 shadow-inner">
+            <div className="p-5 sm:p-6 rounded-3xl bg-slate-50 dark:bg-[#181920] border border-slate-200/80 dark:border-white/5 space-y-5 shadow-xs dark:shadow-inner">
               <div className="grid grid-cols-2 gap-5">
-                {/* Metric 1: Account (Gold/Amber highlight in Apple Workout with larger institution logo) */}
+                {/* Metric 1: Account */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Account
                   </p>
                   <div className="flex items-center gap-2.5 min-w-0">
                     {institutionLogoUrl ? (
-                      <div className="w-7 h-7 rounded-lg overflow-hidden bg-white/10 border border-white/10 flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-7 h-7 rounded-lg overflow-hidden bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0 shadow-2xs">
                         <img
                           src={institutionLogoUrl}
                           alt={account?.name || 'Account'}
@@ -388,79 +402,79 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
                         <Icon name="wallet" className="text-sm" />
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-sm sm:text-base font-black text-amber-400 truncate leading-tight font-mono">
+                      <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 truncate leading-tight font-mono">
                         {account?.name || 'Account'}
                       </p>
                       {account?.last4 && (
-                        <p className="text-2xs text-gray-500 font-mono mt-0.5">•••• {account.last4}</p>
+                        <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono mt-0.5">•••• {account.last4}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Metric 2: Amount (Vibrant Coral/Pink highlight) */}
+                {/* Metric 2: Amount */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Net Flow
                   </p>
                   <p
                     className={`text-sm sm:text-base font-black truncate leading-tight font-mono ${
-                      isIncome ? 'text-[#34d399]' : 'text-[#ff375f]'
+                      isIncome ? 'text-emerald-600 dark:text-[#34d399]' : 'text-rose-600 dark:text-[#ff375f]'
                     }`}
                   >
                     {isIncome ? '+' : ''}
                     {formatCurrency(primaryTx.amount, primaryTx.currency)}
                   </p>
-                  <p className="text-2xs text-gray-500 capitalize">{primaryTx.type}</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500 capitalize">{primaryTx.type}</p>
                 </div>
 
                 {/* Metric 3: Category */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Classification
                   </p>
-                  <p className="text-sm sm:text-base font-black text-white truncate leading-tight">
+                  <p className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate leading-tight">
                     {primaryTx.category || 'Uncategorized'}
                   </p>
-                  <p className="text-2xs text-gray-500">General Category</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500">General Category</p>
                 </div>
 
                 {/* Metric 4: Route / Execution */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Execution
                   </p>
-                  <p className="text-sm sm:text-base font-black text-sky-400 truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-sky-600 dark:text-sky-400 truncate leading-tight font-mono">
                     {isTransfer ? 'Transfer' : (account?.financialInstitution || 'Direct')}
                   </p>
-                  <p className="text-2xs text-gray-500">{primaryTx.date}</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500">{primaryTx.date}</p>
                 </div>
               </div>
 
               {/* Transfer Details Card (if Transfer) */}
               {isTransfer && counterpartAccount && (
-                <div className="pt-4 border-t border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Transfer Bridge
                   </p>
-                  <div className="flex items-center justify-between bg-black/30 p-3 rounded-2xl text-xs font-semibold border border-white/5">
-                    <span className="text-amber-400 truncate">{account?.name}</span>
-                    <Icon name="arrow_forward" className="text-xs text-gray-400 mx-2 shrink-0" />
-                    <span className="text-emerald-400 truncate">{counterpartAccount.name}</span>
+                  <div className="flex items-center justify-between bg-white dark:bg-black/30 p-3 rounded-2xl text-xs font-semibold border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
+                    <span className="text-amber-600 dark:text-amber-400 truncate">{account?.name}</span>
+                    <Icon name="arrow_forward" className="text-xs text-slate-400 dark:text-gray-400 mx-2 shrink-0" />
+                    <span className="text-emerald-600 dark:text-emerald-400 truncate">{counterpartAccount.name}</span>
                   </div>
                 </div>
               )}
 
               {/* Physical Location Card */}
               {(primaryTx.placeName || primaryTx.locationLabel || primaryTx.city || primaryTx.address) && (
-                <div className="pt-4 border-t border-white/5 space-y-2">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                       Location
                     </p>
                     <a
@@ -471,21 +485,21 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       }
                       target="_blank"
                       rel="noreferrer"
-                      className="text-2xs font-bold text-[#a3e635] hover:underline inline-flex items-center gap-0.5"
+                      className="text-2xs font-bold text-lime-700 dark:text-[#a3e635] hover:underline inline-flex items-center gap-0.5"
                     >
                       <span>Google Maps</span>
                       <Icon name="open_in_new" className="text-2xs" />
                     </a>
                   </div>
-                  <div className="bg-black/30 p-3 rounded-2xl text-xs text-gray-300 border border-white/5 flex items-center justify-between gap-2.5">
+                  <div className="bg-white dark:bg-black/30 p-3 rounded-2xl text-xs text-slate-800 dark:text-gray-300 border border-slate-200/80 dark:border-white/5 flex items-center justify-between gap-2.5 shadow-xs dark:shadow-none">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon name="marker_pin" className="text-sm text-[#a3e635] shrink-0" />
-                      <span className="leading-snug text-xs font-semibold text-white truncate">
+                      <Icon name="marker_pin" className="text-sm text-lime-600 dark:text-[#a3e635] shrink-0" />
+                      <span className="leading-snug text-xs font-semibold text-slate-900 dark:text-white truncate">
                         {primaryTx.locationLabel || primaryTx.placeName || primaryTx.city || (primaryTx.address ? primaryTx.address.split(',')[0] : 'Storefront')}
                       </span>
                     </div>
                     {primaryTx.city && primaryTx.city !== (primaryTx.locationLabel || primaryTx.placeName) && (
-                      <span className="text-2xs font-bold text-[#a3e635] bg-[#a3e635]/10 px-2 py-0.5 rounded-full shrink-0 border border-[#a3e635]/20">
+                      <span className="text-2xs font-bold text-lime-700 dark:text-[#a3e635] bg-lime-500/10 px-2 py-0.5 rounded-full shrink-0 border border-lime-500/20">
                         {primaryTx.city}
                       </span>
                     )}
@@ -495,11 +509,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
               {/* Description / Memo */}
               {primaryTx.description && primaryTx.description !== primaryTx.merchant && (
-                <div className="pt-4 border-t border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Internal Memo
                   </p>
-                  <p className="text-xs text-gray-200 leading-relaxed font-medium bg-black/20 p-3 rounded-2xl border border-white/5">
+                  <p className="text-xs text-slate-800 dark:text-gray-200 leading-relaxed font-medium bg-white dark:bg-black/20 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
                     {primaryTx.description}
                   </p>
                 </div>
@@ -507,11 +521,11 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
               {/* Notes */}
               {primaryTx.notes && (
-                <div className="pt-4 border-t border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Notes & Remarks
                   </p>
-                  <div className="bg-black/30 p-3 rounded-2xl text-xs text-gray-300 whitespace-pre-wrap border border-white/5 leading-relaxed">
+                  <div className="bg-white dark:bg-black/30 p-3 rounded-2xl text-xs text-slate-800 dark:text-gray-300 whitespace-pre-wrap border border-slate-200/80 dark:border-white/5 leading-relaxed shadow-xs dark:shadow-none">
                     {primaryTx.notes}
                   </div>
                 </div>
@@ -519,15 +533,15 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
               {/* Tags */}
               {txTags.length > 0 && (
-                <div className="pt-4 border-t border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Tags
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {txTags.map(tag => (
                       <span
                         key={tag.id}
-                        className="px-2.5 py-1 rounded-xl text-xs font-semibold border border-white/10"
+                        className="px-2.5 py-1 rounded-xl text-xs font-semibold border border-black/5 dark:border-white/10"
                         style={{ backgroundColor: `${tag.color}25`, color: tag.color }}
                       >
                         #{tag.name}
@@ -539,20 +553,20 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
               {/* Loan Breakdown if applicable */}
               {(primaryTx.principalAmount || primaryTx.interestAmount) && (
-                <div className="pt-4 border-t border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Loan Payment Breakdown
                   </p>
-                  <div className="grid grid-cols-2 gap-3 bg-black/30 p-3 rounded-2xl border border-white/5">
+                  <div className="grid grid-cols-2 gap-3 bg-white dark:bg-black/30 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
                     <div>
-                      <span className="text-2xs text-gray-400">Principal</span>
-                      <p className="text-xs font-bold font-mono text-emerald-400 mt-0.5">
+                      <span className="text-2xs text-slate-600 dark:text-gray-400 font-medium">Principal</span>
+                      <p className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
                         {formatCurrency(primaryTx.principalAmount || 0, primaryTx.currency)}
                       </p>
                     </div>
                     <div>
-                      <span className="text-2xs text-gray-400">Interest</span>
-                      <p className="text-xs font-bold font-mono text-rose-400 mt-0.5">
+                      <span className="text-2xs text-slate-600 dark:text-gray-400 font-medium">Interest</span>
+                      <p className="text-xs font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">
                         {formatCurrency(primaryTx.interestAmount || 0, primaryTx.currency)}
                       </p>
                     </div>

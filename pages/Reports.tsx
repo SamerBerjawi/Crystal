@@ -1179,28 +1179,28 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
         {/* Right Column: Insights & Forecasts */}
         <div className="space-y-4">
-          <Card className="bg-primary-600 dark:bg-primary-800 text-white border-none shadow-2xl rounded-2xl p-6 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10 transition-transform group-hover:scale-125 duration-700">
+          <Card className="text-light-text dark:text-dark-text shadow-2xl rounded-3xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 text-primary-500/10 dark:text-primary-400/10 transition-transform group-hover:scale-125 duration-700 pointer-events-none">
               <Icon name="lightbulb" className="text-8xl" />
             </div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -ml-24 -mb-24"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary-500/5 rounded-full blur-[80px] -ml-24 -mb-24 pointer-events-none"></div>
 
             <div className="mb-4 relative z-10">
-              <h2 className="text-xs font-bold tracking-[0.2em] text-white/60 mb-1">Smart Engine</h2>
-              <p className="text-base font-bold tracking-tight text-white">AI-powered insights</p>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-primary-600 dark:text-primary-400 mb-1">Smart Engine</h2>
+              <p className="text-base font-bold tracking-tight text-light-text dark:text-dark-text">AI-powered insights</p>
             </div>
 
-            <div className="space-y-2 relative z-10">
+            <div className="space-y-2.5 relative z-10">
               {insights.map((item, idx) => (
-                <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/15 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300"
+                <div key={item.id} className="flex items-start gap-3.5 bg-black/[0.03] dark:bg-white/5 backdrop-blur-xl rounded-2xl p-3.5 border border-black/5 dark:border-white/10 shadow-xs transition-transform hover:scale-[1.01] duration-300"
                   style={{ animationDelay: `${idx * 150}ms` }}>
-                  <div className={`w-5 h-5 flex items-center justify-center shrink-0 ${item.tone === 'warning' ? 'text-amber-300' : item.tone === 'positive' ? 'text-emerald-300' : 'text-white'}`}>
+                  <div className={`w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 ${item.tone === 'warning' ? 'text-amber-500 dark:text-amber-400' : item.tone === 'positive' ? 'text-emerald-500 dark:text-emerald-400' : 'text-primary-500 dark:text-primary-400'}`}>
                     <Icon name={item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'} className="text-base" />
                   </div>
-                  <p className="text-xs font-bold leading-relaxed privacy-blur drop-shadow-sm">{item.text}</p>
+                  <p className="text-xs font-semibold leading-relaxed text-light-text dark:text-dark-text privacy-blur">{item.text}</p>
                 </div>
               ))}
-              {insights.length === 0 && <p className="text-xs font-medium uppercase tracking-wider opacity-60 text-center py-6">Listening for financial signals...</p>}
+              {insights.length === 0 && <p className="text-xs font-medium uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 text-center py-6">Listening for financial signals...</p>}
             </div>
           </Card>
 

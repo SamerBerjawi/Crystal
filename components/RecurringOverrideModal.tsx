@@ -60,12 +60,12 @@ const RecurringOverrideModal: React.FC<RecurringOverrideModalProps> = ({ item, o
       onClose();
     };
 
-    const labelStyle = "block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
+    const labelStyle = "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5";
     
     return (
         <Modal onClose={onClose} title="Edit Occurrence">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                     You are editing a single occurrence of "{item.description}". Original date was {originalDate}.
                 </p>
 

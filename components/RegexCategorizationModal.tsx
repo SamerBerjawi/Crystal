@@ -357,7 +357,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
     toast.success('Rule status updated.');
   };
 
-  const labelStyle = "block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5";
+  const labelStyle = "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5";
 
   return (
     <Modal onClose={onClose} title="Auto-Categorize Rules" size="2xl">

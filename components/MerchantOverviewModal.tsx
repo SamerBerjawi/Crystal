@@ -84,10 +84,20 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
   onEdit,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const [logoLoadError, setLogoLoadError] = useState(false);
+
+  useEffect(() => {
+    const checkDarkMode = () => document.documentElement.classList.contains('dark');
+    setIsDarkMode(checkDarkMode());
+
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   const linkedRules = useMemo(() => {
     const norm = merchantName.toLowerCase();
@@ -210,7 +220,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -218,7 +228,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
       {/* Portrait Apple Workout Overview Card */}
       <div
-        className={`relative w-full max-w-[430px] max-h-[94vh] sm:max-h-[90vh] bg-[#0c0d12] text-white rounded-[2.5rem] sm:rounded-[2.75rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] border border-white/10 flex flex-col overflow-hidden transform transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`relative w-full max-w-[430px] max-h-[94vh] sm:max-h-[90vh] bg-white dark:bg-[#0c0d12] text-slate-900 dark:text-white rounded-[2.5rem] sm:rounded-[2.75rem] shadow-2xl dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden transform transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isVisible ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
         }`}
         onClick={e => e.stopPropagation()}
@@ -226,8 +236,8 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
         {/* Top Floating Glass Controls */}
         <div className="absolute top-4 left-4 right-4 z-40 flex items-center justify-between pointer-events-none">
           {/* Location Badge (Apple Workout style) */}
-          <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white text-xs font-semibold shadow-md">
-            <Icon name={rule?.isOnline ? "globe" : "marker_pin"} className="text-[#a3e635] text-xs shrink-0" />
+          <div className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-md border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white text-xs font-semibold shadow-md">
+            <Icon name={rule?.isOnline ? "globe" : "marker_pin"} className="text-lime-600 dark:text-[#a3e635] text-xs shrink-0" />
             <span className="truncate max-w-[190px]">{locationSubtitle}</span>
           </div>
 
@@ -236,7 +246,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95"
+              className="w-9 h-9 rounded-full bg-white/90 dark:bg-black/50 backdrop-blur-md border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/20 text-slate-800 dark:text-white flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95"
               title="Close (Esc)"
             >
               <Icon name="close" className="text-base" />
@@ -248,11 +258,11 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
         <div className="flex-1 overflow-y-auto pb-8 safe-bottom custom-scrollbar">
           
           {/* 1. TOP HERO MULTI-LOCATION MAP VIEWPORT */}
-          <div className="relative w-full h-[300px] sm:h-[330px] bg-[#12141a] overflow-hidden shrink-0">
+          <div className="relative w-full h-[300px] sm:h-[330px] bg-slate-100 dark:bg-[#12141a] overflow-hidden shrink-0">
             {hasMapLocations ? (
               <div className="absolute inset-0 z-0 isolate overflow-hidden">
                 <MapContainerAny
-                  key={`apple-merchant-map-${merchantName}-${resolvedLocations.length}`}
+                  key={`apple-merchant-map-${merchantName}-${resolvedLocations.length}-${isDarkMode}`}
                   center={[resolvedLocations[0].lat, resolvedLocations[0].lon]}
                   zoom={14}
                   zoomControl={false}
@@ -264,7 +274,11 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   className="w-full h-full !z-0"
                 >
                   <TileLayerAny
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    url={
+                      isDarkMode
+                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    }
                     maxZoom={19}
                   />
                   {resolvedLocations.map(loc => (
@@ -279,16 +293,16 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
               </div>
             ) : (
               /* Stylized Apple Vector Topographic / Dark Map Background */
-              <div className="absolute inset-0 z-0 isolate bg-gradient-to-br from-[#0c1624] via-[#09101b] to-[#040608] flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 z-0 isolate bg-gradient-to-br from-slate-100 via-slate-200/70 to-slate-100 dark:from-[#0c1624] dark:via-[#09101b] dark:to-[#040608] flex items-center justify-center overflow-hidden">
                 {/* Cartographic Grid & Geometry */}
-                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                <div className="absolute w-80 h-80 rounded-full border border-sky-500/15 animate-pulse"></div>
-                <div className="absolute w-52 h-52 rounded-full border border-[#a3e635]/20"></div>
+                <div className="absolute inset-0 opacity-25 dark:opacity-20 bg-[radial-gradient(#0284c7_1px,transparent_1px)] dark:bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div className="absolute w-80 h-80 rounded-full border border-sky-500/20 dark:border-sky-500/15 animate-pulse"></div>
+                <div className="absolute w-52 h-52 rounded-full border border-lime-500/25 dark:border-[#a3e635]/20"></div>
 
                 {/* Glowing Apple Neon Pin in Center */}
                 <div className="relative z-10 flex flex-col items-center">
                   <div className="relative flex items-center justify-center">
-                    <div className="absolute -inset-3.5 rounded-full bg-[#a3e635]/20 animate-ping"></div>
+                    <div className="absolute -inset-3.5 rounded-full bg-[#a3e635]/25 dark:bg-[#a3e635]/20 animate-ping"></div>
                     <div className="w-16 h-16 rounded-full bg-[#a3e635] flex items-center justify-center p-0 shadow-[0_0_28px_rgba(163,230,53,0.95)] overflow-hidden">
                       {logoUrl && !logoLoadError ? (
                         <img
@@ -304,44 +318,44 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                       )}
                     </div>
                   </div>
-                  <span className="mt-2.5 text-2xs font-bold uppercase tracking-wider text-[#a3e635] bg-black/60 px-2.5 py-0.5 rounded-full border border-[#a3e635]/30">
+                  <span className="mt-2.5 text-2xs font-bold uppercase tracking-wider text-slate-800 dark:text-[#a3e635] bg-white/90 dark:bg-black/60 px-2.5 py-0.5 rounded-full border border-slate-300 dark:border-[#a3e635]/30 shadow-xs">
                     {locationSubtitle}
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Bottom Gradient Shade Overlay (blends map effortlessly into dark body) */}
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0c0d12] via-[#0c0d12]/85 to-transparent pointer-events-none z-[15]" />
+            {/* Bottom Gradient Shade Overlay (blends map effortlessly into body) */}
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white via-white/85 to-transparent dark:from-[#0c0d12] dark:via-[#0c0d12]/85 dark:to-transparent pointer-events-none z-[15]" />
 
             {/* Float Overlay Content: Title & Highlight Metric over bottom of map */}
             <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 z-[20] space-y-1.5 pointer-events-auto">
-              <div className="flex items-center gap-2 text-2xs font-semibold text-gray-400">
+              <div className="flex items-center gap-2 text-2xs font-semibold text-slate-600 dark:text-gray-400">
                 <span>{entityType === 'Institution' ? 'Financial Institution' : 'Entity Intelligence'}</span>
                 <span>•</span>
-                <span className="text-gray-300 font-medium">
+                <span className="text-slate-800 dark:text-gray-300 font-bold">
                   {count} {count === 1 ? 'Event' : 'Observed Events'}
                 </span>
               </div>
 
-              {/* Big Bold Apple Title (e.g. Colruyt) */}
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate leading-tight drop-shadow-sm">
+              {/* Big Bold Apple Title */}
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate leading-tight drop-shadow-xs dark:drop-shadow-sm">
                 {merchantName}
               </h2>
 
-              {/* Fluorescent Apple Highlight Metric (Cumulative Volume) */}
+              {/* Fluorescent Apple Highlight Metric */}
               <div className="flex items-baseline gap-2 pt-0.5">
                 <span
                   className={`text-3xl sm:text-4xl font-black font-mono tracking-tight ${
                     totalValue >= 0
-                      ? 'text-[#34d399] drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]'
-                      : 'text-[#a3e635] drop-shadow-[0_0_15px_rgba(163,230,53,0.55)]'
+                      ? 'text-emerald-600 dark:text-[#34d399] dark:drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]'
+                      : 'text-lime-600 dark:text-[#a3e635] dark:drop-shadow-[0_0_15px_rgba(163,230,53,0.55)]'
                   }`}
                 >
                   {formatCurrency(totalValue, 'EUR')}
                 </span>
 
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">
+                <span className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider font-mono">
                   EUR Volume
                 </span>
               </div>
@@ -349,34 +363,34 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
           </div>
 
           {/* 2. APPLE CONTEXT WEATHER / METADATA PILLS */}
-          <div className="px-5 sm:px-6 py-2.5 flex items-center gap-5 text-xs text-gray-300 border-b border-white/5 overflow-x-auto no-scrollbar">
+          <div className="px-5 sm:px-6 py-2.5 flex items-center gap-5 text-xs text-slate-700 dark:text-gray-300 border-b border-slate-200/80 dark:border-white/5 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="loyalty" className="text-amber-400 text-sm shrink-0" />
+              <Icon name="loyalty" className="text-amber-500 dark:text-amber-400 text-sm shrink-0" />
               <div className="flex flex-col">
-                <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Classification</span>
-                <span className="font-bold text-white text-xs">{rule?.category || 'Uncategorized'}</span>
+                <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Classification</span>
+                <span className="font-bold text-slate-900 dark:text-white text-xs">{rule?.category || 'Uncategorized'}</span>
               </div>
             </div>
 
-            <div className="h-6 w-px bg-white/10 shrink-0" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="marker-pin-04" className="text-sky-400 text-sm shrink-0" />
+              <Icon name="marker-pin-04" className="text-sky-600 dark:text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
-                <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Presence</span>
-                <span className="font-bold text-white text-xs">
+                <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Presence</span>
+                <span className="font-bold text-slate-900 dark:text-white text-xs">
                   {rule?.isOnline ? 'Online Service' : (resolvedLocations.length > 1 ? `${resolvedLocations.length} Branches` : 'Physical')}
                 </span>
               </div>
             </div>
 
-            <div className="h-6 w-px bg-white/10 shrink-0" />
+            <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="bar_chart" className="text-emerald-400 text-sm shrink-0" />
+              <Icon name="bar_chart" className="text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
               <div className="flex flex-col">
-                <span className="text-2xs uppercase text-gray-500 font-bold tracking-wider">Average</span>
-                <span className="font-bold text-white text-xs font-mono">
+                <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Average</span>
+                <span className="font-bold text-slate-900 dark:text-white text-xs font-mono">
                   {formatCurrency(avgTicket, 'EUR')}
                 </span>
               </div>
@@ -385,7 +399,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
           {/* 3. "MERCHANT DETAILS >" INTERACTIVE STRIP (Single "Edit Merchant >" trigger) */}
           <div className="px-5 sm:px-6 py-4 flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
               <span>Merchant Intelligence</span>
             </h3>
 
@@ -396,7 +410,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   handleClose();
                   setTimeout(() => onEdit(), 100);
                 }}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#a3e635] hover:text-white transition-colors cursor-pointer group py-1 px-2.5 rounded-xl hover:bg-white/5 active:scale-95"
+                className="inline-flex items-center gap-1 text-xs font-bold text-lime-700 dark:text-[#a3e635] hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer group py-1 px-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95"
               >
                 <span>Edit Merchant</span>
                 <Icon name="chevron_right" className="text-sm transition-transform group-hover:translate-x-0.5" />
@@ -406,77 +420,77 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
           {/* 4. APPLE WORKOUT 2x2 METRIC GRID CARD */}
           <div className="px-5 sm:px-6 pb-8 space-y-4">
-            <div className="p-5 sm:p-6 rounded-3xl bg-[#181920] border border-white/5 space-y-5 shadow-inner">
+            <div className="p-5 sm:p-6 rounded-3xl bg-slate-50 dark:bg-[#181920] border border-slate-200/80 dark:border-white/5 space-y-5 shadow-xs dark:shadow-inner">
               <div className="grid grid-cols-2 gap-5">
                 {/* Metric 1: Frequency */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Total Events
                   </p>
-                  <p className="text-sm sm:text-base font-black text-amber-400 truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 truncate leading-tight font-mono">
                     {count} Transactions
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Total Activity</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Total Activity</p>
                 </div>
 
                 {/* Metric 2: Lifetime Spend */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Cumulative Volume
                   </p>
-                  <p className="text-sm sm:text-base font-black text-[#ff375f] truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-rose-600 dark:text-[#ff375f] truncate leading-tight font-mono">
                     {formatCurrency(totalValue, 'EUR')}
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Total Volume</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Total Volume</p>
                 </div>
 
                 {/* Metric 3: Average Ticket */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Average Ticket
                   </p>
-                  <p className="text-sm sm:text-base font-black text-[#38bdf8] truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-sky-600 dark:text-[#38bdf8] truncate leading-tight font-mono">
                     {formatCurrency(avgTicket, 'EUR')}
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Average Per Transaction</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Average Per Transaction</p>
                 </div>
 
                 {/* Metric 4: Last Active */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                     Last Activity
                   </p>
-                  <p className="text-sm sm:text-base font-black text-[#c084fc] truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-purple-600 dark:text-[#c084fc] truncate leading-tight font-mono">
                     {lastActivity ? parseLocalDate(lastActivity).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'None'}
                   </p>
-                  <p className="text-2xs text-gray-500 font-mono">Most Recent Entry</p>
+                  <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Most Recent Entry</p>
                 </div>
               </div>
 
               {/* Automation Rules Card */}
-              <div className="pt-4 border-t border-white/5 space-y-2.5">
-                <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+              <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
+                <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                   Classification Directive
                 </p>
-                <div className="bg-black/30 p-3 rounded-2xl border border-white/5 space-y-2">
+                <div className="bg-white dark:bg-black/30 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-2 shadow-xs dark:shadow-none">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">Assigned Category:</span>
-                    <span className="font-bold text-[#a3e635]">
+                    <span className="text-slate-600 dark:text-gray-400 font-medium">Assigned Category:</span>
+                    <span className="font-bold text-lime-700 dark:text-[#a3e635]">
                       {rule?.category || 'Unclassified'}
                     </span>
                   </div>
                   {rule?.defaultDescription && (
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-white/5">
-                      <span className="text-gray-400">Default Memo:</span>
-                      <span className="font-medium text-white truncate max-w-[180px]">
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200 dark:border-white/5">
+                      <span className="text-slate-600 dark:text-gray-400 font-medium">Default Memo:</span>
+                      <span className="font-medium text-slate-900 dark:text-white truncate max-w-[180px]">
                         {rule.defaultDescription}
                       </span>
                     </div>
                   )}
 
                   {/* Matching Keyword Triggers */}
-                  <div className="pt-2 border-t border-white/5 space-y-1.5">
-                    <div className="flex items-center justify-between text-2xs text-gray-400 uppercase font-bold tracking-wider">
+                  <div className="pt-2 border-t border-slate-200 dark:border-white/5 space-y-1.5">
+                    <div className="flex items-center justify-between text-2xs text-slate-600 dark:text-gray-400 uppercase font-bold tracking-wider">
                       <span>Keyword Triggers</span>
                       {onEdit && (
                         <button
@@ -485,7 +499,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                             handleClose();
                             setTimeout(() => onEdit(), 100);
                           }}
-                          className="text-[#a3e635] hover:underline cursor-pointer lowercase font-medium"
+                          className="text-lime-700 dark:text-[#a3e635] hover:underline cursor-pointer lowercase font-medium"
                         >
                           + manage triggers
                         </button>
@@ -497,14 +511,14 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                           const kw = r.conditions.find(c => c.field === 'description' || c.field === 'merchant')?.value;
                           if (!kw) return null;
                           return (
-                            <span key={r.id} className="text-2xs font-mono font-bold px-2 py-0.5 rounded-lg bg-teal-500/15 text-teal-300 border border-teal-500/25">
+                            <span key={r.id} className="text-2xs font-mono font-bold px-2 py-0.5 rounded-lg bg-teal-500/10 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/25">
                               "{kw}"
                             </span>
                           );
                         })}
                       </div>
                     ) : (
-                      <p className="text-2xs text-gray-500 italic">No automated keyword triggers yet</p>
+                      <p className="text-2xs text-slate-500 dark:text-gray-500 italic">No automated keyword triggers yet</p>
                     )}
                   </div>
                 </div>
@@ -512,9 +526,9 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
               {/* Registered Locations / Branches */}
               {resolvedLocations.length > 0 && (
-                <div className="pt-4 border-t border-white/5 space-y-2.5">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                       Branches & Locations ({resolvedLocations.length})
                     </p>
                   </div>
@@ -522,21 +536,21 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                     {resolvedLocations.map(loc => (
                       <div
                         key={loc.id}
-                        className="bg-black/30 p-3 rounded-2xl border border-white/5 flex items-center justify-between gap-2.5"
+                        className="bg-white dark:bg-black/30 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 flex items-center justify-between gap-2.5 shadow-xs dark:shadow-none"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <Icon name="marker_pin" className="text-sm text-[#a3e635] shrink-0" />
+                          <Icon name="marker_pin" className="text-sm text-lime-600 dark:text-[#a3e635] shrink-0" />
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
-                            <p className="text-xs font-bold text-white leading-tight truncate">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate">
                               {loc.label || loc.city || 'Branch'}
                             </p>
                             {loc.isPrimary && (
-                              <span className="text-2xs font-bold px-1.5 py-0.2 rounded-full bg-[#a3e635]/20 text-[#a3e635] border border-[#a3e635]/30">
+                              <span className="text-2xs font-bold px-1.5 py-0.2 rounded-full bg-lime-500/15 text-lime-700 dark:bg-[#a3e635]/20 dark:text-[#a3e635] border border-lime-500/30 dark:border-[#a3e635]/30">
                                 Primary
                               </span>
                             )}
                             {loc.city && loc.city !== loc.label && (
-                              <span className="text-2xs font-medium text-gray-400">
+                              <span className="text-2xs font-medium text-slate-500 dark:text-gray-400">
                                 • {loc.city}
                               </span>
                             )}
@@ -547,7 +561,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                           href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-2xs font-bold text-[#a3e635] hover:underline inline-flex items-center gap-0.5 shrink-0 pt-0.5"
+                          className="text-2xs font-bold text-lime-700 dark:text-[#a3e635] hover:underline inline-flex items-center gap-0.5 shrink-0 pt-0.5"
                         >
                           <span>Google Maps</span>
                           <Icon name="open_in_new" className="text-2xs" />
@@ -560,22 +574,22 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
               {/* Recent Activity Ledger */}
               {merchantTransactions.length > 0 && (
-                <div className="pt-4 border-t border-white/5 space-y-2.5">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
                       Recent Activity ({merchantTransactions.length})
                     </p>
                   </div>
-                  <div className="space-y-1.5 bg-black/30 p-3 rounded-2xl border border-white/5">
+                  <div className="space-y-1.5 bg-white dark:bg-black/30 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
                     {merchantTransactions.slice(0, 4).map(tx => (
-                      <div key={tx.id} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0 text-xs">
+                      <div key={tx.id} className="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-white/5 last:border-0 text-xs">
                         <div className="min-w-0 flex-1 pr-2">
-                          <p className="font-semibold text-white truncate leading-tight">
+                          <p className="font-semibold text-slate-900 dark:text-white truncate leading-tight">
                             {tx.description || tx.merchant}
                           </p>
-                          <p className="text-2xs text-gray-400 font-mono mt-0.5">{tx.date}</p>
+                          <p className="text-2xs text-slate-500 dark:text-gray-400 font-mono mt-0.5">{tx.date}</p>
                         </div>
-                        <span className={`font-mono font-bold shrink-0 ${tx.type === 'income' ? 'text-[#34d399]' : 'text-gray-200'}`}>
+                        <span className={`font-mono font-bold shrink-0 ${tx.type === 'income' ? 'text-emerald-600 dark:text-[#34d399]' : 'text-slate-800 dark:text-gray-200'}`}>
                           {tx.type === 'income' ? '+' : ''}
                           {formatCurrency(tx.amount, tx.currency)}
                         </span>

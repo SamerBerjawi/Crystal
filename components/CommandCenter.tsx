@@ -145,7 +145,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
             initial={{ opacity: 0, scale: 0.98, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -10 }}
-            className="fixed top-[12%] left-1/2 -translate-x-1/2 w-full max-w-2xl bg-light-card dark:bg-dark-card rounded-3xl shadow-2xl z-[101] border border-black/10 dark:border-white/10 overflow-hidden flex flex-col"
+            className="fixed top-[12%] left-1/2 -translate-x-1/2 w-full max-w-2xl bg-light-card dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text rounded-3xl shadow-2xl z-[101] border border-black/10 dark:border-white/10 overflow-hidden flex flex-col"
           >
             <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/10 flex items-center gap-4">
               <div className="w-10 h-10 rounded-2xl bg-primary-500/10 flex items-center justify-center">
@@ -157,7 +157,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
                 onChange={e => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="What are you looking for?"
-                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-lg sm:text-xl font-bold tracking-tight placeholder-gray-400"
+                className="flex-1 bg-transparent border-none outline-none text-light-text dark:text-dark-text text-lg sm:text-xl font-bold tracking-tight placeholder-neutral-400 dark:placeholder-neutral-500"
               />
               <div className="hidden sm:flex items-center gap-2">
                 <kbd className="px-2 py-1 rounded-xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 text-xs font-mono font-medium text-gray-400">ESC</kbd>
@@ -211,7 +211,7 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
               )}
             </div>
 
-            <div className="p-5 bg-gray-50/50 dark:bg-white/[0.01] border-t border-black/5 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="p-5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
                <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2">
                     <kbd className="px-2 py-1 rounded-lg border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-xs font-mono font-medium text-gray-500 shadow-sm">↑↓</kbd>

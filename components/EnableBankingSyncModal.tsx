@@ -107,25 +107,25 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
   const content = (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-sans">
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
       />
-      <div className={`w-full max-w-lg bg-light-card dark:bg-dark-card shadow-2xl border border-black/10 dark:border-white/10 rounded-3xl overflow-hidden flex flex-col relative z-10 transform transition-all duration-300 ${
+      <div className={`w-full max-w-lg bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border border-black/10 dark:border-white/10 rounded-3xl overflow-hidden flex flex-col relative z-10 transform transition-all duration-300 ${
         isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
       }`}>
         
-        {/* Header matching CategoryModal */}
-        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-emerald-500/5 to-transparent">
+        {/* Header */}
+        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-md">
+            <div className="w-11 h-11 rounded-2xl bg-primary-500/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 shadow-md">
               <Icon name="sync_alt" className="text-2xl" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h4 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">{title}</h4>
-                <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
                   Sync
                 </span>
               </div>
@@ -148,13 +148,13 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           <div
             className={`p-5 rounded-3xl border transition-all cursor-pointer ${
               state.transactionMode === 'full' 
-                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-sm' 
+                ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/30 ring-1 ring-primary-500/20 shadow-sm' 
                 : 'bg-light-fill dark:bg-dark-fill/50 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
             }`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'full' }))}
           >
             <div className="flex items-start gap-3.5">
-              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'full' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'}`}>
+              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'full' ? 'border-primary-500 bg-primary-500 text-white' : 'border-black/30 dark:border-white/30'}`}>
                 {state.transactionMode === 'full' && <div className="w-2 h-2 bg-white rounded-full"></div>}
               </div>
               <div className="flex-1 space-y-3">
@@ -165,8 +165,8 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
                 
                 {/* Date Picker (Nested) */}
                 {state.transactionMode === 'full' && (
-                  <div className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 space-y-2" onClick={e => e.stopPropagation()}>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary" htmlFor="enable-banking-sync-start">
+                  <div className="p-4 rounded-2xl bg-white/60 dark:bg-dark-card/70 backdrop-blur-xl border border-black/5 dark:border-white/10 space-y-2" onClick={e => e.stopPropagation()}>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300" htmlFor="enable-banking-sync-start">
                       Import From Date
                     </label>
                     <div className="flex gap-2">
@@ -197,13 +197,13 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           <div
             className={`p-5 rounded-3xl border transition-all cursor-pointer ${
               state.transactionMode === 'incremental' 
-                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-sm' 
+                ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/30 ring-1 ring-primary-500/20 shadow-sm' 
                 : 'bg-light-fill dark:bg-dark-fill/50 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
             }`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'incremental', updateBalance: true }))}
           >
             <div className="flex items-start gap-3.5">
-              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'incremental' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'}`}>
+              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'incremental' ? 'border-primary-500 bg-primary-500 text-white' : 'border-black/30 dark:border-white/30'}`}>
                 {state.transactionMode === 'incremental' && <div className="w-2 h-2 bg-white rounded-full"></div>}
               </div>
               <div>
@@ -217,13 +217,13 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           <div
             className={`p-5 rounded-3xl border transition-all cursor-pointer ${
               state.transactionMode === 'none' 
-                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 ring-1 ring-emerald-500/20 shadow-sm' 
+                ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/30 ring-1 ring-primary-500/20 shadow-sm' 
                 : 'bg-light-fill dark:bg-dark-fill/50 border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10'
             }`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'none', updateBalance: true }))}
           >
             <div className="flex items-start gap-3.5">
-              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'none' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-gray-400'}`}>
+              <div className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center ${state.transactionMode === 'none' ? 'border-primary-500 bg-primary-500 text-white' : 'border-black/30 dark:border-white/30'}`}>
                 {state.transactionMode === 'none' && <div className="w-2 h-2 bg-white rounded-full"></div>}
               </div>
               <div>
@@ -234,8 +234,8 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           </div>
         </div>
 
-        {/* Footer matching CategoryModal */}
-        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+        {/* Footer */}
+        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
           <button 
             type="button" 
             onClick={handleClose} 
@@ -246,7 +246,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
           <button 
             type="button" 
             onClick={handleConfirm} 
-            className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95`}
+            className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95`}
           >
             <span>Start Sync</span>
             <Icon name="sync" className="text-base" />

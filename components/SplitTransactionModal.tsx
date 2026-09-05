@@ -116,7 +116,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
@@ -125,7 +125,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
       {/* Sidebar Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div 
-          className={`w-screen max-w-xl bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
+          className={`w-screen max-w-xl bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
@@ -187,7 +187,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
               {/* Split Items */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Split Allocations ({splits.length})
                   </span>
                   <button
@@ -224,7 +224,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                          <label className="text-2xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                             Description
                           </label>
                           <input
@@ -237,7 +237,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                          <label className="text-2xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                             Category
                           </label>
                           <div className={SELECT_WRAPPER_STYLE}>
@@ -257,7 +257,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                        <label className="text-2xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                           Amount
                         </label>
                         <div className="relative">
@@ -279,7 +279,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
             </div>
 
             {/* Sticky Bottom Actions */}
-            <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
+            <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
               <button 
                 type="button" 
                 onClick={handleClose} 

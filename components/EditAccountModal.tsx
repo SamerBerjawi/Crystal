@@ -450,14 +450,14 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
     onToggleStatus(account.id);
   };
   
-  const labelStyle = "block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-1.5";
+  const labelStyle = "block text-xs font-bold text-slate-700 dark:text-slate-300 tracking-wider mb-1.5";
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
 
   const drawerContent = (
     <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleCloseDrawer}
@@ -466,7 +466,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
       {/* Right-Side Full Height Slide-out Drawer */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
         <div 
-          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
+          className={`w-screen max-w-full sm:max-w-xl md:max-w-2xl h-screen bg-white dark:bg-dark-card dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -628,7 +628,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'core'
                     ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold'
                 }`}
               >
                 <Icon name="assignment" className="text-sm" />
@@ -641,7 +641,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'specs'
                     ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold'
                 }`}
               >
                 <Icon name="tune" className="text-sm" />
@@ -657,7 +657,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'extras'
                     ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-500/5'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold'
                 }`}
               >
                 <Icon name="credit_card" className="text-sm" />
@@ -1494,11 +1494,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
 
                   {/* Standard Checking/Savings Quick Info if not already captured */}
                   {['Checking', 'Savings'].includes(type) && (
-                    <div className="p-4 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 flex items-start gap-3">
-                      <Icon name="info" className="text-blue-500 text-base shrink-0 mt-0.5" />
-                      <div className="text-xs space-y-1 text-gray-900 dark:text-white">
+                    <div className="p-4 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/25 flex items-start gap-3">
+                      <Icon name="info" className="text-blue-600 dark:text-blue-400 text-base shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1 text-slate-900 dark:text-white">
                         <p className="font-bold">Standard Liquid Account</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                           Checking and Savings accounts utilize the core parameters configured in the Identity tab. Card details can be linked in the Card & Extras tab.
                         </p>
                       </div>
@@ -1590,7 +1590,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
           </div>
 
           {/* 3. Sticky Drawer Footer */}
-          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2">
               <button
                 type="button"

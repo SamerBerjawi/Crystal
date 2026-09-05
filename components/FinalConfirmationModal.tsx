@@ -27,8 +27,8 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
           {message}
         </div>
         <div>
-          <label htmlFor="confirm-input" className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
-            To confirm, type <span className="font-mono font-bold text-rose-500 underline decoration-rose-500/30">"{requiredText}"</span> in the box below:
+          <label htmlFor="confirm-input" className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+            To confirm, type <span className="font-mono font-bold text-rose-600 dark:text-rose-400 underline decoration-rose-500/30">"{requiredText}"</span> in the box below:
           </label>
           <input
             id="confirm-input"

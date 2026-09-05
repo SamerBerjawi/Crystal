@@ -83,7 +83,7 @@ export const INPUT_BASE_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-whi
 export const SELECT_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-white/50 dark:bg-white/[0.04] text-neutral-900 dark:text-neutral-100 font-bold text-xs tracking-wider pl-4 pr-10 rounded-xl border border-neutral-300/80 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/20 backdrop-blur-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/40 whitespace-nowrap cursor-pointer touch-feedback";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-neutral-500 dark:text-neutral-400";
-export const CHECKBOX_STYLE = "h-5 w-5 rounded-lg text-white bg-white/50 dark:bg-white/[0.06] border border-neutral-300 dark:border-white/20 focus:ring-2 focus:ring-primary-500 checked:bg-primary-500 checked:border-transparent cursor-pointer touch-feedback";
+export const CHECKBOX_STYLE = "h-5 w-5 rounded-lg accent-primary-500 text-white bg-white/50 dark:bg-white/[0.06] border border-neutral-300 dark:border-white/20 focus:ring-2 focus:ring-primary-500/40 cursor-pointer touch-feedback";
 
 // Icon Button Styles — Minimum 44x44px touch targets per Apple HIG
 export const ICON_BUTTON_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200/60 dark:hover:bg-white/10 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer shrink-0 touch-feedback";

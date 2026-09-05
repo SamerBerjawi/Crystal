@@ -185,7 +185,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
             )}
             
             {accounts.length === 0 && (
-              <p className="text-center p-3 text-xs text-light-text-secondary">No accounts found.</p>
+              <p className="text-center p-3 text-xs text-light-text-secondary dark:text-dark-text-secondary">No accounts found.</p>
             )}
           </div>
         </div>

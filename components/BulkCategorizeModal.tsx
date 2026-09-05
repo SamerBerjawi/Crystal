@@ -78,7 +78,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true
         <div className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
-                className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+                className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
                     isVisible ? 'opacity-100' : 'opacity-0'
                 }`}
                 onClick={handleClose}
@@ -87,7 +87,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true
             {/* Sidebar Drawer */}
             <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
                 <div 
-                    className={`w-screen max-w-md bg-light-card dark:bg-dark-card shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
+                    className={`w-screen max-w-md bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
                         isVisible ? 'translate-x-0' : 'translate-x-full'
                     }`}
                 >
@@ -120,7 +120,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
 
                             <div className="p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5 space-y-3">
-                                <label htmlFor="bulk-category" className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                                <label htmlFor="bulk-category" className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                                     Target Category <span className="text-rose-500">*</span>
                                 </label>
                                 <div className={SELECT_WRAPPER_STYLE}>
@@ -145,7 +145,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true
                         </div>
 
                         {/* Sticky Bottom Actions */}
-                        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
+                        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
                             <button 
                                 type="button" 
                                 onClick={handleClose} 

@@ -109,7 +109,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
         </div>
 
         <div className="space-y-4">
-          <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Combined Transaction Title
           </label>
           <input
@@ -123,7 +123,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Category</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
               <div className={SELECT_WRAPPER_STYLE}>
                 <select
                   value={category}
@@ -140,7 +140,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Account</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Account</label>
               <div className={SELECT_WRAPPER_STYLE}>
                 <select
                   value={accountId}
@@ -157,7 +157,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1.5">Date</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">Date</label>
             <input
               type="date"
               value={date}
@@ -168,7 +168,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
         </div>
 
         <div>
-          <p className="text-xs font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary uppercase mb-2">
+          <p className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 uppercase mb-2">
             Items to combine ({transactionsToCombine.length})
           </p>
           <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">

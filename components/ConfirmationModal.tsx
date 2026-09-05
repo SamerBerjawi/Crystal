@@ -100,7 +100,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 z-[99999]"
+          className="fixed inset-0 flex items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4 z-[99999]"
           onClick={onClose}
         >
           <motion.div
@@ -108,7 +108,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden relative"
+            className="bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text w-full max-w-sm overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ambient Accent Glow */}
@@ -123,7 +123,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">
                   {title}
                 </h3>
-                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
                   {message}
                 </p>
               </div>

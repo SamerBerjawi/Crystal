@@ -59,14 +59,14 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
 
   const modalContent = (
     <div 
-      className={`fixed inset-0 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm md:p-4 ${zIndexClass} transition-opacity duration-300 font-sans ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-end md:items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-sm md:p-4 ${zIndexClass} transition-opacity duration-300 font-sans ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* Modal Container */}
       <div 
         className={`
-          bg-light-card dark:bg-dark-card border border-black/10 dark:border-white/10 shadow-2xl w-full overflow-hidden
+          bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 shadow-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text w-full overflow-hidden
           transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] relative
           
           /* Mobile: slide-up sheet | Desktop: rounded floating glass card */

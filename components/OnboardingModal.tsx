@@ -184,11 +184,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </p>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Name</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Account Name</label>
                   <input type="text" value={accountName} onChange={e => setAccountName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Main Checking" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Type</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Account Type</label>
                   <div className={SELECT_WRAPPER_STYLE}>
                       <select value={accountType} onChange={e => setAccountType(e.target.value as AccountType)} className={SELECT_STYLE}>
                           {ALL_ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
@@ -198,11 +198,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Current Balance</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Balance</label>
                     <input type="number" step="0.01" value={balance} onChange={e => setBalance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Currency</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Currency</label>
                     <div className={SELECT_WRAPPER_STYLE}>
                       <select value={accountCurrency} onChange={e => setAccountCurrency(e.target.value as Currency)} className={SELECT_STYLE}>
                           {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -223,21 +223,21 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </p>
             <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Goal Name</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Goal Name</label>
                     <input type="text" value={goalName} onChange={e => setGoalName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Emergency Fund, New Car" />
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Target Amount (EUR)</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Amount (EUR)</label>
                         <input type="number" step="0.01" value={goalAmount} onChange={e => setGoalAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 5000" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Target Date</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Date</label>
                         <input type="date" value={goalDate} onChange={e => setGoalDate(e.target.value)} className={INPUT_BASE_STYLE} />
                     </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Payment Account (Optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Payment Account (Optional)</label>
                   <div className={SELECT_WRAPPER_STYLE}>
                       <select value={paymentAccountId} onChange={e => setPaymentAccountId(e.target.value)} className={SELECT_STYLE}>
                           <option value="">None</option>
@@ -263,16 +263,16 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <button type="button" onClick={() => setRtType('expense')} className={`w-full py-2 rounded text-sm font-semibold ${rtType === 'expense' ? 'bg-red-500 text-white' : ''}`}>Expense</button>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Description</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
                     <input type="text" value={rtDescription} onChange={e => setRtDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder={rtType === 'income' ? 'e.g., Monthly Salary' : 'e.g., Rent'} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Amount</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Amount</label>
                         <input type="number" step="0.01" value={rtAmount} onChange={e => setRtAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Category</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
                          <div className={SELECT_WRAPPER_STYLE}>
                             <select value={rtCategory} onChange={e => setRtCategory(e.target.value)} className={SELECT_STYLE}>
                                 <option value="">Select...</option>
