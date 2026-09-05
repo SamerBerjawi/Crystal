@@ -1395,7 +1395,12 @@ export function generateAmortizationSchedule(
         ? (principalAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, duration))) / (Math.pow(1 + monthlyInterestRate, duration) - 1)
         : (principalAmount / duration);
 
-    for (let i = 1; i <= duration; i++) {
+    // Calculate extended duration if any payments are deferred or overridden past standard duration
+    const deferredCount = Object.values(overrides).filter(o => o?.status === 'Deferred').length;
+    const maxOverrideIndex = Object.keys(overrides).reduce((max, key) => Math.max(max, parseInt(key, 10) || 0), 0);
+    const maxDuration = Math.max(duration + deferredCount, maxOverrideIndex);
+
+    for (let i = 1; i <= maxDuration; i++) {
         const scheduledDate = parseLocalDate(loanStartDate);
         scheduledDate.setMonth(scheduledDate.getMonth() + i);
         const monthYearKey = toLocalISOYearMonth(scheduledDate);
@@ -1423,7 +1428,22 @@ export function generateAmortizationSchedule(
         // Calculate interest on the high-precision outstanding balance
         const calculatedInterest = outstandingBalance * monthlyInterestRate;
 
-        if (outstandingBalance <= 0 && !realPaymentForPeriod) {
+        if (override?.status === 'Deferred') {
+            status = 'Deferred';
+            if (override.deferralType === 'interest_only') {
+                interest = calculatedInterest;
+                principal = 0;
+                totalPayment = interest;
+            } else {
+                // Full holiday: zero payment, no principal amortized this month
+                interest = 0;
+                principal = 0;
+                totalPayment = 0;
+            }
+        } else if (outstandingBalance <= 0 && !realPaymentForPeriod && !override?.totalPayment && !override?.principal) {
+            if (i > duration) {
+                break;
+            }
             // Loan is paid off, generate a zero-value entry to maintain schedule length
             totalPayment = 0;
             principal = 0;
@@ -1470,7 +1490,7 @@ export function generateAmortizationSchedule(
                     totalPayment = basePayment;
                     principal = totalPayment - interest;
                 }
-            } else if (i === duration || outstandingBalance < (basePayment - interest)) {
+            } else if (i === maxDuration || outstandingBalance < (basePayment - interest)) {
                 // This is the final payment to clear the balance.
                 principal = outstandingBalance;
                 totalPayment = principal + interest;
@@ -1510,7 +1530,9 @@ export function generateAmortizationSchedule(
             principal: roundedPrincipal,
             interest: roundedInterest,
             outstandingBalance: roundToTwo(Math.max(0, newOutstandingBalance)),
-            status,
+            status: override?.status === 'Deferred' ? 'Deferred' : status,
+            deferralType: override?.deferralType,
+            extraPrincipal: override?.extraPrincipal,
             transactionId,
         });
 

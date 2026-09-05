@@ -844,8 +844,11 @@ export interface ScheduledPayment {
   principal: number;
   interest: number;
   outstandingBalance: number;
-  status: 'Paid' | 'Due' | 'Upcoming' | 'Overdue';
+  status: 'Paid' | 'Due' | 'Upcoming' | 'Overdue' | 'Deferred';
+  deferralType?: 'full' | 'interest_only';
+  extraPrincipal?: number;
   transactionId?: string;
+  note?: string;
 }
 
 // FIX: Moved ScheduledItem type from pages/Schedule.tsx to make it globally available.

@@ -259,6 +259,18 @@ const AccountDetail: React.FC<{
         setIsMileageModalOpen(false);
     };
 
+    const handleBatchSaveMileageLogs = (logsData: Array<Omit<MileageLog, 'id'> & { id?: string }>) => {
+        const existingLogs = [...(account.mileageLogs || [])];
+        const newLogs: MileageLog[] = logsData.map(item => ({
+            id: item.id || `log-${uuidv4()}`,
+            date: item.date,
+            reading: item.reading,
+        }));
+        const merged = [...existingLogs, ...newLogs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        saveAccount({ ...account, mileageLogs: merged });
+        setIsMileageModalOpen(false);
+    };
+
     const handleDeleteMileageLog = (id: string) => {
         setDeletingLogId(id);
     };
@@ -517,6 +529,8 @@ const AccountDetail: React.FC<{
                 <AddMileageLogModal
                     onClose={() => setIsMileageModalOpen(false)}
                     onSave={handleSaveMileageLog}
+                    onBatchSave={handleBatchSaveMileageLogs}
+                    existingLogs={account.mileageLogs || []}
                     logToEdit={editingLog}
                 />
             )}

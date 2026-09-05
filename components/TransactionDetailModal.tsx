@@ -186,7 +186,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
     .filter(Boolean) as Tag[];
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-scrollbar">
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -224,7 +224,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
         </div>
 
         {/* Scrollable Container */}
-        <div className="flex-1 overflow-y-auto pb-8 safe-bottom custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pb-8 safe-bottom no-scrollbar">
           
           {/* 1. TOP HERO MAP VIEWPORT */}
           <div className="relative w-full h-[300px] sm:h-[330px] bg-slate-100 dark:bg-[#12141a] overflow-hidden shrink-0">

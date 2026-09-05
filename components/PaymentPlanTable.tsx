@@ -4,6 +4,8 @@ import { Account, Transaction, ScheduledPayment } from '../types';
 import { generateAmortizationSchedule, formatCurrency, parseLocalDate } from '../utils';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import LoanPaymentBulkEditModal, { BulkPaymentEntry } from './LoanPaymentBulkEditModal';
+import LoanDeferPaymentModal from './LoanDeferPaymentModal';
+import LoanEarlyPaymentModal from './LoanEarlyPaymentModal';
 import Icon from './ui/Icon';
 
 interface PaymentPlanTableProps {
@@ -20,6 +22,9 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
     const [editFormData, setEditFormData] = useState<Partial<Pick<ScheduledPayment, 'totalPayment' | 'principal' | 'interest'>>>({});
     const [lastEditedField, setLastEditedField] = useState<'total' | 'principal' | 'interest' | null>(null);
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+    const [isDeferModalOpen, setIsDeferModalOpen] = useState(false);
+    const [isEarlyModalOpen, setIsEarlyModalOpen] = useState(false);
+    const [targetModalPaymentNumber, setTargetModalPaymentNumber] = useState<number | undefined>(undefined);
 
     const schedule = useMemo(() => {
         const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
@@ -69,6 +74,50 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
         setIsBulkEditOpen(false);
     };
 
+    const handleApplyDeferral = (
+        startPaymentNumber: number,
+        durationMonths: number,
+        deferralType: 'full' | 'interest_only'
+    ) => {
+        const nextOverrides = { ...overrides };
+        for (let i = 0; i < durationMonths; i++) {
+            const pNum = startPaymentNumber + i;
+            nextOverrides[pNum] = {
+                status: 'Deferred',
+                deferralType,
+                principal: 0,
+                totalPayment: 0,
+                interest: 0,
+            };
+        }
+        onOverridesChange(nextOverrides);
+    };
+
+    const handleClearDeferrals = () => {
+        const nextOverrides = { ...overrides };
+        Object.keys(nextOverrides).forEach(key => {
+            const num = parseInt(key, 10);
+            if (nextOverrides[num]?.status === 'Deferred') {
+                delete nextOverrides[num];
+            }
+        });
+        onOverridesChange(nextOverrides);
+    };
+
+    const handleApplyEarlyPaymentOverride = (paymentNumber: number, extraPrincipal: number) => {
+        const targetPayment = schedule.find(p => p.paymentNumber === paymentNumber);
+        const currentPrincipal = targetPayment?.principal || 0;
+        const currentTotal = targetPayment?.totalPayment || 0;
+        onOverridesChange({
+            ...overrides,
+            [paymentNumber]: {
+                principal: currentPrincipal + extraPrincipal,
+                totalPayment: currentTotal + extraPrincipal,
+                extraPrincipal,
+            }
+        });
+    };
+
     useEffect(() => {
         const total = editFormData.totalPayment;
         const principal = editFormData.principal;
@@ -105,10 +154,43 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
 
     return (
         <div className="flex flex-col h-[600px]">
-            <div className="flex justify-end mb-2">
-                <button onClick={() => setIsBulkEditOpen(true)} className={BTN_SECONDARY_STYLE}>
-                    Bulk Edit
-                </button>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                    {schedule.some(p => p.status === 'Deferred') && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            <Icon name="pause_circle" className="text-sm" />
+                            {schedule.filter(p => p.status === 'Deferred').length} Month(s) Deferred
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            setTargetModalPaymentNumber(undefined);
+                            setIsDeferModalOpen(true);
+                        }}
+                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-1.5 !py-1.5 !px-3 !text-xs`}
+                        title="Configure payment holidays and grace periods"
+                    >
+                        <Icon name="pause_circle" className="text-base text-amber-500" />
+                        <span>Defer Payments</span>
+                    </button>
+                    <button
+                        onClick={() => {
+                            setTargetModalPaymentNumber(undefined);
+                            setIsEarlyModalOpen(true);
+                        }}
+                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-1.5 !py-1.5 !px-3 !text-xs`}
+                        title="Make extra principal payment or early payoff"
+                    >
+                        <Icon name="bolt" className="text-base text-emerald-500" />
+                        <span>Early Payment</span>
+                    </button>
+                    <button onClick={() => setIsBulkEditOpen(true)} className={`${BTN_SECONDARY_STYLE} flex items-center gap-1.5 !py-1.5 !px-3 !text-xs`}>
+                        <Icon name="edit_note" className="text-base" />
+                        <span>Bulk Edit</span>
+                    </button>
+                </div>
             </div>
             <div className="flex-grow overflow-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                 <table className="w-full text-sm text-left relative border-collapse">
@@ -150,6 +232,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                 <td className="p-4 text-center">
                                     <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${
                                         payment.status === 'Paid' ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
+                                        payment.status === 'Deferred' ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20' :
                                         payment.status === 'Overdue' ? 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20' :
                                         'bg-slate-500/5 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-500/10'
                                     }`}>{payment.status}</span>
@@ -161,12 +244,32 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                             <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"><Icon name="close" className="text-lg" /></button>
                                         </div>
                                     ) : payment.status !== 'Paid' ? (
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => onMakePayment(payment, `Payment #${payment.paymentNumber} for ${account.name}`)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-2 !text-xs shadow-sm`} title="Record Payment">
+                                        <div className="flex justify-end items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => onMakePayment(payment, `Payment #${payment.paymentNumber} for ${account.name}`)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-2.5 !text-xs shadow-sm`} title="Record Payment">
                                                 {isLending ? 'Receive' : 'Pay'}
                                             </button>
+                                            <button 
+                                                onClick={() => {
+                                                    setTargetModalPaymentNumber(payment.paymentNumber);
+                                                    setIsEarlyModalOpen(true);
+                                                }} 
+                                                className="p-1.5 rounded-full hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors" 
+                                                title="Early Extra Payment"
+                                            >
+                                                <Icon name="bolt" className="text-base" />
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    setTargetModalPaymentNumber(payment.paymentNumber);
+                                                    setIsDeferModalOpen(true);
+                                                }} 
+                                                className="p-1.5 rounded-full hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors" 
+                                                title="Defer This Payment"
+                                            >
+                                                <Icon name="pause_circle" className="text-base" />
+                                            </button>
                                             <button onClick={() => handleEditClick(payment)} className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-colors" title="Edit Schedule">
-                                                <Icon name="edit" className="text-lg" />
+                                                <Icon name="edit" className="text-base" />
                                             </button>
                                         </div>
                                     ) : null}
@@ -197,6 +300,30 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                     scheduleLength={schedule.length}
                     onClose={() => setIsBulkEditOpen(false)}
                     onApply={handleBulkApply}
+                />
+            )}
+
+            {isDeferModalOpen && (
+                <LoanDeferPaymentModal
+                    isOpen={isDeferModalOpen}
+                    onClose={() => setIsDeferModalOpen(false)}
+                    account={account}
+                    schedule={schedule}
+                    defaultStartPaymentNumber={targetModalPaymentNumber}
+                    onApplyDeferral={handleApplyDeferral}
+                    onClearDeferrals={handleClearDeferrals}
+                />
+            )}
+
+            {isEarlyModalOpen && (
+                <LoanEarlyPaymentModal
+                    isOpen={isEarlyModalOpen}
+                    onClose={() => setIsEarlyModalOpen(false)}
+                    account={account}
+                    schedule={schedule}
+                    defaultPaymentNumber={targetModalPaymentNumber}
+                    onRecordTransferPayment={onMakePayment}
+                    onApplyScheduleOverride={handleApplyEarlyPaymentOverride}
                 />
             )}
         </div>

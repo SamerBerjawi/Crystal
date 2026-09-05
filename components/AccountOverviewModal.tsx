@@ -935,7 +935,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-scrollbar">
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -982,7 +982,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
         </div>
 
         {/* Scrollable Container */}
-        <div className="flex-1 overflow-y-auto pb-8 safe-bottom custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pb-8 safe-bottom no-scrollbar">
           {/* 1. TOP HERO DYNAMIC BANNER (RELEVANT PER ACCOUNT TYPE) */}
           <div
             className={`relative w-full h-[320px] sm:h-[345px] bg-gradient-to-b ${isDarkMode ? themeStyles.gradient : themeStyles.lightGradient} overflow-hidden shrink-0 flex flex-col justify-between`}
