@@ -142,27 +142,27 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     const renderDueBadge = (daysUntil: number) => {
         if (daysUntil < 0) {
             return (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                     Overdue ({Math.abs(daysUntil)}d)
                 </span>
             );
         }
         if (daysUntil === 0) {
             return (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                     Due Today
                 </span>
             );
         }
         if (daysUntil === 1) {
             return (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
                     Due Tomorrow
                 </span>
             );
         }
         return (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
+            <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 shrink-0">
                 In {daysUntil} days
             </span>
         );
@@ -171,7 +171,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     if (agendaItems.length === 0) {
         return (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-transparent">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center mb-3">
                     <Icon name="check_circle" className="text-2xl" />
                 </div>
                 <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">No upcoming obligations</h3>
@@ -184,14 +184,14 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
     return (
         <div className="h-full flex flex-col p-0 overflow-hidden bg-transparent">
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-1 space-y-2.5 custom-scrollbar">
                 {agendaItems.map((item) => {
                     if (item.type === 'task') {
                         return (
-                            <div key={`task-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl glass-tile group transition-all">
+                            <div key={`task-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] hover:border-black/10 dark:hover:border-white/10 group transition-all">
                                 <button 
                                     onClick={() => handleTaskToggle(item.data)}
-                                    className="w-5 h-5 rounded-lg border border-slate-300 dark:border-white/20 shrink-0 flex items-center justify-center hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors cursor-pointer"
+                                    className="w-5 h-5 rounded-lg border border-slate-300 dark:border-white/20 shrink-0 flex items-center justify-center hover:border-primary-500 hover:bg-primary-500/10 transition-colors cursor-pointer"
                                     aria-label="Mark task as complete"
                                 />
                                 <div className="flex-1 min-w-0">
@@ -199,7 +199,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{item.data.title}</p>
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
-                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
+                                    <p className="text-2xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
                                         <Icon name="task_alt" className="text-xs text-slate-400 dark:text-slate-500" /> Task
                                     </p>
                                 </div>
@@ -215,8 +215,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         const description = data.description;
                         
                         return (
-                            <div key={`${item.type}-${data.id}`} className="flex items-center gap-3 p-3 rounded-2xl glass-tile group transition-all">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${isBill ? 'bg-amber-500/15 border-amber-500/30 text-amber-500' : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-500'}`}>
+                            <div key={`${item.type}-${data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] hover:border-black/10 dark:hover:border-white/10 group transition-all">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${isBill ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-primary-500/10 border-primary-500/20 text-primary-600 dark:text-primary-400'}`}>
                                     <Icon 
                                         name={isBill ? 'receipt' : 'sync'} 
                                         className="text-base" 
@@ -227,7 +227,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                         <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{description}</p>
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
-                                    <p className="text-xs font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white tabular-nums tracking-tight mt-0.5">
                                         <span className="privacy-blur">
                                             {formatCurrency(amount, currency)}
                                         </span>
@@ -236,7 +236,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                                 <div className="flex flex-col items-end gap-1">
                                      <button 
                                         onClick={() => onProcessItem(data)}
-                                        className="h-8 inline-flex items-center justify-center bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs px-3 rounded-xl shadow-xs border border-primary-500/30 dark:bg-primary-500 transition-all active:scale-95 cursor-pointer"
+                                        className="h-8 px-3.5 rounded-xl font-semibold text-xs bg-primary-500/10 hover:bg-primary-500 text-primary-600 hover:text-white dark:text-primary-400 dark:hover:text-white border border-primary-500/20 hover:border-primary-500 transition-all shadow-xs active:scale-95 cursor-pointer"
                                     >
                                         {isBill ? 'Pay' : 'Post'}
                                     </button>
@@ -247,14 +247,16 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
                     if (item.type === 'goal') {
                         return (
-                            <div key={`goal-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/50">
-                                <Icon name="target" className="text-xl shrink-0 text-amber-600 dark:text-amber-400" />
+                            <div key={`goal-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.03] dark:bg-amber-500/[0.05] border border-amber-500/20">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                                    <Icon name="target" className="text-base" />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{item.data.name}</p>
+                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{item.data.name}</p>
                                         {renderDueBadge(item.daysUntil)}
                                     </div>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Goal Target Date</p>
+                                    <p className="text-2xs text-slate-400 dark:text-slate-500 mt-0.5">Goal Target Date</p>
                                 </div>
                             </div>
                         );

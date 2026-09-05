@@ -1762,17 +1762,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 {/* Forecast Controls (Only visible in overview) */}
                 {activeTab === 'overview' && (
                   <>
-                    <div className={`${SELECT_WRAPPER_STYLE} !w-auto flex-1 sm:flex-initial !h-10`}>
+                    <div className="relative flex-1 sm:flex-initial h-10">
                       <select
                         value={forecastDuration}
                         onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
-                        className={`${SELECT_STYLE} !bg-transparent !border-none !w-auto !h-full !py-0 !px-3 sm:!px-5 text-xs font-semibold tracking-wide`}
+                        className="appearance-none bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white h-10 pl-3.5 pr-8 rounded-xl sm:rounded-[1.25rem] text-xs font-bold tracking-wide transition-all cursor-pointer border-0 outline-none focus:ring-2 focus:ring-primary-500/30"
                       >
                         {FORECAST_DURATION_OPTIONS.map(opt => (
                           <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{opt.label}</option>
                         ))}
                       </select>
-                      <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-base" /></div>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 dark:text-slate-500">
+                        <Icon name="expand_more" className="text-base" />
+                      </div>
                     </div>
 
                     <div className="w-[1px] h-5 bg-slate-200 dark:bg-white/10 mx-0.5 hidden sm:block"></div>
