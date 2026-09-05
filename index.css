@@ -29,9 +29,14 @@
   --chart-crosshair: oklch(0.4 0.1828 274.34);
   --chart-grid: oklch(0.9 0 0);
   --chart-brush-border: var(--chart-grid);
-  --chart-tooltip-background: oklch(0.21 0.006 285 / 0.8);
-  --chart-tooltip-foreground: oklch(0.985 0 0);
-  --chart-tooltip-muted: oklch(0.65 0.01 260);
+  --chart-tooltip-background: rgba(255, 255, 255, 0.95);
+  --chart-tooltip-foreground: oklch(0.145 0.004 285);
+  --chart-tooltip-muted: oklch(0.45 0.014 260);
+  --chart-tooltip-border: rgba(0, 0, 0, 0.08);
+  --tooltip-bg: #ffffff;
+  --tooltip-text: #0f172a;
+  --tooltip-text-secondary: #64748b;
+  --tooltip-border: rgba(0, 0, 0, 0.08);
   --chart-marker-background: oklch(0.97 0.005 260);
   --chart-marker-border: oklch(0.85 0.01 260);
   --chart-marker-foreground: oklch(0.3 0.01 260);
@@ -48,6 +53,14 @@
 
 .dark {
   --border: rgba(255, 255, 255, 0.08);
+  --chart-tooltip-background: oklch(0.18 0.006 285 / 0.92);
+  --chart-tooltip-foreground: oklch(0.985 0 0);
+  --chart-tooltip-muted: oklch(0.65 0.01 260);
+  --chart-tooltip-border: rgba(255, 255, 255, 0.1);
+  --tooltip-bg: #18181b;
+  --tooltip-text: #fafafa;
+  --tooltip-text-secondary: #a1a1aa;
+  --tooltip-border: rgba(255, 255, 255, 0.1);
   --ring-background: rgba(255, 255, 255, 0.08);
 }
 
@@ -531,9 +544,10 @@
   --chart-crosshair: oklch(0.4 0.1828 274.34);
   --chart-grid: oklch(0.9 0 0);
   --chart-brush-border: var(--chart-grid);
-  --chart-tooltip-background: oklch(0.21 0.006 285 / 0.8);
-  --chart-tooltip-foreground: oklch(0.985 0 0);
-  --chart-tooltip-muted: oklch(0.65 0.01 260);
+  --chart-tooltip-background: rgba(255, 255, 255, 0.95);
+  --chart-tooltip-foreground: oklch(0.145 0.004 285);
+  --chart-tooltip-muted: oklch(0.45 0.014 260);
+  --chart-tooltip-border: rgba(0, 0, 0, 0.08);
   --chart-marker-background: oklch(0.97 0.005 260);
   --chart-marker-border: oklch(0.85 0.01 260);
   --chart-marker-foreground: oklch(0.3 0.01 260);
@@ -642,9 +656,10 @@ img {
   --chart-crosshair: oklch(0.4 0.1828 274.34);
   --chart-grid: oklch(0.9 0 0);
   --chart-brush-border: var(--chart-grid);
-  --chart-tooltip-background: oklch(0.21 0.006 285 / 0.8);
-  --chart-tooltip-foreground: oklch(0.985 0 0);
-  --chart-tooltip-muted: oklch(0.65 0.01 260);
+  --chart-tooltip-background: rgba(255, 255, 255, 0.95);
+  --chart-tooltip-foreground: oklch(0.145 0.004 285);
+  --chart-tooltip-muted: oklch(0.45 0.014 260);
+  --chart-tooltip-border: rgba(0, 0, 0, 0.08);
   --chart-marker-background: oklch(0.97 0.005 260);
   --chart-marker-border: oklch(0.85 0.01 260);
   --chart-marker-foreground: oklch(0.3 0.01 260);
@@ -669,6 +684,10 @@ img {
   --chart-crosshair: oklch(0.45 0 0);
   --chart-grid: oklch(0.25 0 0);
   --chart-brush-border: var(--chart-grid);
+  --chart-tooltip-background: oklch(0.18 0.006 285 / 0.92);
+  --chart-tooltip-foreground: oklch(0.985 0 0);
+  --chart-tooltip-muted: oklch(0.65 0.01 260);
+  --chart-tooltip-border: rgba(255, 255, 255, 0.1);
   --chart-marker-background: oklch(0.25 0.01 260);
   --chart-marker-border: oklch(0.4 0.01 260);
   --chart-marker-foreground: oklch(0.9 0 0);
@@ -698,6 +717,7 @@ img {
   --color-chart-tooltip-background: var(--chart-tooltip-background);
   --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
   --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-chart-tooltip-border: var(--chart-tooltip-border);
   --color-chart-marker-background: var(--chart-marker-background);
   --color-chart-marker-border: var(--chart-marker-border);
   --color-chart-marker-foreground: var(--chart-marker-foreground);
@@ -851,4 +871,20 @@ img {
 @keyframes title-shrink {
   from { font-size: 2rem; opacity: 1; }
   to   { font-size: 1.125rem; opacity: 0.9; }
+}
+
+/* Custom Map Tooltip Styling */
+.leaflet-tooltip.custom-map-tooltip {
+  background-color: var(--tooltip-bg, #ffffff) !important;
+  color: var(--tooltip-text, #0f172a) !important;
+  border: 1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08)) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  padding: 6px 10px !important;
+}
+.leaflet-tooltip-top.custom-map-tooltip:before {
+  border-top-color: var(--tooltip-bg, #ffffff) !important;
+}
+.leaflet-tooltip-bottom.custom-map-tooltip:before {
+  border-bottom-color: var(--tooltip-bg, #ffffff) !important;
 }

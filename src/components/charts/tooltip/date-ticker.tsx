@@ -20,7 +20,7 @@ const DateTickerCompact = memo(function DateTickerCompact({
   const label = labels[currentIndex] ?? labels[0] ?? "";
 
   return (
-    <div className="overflow-hidden rounded-full bg-zinc-900 px-4 py-1 text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900">
+    <div className="overflow-hidden rounded-full bg-white/95 px-4 py-1 text-slate-900 border border-black/10 shadow-lg backdrop-blur-md dark:bg-zinc-900/95 dark:text-white dark:border-white/10">
       <div className="flex h-6 items-center justify-center">
         <span className="whitespace-nowrap font-medium text-sm">{label}</span>
       </div>
@@ -93,7 +93,7 @@ const DateTickerInner = memo(function DateTickerInner({
   }
 
   return (
-    <div className="overflow-hidden rounded-full bg-zinc-900 px-4 py-1 text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900">
+    <div className="overflow-hidden rounded-full bg-white/95 px-4 py-1 text-slate-900 border border-black/10 shadow-lg backdrop-blur-md dark:bg-zinc-900/95 dark:text-white dark:border-white/10">
       <div className="relative h-6 overflow-hidden">
         <div className="flex items-center justify-center gap-1">
           {/* Month stack */}

@@ -478,19 +478,19 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                                         tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.3, fontWeight: 700 }}
                                         tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
                                     />
-                                     <Tooltip 
-                                         contentStyle={{ 
-                                             backgroundColor: 'var(--light-card)', 
-                                             backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
-                                             WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                             border: 'none', 
-                                             borderRadius: '24px', 
-                                             boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
-                                         }}
-                                         itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#06B6D4' }}
-                                         labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8',  marginBottom: '4px', letterSpacing: '0.1em' }}
-                                         formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Value']}
-                                     />
+                                    <Tooltip 
+                                        contentStyle={{ 
+                                            backgroundColor: 'var(--tooltip-bg, #ffffff)', 
+                                            backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                            WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                            border: '1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08))', 
+                                            borderRadius: '20px', 
+                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' 
+                                        }}
+                                        itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#06B6D4' }}
+                                        labelStyle={{ fontSize: '10px', fontWeight: '900', color: 'var(--tooltip-text-secondary, #64748b)',  marginBottom: '4px', letterSpacing: '0.1em' }}
+                                        formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Value']}
+                                    />
                                     <Area type="monotone" dataKey="price" stroke="#06B6D4" strokeWidth={4} fill="url(#vehValGradient)" name="Price" />
                                     <Line type="monotone" dataKey="trend" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 4" dot={false} activeDot={false} name="Trend Line" />
                                 </AreaChart>

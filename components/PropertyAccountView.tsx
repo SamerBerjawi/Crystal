@@ -330,15 +330,15 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                                     />
                                      <Tooltip 
                                          contentStyle={{ 
-                                            backgroundColor: 'var(--light-card)', 
+                                            backgroundColor: 'var(--tooltip-bg, #ffffff)', 
                                             backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
-                                            WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                            border: 'none', 
-                                            borderRadius: '24px', 
-                                            boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)' 
+                                            WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
+                                            border: '1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08))', 
+                                            borderRadius: '20px', 
+                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' 
                                         }}
                                          itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#6366F1' }}
-                                         labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8',  marginBottom: '4px', letterSpacing: '0.1em' }}
+                                         labelStyle={{ fontSize: '10px', fontWeight: '900', color: 'var(--tooltip-text-secondary, #64748b)',  marginBottom: '4px', letterSpacing: '0.1em' }}
                                          formatter={(val: number) => [`${formatCurrency(val, account.currency)}`, 'Value']}
                                      />
                                     <Area type="monotone" dataKey="price" stroke="#6366F1" strokeWidth={4} fill="url(#propValGradient)" animationDuration={1500} />

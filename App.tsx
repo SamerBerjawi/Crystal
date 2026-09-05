@@ -110,6 +110,7 @@ import { HeaderProvider } from './contexts/HeaderContext';
 import { applyPageAccentTheme } from './utils/theme';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
+import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -352,7 +353,15 @@ const App: React.FC = () => {
 
   const { user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
+        return true;
+      }
+    }
+    return false;
+  });
   const appRenderCountRef = useRef(0);
   appRenderCountRef.current += 1;
   useEffect(() => {
@@ -363,7 +372,22 @@ const App: React.FC = () => {
     console.error('[DIAGNOSTIC] Infinite loop in App! Render count exceeded 25 in 100ms window.');
   }
 
-  const [demoUser, setDemoUser] = useState<User | null>(null);
+  const [demoUser, setDemoUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
+        try {
+          const cached = safeLocalStorage.getItem('crystal_dev_financial_data_cache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.userProfile) return parsed.userProfile;
+          }
+        } catch {}
+        return createDemoUser();
+      }
+    }
+    return null;
+  });
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   const [isSyncingBanks, setIsSyncingBanks] = useState(false);
@@ -921,39 +945,62 @@ const App: React.FC = () => {
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
-    if (isDevEnvironment && hasMaterialData(dataToSave)) {
-      safeLocalStorage.setItem('crystal_dev_financial_data_cache', JSON.stringify(dataToSave));
+    if (isDevEnvironment && isDataLoaded && hasMaterialData(dataToSave)) {
+      void saveDevCache(dataToSave);
     }
-  }, [dataToSave, isDevEnvironment]);
+  }, [dataToSave, isDevEnvironment, isDataLoaded]);
 
-  const handleEnterDemoMode = () => {
+  const handleEnterDemoMode = async () => {
+    if (isDevEnvironment) {
+      try {
+        const cached = await loadDevCache();
+        if (cached && hasMaterialData(cached)) {
+          loadAllFinancialData(cached, { skipNextSave: true });
+          setDemoUser(cached.userProfile || createDemoUser());
+          setIsDemoMode(true);
+          safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
+          return;
+        }
+      } catch (e) {
+        console.warn('[Dev Cache] Failed loading cache on enter demo mode:', e);
+      }
+    }
     loadAllFinancialData(null, { useDemoDefaults: true });
     setDemoUser(createDemoUser());
     setIsDemoMode(true);
+    if (isDevEnvironment) {
+      safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
+    }
   };
 
   useEffect(() => {
     const authAndLoad = async () => {
-      const data = await checkAuthStatus();
+      let data: FinancialData | null = null;
+      try {
+        data = await checkAuthStatus();
+      } catch (err) {
+        console.warn('Auth check error:', err);
+      }
+
       if (data && hasMaterialData(data)) {
         if (isDevEnvironment) {
-          safeLocalStorage.setItem('crystal_dev_financial_data_cache', JSON.stringify(data));
+          void saveDevCache(data);
         }
         loadAllFinancialData(data, { skipNextSave: true });
+        setIsDataLoaded(true);
       } else {
         if (isDevEnvironment) {
           try {
-            const cached = safeLocalStorage.getItem('crystal_dev_financial_data_cache');
-            if (cached) {
-              const parsed = JSON.parse(cached);
-              if (hasMaterialData(parsed)) {
-                console.info('[Dev Cache] Restoring financial data from local browser cache...');
-                loadAllFinancialData(parsed);
-                if (data !== null) {
-                  saveData(parsed, { suppressErrors: true }).catch(() => {});
-                }
-                return;
-              }
+            const cached = await loadDevCache();
+            if (cached && hasMaterialData(cached)) {
+              console.info('[Dev Cache] Restoring financial data from local browser cache...');
+              const devUser = cached.userProfile || createDemoUser();
+              setDemoUser(devUser);
+              setIsDemoMode(true);
+              safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
+              loadAllFinancialData(cached, { skipNextSave: true });
+              setIsDataLoaded(true);
+              return;
             }
           } catch (e) {
             console.warn('[Dev Cache] Failed to load cached dev data', e);
@@ -962,12 +1009,17 @@ const App: React.FC = () => {
         if (data) {
           loadAllFinancialData(data, { skipNextSave: true });
         } else {
+          if (isDevEnvironment && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
+            setDemoUser(createDemoUser());
+            setIsDemoMode(true);
+            loadAllFinancialData(null, { useDemoDefaults: true });
+          }
           setIsDataLoaded(true);
         }
       }
     };
-    if (!isDemoMode) { authAndLoad(); }
-  }, [isDemoMode, isDevEnvironment, loadAllFinancialData, saveData]);
+    authAndLoad();
+  }, [isDevEnvironment, loadAllFinancialData, checkAuthStatus]);
 
   useEffect(() => {
     if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
@@ -1064,6 +1116,17 @@ const App: React.FC = () => {
 
     if (data.userProfile) { handleSetUser(data.userProfile); }
     loadAllFinancialData(dataWithHistory);
+
+    if (isDevEnvironment) {
+      void saveDevCache(dataWithHistory);
+      if (data.userProfile) {
+        setDemoUser(data.userProfile);
+      } else if (!demoUser) {
+        setDemoUser(createDemoUser());
+      }
+      setIsDemoMode(true);
+    }
+
     if (!isDemoMode && isAuthenticated) {
       saveData(dataWithHistory, { suppressErrors: true })
         .catch(console.error)
@@ -1186,7 +1249,10 @@ const App: React.FC = () => {
     setIsDemoMode(false);
     setDemoUser(null);
     streakUpdatedRef.current = false;
-  }, [signOut, loadAllFinancialData, setHasCompletedOnboarding, setAuthPage, setIsDemoMode, setDemoUser]);
+    if (isDevEnvironment) {
+      safeLocalStorage.removeItem('crystal_dev_mode_active');
+    }
+  }, [signOut, loadAllFinancialData, setHasCompletedOnboarding, setAuthPage, setIsDemoMode, setDemoUser, isDevEnvironment]);
 
   const handleLogout = useCallback(() => {
     if (!isDemoMode && isAuthenticated && isDataLoaded) {
@@ -2598,7 +2664,16 @@ const App: React.FC = () => {
 
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
   const handleDeleteImportedTransactions = (importId: string) => { const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id); if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete); };
-  const handleResetAccount = () => { if (user) { allowEmptySaveRef.current = true; loadAllFinancialData(emptyFinancialData); alert("Client-side data reset."); } };
+  const handleResetAccount = () => {
+    if (user || isDemoMode) {
+      allowEmptySaveRef.current = true;
+      if (isDevEnvironment) {
+        void clearDevCache();
+      }
+      loadAllFinancialData(emptyFinancialData);
+      alert("Client-side data reset.");
+    }
+  };
 
   useEffect(() => {
     const root = document.documentElement;

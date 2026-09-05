@@ -679,9 +679,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                       formatter={(val: number) => [formatCurrency(val, curr)]}
                       contentStyle={{
                         borderRadius: '1rem',
-                        background: 'rgba(20,20,25,0.95)',
-                        border: 'none',
-                        color: '#fff',
+                        backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                        border: '1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08))',
+                        color: 'var(--tooltip-text, #0f172a)',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                         fontSize: '11px',
                       }}
                     />
@@ -739,9 +740,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         formatter={(val: number) => [formatCurrency(val, curr)]}
                         contentStyle={{
                           borderRadius: '1rem',
-                          background: 'rgba(20,20,25,0.95)',
-                          border: 'none',
-                          color: '#fff',
+                          backgroundColor: 'var(--tooltip-bg, #ffffff)',
+                          border: '1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08))',
+                          color: 'var(--tooltip-text, #0f172a)',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                           fontSize: '11px',
                         }}
                       />

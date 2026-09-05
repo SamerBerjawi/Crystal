@@ -120,7 +120,7 @@ type DashboardTab = 'overview' | 'analysis' | 'activity' | 'pending_matches';
 const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
   if (statements.length === 0) return null;
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-3">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-2.5 sm:gap-3 h-full items-stretch">
       {statements.map(statement => (
         <CreditCardStatementCard
           key={statement.accountId}

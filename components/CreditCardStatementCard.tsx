@@ -76,27 +76,27 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
         const isPreviousCredit = previousStatementBalance > 0;
         const isPaid = (data.amountPaid || 0) >= previousStatementDebt && previousStatementDebt > 0;
         return (
-            <div className={`p-3.5 rounded-2xl border flex flex-col justify-between transition-all ${
+            <div className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col justify-between transition-all min-h-0 overflow-hidden ${
                 isHighlight 
                     ? 'bg-primary-500/[0.03] dark:bg-primary-500/[0.05] border-primary-500/20 shadow-xs' 
                     : 'bg-black/[0.02] dark:bg-white/[0.03] border-black/5 dark:border-white/5'
             }`}>
-                <div>
-                    <div className="flex justify-between items-center mb-2">
-                        <span className={`text-2xs font-semibold uppercase tracking-wider ${
+                <div className="min-h-0">
+                    <div className="flex justify-between items-center mb-1">
+                        <span className={`text-2xs font-bold uppercase tracking-wider ${
                             isHighlight ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'
                         }`}>
                             {title}
                         </span>
                     </div>
-                    <div className="space-y-1.5">
-                        <div className="flex justify-between items-baseline">
+                    <div className="space-y-1">
+                        <div className="flex justify-between items-baseline leading-tight">
                             <span className="text-xs text-slate-500 dark:text-slate-400">Balance</span>
-                            <span className="text-base font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur">
+                            <span className="text-sm sm:text-base font-bold tracking-tight tabular-nums text-slate-900 dark:text-white privacy-blur">
                                 {formatCurrency(data.balance, currency)}
                             </span>
                         </div>
-                        <div className="flex justify-between items-baseline">
+                        <div className="flex justify-between items-baseline leading-tight">
                             <span className="text-xs text-slate-500 dark:text-slate-400">Due Date</span>
                             <span className={`text-xs font-semibold ${isHighlight ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {data.dueDate}
@@ -106,16 +106,16 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                 </div>
 
                 {title.includes("Current") && hasPreviousStatement && (
-                     <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-1.5 text-xs">
-                            <span className="text-slate-500 dark:text-slate-400">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
+                     <div className="mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs leading-tight">
+                        <div className="flex items-center gap-1.5 text-xs min-w-0">
+                            <span className="text-slate-500 dark:text-slate-400 truncate">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
                             {isPaid && (
-                                <span className="flex items-center gap-1 font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-2xs uppercase tracking-wider">
+                                <span className="flex items-center gap-0.5 font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full text-2xs uppercase tracking-wider shrink-0">
                                     <Icon name="check" className="text-xs" /> Paid
                                 </span>
                             )}
                         </div>
-                        <span className="font-bold tabular-nums text-slate-900 dark:text-white">
+                        <span className="font-bold tabular-nums text-slate-900 dark:text-white shrink-0">
                             {formatCurrency(Math.abs(previousStatementBalance), currency)}
                         </span>
                      </div>
@@ -125,29 +125,29 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
     };
 
     const content = (
-        <div ref={containerRef} className={`flex ${isWide ? 'flex-row' : 'flex-col'} gap-3 h-full`}>
+        <div ref={containerRef} className={`flex ${isWide ? 'flex-row' : 'flex-col'} gap-2.5 sm:gap-3 h-full items-stretch`}>
             {/* Left/Top: Card Info */}
-            <div className={`p-3.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between ${isWide ? 'w-1/3' : 'w-full'}`}>
+            <div className={`p-2.5 sm:p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between min-h-0 ${isWide ? 'w-1/3' : 'w-full'}`}>
                 <div>
-                    <div className="flex items-center gap-2.5 mb-2">
+                    <div className="flex items-center gap-2 mb-1.5 min-w-0">
                         {logoUrl ? (
-                            <img src={logoUrl} alt={accountName} className="w-8 h-8 rounded-xl object-contain bg-white p-1 border border-black/5 shadow-xs shrink-0" onError={() => setLogoError(true)} />
+                            <img src={logoUrl} alt={accountName} className="w-7 h-7 rounded-xl object-contain bg-white p-1 border border-black/5 shadow-xs shrink-0" onError={() => setLogoError(true)} />
                         ) : (
-                            <div className="w-8 h-8 rounded-xl bg-primary-500/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-                                <Icon name="credit_card" className="text-sm" />
+                            <div className="w-7 h-7 rounded-xl bg-primary-500/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                                <Icon name="credit_card" className="text-xs" />
                             </div>
                         )}
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{accountName}</h3>
+                        <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{accountName}</h3>
                     </div>
                 </div>
                 
                 {creditLimit && creditLimit > 0 && (
-                    <div className="mt-2">
-                        <div className="flex justify-between text-2xs font-semibold uppercase tracking-wider mb-1">
+                    <div className="mt-1.5">
+                        <div className="flex justify-between text-2xs font-semibold uppercase tracking-wider mb-1 leading-tight">
                             <span className="text-slate-500 dark:text-slate-400">Used</span>
                             <span className="text-slate-900 dark:text-white tabular-nums">{usedPercentage.toFixed(0)}%</span>
                         </div>
-                        <div className="w-full bg-black/5 dark:bg-white/10 rounded-full h-2 overflow-hidden p-0.5">
+                        <div className="w-full bg-black/5 dark:bg-white/10 rounded-full h-1.5 overflow-hidden p-0.5">
                             <div 
                                 className={`h-full rounded-full transition-all duration-700 ease-out ${
                                     usedPercentage > 90 
@@ -164,7 +164,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
             </div>
 
             {/* Right/Bottom: Statements Grid */}
-            <div className={`flex-1 ${isWide ? 'grid grid-cols-2 gap-3' : 'space-y-3'} w-full`}>
+            <div className={`flex-1 ${isWide ? 'grid grid-cols-2 gap-2.5 sm:gap-3' : 'space-y-2.5 sm:space-y-3'} w-full min-h-0`}>
                 <StatementBlock title="Current" data={currentStatement} isHighlight={true} />
                 <StatementBlock title="Next" data={nextStatement} />
             </div>

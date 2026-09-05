@@ -53,8 +53,8 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
         onMouseUp={onMouseUp}
         onTouchEnd={onTouchEnd}
     >
-      <Card className={`flex flex-col h-full transition-all duration-200 !rounded-[2rem] ${isCompact ? '!p-3.5' : '!p-5'} ${isEditMode ? 'border-dashed border-primary-500/50 ring-2 ring-primary-500/20' : ''}`}>
-        <header className={`flex items-center justify-between gap-3 ${isCompact ? 'mb-2.5' : 'mb-4'} drag-handle ${isEditMode ? 'cursor-move' : ''}`}>
+      <Card className={`flex flex-col h-full transition-all duration-200 !rounded-[2rem] ${isCompact ? '!p-3 sm:!p-3.5' : '!p-5'} ${isEditMode ? 'border-dashed border-primary-500/50 ring-2 ring-primary-500/20' : ''}`}>
+        <header className={`flex items-center justify-between gap-3 ${isCompact ? 'mb-2' : 'mb-4'} drag-handle ${isEditMode ? 'cursor-move' : ''}`}>
           <div className="flex items-center gap-2.5 min-w-0 overflow-hidden">
             {icon && (
                <div className={`${isCompact ? 'w-8 h-8 rounded-lg' : 'w-9 h-9 rounded-xl'} bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 border border-primary-500/15`}>

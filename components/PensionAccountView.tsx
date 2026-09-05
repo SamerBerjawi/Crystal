@@ -338,16 +338,16 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} width={40} />
                                 <Tooltip 
                                     contentStyle={{ 
-                                        backgroundColor: 'var(--light-card)', 
+                                        backgroundColor: 'var(--tooltip-bg, #ffffff)', 
                                         backdropFilter: 'blur(15px) saturate(180%) brightness(105%)', 
                                         WebkitBackdropFilter: 'blur(15px) saturate(180%) brightness(105%)',
-                                        border: 'none', 
-                                        borderRadius: '24px', 
-                                        boxShadow: 'inset 2px 2px 1px rgba(255, 255, 255, 0.05), inset -2px -2px 2px rgba(0, 0, 0, 0.05), 0 8px 32px rgba(0, 0, 0, 0.1)',
+                                        border: '1px solid var(--tooltip-border, rgba(0, 0, 0, 0.08))', 
+                                        borderRadius: '20px', 
+                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
                                         padding: '16px' 
                                     }}
-                                    itemStyle={{ color: 'inherit', fontSize: '18px', fontWeight: '900' }}
-                                    labelStyle={{ color: 'currentColor', opacity: 0.5, fontWeight: 'bold', marginBottom: '8px',  letterSpacing: '0.1em', fontSize: '10px' }}
+                                    itemStyle={{ color: 'var(--tooltip-text, #0f172a)', fontSize: '18px', fontWeight: '900' }}
+                                    labelStyle={{ color: 'var(--tooltip-text-secondary, #64748b)', fontWeight: 'bold', marginBottom: '8px',  letterSpacing: '0.1em', fontSize: '10px' }}
                                     formatter={(value: number) => [`${formatCurrency(value, account.currency)}`, 'Value']}
                                 />
                                 <Legend verticalAlign="bottom" iconType="circle" />
