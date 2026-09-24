@@ -424,7 +424,7 @@ const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
-  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(emptyFinancialData.enableBankingConnections || []);
+  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(initialFinancialData.enableBankingConnections || []);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
@@ -832,7 +832,10 @@ const App: React.FC = () => {
       if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
       else { setUserStats(emptyFinancialData.userStats!); }
       streakUpdatedRef.current = false;
-      setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
+      const resolvedConnections = (dataToLoad.enableBankingConnections && dataToLoad.enableBankingConnections.length > 0)
+        ? dataToLoad.enableBankingConnections
+        : (initialFinancialData.enableBankingConnections || []);
+      setEnableBankingConnections(resolvedConnections);
       setPreferences(loadedPrefs);
       if (loadedPrefs.conversionRates) {
         updateConversionRates(loadedPrefs.conversionRates);

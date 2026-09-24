@@ -1,5 +1,70 @@
-import { FinancialData, User } from './types';
+import { FinancialData, User, EnableBankingConnection } from './types';
 import { MOCK_EXPENSE_CATEGORIES, MOCK_INCOME_CATEGORIES } from './constants';
+
+export const demoEnableBankingConnections: EnableBankingConnection[] = [
+    {
+        id: 'conn-bnp-demo',
+        applicationId: 'app_crystal_demo_prod',
+        countryCode: 'BE',
+        clientCertificate: '-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6demo\n-----END PRIVATE KEY-----',
+        status: 'ready',
+        selectedBank: 'BNP Paribas Fortis',
+        selectedBankId: 'bnp-be',
+        sessionId: 'session_bnp_982410a',
+        sessionExpiresAt: new Date(Date.now() + 84 * 24 * 60 * 60 * 1000).toISOString(),
+        authorizationId: 'auth_bnp_demo_01',
+        lastSyncedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        accounts: [
+            {
+                id: 'eb-acc-bnp-1',
+                name: 'Everyday Current Account',
+                bankName: 'BNP Paribas Fortis',
+                currency: 'EUR',
+                balance: 3450.75,
+                accountNumber: 'BE68 5390 0754 7034',
+                linkedAccountId: 'acc-checking',
+                syncStartDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                lastSyncedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 'eb-acc-bnp-2',
+                name: 'Comfort Savings Account',
+                bankName: 'BNP Paribas Fortis',
+                currency: 'EUR',
+                balance: 14800.00,
+                accountNumber: 'BE42 0012 3456 1892',
+                linkedAccountId: 'acc-savings',
+                syncStartDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                lastSyncedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            },
+        ],
+    },
+    {
+        id: 'conn-revolut-demo',
+        applicationId: 'app_crystal_demo_prod',
+        countryCode: 'LT',
+        clientCertificate: '-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6demo\n-----END PRIVATE KEY-----',
+        status: 'ready',
+        selectedBank: 'Revolut Bank',
+        selectedBankId: 'revolut-eu',
+        sessionId: 'session_rev_581902c',
+        sessionExpiresAt: new Date(Date.now() + 61 * 24 * 60 * 60 * 1000).toISOString(),
+        authorizationId: 'auth_rev_demo_02',
+        lastSyncedAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+        accounts: [
+            {
+                id: 'eb-acc-rev-1',
+                name: 'Standard Vault & Spending',
+                bankName: 'Revolut Bank',
+                currency: 'EUR',
+                balance: 840.25,
+                accountNumber: 'LT14 3250 0124 9941',
+                syncStartDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                lastSyncedAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+            },
+        ],
+    },
+];
 
 export const initialFinancialData: FinancialData = {
     accounts: [
@@ -918,7 +983,7 @@ export const initialFinancialData: FinancialData = {
     priceHistory: {},
     userStats: { currentStreak: 5, longestStreak: 14, lastLogDate: '2024-06-28', predictionWins: 3, predictionTotal: 4 },
     predictions: [],
-    enableBankingConnections: [],
+    enableBankingConnections: demoEnableBankingConnections,
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',

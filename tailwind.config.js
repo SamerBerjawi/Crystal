@@ -13,6 +13,7 @@ export default {
         serif: ['var(--app-font-family)', 'Georgia', 'serif'],
       },
       fontSize: {
+        '3xs': ['0.5625rem', { lineHeight: '0.75rem', letterSpacing: '0.01em' }],
         '2xs': ['0.625rem', { lineHeight: '0.875rem', letterSpacing: '0.01em' }],
       },
       colors: {
