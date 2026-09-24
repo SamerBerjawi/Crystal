@@ -599,7 +599,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-xs text-light-text dark:text-dark-text truncate">
+                          <h4 className="font-bold text-xs sm:text-sm text-light-text dark:text-dark-text truncate">
                             {connection.selectedBank || 'Bank Institution'}
                           </h4>
                           {renderStatusBadge(connection.status)}
@@ -686,7 +686,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                                 </div>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-bold text-2xs text-light-text dark:text-dark-text truncate">
+                                    <span className="font-bold text-xs text-light-text dark:text-dark-text truncate">
                                       {account.name}
                                     </span>
                                     {accountLastFour && (
@@ -730,7 +730,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                               <div className="flex items-center gap-3 shrink-0 ml-auto">
                                 <div className="text-right">
                                   <span className="text-3xs uppercase tracking-wider text-light-text-secondary opacity-60 block">Balance</span>
-                                  <span className="font-mono font-bold text-xs text-light-text dark:text-dark-text">
+                                  <span className="font-mono font-bold text-xs sm:text-sm text-light-text dark:text-dark-text">
                                     {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </span>
                                 </div>
