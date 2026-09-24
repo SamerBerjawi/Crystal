@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Transaction, RecurringTransaction, BillPayment, Account } from '../types';
-import { parseLocalDate, toLocalISOString } from '../utils';
+import { Transaction, RecurringTransaction, BillPayment, Account, Currency } from '../types';
+import { parseLocalDate, toLocalISOString, adjustDateForWeekend, convertToEur } from '../utils';
 import { MatcherConfig, DEFAULT_MATCHER_CONFIG } from './useMatcherConfig';
 
 export interface SyncedBillMatchSuggestion {
@@ -92,41 +92,80 @@ function bigramSimilarity(a: string, b: string): number {
   return (2 * intersection) / (a.length - 1 + (b.length - 1));
 }
 
+// Multi-attribute text similarity calculator between transaction and scheduled item
+function getBestTextSimilarity(
+  txCandidates: (string | undefined)[],
+  targetCandidates: (string | undefined)[]
+): { maxSim: number; hasSubstring: boolean } {
+  let maxSim = 0;
+  let hasSubstring = false;
+
+  for (const t of txCandidates) {
+    if (!t || !t.trim()) continue;
+    for (const tgt of targetCandidates) {
+      if (!tgt || !tgt.trim()) continue;
+      const sim = calculateNameSimilarity(t, tgt);
+      if (sim > maxSim) maxSim = sim;
+
+      const s1 = t.toLowerCase().trim();
+      const s2 = tgt.toLowerCase().trim();
+      const minLen = Math.min(s1.length, s2.length);
+      if (minLen >= 4 && (s1.includes(s2) || s2.includes(s1))) {
+        hasSubstring = true;
+      }
+    }
+  }
+
+  return { maxSim, hasSubstring };
+}
+
 // Helper to get the closest target due date for a recurring transaction relative to txDate
 function getClosestRecurringDueDate(rt: RecurringTransaction, txDate: Date): { targetDate: Date; daysDiff: number } {
   const rtNextDate = parseLocalDate(rt.nextDueDate);
   const rtStartDate = rt.startDate ? parseLocalDate(rt.startDate) : rtNextDate;
 
-  const datesToCheck: Date[] = [rtNextDate, rtStartDate];
+  const rawDates: Date[] = [rtNextDate, rtStartDate];
 
   const txYear = txDate.getFullYear();
   const txMonth = txDate.getMonth();
+  const interval = rt.frequencyInterval || 1;
 
   if (rt.frequency === 'monthly') {
     const day = rt.dueDateOfMonth || rtStartDate.getDate() || rtNextDate.getDate() || 1;
     for (let offset = -2; offset <= 2; offset++) {
-      const targetMonth = txMonth + offset;
-      const d = new Date(txYear, targetMonth, day);
-      datesToCheck.push(d);
+      const targetMonth = txMonth + offset * interval;
+      const lastDay = new Date(txYear, targetMonth + 1, 0).getDate();
+      const d = new Date(txYear, targetMonth, Math.min(day, lastDay));
+      rawDates.push(d);
     }
   } else if (rt.frequency === 'weekly' || rt.frequency === 'biweekly') {
-    const intervalDays = rt.frequency === 'biweekly' ? 14 : 7;
+    const intervalDays = (rt.frequency === 'biweekly' ? 14 : 7) * interval;
     const startMs = rtStartDate.getTime();
     const txMs = txDate.getTime();
     const diffDays = Math.round((txMs - startMs) / ONE_DAY_MS);
     const cycles = Math.round(diffDays / intervalDays);
     const targetMs = startMs + cycles * intervalDays * ONE_DAY_MS;
-    datesToCheck.push(new Date(targetMs));
-    datesToCheck.push(new Date(targetMs + intervalDays * ONE_DAY_MS));
-    datesToCheck.push(new Date(targetMs - intervalDays * ONE_DAY_MS));
+    rawDates.push(new Date(targetMs));
+    rawDates.push(new Date(targetMs + intervalDays * ONE_DAY_MS));
+    rawDates.push(new Date(targetMs - intervalDays * ONE_DAY_MS));
   } else if (rt.frequency === 'yearly') {
     const month = rtStartDate.getMonth();
     const day = rtStartDate.getDate();
     for (let offset = -1; offset <= 1; offset++) {
-      datesToCheck.push(new Date(txYear + offset, month, day));
+      rawDates.push(new Date(txYear + offset * interval, month, day));
     }
   } else if (rt.frequency === 'daily') {
-    datesToCheck.push(txDate);
+    rawDates.push(txDate);
+  }
+
+  // Include weekend-adjusted versions of candidate dates if weekend strategy is active
+  const datesToCheck: Date[] = [];
+  for (const d of rawDates) {
+    datesToCheck.push(d);
+    if (rt.weekendAdjustment && rt.weekendAdjustment !== 'on') {
+      const adjStr = adjustDateForWeekend(toLocalISOString(d), rt.weekendAdjustment);
+      datesToCheck.push(parseLocalDate(adjStr));
+    }
   }
 
   let closest = datesToCheck[0];
@@ -178,17 +217,12 @@ export const useSyncedBillMatcher = (
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const lookbackLimit = config.lookbackDays || 7;
-    const maxDaysDiff = config.dateVarianceDays ?? 3;
+    const lookbackLimit = config.lookbackDays ?? 30;
+    const maxDaysDiff = config.dateVarianceDays ?? 4;
     const maxAmountPercent = config.amountVariancePercent ?? 10;
 
-    // Reference date: latest transaction date in dataset, or today, whichever is later
-    let latestTxTime = 0;
-    for (const tx of transactions) {
-      const t = parseLocalDate(tx.date).getTime();
-      if (t > latestTxTime) latestTxTime = t;
-    }
-    const refTime = Math.max(today.getTime(), latestTxTime);
+    // Anchor to today's date so future scheduled transactions don't poison reference time
+    const refTime = today.getTime();
 
     // Candidate transactions: non-transfer, non-recurring-linked transactions within lookback window
     const candidateTxs = transactions.filter(tx => {
@@ -196,7 +230,8 @@ export const useSyncedBillMatcher = (
 
       const txDate = parseLocalDate(tx.date);
       const daysOld = (refTime - txDate.getTime()) / ONE_DAY_MS;
-      return daysOld <= lookbackLimit && daysOld >= -7;
+      // Allow recent past transactions up to lookbackLimit, and scheduled/future transactions up to 14 days
+      return daysOld <= lookbackLimit && daysOld >= -14;
     });
 
     if (candidateTxs.length === 0) return results;
@@ -207,8 +242,10 @@ export const useSyncedBillMatcher = (
 
     for (const tx of candidateTxs) {
       const txDate = parseLocalDate(tx.date);
+      const txCurrency = (tx.currency as Currency) || 'EUR';
+      const txAmountEur = Math.abs(convertToEur(tx.amount, txCurrency));
       const txAmountAbs = Math.abs(tx.amount);
-      const txMerchantOrDesc = tx.merchant || tx.description;
+      const txCandidates = [tx.merchant, tx.description, tx.notes];
 
       let bestMatch: SyncedBillMatchSuggestion | null = null;
       let highestScore = 0;
@@ -225,44 +262,51 @@ export const useSyncedBillMatcher = (
         if (tx.type === 'income' && !isBillDeposit) continue;
 
         const billDate = parseLocalDate(bill.dueDate);
+        const billCurrency = (bill.currency as Currency) || 'EUR';
+        const billAmountEur = Math.abs(convertToEur(bill.amount, billCurrency));
         const billAmountAbs = Math.abs(bill.amount);
 
         // Date variance check
         const daysDiff = Math.abs((txDate.getTime() - billDate.getTime()) / ONE_DAY_MS);
         if (daysDiff > maxDaysDiff + 0.5) continue;
 
-        // Amount variance check
-        const amountDiff = Math.abs(txAmountAbs - billAmountAbs);
-        const amountDiffPercent = billAmountAbs > 0 ? (amountDiff / billAmountAbs) * 100 : 0;
-        if (amountDiffPercent > maxAmountPercent + 0.5 && amountDiff > 2.0) continue;
+        // Amount variance check (EUR normalized)
+        const amountDiffEur = Math.abs(txAmountEur - billAmountEur);
+        const amountDiffPercent = billAmountEur > 0 ? (amountDiffEur / billAmountEur) * 100 : 0;
+        if (amountDiffPercent > maxAmountPercent + 0.5 && amountDiffEur > 2.0) continue;
 
         // Hard gate: wildly different amounts should never match
-        if (amountDiffPercent > 20 && amountDiff > 5) continue;
+        if (amountDiffPercent > 20 && amountDiffEur > 5) continue;
 
-        // String similarity check
-        const nameSim = calculateNameSimilarity(txMerchantOrDesc, bill.description);
-        const rawTx = txMerchantOrDesc.toLowerCase();
-        const rawBill = bill.description.toLowerCase();
-        // isSubstring only counts if shorter side is >= 4 chars (avoids noise like "fee")
-        const minSubLen = Math.min(rawTx.length, rawBill.length);
-        const isSubstring = minSubLen >= 4 && (rawTx.includes(rawBill) || rawBill.includes(rawTx));
+        // Multi-attribute text similarity check
+        const billCandidates = [bill.description, (bill as any).payee];
+        const { maxSim: nameSim, hasSubstring } = getBestTextSimilarity(txCandidates, billCandidates);
 
-        if (nameSim < 0.15 && !isSubstring) continue;
+        const isAccountMatch = !!(bill.accountId && tx.accountId && bill.accountId === tx.accountId);
+
+        // Gate: if requireNameMatch is enabled, enforce it
+        if (config.requireNameMatch && nameSim < 0.25 && !hasSubstring) continue;
+
+        // If requireNameMatch is false, allow low name similarity only if amount and date are very close
+        if (!config.requireNameMatch && nameSim < 0.15 && !hasSubstring) {
+          const isHighPrecisionMatch = (amountDiffPercent <= 2 || amountDiffEur <= 0.5) && daysDiff <= 2.5;
+          if (!isHighPrecisionMatch || (!isAccountMatch && amountDiffEur > 0.05)) {
+            continue;
+          }
+        }
 
         // Calculate confidence score (0 - 100)
-        // Rebalanced: date 30 + amount 35 + name 35 = 100
+        // Date 30 + Amount 35 + Name 35 (+10 account match bonus)
         const dateScore = Math.max(0, 30 * (1 - daysDiff / (maxDaysDiff + 1)));
         const amountScore = Math.max(0, 35 * (1 - amountDiffPercent / (maxAmountPercent + 1)));
-        const nameScore = isSubstring ? Math.max(20, 35 * nameSim) : Math.min(35, 35 * nameSim);
-        const score = Math.round(dateScore + amountScore + nameScore);
+        const nameScore = hasSubstring ? Math.max(20, 35 * nameSim) : Math.min(35, 35 * nameSim);
+        const accountBonus = isAccountMatch ? 10 : 0;
+        const score = Math.min(100, Math.round(dateScore + amountScore + nameScore + accountBonus));
 
         const minScore = config.minMatchScore ?? 50;
         if (score >= minScore && score > highestScore) {
           const matchId = `bill-${tx.id}-${bill.id}`;
           if (ignoredMatchIds.includes(matchId)) continue;
-
-          // Apply requireNameMatch gate
-          if (config.requireNameMatch && nameSim < 0.3 && !isSubstring) continue;
 
           highestScore = score;
           bestMatch = {
@@ -289,45 +333,52 @@ export const useSyncedBillMatcher = (
         // Direction check
         if (tx.type !== rt.type && rt.type !== 'transfer') continue;
 
+        const rtCurrency = (rt.currency as Currency) || 'EUR';
+        const rtAmountEur = Math.abs(convertToEur(rt.amount, rtCurrency));
         const rtAmountAbs = Math.abs(rt.amount);
-        const rtMerchantOrDesc = rt.merchant || rt.description;
 
         // Calculate closest recurring cycle due date
         const { targetDate: rtClosestDate, daysDiff } = getClosestRecurringDueDate(rt, txDate);
 
         if (daysDiff > maxDaysDiff + 0.5) continue;
 
-        // Amount variance check
-        const amountDiff = Math.abs(txAmountAbs - rtAmountAbs);
-        const amountDiffPercent = rtAmountAbs > 0 ? (amountDiff / rtAmountAbs) * 100 : 0;
-        if (amountDiffPercent > maxAmountPercent + 0.5 && amountDiff > 2.0) continue;
+        // Amount variance check (EUR normalized)
+        const amountDiffEur = Math.abs(txAmountEur - rtAmountEur);
+        const amountDiffPercent = rtAmountEur > 0 ? (amountDiffEur / rtAmountEur) * 100 : 0;
+        if (amountDiffPercent > maxAmountPercent + 0.5 && amountDiffEur > 2.0) continue;
 
         // Hard gate: wildly different amounts should never match
-        if (amountDiffPercent > 20 && amountDiff > 5) continue;
+        if (amountDiffPercent > 20 && amountDiffEur > 5) continue;
 
-        // String similarity check
-        const nameSim = calculateNameSimilarity(txMerchantOrDesc, rtMerchantOrDesc);
-        const rawTx = txMerchantOrDesc.toLowerCase();
-        const rawRt = rtMerchantOrDesc.toLowerCase();
-        // isSubstring only counts if shorter side is >= 4 chars
-        const minSubLen = Math.min(rawTx.length, rawRt.length);
-        const isSubstring = minSubLen >= 4 && (rawTx.includes(rawRt) || rawRt.includes(rawTx));
+        // Multi-attribute text similarity check
+        const rtCandidates = [rt.merchant, rt.description];
+        const { maxSim: nameSim, hasSubstring } = getBestTextSimilarity(txCandidates, rtCandidates);
 
-        if (nameSim < 0.15 && !isSubstring) continue;
+        const isAccountMatch = !!(rt.accountId && tx.accountId && rt.accountId === tx.accountId);
 
-        // Rebalanced: date 30 + amount 35 + name 35 = 100
+        // Gate: if requireNameMatch is enabled, enforce it
+        if (config.requireNameMatch && nameSim < 0.25 && !hasSubstring) continue;
+
+        // If requireNameMatch is false, allow low name similarity only if amount and date are very close
+        if (!config.requireNameMatch && nameSim < 0.15 && !hasSubstring) {
+          const isHighPrecisionMatch = (amountDiffPercent <= 2 || amountDiffEur <= 0.5) && daysDiff <= 2.5;
+          if (!isHighPrecisionMatch || (!isAccountMatch && amountDiffEur > 0.05)) {
+            continue;
+          }
+        }
+
+        // Calculate confidence score (0 - 100)
+        // Date 30 + Amount 35 + Name 35 (+10 account match bonus)
         const dateScore = Math.max(0, 30 * (1 - daysDiff / (maxDaysDiff + 1)));
         const amountScore = Math.max(0, 35 * (1 - amountDiffPercent / (maxAmountPercent + 1)));
-        const nameScore = isSubstring ? Math.max(20, 35 * nameSim) : Math.min(35, 35 * nameSim);
-        const score = Math.round(dateScore + amountScore + nameScore);
+        const nameScore = hasSubstring ? Math.max(20, 35 * nameSim) : Math.min(35, 35 * nameSim);
+        const accountBonus = isAccountMatch ? 10 : 0;
+        const score = Math.min(100, Math.round(dateScore + amountScore + nameScore + accountBonus));
 
         const minScore = config.minMatchScore ?? 50;
         if (score >= minScore && score > highestScore) {
           const matchId = `recurring-${tx.id}-${rt.id}`;
           if (ignoredMatchIds.includes(matchId)) continue;
-
-          // Apply requireNameMatch gate
-          if (config.requireNameMatch && nameSim < 0.3 && !isSubstring) continue;
 
           highestScore = score;
           bestMatch = {
@@ -359,7 +410,7 @@ export const useSyncedBillMatcher = (
     return results;
   }, [transactions, recurringTransactions, billsAndPayments, ignoredMatchIds, config]);
 
-  const confirmMatch = (suggestion: SyncedBillMatchSuggestion) => {
+  const confirmMatch = (suggestion: SyncedBillMatchSuggestion, updateIgnored: boolean = true) => {
     if (suggestion.itemType === 'bill' && suggestion.billItem) {
       saveBillPayment({
         ...suggestion.billItem,
@@ -383,28 +434,51 @@ export const useSyncedBillMatcher = (
         },
       ]);
 
-      const postedDate = parseLocalDate(suggestion.transaction.date);
-      let nextDueDate = new Date(postedDate);
+      // Advance nextDueDate starting from the matched occurrence date
+      const matchedDateObj = parseLocalDate(suggestion.matchedDate || rt.nextDueDate);
+      const txDateObj = parseLocalDate(suggestion.transaction.date);
       const interval = rt.frequencyInterval || 1;
-      const startDateLocal = parseLocalDate(rt.startDate);
+      const startDateLocal = parseLocalDate(rt.startDate || rt.nextDueDate);
+      const nextDueDate = new Date(matchedDateObj);
 
-      switch (rt.frequency) {
-        case 'daily':
-          nextDueDate.setDate(nextDueDate.getDate() + interval);
-          break;
-        case 'weekly':
-          nextDueDate.setDate(nextDueDate.getDate() + 7 * interval);
-          break;
-        case 'monthly': {
-          const d = rt.dueDateOfMonth || startDateLocal.getDate();
-          nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
-          const lastDayOfNextMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
-          nextDueDate.setDate(Math.min(d, lastDayOfNextMonth));
-          break;
+      const advanceOneCycle = (d: Date) => {
+        switch (rt.frequency) {
+          case 'daily':
+            d.setDate(d.getDate() + interval);
+            break;
+          case 'weekly':
+            d.setDate(d.getDate() + 7 * interval);
+            break;
+          case 'biweekly':
+            d.setDate(d.getDate() + 14 * interval);
+            break;
+          case 'monthly': {
+            const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
+            d.setMonth(d.getMonth() + interval, 1);
+            const lastDayOfNextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+            d.setDate(Math.min(targetDay, lastDayOfNextMonth));
+            break;
+          }
+          case 'yearly':
+            d.setFullYear(d.getFullYear() + interval);
+            break;
+          default:
+            d.setMonth(d.getMonth() + 1);
+            break;
         }
-        case 'yearly':
-          nextDueDate.setFullYear(nextDueDate.getFullYear() + interval);
-          break;
+      };
+
+      // Advance at least one full cycle
+      advanceOneCycle(nextDueDate);
+
+      // Loop forward if nextDueDate is still not past the matched occurrence or transaction date
+      let loopSafety = 0;
+      while (
+        (nextDueDate.getTime() <= matchedDateObj.getTime() || nextDueDate.getTime() <= txDateObj.getTime()) &&
+        loopSafety < 60
+      ) {
+        advanceOneCycle(nextDueDate);
+        loopSafety++;
       }
 
       saveRecurringTransaction({
@@ -413,7 +487,9 @@ export const useSyncedBillMatcher = (
       });
     }
 
-    saveIgnoredIds([...ignoredMatchIds, suggestion.id]);
+    if (updateIgnored) {
+      saveIgnoredIds([...ignoredMatchIds, suggestion.id]);
+    }
   };
 
   const dismissSuggestion = (suggestion: SyncedBillMatchSuggestion) => {
@@ -423,7 +499,7 @@ export const useSyncedBillMatcher = (
   const confirmSelectedBillMatches = (selectedList: SyncedBillMatchSuggestion[]) => {
     const idsToIgnore: string[] = [];
     selectedList.forEach(suggestion => {
-      confirmMatch(suggestion);
+      confirmMatch(suggestion, false);
       idsToIgnore.push(suggestion.id);
     });
     saveIgnoredIds([...ignoredMatchIds, ...idsToIgnore]);
@@ -452,3 +528,4 @@ export const useSyncedBillMatcher = (
     dismissAllBillMatches: dismissAllSuggestions,
   };
 };
+

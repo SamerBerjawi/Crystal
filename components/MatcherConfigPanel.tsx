@@ -109,16 +109,16 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
           </div>
           <input
             type="range"
-            min="3"
-            max="30"
+            min="7"
+            max="90"
             step="1"
             value={config.lookbackDays}
             onChange={e => onChange({ lookbackDays: Number(e.target.value) })}
             className="w-full accent-emerald-600 cursor-pointer"
           />
           <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
-            <span>3 Days</span>
-            <span>30 Days</span>
+            <span>7 Days</span>
+            <span>90 Days</span>
           </div>
         </div>
 

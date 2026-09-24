@@ -58,19 +58,15 @@ export const useTransactionMatcher = (
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const lookbackLimit = config.lookbackDays || 7;
-    const maxDaysDiff = config.dateVarianceDays ?? 3;
+    const lookbackLimit = config.lookbackDays || 30;
+    const maxDaysDiff = config.dateVarianceDays ?? 4;
     const maxAmountPercent = config.amountVariancePercent ?? 10;
-    const minScore = config.minMatchScore ?? 50;
+    const minScore = config.minMatchScore ?? 45;
 
-    let latestTxTime = 0;
-    for (const tx of transactions) {
-      const t = parseLocalDate(tx.date).getTime();
-      if (t > latestTxTime) latestTxTime = t;
-    }
-    const refTime = Math.max(today.getTime(), latestTxTime);
+    // Anchor reference time to today to prevent future transactions from corrupting the lookback window
+    const refTime = today.getTime();
 
-    // Filter candidates: non-transfer, within lookback window
+    // Filter candidates: non-transfer, within lookback window (past days and up to 7 days in future)
     const candidates = transactions.filter(tx => {
       if (tx.transferId) return false;
 

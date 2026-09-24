@@ -455,62 +455,36 @@ const SchedulePage: React.FC = () => {
         overdueCutoffDate.setDate(overdueCutoffDate.getDate() - 7);
         const overdueCutoffStr = toLocalISOString(overdueCutoffDate);
 
+        // Index transactions linked to recurring items to avoid showing already satisfied occurrences
+        const recurringTxMap = new Map<string, { date: Date; dateStr: string }[]>();
+        transactions.forEach(tx => {
+            if (tx.recurringSourceId) {
+                const list = recurringTxMap.get(tx.recurringSourceId) || [];
+                list.push({ date: parseLocalDate(tx.date), dateStr: tx.date });
+                recurringTxMap.set(tx.recurringSourceId, list);
+            }
+        });
+
+        const isOccurrenceSatisfied = (rtId: string, targetDate: Date, targetDateStr: string): boolean => {
+            const txList = recurringTxMap.get(rtId);
+            if (!txList || txList.length === 0) return false;
+            const targetMs = targetDate.getTime();
+            return txList.some(tx => {
+                if (tx.dateStr === targetDateStr) return true;
+                const diffDays = Math.abs((tx.date.getTime() - targetMs) / (24 * 60 * 60 * 1000));
+                return diffDays <= 4.5;
+            });
+        };
+
         // Generate occurrences for timeline
         allRecurringTransactions.forEach(rt => {
             let nextDate = parseLocalDate(rt.nextDueDate);
             const endDateLocal = rt.endDate ? parseLocalDate(rt.endDate) : null;
-            const startDateLocal = parseLocalDate(rt.startDate);
+            const startDateLocal = parseLocalDate(rt.startDate || rt.nextDueDate);
 
-            // Fast forward past dates before overdue cutoff (last 7 days)
-            while (nextDate < overdueCutoffDate && (!endDateLocal || nextDate < endDateLocal)) {
+            const advanceDate = (current: Date): Date => {
                 const interval = rt.frequencyInterval || 1;
-                const d = new Date(nextDate);
-                if (rt.frequency === 'monthly') {
-                    d.setMonth(d.getMonth() + interval);
-                }
-                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
-                nextDate = d;
-            }
-            
-            while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
-                const originalDateStr = toLocalISOString(nextDate);
-                const adjustedDateStr = adjustDateForWeekend(originalDateStr, rt.weekendAdjustment);
-
-                const override = recurringOverrideMap.get(`${rt.id}-${originalDateStr}`);
-
-                const itemDate = override?.date || adjustedDateStr;
-                const itemAmount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
-                const itemDescription = override?.description || rt.description;
-                const accountName = rt.accountId === 'external'
-                    ? 'External'
-                    : (rt.type === 'transfer'
-                        ? `${accountMap[rt.accountId] || 'Unknown'} → ${accountMap[rt.toAccountId ?? ''] || 'External'}`
-                        : accountMap[rt.accountId] || 'Unknown');
-                
-                const isSkipped = !!override?.isSkipped;
-
-                allUpcomingItems.push({
-                    id: override ? `override-${rt.id}-${originalDateStr}` : `${rt.id}-${originalDateStr}`,
-                    isRecurring: true, 
-                    date: itemDate, 
-                    description: itemDescription,
-                    amount: itemAmount,
-                    accountName,
-                    type: rt.type, 
-                    originalItem: rt, 
-                    isTransfer: rt.type === 'transfer',
-                    isOverride: !!override,
-                    originalDateForOverride: originalDateStr,
-                    isSkipped: isSkipped,
-                    category: rt.category,
-                    merchant: rt.merchant,
-                    accountId: rt.accountId,
-                });
-                
-                const interval = rt.frequencyInterval || 1;
-                const d = new Date(nextDate);
+                const d = new Date(current);
                 if (rt.frequency === 'monthly') {
                     const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
                     d.setMonth(d.getMonth() + interval);
@@ -518,14 +492,85 @@ const SchedulePage: React.FC = () => {
                     const month = d.getMonth();
                     const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
                     d.setDate(Math.min(targetDay, lastDayOfMonth));
+                } else if (rt.frequency === 'weekly') {
+                    d.setDate(d.getDate() + 7 * interval);
+                } else if (rt.frequency === 'biweekly') {
+                    d.setDate(d.getDate() + 14 * interval);
+                } else if (rt.frequency === 'daily') {
+                    d.setDate(d.getDate() + interval);
+                } else if (rt.frequency === 'yearly') {
+                    d.setFullYear(d.getFullYear() + interval);
+                } else {
+                    d.setMonth(d.getMonth() + 1);
                 }
-                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
-                nextDate = d;
+                return d;
+            };
+
+            // Fast forward past dates before overdue cutoff (last 7 days)
+            while (nextDate < overdueCutoffDate && (!endDateLocal || nextDate < endDateLocal)) {
+                nextDate = advanceDate(nextDate);
+            }
+
+            // Also fast forward past occurrences in the past/today that have already been matched to a transaction
+            while (nextDate <= todayMidnight && (!endDateLocal || nextDate <= endDateLocal)) {
+                const dateStr = toLocalISOString(nextDate);
+                const adjustedStr = adjustDateForWeekend(dateStr, rt.weekendAdjustment);
+                const adjustedDate = parseLocalDate(adjustedStr);
+                if (isOccurrenceSatisfied(rt.id, nextDate, dateStr) || isOccurrenceSatisfied(rt.id, adjustedDate, adjustedStr)) {
+                    nextDate = advanceDate(nextDate);
+                } else {
+                    break;
+                }
+            }
+
+            while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
+                const originalDateStr = toLocalISOString(nextDate);
+                const adjustedDateStr = adjustDateForWeekend(originalDateStr, rt.weekendAdjustment);
+                const adjustedDate = parseLocalDate(adjustedDateStr);
+
+                // If occurrence in the past/today was already matched, don't show it as an upcoming/overdue obligation
+                const isSatisfied = nextDate <= todayMidnight && (
+                    isOccurrenceSatisfied(rt.id, nextDate, originalDateStr) ||
+                    isOccurrenceSatisfied(rt.id, adjustedDate, adjustedDateStr)
+                );
+
+                if (!isSatisfied) {
+                    const override = recurringOverrideMap.get(`${rt.id}-${originalDateStr}`);
+
+                    const itemDate = override?.date || adjustedDateStr;
+                    const itemAmount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
+                    const itemDescription = override?.description || rt.description;
+                    const accountName = rt.accountId === 'external'
+                        ? 'External'
+                        : (rt.type === 'transfer'
+                            ? `${accountMap[rt.accountId] || 'Unknown'} → ${accountMap[rt.toAccountId ?? ''] || 'External'}`
+                            : accountMap[rt.accountId] || 'Unknown');
+
+                    const isSkipped = !!override?.isSkipped;
+
+                    allUpcomingItems.push({
+                        id: override ? `override-${rt.id}-${originalDateStr}` : `${rt.id}-${originalDateStr}`,
+                        isRecurring: true, 
+                        date: itemDate, 
+                        description: itemDescription,
+                        amount: itemAmount,
+                        accountName,
+                        type: rt.type, 
+                        originalItem: rt, 
+                        isTransfer: rt.type === 'transfer',
+                        isOverride: !!override,
+                        originalDateForOverride: originalDateStr,
+                        isSkipped: isSkipped,
+                        category: rt.category,
+                        merchant: rt.merchant,
+                        accountId: rt.accountId,
+                    });
+                }
+
+                nextDate = advanceDate(nextDate);
             }
         });
-        
+
         // Limit unpaid one-time bills to the last 7 days as well
         billsAndPayments
             .filter(b => b.status === 'unpaid' && b.dueDate >= overdueCutoffStr)
@@ -768,30 +813,59 @@ const SchedulePage: React.FC = () => {
     const handleSavePostedTransaction = (transactionsToSave: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete: string[]) => {
         if (!itemToPost) return;
 
-        saveTransaction(transactionsToSave, idsToDelete);
+        // Tag recurring transactions with recurringSourceId so the system knows this occurrence is satisfied
+        const enrichedTxs = transactionsToSave.map(tx => {
+            if (itemToPost.isRecurring) {
+                const rt = itemToPost.originalItem as RecurringTransaction;
+                return {
+                    ...tx,
+                    recurringSourceId: rt.id,
+                };
+            }
+            return tx;
+        });
+
+        saveTransaction(enrichedTxs, idsToDelete);
 
         if (itemToPost.isRecurring) {
             const rt = itemToPost.originalItem as RecurringTransaction;
             const postedDate = parseLocalDate(itemToPost.date);
+            const rtNextDueDateObj = parseLocalDate(rt.nextDueDate);
             let nextDueDate = new Date(postedDate);
             const interval = rt.frequencyInterval || 1;
-            const startDateLocal = parseLocalDate(rt.startDate);
+            const startDateLocal = parseLocalDate(rt.startDate || rt.nextDueDate);
 
-            switch (rt.frequency) {
-                case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
-                case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
-                case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateLocal.getDate();
-                    nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
-                    const lastDayOfNextMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
-                    nextDueDate.setDate(Math.min(d, lastDayOfNextMonth));
-                    break;
+            const advanceOneCycle = (d: Date) => {
+                switch (rt.frequency) {
+                    case 'daily': d.setDate(d.getDate() + interval); break;
+                    case 'weekly': d.setDate(d.getDate() + 7 * interval); break;
+                    case 'biweekly': d.setDate(d.getDate() + 14 * interval); break;
+                    case 'monthly': {
+                        const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
+                        d.setMonth(d.getMonth() + interval, 1);
+                        const lastDayOfNextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                        d.setDate(Math.min(targetDay, lastDayOfNextMonth));
+                        break;
+                    }
+                    case 'yearly': {
+                        d.setFullYear(d.getFullYear() + interval);
+                        break;
+                    }
+                    default: {
+                        d.setMonth(d.getMonth() + 1);
+                        break;
+                    }
                 }
-                case 'yearly': {
-                    nextDueDate.setFullYear(nextDueDate.getFullYear() + interval);
-                    break;
-                }
+            };
+
+            advanceOneCycle(nextDueDate);
+
+            let safety = 0;
+            while ((nextDueDate.getTime() <= postedDate.getTime() || nextDueDate.getTime() <= rtNextDueDateObj.getTime()) && safety < 60) {
+                advanceOneCycle(nextDueDate);
+                safety++;
             }
+
             saveRecurringTransaction({ ...rt, nextDueDate: toLocalISOString(nextDueDate) });
         } else {
             const bill = itemToPost.originalItem as BillPayment;

@@ -12,9 +12,9 @@ export interface MatcherConfig {
 
 export const DEFAULT_MATCHER_CONFIG: MatcherConfig = {
   amountVariancePercent: 10,
-  dateVarianceDays: 3,
-  lookbackDays: 7,
-  minMatchScore: 50,
+  dateVarianceDays: 4,
+  lookbackDays: 30,
+  minMatchScore: 45,
   requireNameMatch: false,
 };
 
@@ -27,10 +27,12 @@ export const useMatcherConfig = () => {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
+        const resolvedLookback = typeof parsed.lookbackDays === 'number' && parsed.lookbackDays >= 14 ? parsed.lookbackDays : DEFAULT_MATCHER_CONFIG.lookbackDays;
+        const resolvedDateVariance = typeof parsed.dateVarianceDays === 'number' && parsed.dateVarianceDays >= 4 ? parsed.dateVarianceDays : DEFAULT_MATCHER_CONFIG.dateVarianceDays;
         return {
           amountVariancePercent: typeof parsed.amountVariancePercent === 'number' ? parsed.amountVariancePercent : DEFAULT_MATCHER_CONFIG.amountVariancePercent,
-          dateVarianceDays: typeof parsed.dateVarianceDays === 'number' ? parsed.dateVarianceDays : DEFAULT_MATCHER_CONFIG.dateVarianceDays,
-          lookbackDays: typeof parsed.lookbackDays === 'number' ? parsed.lookbackDays : DEFAULT_MATCHER_CONFIG.lookbackDays,
+          dateVarianceDays: resolvedDateVariance,
+          lookbackDays: resolvedLookback,
           minMatchScore: typeof parsed.minMatchScore === 'number' ? parsed.minMatchScore : DEFAULT_MATCHER_CONFIG.minMatchScore,
           requireNameMatch: typeof parsed.requireNameMatch === 'boolean' ? parsed.requireNameMatch : DEFAULT_MATCHER_CONFIG.requireNameMatch,
         };
@@ -39,10 +41,12 @@ export const useMatcherConfig = () => {
       const storedV1 = localStorage.getItem('synced_matcher_config_v1');
       if (storedV1) {
         const parsed = JSON.parse(storedV1);
+        const resolvedLookback = typeof parsed.lookbackDays === 'number' && parsed.lookbackDays >= 14 ? parsed.lookbackDays : DEFAULT_MATCHER_CONFIG.lookbackDays;
+        const resolvedDateVariance = typeof parsed.dateVarianceDays === 'number' && parsed.dateVarianceDays >= 4 ? parsed.dateVarianceDays : DEFAULT_MATCHER_CONFIG.dateVarianceDays;
         return {
           amountVariancePercent: typeof parsed.amountVariancePercent === 'number' ? parsed.amountVariancePercent : DEFAULT_MATCHER_CONFIG.amountVariancePercent,
-          dateVarianceDays: typeof parsed.dateVarianceDays === 'number' ? parsed.dateVarianceDays : DEFAULT_MATCHER_CONFIG.dateVarianceDays,
-          lookbackDays: typeof parsed.lookbackDays === 'number' ? parsed.lookbackDays : DEFAULT_MATCHER_CONFIG.lookbackDays,
+          dateVarianceDays: resolvedDateVariance,
+          lookbackDays: resolvedLookback,
           minMatchScore: DEFAULT_MATCHER_CONFIG.minMatchScore,
           requireNameMatch: DEFAULT_MATCHER_CONFIG.requireNameMatch,
         };
