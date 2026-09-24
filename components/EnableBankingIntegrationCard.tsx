@@ -1,7 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from './Card';
-import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import {
   Account,
   AccountType,
@@ -264,15 +264,36 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   };
 
   const renderStatusBadge = (status: EnableBankingConnection['status']) => {
-    const mapping: Record<EnableBankingConnection['status'], { label: string; color: string }> = {
-      disconnected: { label: 'Disconnected', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-      pending: { label: 'Pending', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' },
-      ready: { label: 'Ready', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' },
-      requires_update: { label: 'Needs Reauth', color: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200' },
+    const mapping: Record<EnableBankingConnection['status'], { label: string; dot: string; badge: string }> = {
+      disconnected: {
+        label: 'Disconnected',
+        dot: 'bg-neutral-400',
+        badge: 'bg-neutral-500/10 text-neutral-600 dark:text-neutral-400 border-neutral-500/20',
+      },
+      pending: {
+        label: 'Pending',
+        dot: 'bg-amber-500 animate-pulse',
+        badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
+      },
+      ready: {
+        label: 'Ready',
+        dot: 'bg-emerald-500',
+        badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+      },
+      requires_update: {
+        label: 'Needs Reauth',
+        dot: 'bg-rose-500',
+        badge: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20',
+      },
     };
 
-    const entry = mapping[status];
-    return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold  tracking-wide ${entry.color}`}>{entry.label}</span>;
+    const entry = mapping[status] || mapping.disconnected;
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${entry.badge}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${entry.dot}`} />
+        {entry.label}
+      </span>
+    );
   };
 
   useEffect(() => {
@@ -327,357 +348,565 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
-                <Icon name="key" />
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
+                <Icon name="key" className="text-xl" />
               </div>
-              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Credentials Setup</h3>
+              <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Credentials Setup</h3>
             </div>
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
               Save your Enable Banking API details locally to authorize new connections.
             </p>
-            <p className="text-xs text-light-text-secondary/80 dark:text-dark-text-secondary/80 mt-2">
+            <p className="text-xs text-light-text-secondary/80 dark:text-dark-text-secondary/80 mt-1">
               Note: credentials are stored in this browser only and are not encrypted.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Local Storage</span>
+          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+            Local Storage
+          </span>
         </div>
 
         <div className="grid gap-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider block">Application ID (kid)</label>
-                    <input
-                    type="text"
-                    name="applicationId"
-                    value={formState.applicationId}
-                    onChange={handleFormChange}
-                    placeholder="app_xxxxx"
-                    className={INPUT_BASE_STYLE}
-                    />
-                </div>
-                 <div className="space-y-2">
-                     <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider block">Country code</label>
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            name="countryCode"
-                            value={formState.countryCode}
-                            onChange={handleFormChange}
-                            placeholder="FI"
-                            className={`${INPUT_BASE_STYLE} w-20 text-center `}
-                        />
-                        <button
-                            type="button"
-                            onClick={loadBanks}
-                            className={`${BTN_SECONDARY_STYLE} flex-1`}
-                        >
-                            {banksLoading ? 'Loading...' : 'Load Banks'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-          
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-                <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider block">Client certificate (PEM)</label>
-                <textarea
-                name="clientCertificate"
-                value={formState.clientCertificate}
+              <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider block">
+                Application ID (kid)
+              </label>
+              <input
+                type="text"
+                name="applicationId"
+                value={formState.applicationId}
                 onChange={handleFormChange}
-                placeholder="-----BEGIN PRIVATE KEY-----"
-                rows={3}
-                className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[80px]`}
-                />
+                placeholder="app_xxxxx"
+                className={INPUT_BASE_STYLE}
+              />
             </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider block">
+                Country code
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  name="countryCode"
+                  value={formState.countryCode}
+                  onChange={handleFormChange}
+                  placeholder="FI"
+                  className={`${INPUT_BASE_STYLE} w-24 text-center uppercase font-semibold`}
+                />
+                <button
+                  type="button"
+                  onClick={loadBanks}
+                  className={`${BTN_SECONDARY_STYLE} flex-1`}
+                >
+                  {banksLoading ? 'Loading...' : 'Load Banks'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider block">
+              Client certificate (PEM)
+            </label>
+            <textarea
+              name="clientCertificate"
+              value={formState.clientCertificate}
+              onChange={handleFormChange}
+              placeholder="-----BEGIN PRIVATE KEY-----"
+              rows={3}
+              className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[80px] p-3`}
+            />
+          </div>
         </div>
       </Card>
-      
+
       {/* Create New Card */}
-      <Card className="bg-gradient-to-br from-primary-50 to-white dark:from-dark-card dark:to-primary-900/10 border border-primary-100 dark:border-primary-800/30">
-          <div className="flex items-start gap-4">
-               <div className="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/30">
-                  <Icon name="add_link" />
-               </div>
-               <div className="flex-1">
-                   <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">New Connection</h4>
-                   <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">Select a bank from the loaded list to start an authorization flow.</p>
-                   
-                   <div className="flex flex-col sm:flex-row gap-3">
-                        <div className={`${SELECT_WRAPPER_STYLE} flex-1`}>
-                            <select
-                                name="selectedBank"
-                                value={formState.selectedBank}
-                                onChange={handleFormChange}
-                                className={SELECT_STYLE}
-                                disabled={banksLoading || bankOptions.length === 0}
-                            >
-                                {bankOptions.length === 0 && <option value="">Load banks first...</option>}
-                                {bankOptions.map(option => (
-                                    <option key={option.id} value={option.id}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
-                                ))}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                        </div>
-                        <button
-                            onClick={handleCreate}
-                            className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}
-                            disabled={!formState.selectedBank}
-                        >
-                            Start Authorization
-                        </button>
-                   </div>
-                   {banksError && <p className="text-xs text-red-500 mt-2 font-medium">{banksError}</p>}
-               </div>
+      <Card className="bg-gradient-to-br from-primary-500/5 via-transparent to-transparent border border-primary-500/20 dark:border-primary-500/20">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-primary-500/25">
+            <Icon name="add_link" className="text-xl" />
           </div>
+          <div className="flex-1">
+            <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-1 tracking-tight">New Connection</h4>
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
+              Select a bank from the loaded list to start an authorization flow.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className={`${SELECT_WRAPPER_STYLE} flex-1`}>
+                <select
+                  name="selectedBank"
+                  value={formState.selectedBank}
+                  onChange={handleFormChange}
+                  className={SELECT_STYLE}
+                  disabled={banksLoading || bankOptions.length === 0}
+                >
+                  {bankOptions.length === 0 && <option value="">Load banks first...</option>}
+                  {bankOptions.map(option => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                      {option.country ? ` (${option.country})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className={SELECT_ARROW_STYLE}>
+                  <Icon name="expand_more" />
+                </div>
+              </div>
+              <button
+                onClick={handleCreate}
+                className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}
+                disabled={!formState.selectedBank}
+              >
+                Start Authorization
+              </button>
+            </div>
+            {banksError && <p className="text-xs text-rose-500 mt-2 font-medium">{banksError}</p>}
+          </div>
+        </div>
       </Card>
 
       {/* Connections List */}
-      <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Connections</h3>
-              <span className="text-xs font-semibold bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{connections.length} total</span>
+      <Card className="p-6 md:p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg sm:text-xl font-bold text-light-text dark:text-dark-text tracking-tight">
+              Connections
+            </h3>
+            {readyConnections > 0 && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                {readyConnections} active
+              </span>
+            )}
           </div>
+          <span className="text-xs font-semibold bg-black/5 dark:bg-white/10 px-3 py-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary">
+            {connections.length} total
+          </span>
+        </div>
 
-          {connections.length === 0 ? (
-             <div className="p-8 sm:p-10 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 text-center bg-black/[0.01] dark:bg-white/[0.01]">
-                 <Icon name="link_off" className="text-4xl text-gray-300 dark:text-gray-600 mb-2" />
-                 <p className="text-light-text-secondary dark:text-dark-text-secondary font-medium">No active connections</p>
-                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Add a bank above to get started.</p>
-             </div>
-          ) : (
-            <div className="space-y-6">
-                {connections.map(connection => {
-                    const providerAccounts = connection.accounts || [];
-                    const keyPrefix = (accountId: string) => `${connection.id}:${accountId}`;
-
-                    return (
-                    <div key={connection.id} className="bg-white/80 dark:bg-dark-card rounded-2xl border border-black/10 dark:border-white/10 shadow-xs overflow-hidden">
-                        {/* Connection Header */}
-                        <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h4 className="text-lg font-bold text-light-text dark:text-dark-text">{connection.selectedBank || 'Bank Connection'}</h4>
-                                    {renderStatusBadge(connection.status)}
-                                </div>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-mono mt-1 opacity-70">
-                                    Session ID: {connection.sessionId || 'pending'} • Expires {connection.sessionExpiresAt ? new Date(connection.sessionExpiresAt).toLocaleDateString() : 'N/A'}
-                                </p>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                                    Last synced {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Never'}
-                                </p>
-                                {connection.lastError && (
-                                    <div className="mt-1 inline-flex flex-wrap items-center gap-2">
-                                        <p className="text-xs text-rose-600 dark:text-rose-400 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
-                                            Error: {connection.lastError}
-                                        </p>
-                                        {(connection.status === 'requires_update' || !connection.sessionId) && (
-                                            <button
-                                                onClick={() => handleReauthorize(connection)}
-                                                className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline"
-                                            >
-                                                Re-authorize now
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {(connection.status === 'requires_update' || !connection.sessionId) && (
-                                    <button onClick={() => handleReauthorize(connection)} className={`${BTN_SECONDARY_STYLE} text-amber-600 dark:text-amber-400`}>
-                                        <Icon name="refresh" className="text-lg mr-1" /> Reauth
-                                    </button>
-                                )}
-                                <button onClick={() => openSyncPrompt(connection)} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1">
-                                    <Icon name="sync" className="text-sm" /> Trigger sync
-                                </button>
-                                <button onClick={() => onDeleteConnection(connection.id)} className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors flex items-center gap-1">
-                                    <Icon name="delete" className="text-sm" /> Remove
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Accounts List */}
-                        <div className="p-4 space-y-4">
-                            {providerAccounts.length === 0 ? (
-                                <div className="text-center py-6 text-sm text-light-text-secondary dark:text-dark-text-secondary bg-light-bg dark:bg-black/20 rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                                    No accounts found. Try syncing to fetch data.
-                                </div>
-                            ) : (
-                                providerAccounts.map(account => {
-                                    const linkedAccount = accounts.find(acc => acc.id === account.linkedAccountId);
-                                    const accountLastFour = account.accountNumber?.slice(-4);
-                                    const rowKey = keyPrefix(account.id);
-                                    const savedState = linkingState[rowKey] || {};
-                                    const defaultSyncStart = clampSyncDate(savedState.syncStartDate || account.syncStartDate || ninetyDaysAgoStr);
-                                    const balanceSyncLabel = linkedAccount?.balanceLastSyncedAt
-                                        ? `Balance synced ${new Date(linkedAccount.balanceLastSyncedAt).toLocaleString()} via ${linkedAccount.balanceSource === 'enable_banking' ? 'Enable Banking' : 'Manual'}`
-                                        : null;
-                                    
-                                    const rowState = {
-                                        mode: savedState.mode || (account.linkedAccountId ? 'existing' : 'create'),
-                                        accountId: savedState.accountId ?? account.linkedAccountId ?? '',
-                                        syncStartDate: defaultSyncStart,
-                                        newAccountName: savedState.newAccountName ?? account.name,
-                                        newAccountType: savedState.newAccountType ?? ('Checking' as AccountType),
-                                    };
-
-                                    return (
-                                        <div key={account.id} className="border border-black/10 dark:border-white/10 rounded-xl p-4 bg-white dark:bg-dark-card shadow-sm hover:border-primary-500/50 transition-colors">
-                                            {/* Account Header */}
-                                            <div className="flex justify-between items-start mb-6">
-                                                <div className="flex gap-4">
-                                                     <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5">
-                                                        <Icon name="account_balance_wallet" className="text-2xl" />
-                                                    </div>
-                                                    <div>
-                                                        <h5 className="font-bold text-light-text dark:text-dark-text text-lg">{account.name}</h5>
-                                                        <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                                                            {accountLastFour && <span className="font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">•••• {accountLastFour}</span>}
-                                                            <span className="opacity-60">|</span>
-                                                            <span>Last sync: {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Pending'}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">BALANCE</p>
-                                                    <p className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight">
-                                                        {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </p>
-                                                    {balanceSyncLabel && (
-                                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                                            {balanceSyncLabel}
-                                                        </p>
-                                                    )}
-                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Default sync start: {defaultSyncStart}</p>
-                                                    <div className="flex justify-end mt-3">
-                                                      <button
-                                                        onClick={() => openSyncPrompt(connection, account)}
-                                                        className={`${BTN_SECONDARY_STYLE} text-xs flex items-center gap-1`}
-                                                      >
-                                                        <Icon name="sync" className="text-sm" /> Sync account
-                                                      </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Configuration Grid */}
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-black/5 dark:border-white/5">
-                                                
-                                                {/* Col 1: Link Target */}
-                                                <div className="space-y-3">
-                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">LINK TARGET</p>
-                                                    <div className="flex flex-col gap-2">
-                                                         <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
-                                                            <input type="radio" name={`${rowKey}-mode`} checked={(rowState.mode || 'existing') === 'existing'} onChange={() => handleLinkChange(rowKey, { mode: 'existing' })} className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300" />
-                                                            <span className="text-sm font-semibold text-light-text dark:text-dark-text">Link to existing</span>
-                                                        </label>
-                                                        <label className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
-                                                            <input type="radio" name={`${rowKey}-mode`} checked={rowState.mode === 'create'} onChange={() => handleLinkChange(rowKey, { mode: 'create', newAccountName: rowState.newAccountName || account.name, newAccountType: rowState.newAccountType || 'Checking' })} className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-gray-300" />
-                                                            <span className="text-sm font-semibold text-light-text dark:text-dark-text">Create new</span>
-                                                        </label>
-                                                    </div>
-
-                                                    {(rowState.mode || 'existing') === 'existing' ? (
-                                                        <div className={SELECT_WRAPPER_STYLE}>
-                                                            <select
-                                                                className={`${SELECT_STYLE} !text-sm`}
-                                                                value={rowState.accountId || ''}
-                                                                onChange={(e) => handleLinkChange(rowKey, { accountId: e.target.value })}
-                                                            >
-                                                                <option value="">Select account to link...</option>
-                                                                {accounts.map(acc => (
-                                                                    <option key={acc.id} value={acc.id} disabled={linkedAccounts.has(acc.id) && acc.id !== account.linkedAccountId}>
-                                                                    {acc.name} ({acc.currency})
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                            <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-2 animate-fade-in-up">
-                                                            <input type="text" className={`${INPUT_BASE_STYLE} !text-sm`} value={rowState.newAccountName || ''} onChange={(e) => handleLinkChange(rowKey, { newAccountName: e.target.value })} placeholder="New account name" />
-                                                            <div className={SELECT_WRAPPER_STYLE}>
-                                                                <select className={`${SELECT_STYLE} !text-sm`} value={rowState.newAccountType || 'Checking'} onChange={(e) => handleLinkChange(rowKey, { newAccountType: e.target.value as AccountType})}>
-                                                                    {accountTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
-                                                                </select>
-                                                                <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" /></div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {linkedAccount && (rowState.mode || 'existing') === 'existing' && (
-                                                        <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
-                                                            <Icon name="link" className="text-sm" />
-                                                            Linked to {linkedAccount.name}
-                                                        </p>
-                                                    )}
-                                                </div>
-
-                                                {/* Col 2: Sync Start */}
-                                                <div className="space-y-3">
-                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">SYNC START</p>
-                                                    <input
-                                                        type="date"
-                                                        className={`${INPUT_BASE_STYLE} !text-sm`}
-                                                        min={ninetyDaysAgoStr}
-                                                        max={todayStr}
-                                                        value={clampSyncDate(rowState.syncStartDate || defaultSyncStart) || ''}
-                                                        onChange={(e) => handleLinkChange(rowKey, { syncStartDate: clampSyncDate(e.target.value) })}
-                                                    />
-                                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug">
-                                                        Choose how far back to import (up to 90 days). Future syncs will continue from where they left off.
-                                                    </p>
-                                                </div>
-
-                                                {/* Col 3: Actions */}
-                                                <div className="space-y-3">
-                                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">ACTIONS</p>
-                                                    <button
-                                                        onClick={() => {
-                                                            const syncStartDate = clampSyncDate(rowState.syncStartDate || defaultSyncStart);
-                                                            if (!syncStartDate) { alert('Select a sync start date before linking.'); return; }
-
-                                                            if ((rowState.mode || 'existing') === 'existing') {
-                                                                if (!rowState.accountId) { alert('Select an account before linking.'); return; }
-                                                                handleLinkChange(rowKey, { syncStartDate });
-                                                                onLinkAccount(connection.id, account.id, { linkedAccountId: rowState.accountId, syncStartDate });
-                                                            } else {
-                                                                const newAccountName = (rowState.newAccountName || account.name || '').trim();
-                                                                if (!newAccountName) { alert('Enter a name for the new account.'); return; }
-                                                                handleLinkChange(rowKey, { syncStartDate, newAccountName });
-                                                                onLinkAccount(connection.id, account.id, {
-                                                                    newAccount: { name: newAccountName, type: rowState.newAccountType || 'Checking', balance: account.balance, currency: account.currency },
-                                                                    syncStartDate,
-                                                                });
-                                                            }
-                                                        }}
-                                                        className={`${BTN_PRIMARY_STYLE} w-full gap-2`}
-                                                    >
-                                                        <Icon name="link" className="text-lg" />
-                                                        Save link
-                                                    </button>
-                                                    
-                                                    <div className="space-y-1 pt-1">
-                                                        <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                            <Icon name="event" className="text-sm opacity-70" />
-                                                            <span>Sync start: {defaultSyncStart}</span>
-                                                        </div>
-                                                         <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                            <Icon name="history" className="text-sm opacity-70" />
-                                                            <span>Last sync: {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Pending'}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    </div>
-                    );
-                })}
+        {connections.length === 0 ? (
+          <div className="p-8 sm:p-12 rounded-3xl border-2 border-dashed border-black/10 dark:border-white/10 text-center bg-black/[0.01] dark:bg-white/[0.01]">
+            <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-white/5 flex items-center justify-center text-neutral-400 dark:text-neutral-500 mx-auto mb-3">
+              <Icon name="link_off" className="text-3xl" />
             </div>
-          )}
+            <p className="text-light-text dark:text-dark-text font-bold">No active connections</p>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+              Add credentials and choose a bank above to establish your first open banking link.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {connections.map(connection => {
+              const providerAccounts = connection.accounts || [];
+              const keyPrefix = (accountId: string) => `${connection.id}:${accountId}`;
+
+              return (
+                <div
+                  key={connection.id}
+                  className="bg-white/90 dark:bg-white/[0.03] backdrop-blur-xl rounded-3xl border border-black/10 dark:border-white/10 shadow-sm overflow-hidden transition-all duration-200"
+                >
+                  {/* Connection Header Bar */}
+                  <div className="p-5 sm:p-6 border-b border-black/5 dark:border-white/5 bg-gradient-to-b from-black/[0.02] to-transparent dark:from-white/[0.02] dark:to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500/20 to-primary-600/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 shadow-xs">
+                        <Icon name="account_balance" className="text-2xl" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <h4 className="text-lg sm:text-xl font-bold text-light-text dark:text-dark-text tracking-tight">
+                            {connection.selectedBank || 'Bank Connection'}
+                          </h4>
+                          {renderStatusBadge(connection.status)}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          <span className="font-mono bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md">
+                            Session: {connection.sessionId ? `${connection.sessionId.slice(0, 10)}...` : 'pending'}
+                          </span>
+                          {connection.sessionExpiresAt && (
+                            <>
+                              <span className="opacity-40">•</span>
+                              <span>Expires {new Date(connection.sessionExpiresAt).toLocaleDateString()}</span>
+                            </>
+                          )}
+                          <span className="opacity-40">•</span>
+                          <span>Last sync: {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Never'}</span>
+                        </div>
+                        {connection.lastError && (
+                          <div className="mt-2 inline-flex flex-wrap items-center gap-2 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs">
+                            <p className="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5">
+                              <Icon name="warning" className="text-sm shrink-0" />
+                              Error: {connection.lastError}
+                            </p>
+                            {(connection.status === 'requires_update' || !connection.sessionId) && (
+                              <button
+                                type="button"
+                                onClick={() => handleReauthorize(connection)}
+                                className="font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer ml-1"
+                              >
+                                Re-authorize now
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Header Action Buttons */}
+                    <div className="flex items-center gap-2 self-start md:self-center shrink-0">
+                      {(connection.status === 'requires_update' || !connection.sessionId) && (
+                        <button
+                          type="button"
+                          onClick={() => handleReauthorize(connection)}
+                          className={`${BTN_SECONDARY_STYLE} text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1.5`}
+                        >
+                          <Icon name="refresh" className="text-base" />
+                          <span>Reauth</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openSyncPrompt(connection)}
+                        className="h-9 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-semibold text-xs transition-all flex items-center gap-1.5 active:scale-98 cursor-pointer shadow-xs"
+                        title="Sync all accounts for this connection"
+                      >
+                        <Icon name="sync" className="text-sm" />
+                        <span>Trigger sync</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteConnection(connection.id)}
+                        className={`${BTN_DANGER_STYLE} gap-1.5`}
+                        title="Remove connection"
+                      >
+                        <Icon name="delete" className="text-sm" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Accounts List Container */}
+                  <div className="p-5 sm:p-6 space-y-5">
+                    {providerAccounts.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-light-text-secondary dark:text-dark-text-secondary bg-neutral-50/50 dark:bg-white/[0.02] rounded-2xl border border-dashed border-black/10 dark:border-white/10 flex flex-col items-center justify-center gap-2">
+                        <Icon name="account_balance_wallet" className="text-3xl text-neutral-400 opacity-60" />
+                        <p className="font-semibold text-light-text dark:text-dark-text">No accounts discovered yet</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          Click "Trigger sync" above to query your provider for available bank accounts.
+                        </p>
+                      </div>
+                    ) : (
+                      providerAccounts.map(account => {
+                        const linkedAccount = accounts.find(acc => acc.id === account.linkedAccountId);
+                        const accountLastFour = account.accountNumber?.slice(-4);
+                        const rowKey = keyPrefix(account.id);
+                        const savedState = linkingState[rowKey] || {};
+                        const defaultSyncStart = clampSyncDate(savedState.syncStartDate || account.syncStartDate || ninetyDaysAgoStr);
+                        const balanceSyncLabel = linkedAccount?.balanceLastSyncedAt
+                          ? `Balance synced ${new Date(linkedAccount.balanceLastSyncedAt).toLocaleString()} via ${
+                              linkedAccount.balanceSource === 'enable_banking' ? 'Enable Banking' : 'Manual'
+                            }`
+                          : null;
+
+                        const rowState = {
+                          mode: savedState.mode || (account.linkedAccountId ? 'existing' : 'create'),
+                          accountId: savedState.accountId ?? account.linkedAccountId ?? '',
+                          syncStartDate: defaultSyncStart,
+                          newAccountName: savedState.newAccountName ?? account.name,
+                          newAccountType: savedState.newAccountType ?? ('Checking' as AccountType),
+                        };
+
+                        return (
+                          <div
+                            key={account.id}
+                            className="border border-black/8 dark:border-white/8 rounded-2xl p-5 sm:p-6 bg-white/70 dark:bg-white/[0.02] shadow-xs hover:border-primary-500/40 transition-all duration-200 space-y-5"
+                          >
+                            {/* Account Overview Header */}
+                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-black/5 dark:border-white/5">
+                              <div className="flex items-start gap-3.5">
+                                <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-white/[0.06] border border-black/5 dark:border-white/10 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0 shadow-xs">
+                                  <Icon name="account_balance_wallet" className="text-2xl" />
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h5 className="font-bold text-light-text dark:text-dark-text text-base sm:text-lg tracking-tight">
+                                      {account.name}
+                                    </h5>
+                                    {accountLastFour && (
+                                      <span className="font-mono text-2xs px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary font-semibold">
+                                        •••• {accountLastFour}
+                                      </span>
+                                    )}
+                                    <span className="text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary">
+                                      {account.currency}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                                    {linkedAccount ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                        <Icon name="link" className="text-xs" />
+                                        Linked to <strong className="font-bold">{linkedAccount.name}</strong>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                        <Icon name="link_off" className="text-xs" />
+                                        Unlinked Account
+                                      </span>
+                                    )}
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary text-xs opacity-75">
+                                      {balanceSyncLabel ||
+                                        (connection.lastSyncedAt
+                                          ? `Last synced: ${new Date(connection.lastSyncedAt).toLocaleTimeString([], {
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                            })}`
+                                          : 'Sync pending')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Balance & Quick Sync */}
+                              <div className="flex items-center justify-between lg:justify-end gap-5">
+                                <div className="text-left lg:text-right">
+                                  <p className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                                    AVAILABLE BALANCE
+                                  </p>
+                                  <p className="text-2xl sm:text-3xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
+                                    {account.currency}{' '}
+                                    {account.balance.toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openSyncPrompt(connection, account)}
+                                  className={`${BTN_SECONDARY_STYLE} h-9 text-xs px-3.5 gap-1.5 shrink-0`}
+                                  title="Sync this account"
+                                >
+                                  <Icon name="sync" className="text-sm" />
+                                  <span>Sync account</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Configuration Drawer / Box */}
+                            <div className="bg-neutral-50/70 dark:bg-black/25 rounded-2xl p-4 sm:p-5 border border-black/5 dark:border-white/5 space-y-4">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Icon name="tune" className="text-base text-primary-500" />
+                                  <h6 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                                    Account Mapping & Sync Rules
+                                  </h6>
+                                </div>
+                                <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 hidden sm:inline">
+                                  Ledger target & historical start date
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* Col 1: Destination Account */}
+                                <div className="space-y-2.5">
+                                  <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider block">
+                                    LINK TARGET
+                                  </label>
+
+                                  {/* Segmented Mode Switcher */}
+                                  <div className="flex p-1 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/10">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleLinkChange(rowKey, { mode: 'existing' })}
+                                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        (rowState.mode || 'existing') === 'existing'
+                                          ? 'bg-white dark:bg-white/15 text-light-text dark:text-dark-text shadow-xs'
+                                          : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                                      }`}
+                                    >
+                                      <Icon name="link" className="text-sm" />
+                                      Link to existing
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleLinkChange(rowKey, {
+                                          mode: 'create',
+                                          newAccountName: rowState.newAccountName || account.name,
+                                          newAccountType: rowState.newAccountType || 'Checking',
+                                        })
+                                      }
+                                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        rowState.mode === 'create'
+                                          ? 'bg-white dark:bg-white/15 text-light-text dark:text-dark-text shadow-xs'
+                                          : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                                      }`}
+                                    >
+                                      <Icon name="add" className="text-sm" />
+                                      Create new
+                                    </button>
+                                  </div>
+
+                                  {(rowState.mode || 'existing') === 'existing' ? (
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                      <select
+                                        className={`${SELECT_STYLE} !text-sm`}
+                                        value={rowState.accountId || ''}
+                                        onChange={e => handleLinkChange(rowKey, { accountId: e.target.value })}
+                                      >
+                                        <option value="">Select account to link...</option>
+                                        {accounts.map(acc => (
+                                          <option
+                                            key={acc.id}
+                                            value={acc.id}
+                                            disabled={linkedAccounts.has(acc.id) && acc.id !== account.linkedAccountId}
+                                          >
+                                            {acc.name} ({acc.currency})
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <div className={SELECT_ARROW_STYLE}>
+                                        <Icon name="expand_more" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      <input
+                                        type="text"
+                                        className={`${INPUT_BASE_STYLE} !text-sm`}
+                                        value={rowState.newAccountName || ''}
+                                        onChange={e => handleLinkChange(rowKey, { newAccountName: e.target.value })}
+                                        placeholder="New account name"
+                                      />
+                                      <div className={SELECT_WRAPPER_STYLE}>
+                                        <select
+                                          className={`${SELECT_STYLE} !text-sm`}
+                                          value={rowState.newAccountType || 'Checking'}
+                                          onChange={e =>
+                                            handleLinkChange(rowKey, { newAccountType: e.target.value as AccountType })
+                                          }
+                                        >
+                                          {accountTypeOptions.map(type => (
+                                            <option key={type} value={type}>
+                                              {type}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}>
+                                          <Icon name="expand_more" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Col 2: Sync Start Date */}
+                                <div className="space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider block">
+                                      SYNC START
+                                    </label>
+                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                                      Up to 90 days
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="date"
+                                    className={`${INPUT_BASE_STYLE} !text-sm`}
+                                    min={ninetyDaysAgoStr}
+                                    max={todayStr}
+                                    value={clampSyncDate(rowState.syncStartDate || defaultSyncStart) || ''}
+                                    onChange={e =>
+                                      handleLinkChange(rowKey, { syncStartDate: clampSyncDate(e.target.value) })
+                                    }
+                                  />
+                                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug">
+                                    Choose how far back to import (up to 90 days). Future syncs will continue from where
+                                    they left off.
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Footer: Metadata & Save Link Button */}
+                              <div className="pt-3 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Icon name="calendar_today" className="text-sm opacity-70" />
+                                    <span>
+                                      Sync start:{' '}
+                                      <strong className="font-semibold text-light-text dark:text-dark-text">
+                                        {defaultSyncStart}
+                                      </strong>
+                                    </span>
+                                  </span>
+                                  <span className="opacity-40">•</span>
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Icon name="history" className="text-sm opacity-70" />
+                                    <span>
+                                      Last sync:{' '}
+                                      <strong className="font-semibold text-light-text dark:text-dark-text">
+                                        {connection.lastSyncedAt
+                                          ? new Date(connection.lastSyncedAt).toLocaleString()
+                                          : 'Pending'}
+                                      </strong>
+                                    </span>
+                                  </span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const syncStartDate = clampSyncDate(rowState.syncStartDate || defaultSyncStart);
+                                    if (!syncStartDate) {
+                                      alert('Select a sync start date before linking.');
+                                      return;
+                                    }
+
+                                    if ((rowState.mode || 'existing') === 'existing') {
+                                      if (!rowState.accountId) {
+                                        alert('Select an account before linking.');
+                                        return;
+                                      }
+                                      handleLinkChange(rowKey, { syncStartDate });
+                                      onLinkAccount(connection.id, account.id, {
+                                        linkedAccountId: rowState.accountId,
+                                        syncStartDate,
+                                      });
+                                    } else {
+                                      const newAccountName = (rowState.newAccountName || account.name || '').trim();
+                                      if (!newAccountName) {
+                                        alert('Enter a name for the new account.');
+                                        return;
+                                      }
+                                      handleLinkChange(rowKey, { syncStartDate, newAccountName });
+                                      onLinkAccount(connection.id, account.id, {
+                                        newAccount: {
+                                          name: newAccountName,
+                                          type: rowState.newAccountType || 'Checking',
+                                          balance: account.balance,
+                                          currency: account.currency,
+                                        },
+                                        syncStartDate,
+                                      });
+                                    }
+                                  }}
+                                  className={`${BTN_PRIMARY_STYLE} gap-2 px-5 shrink-0`}
+                                >
+                                  <Icon name="link" className="text-base" />
+                                  <span>Save link</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
     </div>
   );
