@@ -10,12 +10,13 @@ interface GoalTableProps {
   onGoalClick: (goal: FinancialGoal) => void;
   onEdit: (goal: FinancialGoal) => void;
   onDelete: (id: string) => void;
+  onToggleComplete?: (goal: FinancialGoal) => void;
 }
 
 type SortField = 'name' | 'amount' | 'currentAmount' | 'date' | 'progress' | 'status';
 type SortOrder = 'asc' | 'desc';
 
-const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onEdit, onDelete }) => {
+const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onEdit, onDelete, onToggleComplete }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [groupByBucket, setGroupByBucket] = useState(false);
@@ -81,7 +82,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
   const renderGoalRow = (goal: FinancialGoal) => {
     const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
     const status = getStatusLabel(goal.projection?.status || '');
-    const isCompleted = progress >= 100;
+    const isCompleted = !!goal.completed || progress >= 100;
     const category = goal.goalCategory || (goal.transactionType === 'income' ? 'income' : 'savings');
 
     const getGoalIcon = () => {
@@ -93,6 +94,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
     };
 
     const getGoalColor = () => {
+      if (isCompleted) return 'bg-emerald-500/10 text-emerald-500';
       switch (category) {
         case 'expense': return 'bg-rose-500/10 text-rose-500';
         case 'income': return 'bg-emerald-500/10 text-emerald-500';
@@ -101,18 +103,41 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
     };
 
     return (
-      <tr key={goal.id} className="border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
+      <tr key={goal.id} className={`border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group ${isCompleted ? 'bg-emerald-50/20 dark:bg-emerald-950/10' : ''}`}>
         <td className="py-4 px-4">
           <div className="flex items-center gap-3">
+            {onToggleComplete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleComplete(goal);
+                }}
+                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                  isCompleted
+                    ? 'bg-emerald-500 border-emerald-600 text-white shadow-xs'
+                    : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20'
+                }`}
+                title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
+              >
+                {isCompleted && <Icon name="check" className="text-xs font-bold" />}
+              </button>
+            )}
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getGoalColor()}`}>
-              <Icon name={getGoalIcon()} className="text-base" />
+              <Icon name={isCompleted ? 'check_circle' : getGoalIcon()} className="text-base" />
             </div>
             <div>
-              <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors cursor-pointer" onClick={() => onGoalClick(goal)}>{goal.name}</p>
+              <p className={`font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors cursor-pointer ${isCompleted ? 'line-through opacity-80' : ''}`} onClick={() => onGoalClick(goal)}>{goal.name}</p>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">{getAccountName(goal.paymentAccountId)}</p>
                 <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
                 <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-medium">{category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Income'}</p>
+                {isCompleted && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Completed</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

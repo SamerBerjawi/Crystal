@@ -355,7 +355,7 @@ const App: React.FC = () => {
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || Boolean((import.meta as any)?.env?.DEV);
       if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
         return true;
       }
@@ -374,7 +374,7 @@ const App: React.FC = () => {
 
   const [demoUser, setDemoUser] = useState<User | null>(() => {
     if (typeof window !== 'undefined') {
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || Boolean((import.meta as any)?.env?.DEV);
       if (isDev && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
         try {
           const cached = safeLocalStorage.getItem('crystal_dev_financial_data_cache');

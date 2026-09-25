@@ -525,17 +525,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         })}
                     </div>
                 </div>
-
-                {/* Main Action - Add Account - hidden on mobile */}
-                <div className="hidden sm:block shrink-0">
-                    <button 
-                        onClick={() => setAddModalOpen(true)} 
-                        className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add`}
-                    >
-                        <Icon name="PlusCircle" className="text-xl transition-transform group-hover/add:rotate-90" />
-                        <span className="hidden sm:inline">Add Account</span>
-                    </button>
-                </div>
             </div>
 
             {/* Integrated Details Tray & Controls */}

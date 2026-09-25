@@ -354,7 +354,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
 
     const allRecurring = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-    const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+    const activeGoals = financialGoals.filter(g => {
+      if (g.disabled) return false;
+      if (!activeGoalIds.includes(g.id)) return false;
+      if (g.parentId) {
+        const parent = financialGoals.find(p => p.id === g.parentId);
+        if (parent && (parent.disabled || !activeGoalIds.includes(parent.id))) return false;
+      }
+      return true;
+    });
 
     const { chartData, lowestPoint, tableData } = generateBalanceForecast(
       selectedAccounts, // The engine will filter impacts based on these selected accounts

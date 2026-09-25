@@ -17,13 +17,11 @@ import { useCategoryContext, useScheduleContext, useTagsContext, useGoalsContext
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
-import HeroMetricCard from '../components/ui/HeroMetricCard';
 import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CalendarView from '../components/CalendarView';
 import { MobileScheduleView } from '../components/MobileScheduleView';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { RingChart, Ring, RingCenter, RingData } from '../src/components/charts';
 
 // --- Summary Card Component ---
 const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'income' | 'expense' | 'net'; count?: number }> = ({ title, value, type, count }) => {
@@ -67,127 +65,6 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
                     <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">{count} scheduled items</span>
                 </div>
             )}
-        </div>
-    )
-}
-
-// --- Recurring vs Income Comparison Widget ---
-const RecurringComparisonWidget: React.FC<{ income: number; outflow: number; incomeCount: number; outflowCount: number }> = ({ income, outflow, incomeCount, outflowCount }) => {
-    const ratio = income > 0 ? (outflow / income) * 100 : (outflow > 0 ? 100 : 0);
-    const remaining = Math.max(0, income - outflow);
-    
-    // Status color and advice based on standard recommendation for fixed/recurring costs
-    let statusColor = 'text-emerald-600 dark:text-emerald-400';
-    let progressColor = 'bg-emerald-500';
-    let statusBg = 'bg-emerald-500/10 dark:bg-emerald-500/20';
-    let statusText = 'Optimal Commitment';
-    let advice = 'Recurring obligations consume less than 50% of monthly dynamic income. Solid safety margins are in place for savings and portfolio growth.';
-    
-    if (ratio >= 70) {
-        statusColor = 'text-rose-600 dark:text-rose-400';
-        progressColor = 'bg-rose-500';
-        statusBg = 'bg-rose-500/10 dark:bg-rose-500/20';
-        statusText = 'High Commitment';
-        advice = 'Recurring obligation overhead exceeds 70%. Consider renegotiating subscriptions, interest schemes, or core servicing parameters.';
-    } else if (ratio >= 50) {
-        statusColor = 'text-amber-600 dark:text-amber-400';
-        progressColor = 'bg-amber-500';
-        statusBg = 'bg-amber-500/10 dark:bg-amber-500/20';
-        statusText = 'Moderate Commitment';
-        advice = 'Bilateral obligations occupy over half of incoming flow. Maintain vigilance on discretionary increments to avoid cashflow compression.';
-    }
-
-    return (
-        <div className="glass-section rounded-[2.5rem] p-6 shadow-card overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-8 opacity-5">
-                <Icon name="analytics" className="text-8xl text-primary-500" />
-            </div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6">
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 flex-1 min-w-0">
-                    <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
-                        {/* Circular progress bar */}
-                        <svg className="w-20 h-20 transform -rotate-90">
-                            <circle
-                                cx="40"
-                                cy="40"
-                                r="34"
-                                className="stroke-black/5 dark:stroke-white/10"
-                                strokeWidth="6"
-                                fill="transparent"
-                            />
-                            <circle
-                                cx="40"
-                                cy="40"
-                                r="34"
-                                className={`transition-all duration-1000`}
-                                strokeWidth="6"
-                                fill="transparent"
-                                strokeDasharray={213.6}
-                                strokeDashoffset={213.6 - (213.6 * Math.min(ratio, 100)) / 100}
-                                strokeLinecap="round"
-                                style={{ stroke: 'var(--color-primary-500, #6366f1)' }}
-                            />
-                        </svg>
-                        <div className="absolute flex flex-col items-center">
-                            <span className="text-sm font-black font-mono text-light-text dark:text-dark-text tracking-tight tabular-nums">
-                                {Math.round(ratio)}%
-                            </span>
-                            <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary/60">ratio</span>
-                        </div>
-                    </div>
-
-                    <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                            <div className="flex items-center gap-1.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2.5 py-0.5 rounded-full">
-                                <Icon name="donut_large" className="text-sm" />
-                                <span className="text-xs font-semibold tracking-wider">Commitment Index</span>
-                            </div>
-                            <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wider ${statusBg} ${statusColor}`}>
-                                {statusText}
-                            </div>
-                        </div>
-                        <h4 className="font-bold text-base text-gray-900 dark:text-white">
-                            Scheduled payments consume <span className={statusColor}>{Math.round(ratio)}%</span> of anticipated income
-                        </h4>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 max-w-xl leading-relaxed">
-                            {advice}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="w-full md:w-80 shrink-0 glass-subwell p-5 rounded-[1.5rem] flex flex-col justify-between">
-                    <div className="flex justify-between items-baseline mb-2">
-                        <span className="text-xs font-semibold uppercase tracking-wider opacity-60">Distribution (30d)</span>
-                        <div className="text-right">
-                            <span className="text-xs font-black font-mono tabular-nums text-light-text dark:text-dark-text">
-                                {formatCurrency(outflow, 'EUR')}
-                            </span>
-                            <span className="text-xs opacity-40 italic"> of {formatCurrency(income, 'EUR')}</span>
-                        </div>
-                    </div>
-                    
-                    <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden flex mb-3">
-                        <motion.div 
-                            initial={{ width: 0 }} 
-                            animate={{ width: `${Math.min(ratio, 100)}%` }} 
-                            className={`h-full rounded-l-full ${progressColor}`} 
-                        />
-                        {ratio < 100 && (
-                            <motion.div 
-                                initial={{ width: 0 }} 
-                                animate={{ width: `${100 - Math.min(ratio, 100)}%` }} 
-                                className="h-full bg-emerald-500/20 dark:bg-emerald-500/10 rounded-r-full" 
-                            />
-                        )}
-                    </div>
-
-                    <div className="flex justify-between text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                        <span>{outflowCount} expected obligations</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatCurrency(remaining, 'EUR')} reserve</span>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
@@ -363,6 +240,7 @@ const SchedulePage: React.FC = () => {
     const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [itemToPost, setItemToPost] = useState<ScheduledItem | null>(null);
+    const [isHeatmapExpanded, setIsHeatmapExpanded] = useState(true);
 
     // Confirmation Modal State
     const [confirmConfig, setConfirmConfig] = useState<{
@@ -954,7 +832,6 @@ const SchedulePage: React.FC = () => {
         toast.success(`Marked ${oldUnpaidBills.length} old bill(s) as expired and moved to archive.`);
     };
 
-    const PIE_COLORS = ['#0284C7', '#8B5CF6', '#D97706', '#10B981', '#EF4444', '#06B6D4'];
     const segments: { id: ScheduleSegment; label: string; icon: string; color: string }[] = [
         { id: 'calendar', label: 'Calendar', icon: 'calendar', color: 'primary' },
         { id: 'timeline', label: 'Timeline', icon: 'sliders', color: 'rose' },
@@ -1089,216 +966,243 @@ const SchedulePage: React.FC = () => {
                     }
                 />
 
-                <RecurringComparisonWidget
-                    income={summaryMetrics.income}
-                    outflow={summaryMetrics.expense}
-                    incomeCount={summaryMetrics.incCount}
-                    outflowCount={summaryMetrics.expCount}
-                />
+                {/* --- Unified Ultra-Compact Schedule Hero Section --- */}
+                {(() => {
+                    const commitmentRatio = summaryMetrics.income > 0 
+                        ? (summaryMetrics.expense / summaryMetrics.income) * 100 
+                        : (summaryMetrics.expense > 0 ? 100 : 0);
+                    const reserveAmount = Math.max(0, summaryMetrics.income - summaryMetrics.expense);
 
-                {/* --- Hero Card: Row #1 (Category Breakdown + 2x2 KPIs) & Row #2 (Heatmap with Title Left, Legend Right) --- */}
-                <div className="glass-section rounded-[2.5rem] p-6 lg:p-7 shadow-card overflow-hidden relative group space-y-6">
+                    let commitmentStatusColor = 'text-emerald-600 dark:text-emerald-400';
+                    let commitmentProgressColor = 'bg-emerald-500';
+                    let commitmentStatusText = 'Optimal Commitment';
+                    let commitmentAdvice = 'Recurring obligations consume less than 50% of monthly dynamic income.';
 
-                    {/* ROW #1: Category Expenditure Breakdown (Left Half) & 2x2 Grid (Right Half) */}
-                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-                        
-                        {/* LEFT HALF (lg:col-span-6): CATEGORY EXPENDITURE BREAKDOWN */}
-                        <div className="lg:col-span-6 flex flex-col justify-between p-5 sm:p-6 rounded-[2rem] glass-subwell space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
-                                    <Icon name="donut_large" className="text-xs text-primary-500" />
-                                    Category Expenditure Breakdown
-                                </h3>
-                                <span className="text-3xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-full">
-                                    30-Day Commitment View
-                                </span>
-                            </div>
+                    if (commitmentRatio >= 70) {
+                        commitmentStatusColor = 'text-rose-600 dark:text-rose-400';
+                        commitmentProgressColor = 'bg-rose-500';
+                        commitmentStatusText = 'High Commitment';
+                        commitmentAdvice = 'Overhead exceeds 70%. Consider renegotiating subscriptions or contracts.';
+                    } else if (commitmentRatio >= 50) {
+                        commitmentStatusColor = 'text-amber-600 dark:text-amber-400';
+                        commitmentProgressColor = 'bg-amber-500';
+                        commitmentStatusText = 'Moderate Commitment';
+                        commitmentAdvice = 'Obligations occupy over half of incoming flow. Maintain vigilance on discretionary spend.';
+                    }
 
-                            {categoryBreakdown.length > 0 ? (
-                                <div className="flex flex-col sm:flex-row items-center gap-6 lg:gap-8 py-2 flex-1 justify-center">
-                                    <div className="w-60 h-60 shrink-0 flex items-center justify-center relative">
-                                        <RingChart
-                                            data={categoryBreakdown.map((cat, idx) => ({
-                                                label: cat.name,
-                                                value: cat.value,
-                                                maxValue: summaryMetrics.expense > 0 ? summaryMetrics.expense : cat.value,
-                                                color: PIE_COLORS[idx % PIE_COLORS.length],
-                                            }))}
-                                            size={240}
-                                            strokeWidth={8}
-                                            ringGap={4}
-                                            baseInnerRadius={54}
-                                        >
-                                            {categoryBreakdown.map((cat, idx) => (
-                                                <Ring
-                                                    key={cat.name}
-                                                    index={idx}
-                                                    color={PIE_COLORS[idx % PIE_COLORS.length]}
-                                                />
-                                            ))}
-                                            <RingCenter
-                                                defaultLabel="Total Outflow"
-                                                prefix="€"
-                                                formatOptions={{ notation: 'standard', maximumFractionDigits: 0 }}
-                                                valueClassName="text-sm font-black font-mono tabular-nums tracking-tight whitespace-nowrap leading-none text-light-text dark:text-dark-text"
-                                                labelClassName="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1 truncate max-w-[88px] text-center"
+                    return (
+                        <div className="glass-section rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-card overflow-hidden relative group space-y-3">
+                            {/* 1. Compact Commitment Index Bar */}
+                            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl glass-subwell border border-black/5 dark:border-white/5">
+                                <div className="flex items-center gap-3.5 min-w-0">
+                                    <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
+                                        <svg className="w-10 h-10 transform -rotate-90">
+                                            <circle
+                                                cx="20"
+                                                cy="20"
+                                                r="16"
+                                                className="stroke-black/5 dark:stroke-white/10"
+                                                strokeWidth="3.5"
+                                                fill="transparent"
                                             />
-                                        </RingChart>
+                                            <circle
+                                                cx="20"
+                                                cy="20"
+                                                r="16"
+                                                className="transition-all duration-1000"
+                                                strokeWidth="3.5"
+                                                fill="transparent"
+                                                strokeDasharray={100.5}
+                                                strokeDashoffset={100.5 - (100.5 * Math.min(commitmentRatio, 100)) / 100}
+                                                strokeLinecap="round"
+                                                style={{ stroke: 'var(--color-primary-500, #fa9a1d)' }}
+                                            />
+                                        </svg>
+                                        <span className="absolute text-xs font-black font-mono tracking-tight text-light-text dark:text-dark-text">
+                                            {Math.round(commitmentRatio)}%
+                                        </span>
                                     </div>
 
-                                    <div className="flex-1 w-full flex flex-col justify-center space-y-2.5 min-w-0">
-                                        {categoryBreakdown.slice(0, 5).map((cat, idx) => {
-                                            const color = PIE_COLORS[idx % PIE_COLORS.length];
-                                            const pct = summaryMetrics.expense > 0 ? Math.round((cat.value / summaryMetrics.expense) * 100) : 0;
-                                            return (
-                                                <div key={cat.name} className="space-y-1">
-                                                    <div className="flex items-center justify-between text-xs gap-2">
-                                                        <div className="flex items-center gap-2 min-w-0 truncate">
-                                                            <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: color }} />
-                                                            <span className="truncate font-bold text-light-text dark:text-dark-text">{cat.name}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 shrink-0 tabular-nums text-xs">
-                                                            <span className="font-black font-mono text-light-text dark:text-dark-text">{formatCurrency(cat.value, 'EUR')}</span>
-                                                            <span className="text-light-text-secondary dark:text-dark-text-secondary/70 font-semibold">{pct}%</span>
-                                                        </div>
-                                                    </div>
-                                                    {/* Mini progress bar under each item matching the screenshot */}
-                                                    <div className="w-full bg-slate-200/80 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${Math.min(pct, 100)}%` }}
-                                                            className="h-full rounded-full"
-                                                            style={{ backgroundColor: color }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                    <div className="min-w-0 flex flex-col justify-center">
+                                        <div className="flex items-baseline gap-2 flex-wrap">
+                                            <span className="text-sm sm:text-base font-bold text-light-text dark:text-dark-text">
+                                                Commitment Index: <span className={commitmentStatusColor}>{commitmentStatusText}</span>
+                                            </span>
+                                            <span className="text-xs sm:text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80 hidden sm:inline truncate">
+                                                • Consumes {Math.round(commitmentRatio)}% of monthly income
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-75 truncate max-w-xl">
+                                            {commitmentAdvice}
+                                        </p>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="py-8 text-center text-xs text-light-text-secondary/40 italic flex-1 flex items-center justify-center">
-                                    No scheduled expenditure
-                                </div>
-                            )}
 
-                            {/* Recurring / Income Mini Progress Bar */}
-                            <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-1.5">
-                                <div className="flex items-center justify-between text-3xs font-semibold">
-                                    <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-70">Recurring vs Income Overhead</span>
-                                    <span className="text-primary-500 font-bold tabular-nums">
-                                        {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}%
-                                    </span>
+                                {/* Distribution Progress & Reserve */}
+                                <div className="flex items-center gap-3.5 shrink-0 self-end md:self-center">
+                                    <div className="flex flex-col items-end text-right">
+                                        <div className="text-xs sm:text-sm font-semibold tabular-nums">
+                                            <span className="font-bold text-light-text dark:text-dark-text">{formatCurrency(summaryMetrics.expense, 'EUR')}</span>
+                                            <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-70"> of {formatCurrency(summaryMetrics.income, 'EUR')}</span>
+                                        </div>
+                                        <div className="w-32 sm:w-44 bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden flex my-0.5">
+                                            <div 
+                                                className={`h-full rounded-l-full ${commitmentProgressColor}`} 
+                                                style={{ width: `${Math.min(commitmentRatio, 100)}%` }} 
+                                            />
+                                            {commitmentRatio < 100 && (
+                                                <div 
+                                                    className="h-full bg-emerald-500/20 dark:bg-emerald-500/10 rounded-r-full" 
+                                                    style={{ width: `${100 - Math.min(commitmentRatio, 100)}%` }} 
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-bold tabular-nums">
+                                        +{formatCurrency(reserveAmount, 'EUR')} reserve
+                                    </div>
                                 </div>
-                                <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min(summaryMetrics.income > 0 ? (summaryMetrics.expense / summaryMetrics.income) * 100 : 0, 100)}%` }}
-                                        className="h-full rounded-full bg-primary-500"
-                                    />
+                            </div>
+
+                            {/* 2. 4-Column Compact Metric Tiles */}
+                            <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 items-stretch">
+                                {/* 30-Day Outflow */}
+                                <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
+                                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <div className="w-5 h-5 rounded-md bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                                                <Icon name="credit_card" className="text-xs" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                                30-Day Outflow
+                                            </span>
+                                        </div>
+                                        <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold shrink-0">
+                                            {summaryMetrics.expCount} Ops
+                                        </span>
+                                    </div>
+                                    <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur leading-tight my-0.5">
+                                        {formatCurrency(summaryMetrics.expense, 'EUR')}
+                                    </div>
+                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                        {majorOutflow ? `${majorOutflow.description} (-${formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})` : 'No major outflow scheduled'}
+                                    </div>
                                 </div>
+
+                                {/* Expected Income */}
+                                <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
+                                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <div className="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                                <Icon name="download" className="text-xs" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                                Expected Income
+                                            </span>
+                                        </div>
+                                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold shrink-0">
+                                            {summaryMetrics.incCount} Ops
+                                        </span>
+                                    </div>
+                                    <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400 privacy-blur leading-tight my-0.5">
+                                        {formatCurrency(summaryMetrics.income, 'EUR')}
+                                    </div>
+                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                        {majorInflow ? `${majorInflow.description} (+${formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})` : 'No major inflow scheduled'}
+                                    </div>
+                                </div>
+
+                                {/* Net Projected */}
+                                <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
+                                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <div className="w-5 h-5 rounded-md bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                                                <Icon name="event_repeat" className="text-xs" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                                Net Projected
+                                            </span>
+                                        </div>
+                                        <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold shrink-0">
+                                            {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden
+                                        </span>
+                                    </div>
+                                    <div className={`text-base sm:text-lg font-bold font-mono tracking-tight leading-tight my-0.5 privacy-blur ${summaryMetrics.income - summaryMetrics.expense >= 0 ? 'text-light-text dark:text-dark-text' : 'text-rose-600 dark:text-rose-400'}`}>
+                                        {summaryMetrics.income - summaryMetrics.expense >= 0 ? '+' : ''}{formatCurrency(summaryMetrics.income - summaryMetrics.expense, 'EUR')}
+                                    </div>
+                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                        {recurringTransactions.length} active recurring rules
+                                    </div>
+                                </div>
+
+                                {/* Attention & Overdue */}
+                                <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
+                                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                                                <Icon name={(groupedItems['Overdue']?.length || 0) > 0 ? 'warning' : 'check_circle'} className="text-xs" />
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                                Attention & Overdue
+                                            </span>
+                                        </div>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                                            {(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Overdue` : 'All Clear'}
+                                        </span>
+                                    </div>
+                                    <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-light-text dark:text-dark-text leading-tight my-0.5">
+                                        {groupedItems['Overdue']?.length || 0}
+                                    </div>
+                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                        {(groupedItems['Overdue']?.length || 0) > 0 ? `${formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} pending total` : 'All obligations on track'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Integrated Slimline 12-Month Schedule Horizon Strip */}
+                            <div className="relative z-10 px-3.5 py-2 rounded-xl glass-subwell border border-black/5 dark:border-white/5 space-y-1.5">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse shrink-0" />
+                                        <h4 className="text-3xs font-bold uppercase tracking-wider text-light-text dark:text-dark-text">
+                                            12-Month Schedule Horizon
+                                        </h4>
+                                        <span className="text-3xs text-light-text-secondary/60 dark:text-dark-text-secondary/60 hidden md:inline">
+                                            • Weekly activity density
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        {/* Inline Horizontal Legend */}
+                                        <div className="flex items-center gap-2 sm:gap-2.5 text-3xs font-medium text-light-text-secondary dark:text-dark-text-secondary flex-wrap">
+                                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-gray-200 dark:bg-gray-700 shrink-0" /> No Activity</span>
+                                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-slate-400 shrink-0" /> Transfer</span>
+                                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-green-500 shrink-0" /> Income</span>
+                                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-red-500 shrink-0" /> Expense</span>
+                                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-purple-500 shrink-0" /> Mixed</span>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
+                                            className="flex items-center gap-1 text-3xs font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5"
+                                            title={isHeatmapExpanded ? 'Collapse Heatmap' : 'Expand Heatmap'}
+                                        >
+                                            <span>{isHeatmapExpanded ? 'Hide' : 'Show'}</span>
+                                            <Icon name="expand_more" className={`text-xs transition-transform duration-200 ${isHeatmapExpanded ? 'rotate-180' : ''}`} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {isHeatmapExpanded && (
+                                    <div className="overflow-x-auto w-full flex justify-center items-center py-0.5 no-scrollbar animate-fade-in-up">
+                                        <ScheduleHeatmap items={allUpcomingForHeatmap} hideLegend={true} />
+                                    </div>
+                                )}
                             </div>
                         </div>
-
-                        {/* RIGHT HALF (lg:col-span-6): 2x2 GRID FOR 4 KPI CARDS */}
-                        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-                            <HeroMetricCard
-                                variant="primary"
-                                label="30-Day Outflow"
-                                value={formatCurrency(summaryMetrics.expense, 'EUR')}
-                                subtext={majorOutflow ? `${majorOutflow.description} (-${formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})` : 'No major outflow scheduled'}
-                                icon="credit_card"
-                                iconColor="rose"
-                                badgeText={`${summaryMetrics.expCount} Ops`}
-                                badgeVariant="elevated"
-                                privacyBlur
-                            />
-                            <HeroMetricCard
-                                variant="secondary"
-                                label="Expected Income"
-                                value={formatCurrency(summaryMetrics.income, 'EUR')}
-                                subtext={majorInflow ? `${majorInflow.description} (+${formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})` : 'No major inflow scheduled'}
-                                icon="download"
-                                iconColor="emerald"
-                                badgeText={`${summaryMetrics.incCount} Ops`}
-                                badgeVariant="optimal"
-                                privacyBlur
-                            />
-                            <HeroMetricCard
-                                variant="secondary"
-                                label="Overdue Items"
-                                value={`${groupedItems['Overdue']?.length || 0}`}
-                                subtext={(groupedItems['Overdue']?.length || 0) > 0 ? `${formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} unpaid total` : 'All obligations on track'}
-                                icon="warning"
-                                iconColor={(groupedItems['Overdue']?.length || 0) > 0 ? 'rose' : 'emerald'}
-                                badgeText={(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Pending` : 'All Clear'}
-                                badgeVariant={(groupedItems['Overdue']?.length || 0) > 0 ? 'elevated' : 'optimal'}
-                            />
-                            <HeroMetricCard
-                                variant="secondary"
-                                label="Active Rules"
-                                value={`${recurringTransactions.length}`}
-                                subtext={`Net Projected: ${summaryMetrics.income - summaryMetrics.expense >= 0 ? '+' : ''}${formatCurrency(summaryMetrics.income - summaryMetrics.expense, 'EUR')}`}
-                                icon="event_repeat"
-                                iconColor="primary"
-                                badgeText={`${summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden`}
-                                badgeVariant="normal"
-                            />
-                        </div>
-                    </div>
-
-                    {/* ROW #2: 3 Columns (0.2 Title Left, 0.6 Heatmap Center, 0.2 Legend Right) */}
-                    <div className="relative z-10 p-5 sm:p-6 rounded-[2rem] glass-subwell">
-                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-center">
-                            {/* Column 1 (20% -> lg:col-span-1): Title & Subtitle */}
-                            <div className="lg:col-span-1 flex flex-col justify-center space-y-1.5 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse shrink-0" />
-                                    <h3 className="text-3xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary leading-tight">
-                                        12-Month Schedule Horizon Density
-                                    </h3>
-                                </div>
-                                <p className="text-4xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 leading-relaxed pl-4.5">
-                                    Rolled weekly commitments & cashflow activity
-                                </p>
-                            </div>
-
-                            {/* Column 2 (60% -> lg:col-span-3): Centered Heatmap */}
-                            <div className="lg:col-span-3 overflow-x-auto w-full flex justify-center items-center py-1">
-                                <ScheduleHeatmap items={allUpcomingForHeatmap} hideLegend={true} />
-                            </div>
-
-                            {/* Column 3 (20% -> lg:col-span-1): Legend */}
-                            <div className="lg:col-span-1 flex flex-col justify-center space-y-2 min-w-0 lg:pl-4 lg:border-l border-black/5 dark:border-white/5">
-                                <span className="text-4xs font-bold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">
-                                    Activity Key
-                                </span>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1.5 text-3xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-xs bg-gray-200 dark:bg-gray-700 shrink-0" />
-                                        <span className="truncate">No Activity</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-xs bg-slate-400 shrink-0" />
-                                        <span className="truncate">Transfer</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-xs bg-green-500 shrink-0" />
-                                        <span className="truncate">Income</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-xs bg-red-500 shrink-0" />
-                                        <span className="truncate">Expense</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-xs bg-purple-500 shrink-0" />
-                                        <span className="truncate">Mixed</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    );
+                })()}
 
                 {/* --- Navigation View Switcher with Search --- */}
                 <div className="glass-section rounded-[2rem] p-3 shadow-card flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">

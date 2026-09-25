@@ -26,8 +26,24 @@ export const InsightsViewProvider: React.FC<InsightsViewProviderProps> = ({
   children,
 }) => {
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
-  const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
+  const [activeGoalIds, setActiveGoalIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('crystal_active_goal_ids');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return [];
+  });
   const [dashboardDuration, setDashboardDuration] = useState<Duration>(defaultDuration);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('crystal_active_goal_ids', JSON.stringify(activeGoalIds));
+    } catch {
+      // ignore
+    }
+  }, [activeGoalIds]);
 
   useEffect(() => {
     const accountIds = new Set(accounts.map(a => a.id));
@@ -60,10 +76,43 @@ export const InsightsViewProvider: React.FC<InsightsViewProviderProps> = ({
     const goalIdSet = new Set(goalIds);
 
     setActiveGoalIds(prev => {
-      const preserved = prev.filter(id => goalIdSet.has(id));
-      const missing = goalIds.filter(id => !preserved.includes(id));
-      const next = [...preserved, ...missing];
-      return next.length > 0 ? next : goalIds;
+      // First time initialization ONLY if localStorage has never been set at all
+      const savedRaw = localStorage.getItem('crystal_active_goal_ids');
+      if (savedRaw === null && prev.length === 0 && goalIds.length > 0) {
+        return financialGoals
+          .filter(g => !g.disabled)
+          .map(g => g.id);
+      }
+
+      // Preserve previously active IDs that still exist and aren't explicitly disabled
+      const preserved = prev.filter(id => {
+        if (!goalIdSet.has(id)) return false;
+        const g = financialGoals.find(item => item.id === id);
+        return !g?.disabled;
+      });
+
+      // Find brand new goals that were created after last load
+      let knownIds = new Set<string>();
+      try {
+        const knownRaw = localStorage.getItem('crystal_known_goal_ids');
+        if (knownRaw) knownIds = new Set(JSON.parse(knownRaw));
+      } catch {
+        // ignore
+      }
+
+      const brandNewIds = goalIds.filter(id => {
+        if (knownIds.has(id)) return false;
+        const g = financialGoals.find(item => item.id === id);
+        return !g?.disabled;
+      });
+
+      try {
+        localStorage.setItem('crystal_known_goal_ids', JSON.stringify(goalIds));
+      } catch {
+        // ignore
+      }
+
+      return [...new Set([...preserved, ...brandNewIds])];
     });
   }, [financialGoals]);
 

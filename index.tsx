@@ -6,15 +6,20 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import { IconContext } from '@phosphor-icons/react';
 
-// Automatically reload when a new service worker version is installed and takes control
+// Unregister any active service worker and clear stale caches in iframe/cloud preview
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister().catch(() => {});
     }
-  });
+  }).catch(() => {});
+  if ('caches' in window) {
+    caches.keys().then(names => {
+      for (const name of names) {
+        caches.delete(name).catch(() => {});
+      }
+    }).catch(() => {});
+  }
 }
 
 const rootElement = document.getElementById('root');

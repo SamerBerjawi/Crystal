@@ -143,7 +143,15 @@ const Forecasting: React.FC = () => {
     [accounts, selectedAccountIds]);
 
     const activeGoals = useMemo(() => {
-        let goals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+        let goals = financialGoals.filter(g => {
+            if (g.disabled) return false;
+            if (!activeGoalIds.includes(g.id)) return false;
+            if (g.parentId) {
+                const parent = financialGoals.find(p => p.id === g.parentId);
+                if (parent && (parent.disabled || !activeGoalIds.includes(parent.id))) return false;
+            }
+            return true;
+        });
         if (filterGoalsByAccount) {
              goals = goals.filter(g => 
                 !g.paymentAccountId || 
@@ -409,6 +417,17 @@ const Forecasting: React.FC = () => {
 
         financialGoals.forEach(g => {
             if (g.isBucket) return;
+            // When a goal bucket or goal is turned off, it disappears from the payment list
+            if (g.disabled) return;
+            if (!activeGoalIds.includes(g.id)) return;
+            if (g.parentId) {
+                const parent = financialGoals.find(p => p.id === g.parentId);
+                if (parent && (parent.disabled || !activeGoalIds.includes(parent.id) || parent.completed)) {
+                    return;
+                }
+            }
+            if (g.completed) return;
+
             const category = g.goalCategory || (g.transactionType === 'income' ? 'income' : 'savings');
 
             // Global totals
@@ -526,7 +545,7 @@ const Forecasting: React.FC = () => {
             monthlyPaymentBreakdown: outputAggregates.sort((a, b) => a.name.localeCompare(b.name)),
             monthlyDateBreakdown
         };
-    }, [financialGoals, accounts]);
+    }, [financialGoals, accounts, activeGoalIds]);
 
     const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent, totalExpenseGoalTarget, totalExpenseGoalCurrent, accountGoalSummary } = useMemo(() => {
         let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0, expTarget = 0, expCurrent = 0;
@@ -582,13 +601,18 @@ const Forecasting: React.FC = () => {
 
     const plannerGoals = useMemo(() => {
         return goalsWithProjections.filter(g => {
+            if (g.disabled) return false;
             if (!activeGoalIds.includes(g.id)) return false;
+            if (g.parentId) {
+                const parent = financialGoals.find(p => p.id === g.parentId);
+                if (parent && (parent.disabled || !activeGoalIds.includes(parent.id))) return false;
+            }
             if (filterGoalsByAccount) {
                 return !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
             }
             return true;
         });
-    }, [goalsWithProjections, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
+    }, [goalsWithProjections, financialGoals, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
 
     const handleToggleGoal = (id: string) => {
         const goal = financialGoals.find(g => g.id === id);
@@ -596,14 +620,63 @@ const Forecasting: React.FC = () => {
         const subGoalIds = goal.isBucket ? financialGoals.filter(g => g.parentId === id).map(g => g.id) : [];
         const allRelatedIds = [id, ...subGoalIds];
         
-        setActiveGoalIds(prev => {
-        const isGroupActive = allRelatedIds.some(relatedId => prev.includes(relatedId));
-        if (isGroupActive) {
-            return prev.filter(activeId => !allRelatedIds.includes(activeId));
-        } else {
-            return [...new Set([...prev, ...allRelatedIds])];
+        const isCurrentlyActive = !goal.disabled && activeGoalIds.includes(id);
+        const shouldBeActive = !isCurrentlyActive;
+        const newDisabled = !shouldBeActive;
+
+        // Persist disabled state to financial goals so turned off buckets remain turned off
+        saveFinancialGoal({ ...goal, disabled: newDisabled });
+        if (goal.isBucket) {
+            const subGoals = financialGoals.filter(g => g.parentId === id);
+            subGoals.forEach(sg => {
+                saveFinancialGoal({ ...sg, disabled: newDisabled });
+            });
         }
+
+        setActiveGoalIds(prev => {
+            if (newDisabled) {
+                return prev.filter(activeId => !allRelatedIds.includes(activeId));
+            } else {
+                return [...new Set([...prev, ...allRelatedIds])];
+            }
         });
+    };
+
+    const handleToggleCompleteGoal = (goalToToggle: FinancialGoal) => {
+        const isCurrentlyComplete = !!goalToToggle.completed || (goalToToggle.amount > 0 && goalToToggle.currentAmount >= goalToToggle.amount);
+        const nextCompletedState = !isCurrentlyComplete;
+
+        if (goalToToggle.isBucket) {
+            saveFinancialGoal({
+                ...goalToToggle,
+                completed: nextCompletedState,
+            });
+            const subGoals = financialGoals.filter(g => g.parentId === goalToToggle.id);
+            subGoals.forEach(sg => {
+                saveFinancialGoal({
+                    ...sg,
+                    completed: nextCompletedState,
+                });
+            });
+        } else {
+            saveFinancialGoal({
+                ...goalToToggle,
+                completed: nextCompletedState,
+            });
+
+            if (goalToToggle.parentId) {
+                const parent = financialGoals.find(p => p.id === goalToToggle.parentId);
+                if (parent) {
+                    const siblingSubGoals = financialGoals.filter(g => g.parentId === goalToToggle.parentId && g.id !== goalToToggle.id);
+                    const allSiblingsComplete = siblingSubGoals.every(sg => !!sg.completed || (sg.amount > 0 && sg.currentAmount >= sg.amount));
+                    if (nextCompletedState && allSiblingsComplete) {
+                        saveFinancialGoal({ ...parent, completed: true });
+                    } else if (!nextCompletedState) {
+                        saveFinancialGoal({ ...parent, completed: false });
+                    }
+                }
+            }
+        }
     };
 
     const handleOpenModal = (goal?: FinancialGoal) => {
@@ -724,6 +797,7 @@ const Forecasting: React.FC = () => {
                         subGoals={subGoals}
                         isActive={isActive}
                         onToggle={handleToggleGoal}
+                        onToggleComplete={handleToggleCompleteGoal}
                         onEdit={handleOpenModal}
                         onDuplicate={handleDuplicateGoal}
                         onDelete={handleDeleteClick}
@@ -995,11 +1069,8 @@ const Forecasting: React.FC = () => {
                     }}
                     onEditGoal={(g) => handleOpenModal(g)}
                     onDeleteGoal={(g) => setDeletingGoal(g)}
-                    onToggleGoal={(goalId) => {
-                        setActiveGoalIds(prev =>
-                            prev.includes(goalId) ? prev.filter(id => id !== goalId) : [...prev, goalId]
-                        );
-                    }}
+                    onToggleGoal={handleToggleGoal}
+                    onToggleCompleteGoal={handleToggleCompleteGoal}
                     monthlyPaymentBreakdown={monthlyPaymentBreakdown}
                     monthlyDateBreakdown={monthlyDateBreakdown}
                     scheduleMode={scheduleMode}
@@ -1535,9 +1606,7 @@ const Forecasting: React.FC = () => {
                                     <div className="columns-1 md:columns-2 gap-6 space-y-6">
                                         {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
                                             const subGoals = goalsByParentId.get(goal.id) || [];
-                                            const isEffectivelyActive = goal.isBucket
-                                            ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
-                                            : activeGoalIds.includes(goal.id);
+                                            const isEffectivelyActive = !goal.disabled && activeGoalIds.includes(goal.id);
 
                                             return (
                                                 <div key={goal.id} className="break-inside-avoid mb-6">
@@ -1571,6 +1640,7 @@ const Forecasting: React.FC = () => {
                                 onGoalClick={handleOpenModal}
                                 onEdit={handleOpenModal}
                                 onDelete={handleDeleteClick}
+                                onToggleComplete={handleToggleCompleteGoal}
                             />
                         )}
                     </div>

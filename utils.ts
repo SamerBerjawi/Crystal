@@ -1160,6 +1160,13 @@ export function generateBalanceForecast(
     });
 
     financialGoals.forEach(goal => {
+        if (goal.isBucket) return;
+        if (goal.disabled || goal.completed) return;
+        if (goal.parentId) {
+            const parent = financialGoals.find(p => p.id === goal.parentId);
+            if (parent && (parent.disabled || parent.completed)) return;
+        }
+
         if (goal.paymentAccountId && !accountIds.has(goal.paymentAccountId)) {
             return;
         }

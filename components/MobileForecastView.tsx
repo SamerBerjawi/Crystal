@@ -89,6 +89,7 @@ export interface MobileForecastViewProps {
   onEditGoal: (goal: FinancialGoal) => void;
   onDeleteGoal: (goal: FinancialGoal) => void;
   onToggleGoal: (goalId: string) => void;
+  onToggleCompleteGoal?: (goal: FinancialGoal) => void;
 
   // Monthly Target Schedule
   monthlyPaymentBreakdown: any[];
@@ -175,6 +176,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
   onEditGoal,
   onDeleteGoal,
   onToggleGoal,
+  onToggleCompleteGoal,
   monthlyPaymentBreakdown,
   monthlyDateBreakdown,
   scheduleMode,
@@ -747,32 +749,62 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                     goal.amount > 0
                       ? Math.min(100, (goal.currentAmount / goal.amount) * 100)
                       : 0;
+                  const isBucketCompleted = goal.isBucket && (
+                    !!goal.completed ||
+                    (subGoals.length > 0 && subGoals.every(sg => !!sg.completed || (sg.amount > 0 && sg.currentAmount >= sg.amount)))
+                  );
+                  const isCompleted = goal.isBucket ? isBucketCompleted : (!!goal.completed || progress >= 100);
 
                   return (
                     <div
                       key={goal.id}
-                      className="rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 p-4 shadow-sm space-y-3 overflow-hidden"
+                      className={`rounded-3xl bg-white dark:bg-dark-card border transition-all p-4 shadow-sm space-y-3 overflow-hidden ${
+                        isCompleted
+                          ? 'border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/15'
+                          : 'border-black/5 dark:border-white/5'
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div
-                          className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                          className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer"
                           onClick={() => onEditGoal(goal)}
                         >
+                          {onToggleCompleteGoal && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleCompleteGoal(goal);
+                              }}
+                              className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                                isCompleted
+                                  ? 'bg-emerald-500 border-emerald-600 text-white shadow-xs'
+                                  : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500 hover:bg-emerald-50/50'
+                              }`}
+                              title={isCompleted ? 'Mark as incomplete' : 'Mark as complete'}
+                            >
+                              {isCompleted && <Icon name="check" className="text-xs font-bold" />}
+                            </button>
+                          )}
                           <div
                             className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs"
-                            style={{ backgroundColor: categoryMeta.color }}
+                            style={{ backgroundColor: isCompleted ? '#10b981' : categoryMeta.color }}
                           >
-                            <Icon name={categoryMeta.icon} className="text-lg" />
+                            <Icon name={isCompleted ? 'check_circle' : categoryMeta.icon} className="text-lg" />
                           </div>
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-light-text dark:text-white truncate">
+                              <h4 className={`text-sm font-bold text-light-text dark:text-white truncate ${isCompleted ? 'line-through opacity-80' : ''}`}>
                                 {goal.name}
                               </h4>
                               {goal.isBucket && (
-                                <span className="px-1.5 py-0.5 rounded-md text-2xs font-semibold uppercase bg-primary-500/10 text-primary-500 border border-primary-500/20">
-                                  Bucket ({subGoals.length})
+                                <span className={`px-1.5 py-0.5 rounded-md text-2xs font-semibold uppercase border ${
+                                  isCompleted
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                    : 'bg-primary-500/10 text-primary-500 border-primary-500/20'
+                                }`}>
+                                  {isCompleted ? 'Completed Bucket' : `Bucket (${subGoals.length})`}
                                 </span>
                               )}
                             </div>
@@ -879,20 +911,44 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                               sub.amount > 0
                                 ? Math.min(100, (sub.currentAmount / sub.amount) * 100)
                                 : 0;
+                            const isSubComplete = !!sub.completed || (sub.amount > 0 && sub.currentAmount >= sub.amount);
                             return (
                               <div
                                 key={sub.id}
                                 onClick={() => onEditGoal(sub)}
-                                className="flex items-center justify-between p-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] cursor-pointer"
+                                className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer ${
+                                  isSubComplete
+                                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-500/20'
+                                    : 'bg-black/[0.02] dark:bg-white/[0.02]'
+                                }`}
                               >
-                                <div className="min-w-0 flex-1 pr-2">
-                                  <p className="text-xs font-bold text-light-text dark:text-white truncate">
-                                    {sub.name}
-                                  </p>
-                                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                    {formatCurrency(sub.currentAmount, sub.currency)} /{' '}
-                                    {formatCurrency(sub.amount, sub.currency)} ({subProgress.toFixed(0)}%)
-                                  </p>
+                                <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                                  {onToggleCompleteGoal && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleCompleteGoal(sub);
+                                      }}
+                                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                                        isSubComplete
+                                          ? 'bg-emerald-500 border-emerald-600 text-white shadow-xs'
+                                          : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500'
+                                      }`}
+                                      title={isSubComplete ? 'Mark item as incomplete' : 'Mark item as complete'}
+                                    >
+                                      {isSubComplete && <Icon name="check" className="text-[10px] font-bold" />}
+                                    </button>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className={`text-xs font-bold text-light-text dark:text-white truncate ${isSubComplete ? 'line-through opacity-75' : ''}`}>
+                                      {sub.name}
+                                    </p>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                      {formatCurrency(sub.currentAmount, sub.currency)} /{' '}
+                                      {formatCurrency(sub.amount, sub.currency)} ({subProgress.toFixed(0)}%)
+                                    </p>
+                                  </div>
                                 </div>
                                 <button
                                   type="button"

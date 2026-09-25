@@ -435,6 +435,8 @@ export interface FinancialGoal {
   endDate?: string;
   monthlyContribution?: number;
   dueDateOfMonth?: number;
+  completed?: boolean;
+  disabled?: boolean;
   // For UI display, calculated dynamically
   projection?: GoalProjection;
 }
