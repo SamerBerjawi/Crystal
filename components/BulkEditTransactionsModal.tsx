@@ -603,6 +603,8 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 };
 
 export default BulkEditTransactionsModal;

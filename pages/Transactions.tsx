@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule, User } from '../types';
 import { toast } from 'sonner';
@@ -85,26 +86,60 @@ const ColumnHeaderFilter: React.FC<{
   isActive: boolean;
   activeCount?: number;
   title: string;
+  align?: 'left' | 'right';
   children: React.ReactNode;
-}> = ({ isOpen, onToggle, onClose, isActive, activeCount, title, children }) => {
+}> = ({ isOpen, onToggle, onClose, isActive, activeCount, title, align = 'left', children }) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!isOpen) return;
+
+    const updatePos = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const popoverWidth = 288; // w-72 (18rem)
+      let left = align === 'right' ? rect.right - popoverWidth : rect.left - 8;
+      // Clamp within viewport margins
+      if (left + popoverWidth > window.innerWidth - 16) {
+        left = window.innerWidth - popoverWidth - 16;
+      }
+      if (left < 16) left = 16;
+      const top = rect.bottom + 8;
+      setPosition({ top, left });
+    };
+
+    updatePos();
+    window.addEventListener('resize', updatePos);
+    window.addEventListener('scroll', updatePos, true);
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(target) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(target)
+      ) {
         onCloseRef.current();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+
+    return () => {
+      window.removeEventListener('resize', updatePos);
+      window.removeEventListener('scroll', updatePos, true);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, align]);
 
   return (
-    <div className="relative inline-flex items-center ml-1" ref={popoverRef}>
+    <div className="relative inline-flex items-center ml-1">
       <button
+        ref={triggerRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -126,24 +161,28 @@ const ColumnHeaderFilter: React.FC<{
         ) : null}
       </button>
 
-      {isOpen && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="absolute top-full mt-2 -left-2 z-50 w-72 rounded-xl border border-secondary bg-primary p-4 shadow-xl backdrop-blur-xl text-left font-normal text-secondary normal-case"
-        >
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-secondary">
-            <span className="text-sm font-semibold text-primary">{title}</span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-sm text-tertiary hover:text-primary cursor-pointer p-0.5"
-            >
-              ✕
-            </button>
-          </div>
-          {children}
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{ top: position.top, left: position.left }}
+            onClick={(e) => e.stopPropagation()}
+            className="fixed z-50 w-72 rounded-xl border border-secondary bg-primary p-4 shadow-2xl backdrop-blur-2xl text-left font-normal text-secondary normal-case animate-fade-in-up"
+          >
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-secondary">
+              <span className="text-sm font-semibold text-primary">{title}</span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-sm text-tertiary hover:text-primary cursor-pointer p-0.5"
+              >
+                ✕
+              </button>
+            </div>
+            {children}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
@@ -2087,7 +2126,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             )}
           </FilterBar>
           {/* Untitled UI Table Card with Alternating Fills */}
-          <div className="flex-1 min-w-0 relative">
+          <div className="flex-1 min-w-0 relative z-10">
             <TableCard.Root className="shadow-card border-0 rounded-2xl">
               <TableCard.Header
                 title="Transactions"
@@ -2110,7 +2149,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
               />
 
               {/* Bulk Action Header Banner */}
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${selectedIds.size > 0 ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${selectedIds.size > 0 ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
                 <div className="bg-primary-600 dark:bg-primary-900 text-white px-6 py-3 flex justify-between items-center z-20 relative">
                   <div className="flex items-center gap-4">
                     <span className="font-semibold text-sm tracking-tight">{selectedIds.size} records selected</span>
@@ -2239,6 +2278,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                         onClose={handleCloseFilterCol}
                         isActive={Boolean(minAmount || maxAmount || typeFilter !== 'all')}
                         title="Value & Type"
+                        align="right"
                       >
                         {amountFilterContent}
                       </ColumnHeaderFilter>

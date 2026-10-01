@@ -19,7 +19,7 @@ export const FilterBarRoot: React.FC<FilterBarProps> = ({ children, className })
     <div
       className={cn(
         'p-4 sm:p-5 glass-section rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-card',
-        'relative transition-all duration-300',
+        'relative z-30 transition-all duration-300',
         className
       )}
     >
