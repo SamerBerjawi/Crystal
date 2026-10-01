@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { RecurringTransaction, RecurringTransactionOverride, ScheduledItem } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
+import { safeRound } from '../utils';
 
 interface RecurringOverrideModalProps {
   item: ScheduledItem;
@@ -18,7 +19,7 @@ const RecurringOverrideModal: React.FC<RecurringOverrideModalProps> = ({ item, o
     );
 
     const [date, setDate] = useState(existingOverride?.date || item.date);
-    const [amount, setAmount] = useState(String(Math.abs(existingOverride?.amount ?? item.amount)));
+    const [amount, setAmount] = useState(safeRound(Math.abs(existingOverride?.amount ?? item.amount), 2).toFixed(2));
     const [description, setDescription] = useState(existingOverride?.description || item.description);
     const [isSkipped, setIsSkipped] = useState(existingOverride?.isSkipped || false);
 
@@ -27,7 +28,7 @@ const RecurringOverrideModal: React.FC<RecurringOverrideModalProps> = ({ item, o
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const newAmount = parseFloat(amount) || 0;
+        const newAmount = safeRound(parseFloat(amount) || 0, 2);
         onSave({
             recurringTransactionId,
             originalDate,
@@ -54,7 +55,7 @@ const RecurringOverrideModal: React.FC<RecurringOverrideModalProps> = ({ item, o
           isSkipped: shouldSkip,
           // Retain other override data in case they unskip later
           date: existingOverride?.date || date,
-          amount: existingOverride?.amount !== undefined ? existingOverride.amount : (item.amount < 0 ? -parseFloat(amount) : parseFloat(amount)),
+          amount: existingOverride?.amount !== undefined ? safeRound(existingOverride.amount, 2) : (item.amount < 0 ? -safeRound(parseFloat(amount) || 0, 2) : safeRound(parseFloat(amount) || 0, 2)),
           description: existingOverride?.description || description,
       });
       onClose();

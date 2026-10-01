@@ -93,7 +93,7 @@ import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
-import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
+import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { applyTransactionRulesToFields } from './utils/rules';
 import { upsertEntity, removeEntityById } from './utils/collection';
@@ -2022,9 +2022,10 @@ const App: React.FC = () => {
     const isCredit = creditDebit === 'CRDT' || (typeof amountRaw === 'string' && !amountRaw.startsWith('-') && creditDebit !== 'DBIT');
     const signedAmount = Math.abs(Number(amountRaw)) * (isCredit ? 1 : -1);
     // Support negative strings directly if no indicator
-    const finalAmount = (signedAmount === Math.abs(Number(amountRaw)) && typeof amountRaw === 'string' && amountRaw.startsWith('-'))
+    const rawSignedAmount = (signedAmount === Math.abs(Number(amountRaw)) && typeof amountRaw === 'string' && amountRaw.startsWith('-'))
       ? Number(amountRaw)
       : signedAmount;
+    const finalAmount = safeRound(rawSignedAmount, currency === 'BTC' ? 8 : 2);
 
     if (Number.isNaN(finalAmount)) return null;
 

@@ -1,4 +1,4 @@
-import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString, escapeHtml, sanitizeInput, safeAdd, safeSubtract, safeMultiply, safeDivide, safeRound, toCents, fromCents, formatDate } from './utils';
+import { formatCurrency, convertToEur, parseLocalDate, toLocalISOString, escapeHtml, sanitizeInput, safeAdd, safeSubtract, safeMultiply, safeDivide, safeRound, round2, toCents, fromCents, formatDate, getCreditCardStatementDetails, generateSyntheticCreditCardPayments, calculateAccountTotals } from './utils';
 import { upsertEntity, removeEntityById } from './utils/collection';
 
 function assert(condition: boolean, message: string) {
@@ -136,6 +136,62 @@ try {
   console.log('✓ Test 8 Passed: formatDate with user preference formats');
 } catch (e: any) {
   console.error('✕ Test 8 Failed:', e.message);
+}
+
+// Test 9: 2-Decimal Precision & Credit Card Payment Calculation Safety
+try {
+  // Direct test of 53.559999999999995 rounding
+  const rounded = round2(53.559999999999995);
+  assert(rounded === 53.56, `round2(53.559999999999995) must equal 53.56, got ${rounded}`);
+
+  // Test that addition of IEEE 754 precision trap numbers (3.58 + 49.98 === 53.559999999999995) is safely resolved
+  const rawSum = 3.58 + 49.98;
+  assert(rawSum === 53.559999999999995, 'Verify that 3.58 + 49.98 reproduces float trap');
+  const safeSum = round2(rawSum);
+  assert(safeSum === 53.56, `round2(3.58 + 49.98) must equal 53.56, got ${safeSum}`);
+
+  // Test getCreditCardStatementDetails precision
+  const mockCardAccount: any = {
+    id: 'cc-1',
+    name: 'Rewards Card',
+    type: 'Credit Card',
+    currency: 'EUR',
+    statementStartDate: '2026-01-01',
+    paymentDate: '2026-01-25',
+    settlementAccountId: 'chk-1',
+  };
+
+  const mockTxs: any[] = [
+    { id: 'tx-1', accountId: 'cc-1', date: '2026-01-05', amount: -3.58, type: 'expense', currency: 'EUR' },
+    { id: 'tx-2', accountId: 'cc-1', date: '2026-01-10', amount: -49.98, type: 'expense', currency: 'EUR' },
+  ];
+
+  const statementDetails = getCreditCardStatementDetails(
+    mockCardAccount,
+    new Date(2026, 0, 1),
+    new Date(2026, 0, 31),
+    mockTxs
+  );
+
+  assert(statementDetails.statementBalance === -53.56, `getCreditCardStatementDetails balance must be -53.56, got ${statementDetails.statementBalance}`);
+
+  // Test generateSyntheticCreditCardPayments
+  const syntheticPayments = generateSyntheticCreditCardPayments([mockCardAccount], mockTxs);
+  for (const p of syntheticPayments) {
+    const decimals = (p.amount.toString().split('.')[1] || '').length;
+    assert(decimals <= 2, `Synthetic payment amount ${p.amount} must have at most 2 decimals`);
+  }
+
+  // Test calculateAccountTotals precision
+  const totals = calculateAccountTotals([
+    { id: 'a1', name: 'A1', type: 'Checking', balance: 3.58, currency: 'EUR' } as any,
+    { id: 'a2', name: 'A2', type: 'Savings', balance: 49.98, currency: 'EUR' } as any,
+  ]);
+  assert(totals.totalAssets === 53.56, `calculateAccountTotals totalAssets must be 53.56, got ${totals.totalAssets}`);
+
+  console.log('✓ Test 9 Passed: 2-Decimal Precision & Credit Card Payment Calculation Safety');
+} catch (e: any) {
+  console.error('✕ Test 9 Failed:', e.message);
 }
 
 console.log('--- All Unit Tests Executed Successfully ---');

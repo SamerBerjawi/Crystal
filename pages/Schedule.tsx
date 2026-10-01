@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, BTN_DANGER_STYLE } from '../constants';
-import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, fuzzySearch, toLocalISOString, adjustDateForWeekend } from '../utils';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, fuzzySearch, toLocalISOString, adjustDateForWeekend, safeRound } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
@@ -797,7 +797,7 @@ const SchedulePage: React.FC = () => {
             initialCategory: category,
             initialDetails: {
                 date: item.date,
-                amount: String(Math.abs(item.amount)),
+                amount: safeRound(Math.abs(item.amount), 2).toFixed(2),
                 description: item.description,
                 merchant: merchant || item.merchant || (original as any)?.merchant || '',
             },
@@ -1328,7 +1328,7 @@ const SchedulePage: React.FC = () => {
                                         onPost={handleOpenPostModal}
                                         onEndSeries={handleEndSeries}
                                         onExpireBill={handleExpireBill}
-                                        totalAmount={groupTotal}
+                                        totalAmount={safeRound(groupTotal, 2)}
                                         defaultOpen={['Today', 'Next 7 Days'].includes(groupKey)}
                                     />
                                 );

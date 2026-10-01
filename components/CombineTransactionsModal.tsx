@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Transaction, Category, Account } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, safeRound } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
 
@@ -31,7 +31,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
   }, [transactionsToCombine, firstTx]);
 
   const totalAmount = useMemo(() => {
-    return transactionsToCombine.reduce((sum, t) => sum + (t.amount || 0), 0);
+    return safeRound(transactionsToCombine.reduce((sum, t) => sum + (t.amount || 0), 0), 2);
   }, [transactionsToCombine]);
 
   const currency = firstTx?.currency || 'EUR';
@@ -72,7 +72,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
       accountId,
       date,
       description: description.trim(),
-      amount: totalAmount,
+      amount: safeRound(totalAmount, 2),
       category: category || firstTx?.category || 'General',
       type: combinedType,
       currency,

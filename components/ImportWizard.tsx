@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Currency, AccountType } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
-import { flattenCategories, toLocalISOString } from '../utils';
+import { flattenCategories, toLocalISOString, safeRound } from '../utils';
 import Icon from './ui/Icon';
 
 
@@ -323,7 +323,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 if (amountConfig === 'single_signed') {
                     const amountVal = row[columnMap.amount];
                     if (columnMap.amount && amountVal && !isNaN(parseFloat(amountVal))) {
-                        newRow.amount = parseFloat(amountVal);
+                        newRow.amount = safeRound(parseFloat(amountVal), 2);
                     } else {
                         errorDetails.amount = `Invalid amount: ${amountVal || 'missing'}`;
                         rowHasErrors = true;
@@ -338,7 +338,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                         errorDetails.amount = `Invalid amounts: In=${inVal}, Out=${outVal}`;
                         rowHasErrors = true;
                     } else {
-                        newRow.amount = inNum - outNum;
+                        newRow.amount = safeRound(inNum - outNum, 2);
                     }
                 }
 
@@ -563,7 +563,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                       date: row.date,
                       description: row.name || 'Imported Transaction',
                       merchant: row.name,
-                      amount: row.amount,
+                      amount: safeRound(row.amount, 2),
                       category: finalCategory,
                       type: row.amount >= 0 ? 'income' : 'expense',
                       currency: finalCurrency as Currency,

@@ -5,7 +5,7 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE,
 import { v4 as uuidv4 } from 'uuid';
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
-import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
+import { toLocalISOString, formatCurrency, fuzzySearch, safeRound } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { applyTransactionRulesToFields } from '../utils/rules';
 import { parseLocationString } from '../utils/locationDetector';
@@ -720,7 +720,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [amount, setAmount] = useState(() => {
     if (initialDetails?.amount) {
       const num = parseFloat(initialDetails.amount);
-      return !isNaN(num) && num > 0 ? num.toFixed(2) : initialDetails.amount;
+      return !isNaN(num) && num !== 0 ? safeRound(Math.abs(num), 2).toFixed(2) : initialDetails.amount;
     }
     return '';
   });
@@ -1191,7 +1191,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     if (isEditing && transactionToEdit) {
         let principal = '';
         let interest = '';
-        let amountToSet = String(Math.abs(transactionToEdit.amount));
+        let amountToSet = safeRound(Math.abs(transactionToEdit.amount), 2).toFixed(2);
         setTagIds(transactionToEdit.tagIds || []);
         
         if (transactionToEdit.address || transactionToEdit.city || transactionToEdit.country) {
@@ -1217,7 +1217,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 setToAccountId(incomePart.accountId);
                 principal = String(incomePart.principalAmount || '');
                 interest = String(incomePart.interestAmount || '');
-                amountToSet = String(Math.abs(incomePart.amount));
+                amountToSet = safeRound(Math.abs(incomePart.amount), 2).toFixed(2);
             }
             const baseDescription = transactionToEdit.description.replace(/Transfer to .*|Transfer from .*/, 'Account Transfer');
             setDescription(baseDescription);
@@ -1336,8 +1336,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     let toDelete: string[] = [];
 
     const totalAmount = isLoanPayment 
-      ? (parseFloat(principalPayment) || 0) + (parseFloat(interestPayment) || 0) 
-      : (parseFloat(amount) || 0);
+      ? safeRound((parseFloat(principalPayment) || 0) + (parseFloat(interestPayment) || 0), 2)
+      : safeRound(parseFloat(amount) || 0, 2);
       
     if (!totalAmount) {
       toast.error('Please enter a valid amount');
@@ -1387,7 +1387,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             date,
             description: description || `Transfer to ${toAcc.name}`,
             merchant: merchant || 'Internal Transfer',
-            amount: -Math.abs(totalAmount),
+            amount: -safeRound(Math.abs(totalAmount), 2),
             category: category || 'Transfer',
             type: 'expense',
             currency: fromAcc.currency,
@@ -1402,7 +1402,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             date,
             description: description || `Transfer from ${fromAcc.name}`,
             merchant: merchant || 'Internal Transfer',
-            amount: Math.abs(totalAmount),
+            amount: safeRound(Math.abs(totalAmount), 2),
             category: category || 'Transfer',
             type: 'income',
             currency: toAcc.currency,
@@ -1413,8 +1413,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         };
         
         if (isLoanPayment && loanAccount) {
-            const principalValue = parseFloat(principalPayment) || 0;
-            const interestValue = parseFloat(interestPayment) || 0;
+            const principalValue = safeRound(parseFloat(principalPayment) || 0, 2);
+            const interestValue = safeRound(parseFloat(interestPayment) || 0, 2);
             if (expenseTx.accountId === loanAccount.id) {
                 expenseTx.principalAmount = principalValue;
                 expenseTx.interestAmount = interestValue;
@@ -1449,7 +1449,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             date,
             description,
             merchant,
-            amount: type === 'expense' ? -Math.abs(totalAmount) : Math.abs(totalAmount),
+            amount: type === 'expense' ? -safeRound(Math.abs(totalAmount), 2) : safeRound(Math.abs(totalAmount), 2),
             category,
             type,
             currency: selectedAccount.currency,
@@ -1459,8 +1459,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         };
         
         if (isLoanPayment && loanAccount && accountId === loanAccount.id) {
-            transactionData.principalAmount = parseFloat(principalPayment) || 0;
-            transactionData.interestAmount = parseFloat(interestPayment) || 0;
+            transactionData.principalAmount = safeRound(parseFloat(principalPayment) || 0, 2);
+            transactionData.interestAmount = safeRound(parseFloat(interestPayment) || 0, 2);
         }
 
         if (isEditing && !wasTransfer) {

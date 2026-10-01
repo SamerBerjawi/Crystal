@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import AddressAutocomplete from './AddressAutocomplete';
-import { toLocalISOString } from '../utils';
+import { toLocalISOString, safeRound } from '../utils';
 import Icon from './ui/Icon';
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[]; level: number }> = ({ categories, level }) => {
@@ -252,7 +252,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
         updatedTx.category = updatedValues.category;
         if (newType) {
           updatedTx.type = newType;
-          updatedTx.amount = newType === 'income' ? Math.abs(updatedTx.amount) : -Math.abs(updatedTx.amount);
+          updatedTx.amount = newType === 'income' ? safeRound(Math.abs(updatedTx.amount), 2) : -safeRound(Math.abs(updatedTx.amount), 2);
         }
 
         // If this was a transfer, convert it into an ordinary transaction and delete counterpart

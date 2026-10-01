@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { countries, type TCountryCode } from 'countries-list';
 import { Transaction, Currency } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, safeRound } from '../utils';
 import L from 'leaflet';
 import Icon from './ui/Icon';
 import { useCartoBasemap } from '../hooks/useCartoBasemap';
@@ -150,7 +150,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         const current = map.get(key);
         if (current) {
           current.count += 1;
-          current.amountTotal += tx.amount;
+          current.amountTotal = safeRound(current.amountTotal + tx.amount, 2);
           current.transactions.push(tx);
         } else {
           map.set(key, {
@@ -158,7 +158,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
             lat: Number(tx.latitude!.toFixed(4)),
             lon: Number(tx.longitude!.toFixed(4)),
             count: 1,
-            amountTotal: tx.amount,
+            amountTotal: safeRound(tx.amount, 2),
             transactions: [tx],
           });
         }

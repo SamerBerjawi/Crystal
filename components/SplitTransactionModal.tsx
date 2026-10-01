@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Transaction, Category } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, safeRound } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
 
@@ -71,7 +71,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
 
   const totalAmount = Math.abs(transaction.amount);
   const currentTotal = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-  const remaining = totalAmount - currentTotal;
+  const remaining = safeRound(totalAmount - currentTotal, 2);
 
   const handleAddSplit = () => {
     setSplits([...splits, { id: Date.now().toString(), amount: '0', category: '', description: '' }]);
@@ -103,7 +103,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
       parentTransactionId: transaction.id,
       isSplitParent: false,
       isCombinedParent: false,
-      amount: transaction.amount >= 0 ? parseFloat(s.amount) || 0 : -(parseFloat(s.amount) || 0),
+      amount: transaction.amount >= 0 ? safeRound(parseFloat(s.amount) || 0, 2) : -safeRound(parseFloat(s.amount) || 0, 2),
       category: s.category || transaction.category,
       description: s.description?.trim() || `${transaction.description} (Part ${index + 1})`,
     }));

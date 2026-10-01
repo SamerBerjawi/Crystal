@@ -21,7 +21,7 @@ import {
   ALL_ACCOUNT_TYPES,
   LIQUID_ACCOUNT_TYPES 
 } from '../constants';
-import { parseLocalDate, toLocalISOString, formatCurrency } from '../utils';
+import { parseLocalDate, toLocalISOString, formatCurrency, safeRound } from '../utils';
 import Icon from './ui/Icon';
 
 export interface RecurringTransactionModalProps {
@@ -128,7 +128,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
   // One-time bill form fields
   const isEditingBill = !!billToEdit?.id;
   const [billDescription, setBillDescription] = useState(billToEdit?.description || '');
-  const [billAmount, setBillAmount] = useState(billToEdit ? String(Math.abs(billToEdit.amount)) : '');
+  const [billAmount, setBillAmount] = useState(billToEdit ? safeRound(Math.abs(billToEdit.amount), 2).toFixed(2) : '');
   const [billType, setBillType] = useState<'payment' | 'deposit'>(billToEdit?.type || 'payment');
   const [billDueDate, setBillDueDate] = useState(billToEdit?.dueDate || initialDate || toLocalISOString(new Date()));
   const [billAccountId, setBillAccountId] = useState(billToEdit?.accountId || '');
@@ -168,7 +168,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
       }
       setDescription(recurringTransactionToEdit.description);
       setMerchant(recurringTransactionToEdit.merchant || '');
-      setAmount(String(recurringTransactionToEdit.amount));
+      setAmount(safeRound(recurringTransactionToEdit.amount, 2).toFixed(2));
       setCategory(recurringTransactionToEdit.category || '');
       setFrequency(recurringTransactionToEdit.frequency);
       setFrequencyInterval(String(recurringTransactionToEdit.frequencyInterval || '1'));
@@ -184,7 +184,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
     if (billToEdit) {
       setMode('one-time');
       setBillDescription(billToEdit.description || '');
-      setBillAmount(String(Math.abs(billToEdit.amount)));
+      setBillAmount(safeRound(Math.abs(billToEdit.amount), 2).toFixed(2));
       setBillType(billToEdit.type || 'payment');
       setBillDueDate(billToEdit.dueDate || toLocalISOString(new Date()));
       setBillAccountId(billToEdit.accountId || '');
@@ -257,7 +257,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
       toAccountId: isTransfer ? toAccountId : undefined,
       description: description.trim() || merchant.trim() || 'Recurring Transaction',
       merchant: merchant.trim() || undefined,
-      amount: parseFloat(amount),
+      amount: safeRound(parseFloat(amount), 2),
       category: isTransfer ? 'Transfer' : category,
       type,
       currency: fromAccount.currency,
@@ -288,7 +288,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
     const billToSave: Omit<BillPayment, 'id'> & { id?: string } = {
       id: billToEdit?.id,
       description: billDescription.trim() || (billType === 'payment' ? 'One-time Bill' : 'One-time Income'),
-      amount: billType === 'payment' ? -Math.abs(numAmount) : Math.abs(numAmount),
+      amount: billType === 'payment' ? -safeRound(Math.abs(numAmount), 2) : safeRound(Math.abs(numAmount), 2),
       type: billType,
       currency: 'EUR',
       dueDate: billDueDate,

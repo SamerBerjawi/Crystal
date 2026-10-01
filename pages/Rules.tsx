@@ -7,7 +7,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_ST
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
-import { formatCurrency } from '../utils';
+import { formatCurrency, safeRound } from '../utils';
 import { normalizeMerchantKey } from '../utils/brandfetch';
 import { evaluateRuleCondition, applyTransactionRulesToFields } from '../utils/rules';
 import { generateSmartRuleSuggestions, SmartRuleSuggestion, convertSuggestionToTransactionRule } from '../utils/ruleSuggestions';
@@ -1568,7 +1568,7 @@ const Rules: React.FC<RulesProps> = ({
                           {liveDraftMatches.slice(0, 6).map(tx => (
                             <span key={tx.id} className="text-xs bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 px-2.5 py-1 rounded-lg text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2 shadow-xs">
                               <span className="truncate max-w-[140px]">{tx.description || tx.merchant || 'Transaction'}</span>
-                              <span className="font-mono text-primary-500 font-bold">({tx.amount} EUR)</span>
+                              <span className="font-mono text-primary-500 font-bold">({formatCurrency(Number(tx.amount) || 0, 'EUR')})</span>
                             </span>
                           ))}
                           {liveDraftMatches.length > 6 && (
@@ -2961,7 +2961,7 @@ const Rules: React.FC<RulesProps> = ({
                             </td>
                             <td className="p-3">
                               <p className="font-bold text-light-text dark:text-dark-text truncate max-w-[200px]" title={originalTx.description}>{originalTx.description || 'Unspecified transaction'}</p>
-                              <p className="text-xs text-gray-400 font-mono mt-0.5">{originalTx.date} • {originalTx.amount} EUR</p>
+                              <p className="text-xs text-gray-400 font-mono mt-0.5">{originalTx.date} • {formatCurrency(Number(originalTx.amount) || 0, 'EUR')}</p>
                             </td>
 
                             {/* Current Values */}
@@ -3311,7 +3311,7 @@ const Rules: React.FC<RulesProps> = ({
                         onClick={() => {
                           setSandboxDesc(tx.description || '');
                           setSandboxMerchant(tx.merchant || '');
-                          setSandboxAmount(String(Math.abs(Number(tx.amount) || 0)));
+                          setSandboxAmount(safeRound(Math.abs(Number(tx.amount) || 0), 2).toFixed(2));
                           setSandboxType((tx.type as any) || 'expense');
                           setLedgerPickerOpen(false);
                           toast.success(`Loaded "${tx.description || tx.merchant}" into Sandbox simulator.`);

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
-import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -575,7 +575,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       initialCategory: category,
       initialDetails: {
         date: 'dueDate' in item ? item.dueDate : (item as RecurringTransaction).nextDueDate,
-        amount: String(Math.abs(item.amount)),
+        amount: safeRound(Math.abs(item.amount), 2).toFixed(2),
         description: item.description,
         merchant: merchant || (item as any)?.merchant || '',
       },
@@ -670,8 +670,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
     const result = {
       filteredTransactions: txsInPeriod.filter(tx => analyticsSelectedAccountIds.includes(tx.accountId)),
-      income: calculatedIncome,
-      expenses: calculatedExpenses,
+      income: safeRound(calculatedIncome, 2),
+      expenses: safeRound(calculatedExpenses, 2),
     };
     cacheAggregateResult(cacheKey, result);
     return result;
@@ -738,8 +738,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     };
 
     return {
-      incomeChange: calculateChangeString(income, prevIncome),
-      expenseChange: calculateChangeString(expenses, prevExpenses),
+      incomeChange: calculateChangeString(income, safeRound(prevIncome, 2)),
+      expenseChange: calculateChangeString(expenses, safeRound(prevExpenses, 2)),
     };
   }, [duration, transactions, analyticsSelectedAccountIds, income, expenses, transferLookup]);
 
@@ -958,7 +958,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     const calculateGroupTotal = (types: AccountType[]) => {
       const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
       const { totalAssets, totalDebt } = calculateAccountTotals(groupAccounts, analyticsTransactions, loanPaymentOverrides);
-      return totalAssets + totalDebt; // One will be 0 typically, except for mixed types which we don't have here
+      return safeRound(totalAssets + totalDebt, 2); // One will be 0 typically, except for mixed types which we don't have here
     };
 
     for (const groupName in assetGroups) {
@@ -968,7 +968,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       // Liabilities return positive totalDebt from calculateAccountTotals
       const groupAccounts = openAccounts.filter(acc => liabilityGroups[groupName].types.includes(acc.type));
       const { totalDebt } = calculateAccountTotals(groupAccounts, analyticsTransactions, loanPaymentOverrides);
-      liabilityGroups[groupName].value = totalDebt;
+      liabilityGroups[groupName].value = safeRound(totalDebt, 2);
     }
 
     return {

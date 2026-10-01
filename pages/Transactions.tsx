@@ -6,7 +6,7 @@ import { Transaction, Account, DisplayTransaction, RecurringTransaction, Categor
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import Card from '../components/Card';
-import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES } from '../utils';
+import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, CONVERSION_RATES, safeRound } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
@@ -637,7 +637,11 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       if (tx.type === 'income') income += amount;
       else expense += Math.abs(amount);
     });
-    return { totalIncome: income, totalExpense: expense, netFlow: income - expense };
+    return { 
+      totalIncome: safeRound(income, 2), 
+      totalExpense: safeRound(expense, 2), 
+      netFlow: safeRound(income - expense, 2) 
+    };
   }, [filteredTransactions]);
 
   const isAllSelected = useMemo(() => {
@@ -949,7 +953,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
       initialCategory: original.category,
       initialDetails: {
         date: original.date,
-        amount: String(Math.abs(original.amount)),
+        amount: safeRound(Math.abs(original.amount), 2).toFixed(2),
         description: original.description,
         merchant: original.merchant,
         tagIds: original.tagIds,

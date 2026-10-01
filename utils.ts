@@ -50,6 +50,10 @@ export function safeRound(a: number, decimals: number = 2): number {
     }
 }
 
+export function round2(a: number): number {
+    return safeRound(a, 2);
+}
+
 export function toCents(amount: number): number {
     try {
         return Math.round(Number(new Big(amount || 0).times(100).toFixed(4)));
@@ -487,7 +491,12 @@ export function calculateAccountTotals(
 
     const netWorth = safeSubtract(totalAssets, totalDebt);
 
-    return { totalAssets, totalDebt, netWorth, creditCardDebt };
+    return {
+        totalAssets: safeRound(totalAssets, 2),
+        totalDebt: safeRound(totalDebt, 2),
+        netWorth: safeRound(netWorth, 2),
+        creditCardDebt: safeRound(creditCardDebt, 2)
+    };
 }
 
 export function getDateRange(duration: Duration, allTransactions: Transaction[] = []): { start: Date, end: Date } {
@@ -694,17 +703,20 @@ export function getCreditCardStatementDetails(
             // between card and settlement account and should not affect statement spend.
             if (counterpart && counterpart.accountId === creditCardAccount.settlementAccountId) {
                 if (tx.type === 'income') {
-                    amountPaid += tx.amount;
+                    amountPaid = safeAdd(amountPaid, tx.amount);
                 }
                 continue; // Skip this transaction
             }
         }
 
         // All other transactions (expenses, refunds, non-settlement income) affect the statement balance.
-        statementBalance += tx.amount;
+        statementBalance = safeAdd(statementBalance, tx.amount);
     }
 
-    return { statementBalance, amountPaid };
+    return { 
+        statementBalance: safeRound(statementBalance, 2), 
+        amountPaid: safeRound(amountPaid, 2) 
+    };
 }
 
 
@@ -780,7 +792,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
         // Only statement debt should create a payment due.
         // Positive statement balances represent net credits/refunds and must not be auto-debited.
         const previousStatementDebt = prevStatementBalance < 0 ? Math.abs(prevStatementBalance) : 0;
-        const unpaidBalance = previousStatementDebt - prevAmountPaid;
+        const unpaidBalance = safeRound(previousStatementDebt - prevAmountPaid, 2);
 
         if (unpaidBalance > 0.005) { // Use a small epsilon to avoid floating point issues
             const dueDateStr = toLocalISOString(periods.previous.paymentDue);
@@ -819,7 +831,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
                 );
 
                 if (statementBalance < 0) {
-                    const paymentAmount = Math.abs(statementBalance);
+                    const paymentAmount = safeRound(Math.abs(statementBalance), 2);
                     const dueDateStr = toLocalISOString(detail.period.paymentDue);
 
                     // Don't duplicate if we already created an unpaid entry for the same date
@@ -1240,9 +1252,9 @@ export function generateBalanceForecast(
     let runningTotalBalance = 0;
 
     accounts.forEach(acc => {
-        const balanceEur = convertToEur(acc.balance, acc.currency);
+        const balanceEur = safeRound(convertToEur(acc.balance, acc.currency), 2);
         currentBalances[acc.id] = balanceEur;
-        runningTotalBalance += balanceEur;
+        runningTotalBalance = safeRound(runningTotalBalance + balanceEur, 2);
     });
 
     let currentDate = new Date(startDate.getTime());
@@ -1260,9 +1272,9 @@ export function generateBalanceForecast(
         if (dailyMarketRate !== 0) {
             accounts.forEach(acc => {
                 if (acc.type === 'Investment' && currentBalances[acc.id] !== undefined) {
-                    const growth = currentBalances[acc.id] * dailyMarketRate;
-                    currentBalances[acc.id] += growth;
-                    runningTotalBalance += growth;
+                    const growth = safeRound(currentBalances[acc.id] * dailyMarketRate, 2);
+                    currentBalances[acc.id] = safeRound(currentBalances[acc.id] + growth, 2);
+                    runningTotalBalance = safeRound(runningTotalBalance + growth, 2);
                 }
             });
         }
@@ -1281,22 +1293,22 @@ export function generateBalanceForecast(
 
         if (eventsForDay.length > 0) {
             for (const event of eventsForDay) {
-                const amountInEur = convertToEur(event.amount, event.currency);
+                const amountInEur = safeRound(convertToEur(event.amount, event.currency), 2);
                 const isSkipped = (event.originalItem as any)?.isSkipped;
 
                 if (!isSkipped) {
                     if (event.accountId && currentBalances[event.accountId] !== undefined) {
-                        currentBalances[event.accountId] += amountInEur;
+                        currentBalances[event.accountId] = safeRound(currentBalances[event.accountId] + amountInEur, 2);
                     }
 
                     if (event.accountId && accountIds.has(event.accountId)) {
-                        runningTotalBalance += amountInEur;
+                        runningTotalBalance = safeRound(runningTotalBalance + amountInEur, 2);
                     } else if (!event.accountId) {
                         // Unassigned bill/income -> affects total view
-                        runningTotalBalance += amountInEur;
+                        runningTotalBalance = safeRound(runningTotalBalance + amountInEur, 2);
                     }
 
-                    tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningTotalBalance });
+                    tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: safeRound(runningTotalBalance, 2) });
                     dailySummary.push({
                         description: event.description,
                         amount: amountInEur,
@@ -1309,12 +1321,12 @@ export function generateBalanceForecast(
         // Construct data point
         const dataPoint: any = {
             date: dateStr,
-            value: runningTotalBalance,
+            value: safeRound(runningTotalBalance, 2),
             dailySummary: dailySummary
         };
         // Add individual account balances to the data point for the multi-line chart
         Object.entries(currentBalances).forEach(([accId, bal]) => {
-            dataPoint[accId] = bal;
+            dataPoint[accId] = safeRound(bal, 2);
         });
 
         chartData.push(dataPoint);
