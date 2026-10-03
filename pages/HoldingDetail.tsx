@@ -363,9 +363,9 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                             <InvestmentCandlestickChart
                                 title={`${holding.symbol} (${holding.name}) Price Action`}
                                 subtitle="OHLC Candlestick performance trend analysis"
-                                currentValue={holding.currentValue}
-                                costBasis={holding.totalCost}
-                                isNegativeTrend={holding.currentValue < holding.totalCost}
+                                currentValue={holding.currentPrice > 0 ? holding.currentPrice : (holding.quantity > 0 ? holding.currentValue / holding.quantity : holding.currentValue)}
+                                costBasis={holding.quantity > 0 ? holding.totalCost / holding.quantity : undefined}
+                                isNegativeTrend={holding.currentPrice > 0 ? (holding.quantity > 0 && holding.currentPrice < (holding.totalCost / holding.quantity)) : holding.currentValue < holding.totalCost}
                                 priceHistory={historyData}
                                 currency="EUR"
                                 height={300}

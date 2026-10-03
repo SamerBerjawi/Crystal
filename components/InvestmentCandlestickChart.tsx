@@ -144,7 +144,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
         const diffDays = Math.ceil((new Date().getTime() - earliestDate.getTime()) / (1000 * 3600 * 24));
         daysOffset = Math.max(30, diffDays);
       } else {
-        daysOffset = 1095;
+        daysOffset = 365;
       }
     }
 
@@ -152,84 +152,98 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - daysOffset);
 
-    // Filter history entries within the selected timeframe
-    const historyInRange = sortedHistory.filter((h) => {
-      const d = new Date(h.date);
-      return d >= startDate && d <= endDate;
-    });
-
-    const lastHistoryPrice = sortedHistory.length > 0 ? sortedHistory[sortedHistory.length - 1].price : 0;
-    const endValue = currentValue > 0 ? currentValue : (lastHistoryPrice > 0 ? lastHistoryPrice : 1000);
-
-    const historyAtStart = sortedHistory.find((h) => new Date(h.date) >= startDate);
-    const firstHistoryPrice = sortedHistory.length > 0 ? sortedHistory[0].price : undefined;
-
-    let startValue: number;
-    if (historyAtStart) {
-      startValue = historyAtStart.price;
-    } else if (firstHistoryPrice !== undefined && timeframe === 'ALL') {
-      startValue = firstHistoryPrice;
-    } else if (costBasis && costBasis > 0) {
-      startValue = costBasis;
-    } else if (isNegativeTrend) {
-      startValue = endValue * 1.18;
-    } else {
-      const isLoss = costBasis ? costBasis > endValue : false;
-      if (isLoss) {
-        startValue = endValue * 1.15;
-      } else {
-        const gainRatio = timeframe === '1M' ? 0.03 : timeframe === '3M' ? 0.06 : timeframe === '6M' ? 0.10 : 0.15;
-        startValue = endValue / (1 + gainRatio);
-      }
+    // If completely empty history, do not fabricate synthetic upward curves
+    if (sortedHistory.length === 0) {
+      return [];
     }
 
+    // Filter history entries strictly within the selected window
+    const historyInRange = sortedHistory.filter((h) => {
+      const d = new Date(h.date);
+      return d > startDate && d <= endDate;
+    });
+
+    const lastHistoryPrice = sortedHistory[sortedHistory.length - 1].price;
+    const endValue = currentValue > 0 ? currentValue : lastHistoryPrice;
+
+    // Find the opening valuation prior to or right at the start of this timeframe window
+    const pastEntries = sortedHistory.filter((h) => new Date(h.date) <= startDate);
+    let initialOpeningValuation: number;
+    if (pastEntries.length > 0) {
+      initialOpeningValuation = pastEntries[pastEntries.length - 1].price;
+    } else if (historyInRange.length > 0) {
+      initialOpeningValuation = historyInRange[0].price;
+    } else {
+      initialOpeningValuation = endValue;
+    }
+
+    const startValue = initialOpeningValuation;
     const result: OHLCDataPoint[] = [];
 
-    // BRANCH A: RAW LOGS MODE (NO ZERO DROPS, MAP EACH LOG 1:1 AT TRUE PRICE LEVEL)
-    if (granularity === 'raw' && historyInRange.length > 0) {
-      let previousClose = historyInRange[0].price;
+    // If no price fluctuations recorded in this specific timeframe, display clean baseline at endValue
+    if (historyInRange.length === 0) {
+      const flatValue = Number(endValue.toFixed(2));
+      if (granularity === 'raw') {
+        result.push({
+          date: endDate,
+          open: flatValue,
+          high: flatValue,
+          low: flatValue,
+          close: flatValue,
+        });
+        return result;
+      }
+
+      const candleCount = Math.max(2, Math.min(52, Math.ceil(daysOffset / 7)));
+      const stepMs = (endDate.getTime() - startDate.getTime()) / candleCount;
+      for (let i = 0; i < candleCount; i++) {
+        result.push({
+          date: new Date(startDate.getTime() + stepMs * (i + 1)),
+          open: flatValue,
+          high: flatValue,
+          low: flatValue,
+          close: flatValue,
+        });
+      }
+      return result;
+    }
+
+    // BRANCH A: RAW LOGS MODE (1:1 mapping of recorded valuation changes)
+    if (granularity === 'raw') {
+      let previousClose = startValue;
 
       for (let i = 0; i < historyInRange.length; i++) {
         const entry = historyInRange[i];
         const entryDate = new Date(entry.date);
 
-        const open = i === 0
-          ? (historyAtStart && historyAtStart.date !== entry.date ? historyAtStart.price : entry.price)
-          : previousClose;
+        const open = previousClose;
         const close = entry.price;
 
-        const bodyMax = Math.max(open, close);
-        const bodyMin = Math.min(open, close);
-        const spread = Math.abs(close - open);
-
-        const wickVolatility = Math.max(spread * 0.4, Math.abs(open) * 0.005);
-        const high = Number((bodyMax + wickVolatility * (0.3 + Math.abs(Math.sin(i * 1.5)) * 0.7)).toFixed(2));
-        const low = Number((bodyMin - wickVolatility * (0.3 + Math.abs(Math.cos(i * 1.5)) * 0.7)).toFixed(2));
+        const high = Math.max(open, close);
+        const low = Math.min(open, close);
 
         previousClose = close;
 
         result.push({
           date: entryDate,
           open: Number(open.toFixed(2)),
-          high: Math.max(high, open, close),
-          low: Math.min(low, open, close),
+          high: Number(high.toFixed(2)),
+          low: Number(low.toFixed(2)),
           close: Number(close.toFixed(2)),
         });
       }
 
-      // Append latest market close candle ONLY if endValue differs significantly and log is older than 24h
+      // If latest market close differs from last logged entry and last entry is older than 12h, add close candle
       const lastEntry = historyInRange[historyInRange.length - 1];
       const timeDiff = endDate.getTime() - new Date(lastEntry.date).getTime();
-      if (timeDiff > 86400000 && endValue > 0 && Math.abs(lastEntry.price - endValue) > 0.01) {
+      if (timeDiff > 43200000 && endValue > 0 && Math.abs(lastEntry.price - endValue) > 0.01) {
         const open = previousClose;
         const close = endValue;
-        const bodyMax = Math.max(open, close);
-        const bodyMin = Math.min(open, close);
         result.push({
           date: endDate,
           open: Number(open.toFixed(2)),
-          high: Math.max(bodyMax, open, close),
-          low: Math.min(bodyMin, open, close),
+          high: Number(Math.max(open, close).toFixed(2)),
+          low: Number(Math.min(open, close).toFixed(2)),
           close: Number(close.toFixed(2)),
         });
       }
@@ -237,27 +251,8 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       return result;
     }
 
-    // BRANCH B: WEEKLY GROUPED MODE OR FALLBACK FOR UNLOGGED DAYS
-    const candleCount = granularity === 'weekly'
-      ? Math.max(4, Math.ceil(daysOffset / 7))
-      : Math.min(30, Math.max(6, Math.ceil(daysOffset / 4)));
-
-    // Baseline price sequence for smooth interpolation
-    const prices: number[] = [startValue];
-    for (let i = 1; i <= candleCount; i++) {
-      if (i === candleCount) {
-        prices.push(endValue);
-      } else {
-        const progress = i / candleCount;
-        const linearValue = startValue + (endValue - startValue) * progress;
-        const volatility = Math.abs(endValue) * 0.012;
-        const wave = Math.sin(i * 0.5) * 0.5 + Math.cos(i * 1.1) * 0.3;
-        const damping = Math.sin(progress * Math.PI);
-        const nextPrice = linearValue + wave * volatility * damping;
-        prices.push(Math.max(0.01, Number(nextPrice.toFixed(2))));
-      }
-    }
-
+    // BRANCH B: WEEKLY GROUPED MODE
+    const candleCount = Math.max(2, Math.min(52, Math.ceil(daysOffset / 7)));
     const stepMs = (endDate.getTime() - startDate.getTime()) / candleCount;
     let previousClose = startValue;
 
@@ -276,28 +271,18 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       let low: number;
 
       if (matchingEntries.length > 0) {
-        open = i === 0 ? matchingEntries[0].price : previousClose;
-        close = matchingEntries[matchingEntries.length - 1].price;
-        const pricesInSlot = matchingEntries.map((e) => e.price);
-        high = Math.max(...pricesInSlot, open, close);
-        low = Math.min(...pricesInSlot, open, close);
+        open = previousClose;
+        close = (i === candleCount - 1 && endValue > 0)
+          ? endValue
+          : matchingEntries[matchingEntries.length - 1].price;
+        const pricesInSlot = [...matchingEntries.map((e) => e.price), open, close];
+        high = Math.max(...pricesInSlot);
+        low = Math.min(...pricesInSlot);
       } else {
-        const openVal = prices[i];
-        const closeVal = prices[i + 1];
-
-        open = i === 0 ? openVal : previousClose;
-        close = i === candleCount - 1 ? endValue : closeVal;
-
-        const bodyMax = Math.max(open, close);
-        const bodyMin = Math.min(open, close);
-        const spread = Math.abs(close - open);
-
-        const wickVolatility = Math.max(spread * 0.6, Math.abs(open) * 0.005);
-        const highWick = (Math.abs(Math.sin(i * 1.3)) * 0.8 + 0.2) * wickVolatility;
-        const lowWick = (Math.abs(Math.cos(i * 1.7)) * 0.8 + 0.2) * wickVolatility;
-
-        high = Number((bodyMax + highWick).toFixed(2));
-        low = Math.max(0.01, Number((bodyMin - lowWick).toFixed(2)));
+        open = previousClose;
+        close = (i === candleCount - 1 && endValue > 0) ? endValue : previousClose;
+        high = Math.max(open, close);
+        low = Math.min(open, close);
       }
 
       open = Math.max(0.01, Number(open.toFixed(2)));
@@ -317,19 +302,20 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     }
 
     return result;
-  }, [timeframe, granularity, currentValue, costBasis, priceHistory, transactions, isNegativeTrend]);
+  }, [timeframe, granularity, currentValue, priceHistory, transactions]);
 
   const stats = useMemo(() => {
-    if (ohlcData.length === 0)
+    if (ohlcData.length === 0) {
       return {
         startDate: new Date(),
-        open: 0,
-        high: 0,
-        low: 0,
-        close: 0,
+        open: currentValue || 0,
+        high: currentValue || 0,
+        low: currentValue || 0,
+        close: currentValue || 0,
         change: 0,
         changePercent: 0,
       };
+    }
 
     const first = ohlcData[0];
     const last = ohlcData[ohlcData.length - 1];
@@ -348,7 +334,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       change: diff,
       changePercent,
     };
-  }, [ohlcData]);
+  }, [ohlcData, currentValue]);
 
   const startDateFormatted = useMemo(() => {
     return stats.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: timeframe === 'ALL' || timeframe === '1Y' ? '2-digit' : undefined });
@@ -478,32 +464,44 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
       {/* Main Candlestick Chart Area */}
       <div className="w-full relative h-[180px] min-h-[175px] max-h-[180px]">
-        <CandlestickChart
-          key={`${timeframe}-${granularity}`}
-          revealSignature={`${timeframe}-${granularity}`}
-          data={ohlcData}
-          margin={{ top: 12, right: 16, bottom: 28, left: 16 }}
-          style={{ height: 180, minHeight: 175 }}
-          candleGap={0.25}
-        >
-          <Grid horizontal stroke="rgba(128,128,128,0.12)" />
-          <Candlestick
-            positiveFill="#10b981"
-            negativeFill="#ef4444"
-            fadedOpacity={0.25}
-          />
-          <ChartTooltip
-            showCrosshair={true}
-            showDots={false}
-            indicatorColor={(pt) =>
-              Number(pt.close) >= Number(pt.open) ? '#10b981' : '#ef4444'
-            }
-            content={({ point, index }) => (
-              <OHLCTooltipContent point={point} index={index} currency={currency} granularity={granularity} />
-            )}
-          />
-          <XAxis />
-        </CandlestickChart>
+        {ohlcData.length > 0 ? (
+          <CandlestickChart
+            key={`${timeframe}-${granularity}`}
+            revealSignature={`${timeframe}-${granularity}`}
+            data={ohlcData}
+            margin={{ top: 12, right: 16, bottom: 28, left: 16 }}
+            style={{ height: 180, minHeight: 175 }}
+            candleGap={0.25}
+          >
+            <Grid horizontal stroke="rgba(128,128,128,0.12)" />
+            <Candlestick
+              positiveFill="#10b981"
+              negativeFill="#ef4444"
+              fadedOpacity={0.25}
+            />
+            <ChartTooltip
+              showCrosshair={true}
+              showDots={false}
+              indicatorColor={(pt) =>
+                Number(pt.close) >= Number(pt.open) ? '#10b981' : '#ef4444'
+              }
+              content={({ point, index }) => (
+                <OHLCTooltipContent point={point} index={index} currency={currency} granularity={granularity} />
+              )}
+            />
+            <XAxis />
+          </CandlestickChart>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-200/80 dark:border-white/10 rounded-xl bg-slate-500/[0.02]">
+            <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500 mb-1.5">
+              <Icon name="candlestick_chart" className="text-base" />
+            </div>
+            <p className="text-xs font-semibold text-light-text dark:text-dark-text">No Historical Checkpoints</p>
+            <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary max-w-sm mt-0.5">
+              Candlesticks require historical valuation logs or symbol price checkpoints. Add transactions or log price updates to view OHLC trends.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

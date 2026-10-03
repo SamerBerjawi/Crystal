@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
+import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview, PriceHistoryEntry } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur } from '../utils';
@@ -51,6 +51,7 @@ interface InvestmentsProps {
     transactions: Transaction[];
     onViewAccount?: (accountId: string) => void;
     holdingsOverview?: HoldingsOverview;
+    priceHistory?: Record<string, PriceHistoryEntry[]>;
 }
 
 type InvestmentSegment = 'all' | 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Spare Change' | 'Pension Fund' | 'Other';
@@ -75,7 +76,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     deleteAccount,
     transactions,
     onViewAccount,
-    holdingsOverview: propHoldingsOverview
+    holdingsOverview: propHoldingsOverview,
+    priceHistory = {}
 }) => {
     const isMobile = useIsMobile();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -181,51 +183,6 @@ const Investments: React.FC<InvestmentsProps> = ({
         [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings, activeSegment]
     );
 
-    const segmentPriceHistory = useMemo(() => {
-        const matchingAccounts = activeSegment === 'all' 
-            ? investmentAccounts 
-            : investmentAccounts.filter(a => a.subType === (activeSegment as any));
-
-        const accountsWithHistory = matchingAccounts.filter(acc => acc.priceHistory && acc.priceHistory.length > 0);
-        if (accountsWithHistory.length === 0) {
-            return [];
-        }
-
-        if (accountsWithHistory.length === 1 && matchingAccounts.length === 1) {
-            return [...(accountsWithHistory[0].priceHistory || [])].sort(
-                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-            );
-        }
-
-        // Collect all distinct dates across accounts with history
-        const allDates = Array.from(
-            new Set(
-                accountsWithHistory.flatMap(acc => (acc.priceHistory || []).map(entry => entry.date))
-            )
-        ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-        // For each date, calculate cumulative portfolio/segment valuation
-        return allDates.map(date => {
-            const totalOnDate = matchingAccounts.reduce((sum, acc) => {
-                const history = acc.priceHistory || [];
-                if (history.length === 0) {
-                    return sum + (acc.balance || 0);
-                }
-                const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                const pastEntries = sorted.filter(e => e.date <= date);
-                if (pastEntries.length > 0) {
-                    return sum + pastEntries[pastEntries.length - 1].price;
-                }
-                return sum + (sorted[0]?.price ?? acc.balance ?? 0);
-            }, 0);
-
-            return {
-                date,
-                price: Number(totalOnDate.toFixed(2))
-            };
-        });
-    }, [investmentAccounts, activeSegment]);
-
     const accountBySymbol = useMemo(() => {
         const map = new Map<string, Account>();
         investmentAccounts.forEach(account => {
@@ -235,6 +192,125 @@ const Investments: React.FC<InvestmentsProps> = ({
         });
         return map;
     }, [investmentAccounts]);
+
+    const segmentPriceHistory = useMemo(() => {
+        const matchingHoldings = activeOverview.holdings;
+        const matchingSymbols = new Set(matchingHoldings.map(h => h.symbol));
+        const matchingWarrants = (activeSegment === 'all' || activeSegment === 'Warrant') ? warrants : [];
+
+        // Combine dictionary priceHistory with account.priceHistory logs
+        const getSymbolHistory = (symbol: string) => {
+            const fromDict = priceHistory[symbol] || [];
+            const fromAcc = accountBySymbol.get(symbol)?.priceHistory || [];
+            const map = new Map<string, number>();
+            [...fromDict, ...fromAcc].forEach(entry => {
+                if (entry && entry.date && typeof entry.price === 'number') {
+                    map.set(entry.date, entry.price);
+                }
+            });
+            return Array.from(map.entries())
+                .map(([date, price]) => ({ date, price }))
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        };
+
+        // Collect all distinct historical dates across relevant holdings, warrants, and transactions
+        const dateSet = new Set<string>();
+
+        matchingHoldings.forEach(h => {
+            const symHist = getSymbolHistory(h.symbol);
+            symHist.forEach(entry => dateSet.add(entry.date));
+        });
+
+        matchingWarrants.forEach(w => {
+            const wHist = getSymbolHistory(w.isin);
+            wHist.forEach(entry => dateSet.add(entry.date));
+        });
+
+        investmentTransactions.forEach(tx => {
+            if (activeSegment === 'all' || matchingSymbols.has(tx.symbol)) {
+                dateSet.add(tx.date);
+            }
+        });
+
+        if (dateSet.size === 0) {
+            return [];
+        }
+
+        const allDates = Array.from(dateSet).sort(
+            (a, b) => new Date(a).getTime() - new Date(b).getTime()
+        );
+
+        // Calculate valuation on each date strictly based on holdings and warrants in activeOverview
+        const historyData = allDates.map(date => {
+            let totalOnDate = 0;
+
+            matchingHoldings.forEach(h => {
+                if (h.type === 'Warrant') return;
+
+                // Price of holding on date
+                const symHist = getSymbolHistory(h.symbol);
+                const past = symHist.filter(e => e.date <= date);
+                let priceOnDate = h.currentPrice;
+
+                if (past.length > 0) {
+                    priceOnDate = past[past.length - 1].price;
+                } else if (symHist.length > 0) {
+                    priceOnDate = symHist[0].price;
+                }
+
+                // If no price logged on or before date, check transaction price
+                const txsForSymbol = investmentTransactions
+                    .filter(t => t.symbol === h.symbol && t.date <= date)
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                if (past.length === 0 && txsForSymbol.length > 0) {
+                    priceOnDate = txsForSymbol[txsForSymbol.length - 1].price;
+                }
+
+                // Quantity on date
+                const allTxsForSymbol = investmentTransactions.filter(t => t.symbol === h.symbol);
+                let qtyOnDate = h.quantity;
+                if (allTxsForSymbol.length > 0) {
+                    qtyOnDate = txsForSymbol.reduce((q, tx) => {
+                        const amount = Number(tx.quantity) || 0;
+                        return tx.type?.toLowerCase() === 'buy' ? q + amount : Math.max(0, q - amount);
+                    }, 0);
+                }
+
+                if (qtyOnDate <= 0.000001) return;
+
+                totalOnDate += qtyOnDate * priceOnDate;
+            });
+
+            matchingWarrants.forEach(w => {
+                const wHist = getSymbolHistory(w.isin);
+                const currWPrice = (prices[w.isin] && prices[w.isin]! > 0)
+                    ? prices[w.isin]!
+                    : (wHist.length > 0 ? wHist[wHist.length - 1].price : w.grantPrice);
+                const past = wHist.filter(e => e.date <= date);
+                const priceOnDate = past.length > 0 ? past[past.length - 1].price : currWPrice;
+                totalOnDate += (w.quantity || 0) * priceOnDate;
+            });
+
+            return {
+                date,
+                price: Number(totalOnDate.toFixed(2))
+            };
+        });
+
+        // Current valuation anchor for today based directly on totalValue
+        const todayStr = toLocalISOString(new Date());
+        if (historyData.length > 0 && historyData[historyData.length - 1].date !== todayStr) {
+            historyData.push({
+                date: todayStr,
+                price: Number((totalValue || 0).toFixed(2))
+            });
+        } else if (historyData.length > 0 && historyData[historyData.length - 1].date === todayStr) {
+            historyData[historyData.length - 1].price = Number((totalValue || 0).toFixed(2));
+        }
+
+        return historyData;
+    }, [activeOverview, activeSegment, warrants, priceHistory, investmentTransactions, prices, totalValue, accountBySymbol]);
     
     const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
         (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
@@ -664,10 +740,10 @@ const Investments: React.FC<InvestmentsProps> = ({
         const totalNonSymbol = Object.values(nonSymbolBalancesByType).reduce((a, b) => a + b, 0);
 
         return {
-            all: globalOverview.totalValue + totalNonSymbol,
-            Stock: stocks.totalValue + stockExtra,
-            ETF: etfs.totalValue + etfExtra,
-            Crypto: crypto.totalValue + cryptoExtra,
+            all: globalOverview.totalValue,
+            Stock: stocks.totalValue,
+            ETF: etfs.totalValue,
+            Crypto: crypto.totalValue,
             Warrant: warrantsOnly.totalValue,
             'Spare Change': spareChangeVal,
             'Pension Fund': pensionVal,
@@ -1034,9 +1110,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <InvestmentCandlestickChart
                             title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
                             subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
-                            currentValue={segmentMetrics.totalValue}
+                            currentValue={totalValue}
                             costBasis={totalCostBasis}
-                            isNegativeTrend={segmentMetrics.totalValue < (totalCostBasis || 0)}
+                            isNegativeTrend={totalValue < (totalCostBasis || 0)}
                             priceHistory={segmentPriceHistory}
                             transactions={investmentTransactions}
                             currency="EUR"
