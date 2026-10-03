@@ -106,9 +106,9 @@ export function Grid({
   strokeDasharray = "4,4",
   highlightRowValues,
   highlightRowStroke = chartCssVars.foregroundMuted,
-  highlightRowStrokeOpacity = 1,
-  highlightRowStrokeWidth = 1,
-  highlightRowStrokeDasharray = "0",
+  highlightRowStrokeOpacity = 0.85,
+  highlightRowStrokeWidth = 1.5,
+  highlightRowStrokeDasharray = "6,4",
   fadeHorizontal = true,
   fadeVertical = false,
   hideHorizontalEdgeLines = false,
@@ -273,16 +273,22 @@ export function Grid({
       {horizontal && highlightRowValues && highlightRowValues.length > 0 ? (
         <g className="chart-grid-highlight-rows">
           {highlightRowValues.map((value) => {
-            const y = yScale(value);
-            if (y == null || !Number.isFinite(y)) {
+            const rawY = yScale(value);
+            if (rawY == null || !Number.isFinite(rawY) || rawY < 0 || rawY > innerHeight) {
               return null;
             }
+            // Clamp slightly so bottom-edge or top-edge baselines stay cleanly within view
+            const y = Math.min(innerHeight - 0.75, Math.max(0.75, rawY));
 
             return (
               <line
                 key={value}
                 stroke={highlightRowStroke}
-                strokeDasharray={highlightRowStrokeDasharray}
+                strokeDasharray={
+                  highlightRowStrokeDasharray === "none"
+                    ? undefined
+                    : highlightRowStrokeDasharray
+                }
                 strokeOpacity={highlightRowStrokeOpacity}
                 strokeWidth={highlightRowStrokeWidth}
                 x1={0}

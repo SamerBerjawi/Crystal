@@ -191,7 +191,13 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
         className={`w-full h-full ${minHeight}`}
         margin={margin}
       >
-        <Grid horizontal />
+        <Grid
+          horizontal
+          highlightRowValues={[0]}
+          highlightRowStrokeDasharray="6,4"
+          highlightRowStrokeWidth={1.5}
+          highlightRowStrokeOpacity={0.85}
+        />
         <XAxis />
         <YAxis tickFormatter={yAxisTickFormatter} />
 

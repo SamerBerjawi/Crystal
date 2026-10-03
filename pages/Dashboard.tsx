@@ -16,12 +16,10 @@ import ForecastOverview from '../components/ForecastOverview';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
-import TransactionMatcherModal from '../components/TransactionMatcherModal';
-import TransactionMatcherCard from '../components/TransactionMatcherCard';
-import { useSyncedBillMatcher } from '../hooks/useSyncedBillMatcher';
-import SyncedBillMatcherModal from '../components/SyncedBillMatcherModal';
-import SyncedBillMatcherCard from '../components/SyncedBillMatcherCard';
+import { useSyncedBillMatcher, SyncedBillMatchSuggestion } from '../hooks/useSyncedBillMatcher';
 import { useMatcherConfig } from '../hooks/useMatcherConfig';
+import UnifiedPendingMatcherCard from '../components/UnifiedPendingMatcherCard';
+import UnifiedPendingMatchesModal from '../components/UnifiedPendingMatchesModal';
 import PendingMatchesView from '../components/PendingMatchesView';
 import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
@@ -243,8 +241,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
-  const [isBillMatcherModalOpen, setIsBillMatcherModalOpen] = useState(false);
+  const [isUnifiedPendingModalOpen, setIsUnifiedPendingModalOpen] = useState(false);
+  const [unifiedModalInitialFilter, setUnifiedModalInitialFilter] = useState<'all' | 'transfer' | 'bill'>('all');
 
   const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
   const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
@@ -1478,9 +1476,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     }).sort((a, b) => b.value - a.value);
   }, [budgets, expenseCategories]);
 
-  const totalPendingMatchesCount = suggestions.length + billSuggestions.length;
-  const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
-
   const filteredBillSuggestions = useMemo(() => {
     if (selectedAccountIds.length === 0) return billSuggestions;
     return billSuggestions.filter(s => selectedAccountIds.includes(s.transaction.accountId));
@@ -1490,6 +1485,59 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     if (selectedAccountIds.length === 0) return suggestions;
     return suggestions.filter(s => selectedAccountIds.includes(s.expenseTx.accountId) || selectedAccountIds.includes(s.incomeTx.accountId));
   }, [suggestions, selectedAccountIds]);
+
+  // Harmonize & deduplicate matches across both transfer and bill matchers
+  const { dedupedTransferSuggestions, dedupedBillSuggestions } = useMemo(() => {
+    // If a transaction appears in both transfer suggestions and bill suggestions,
+    // assign it to whichever matcher produced the higher matchScore to avoid conflicting duplicate prompts.
+    const billByTxId = new Map<string, SyncedBillMatchSuggestion>();
+    filteredBillSuggestions.forEach(b => {
+      billByTxId.set(b.transaction.id, b);
+    });
+
+    const suppressedTransferIds = new Set<string>();
+    const suppressedBillIds = new Set<string>();
+
+    filteredTransferSuggestions.forEach(t => {
+      const expConflict = billByTxId.get(t.expenseTx.id);
+      const incConflict = billByTxId.get(t.incomeTx.id);
+      const conflict = expConflict || incConflict;
+
+      if (conflict) {
+        if (t.matchScore >= conflict.matchScore) {
+          suppressedBillIds.add(conflict.id);
+        } else {
+          suppressedTransferIds.add(t.id);
+        }
+      }
+    });
+
+    return {
+      dedupedTransferSuggestions: filteredTransferSuggestions.filter(s => !suppressedTransferIds.has(s.id)),
+      dedupedBillSuggestions: filteredBillSuggestions.filter(b => !suppressedBillIds.has(b.id)),
+    };
+  }, [filteredTransferSuggestions, filteredBillSuggestions]);
+
+  const totalPendingMatchesCount = dedupedTransferSuggestions.length + dedupedBillSuggestions.length;
+  const tabs: DashboardTab[] = ['overview', 'analysis', 'activity', 'pending_matches'];
+
+  const highConfidencePendingCount = useMemo(() => {
+    const highTransfers = dedupedTransferSuggestions.filter(s => s.matchScore >= 80).length;
+    const highBills = dedupedBillSuggestions.filter(s => s.matchScore >= 80).length;
+    return highTransfers + highBills;
+  }, [dedupedTransferSuggestions, dedupedBillSuggestions]);
+
+  const handleQuickReconcileHighConfidence = useCallback(() => {
+    const highTransfers = dedupedTransferSuggestions.filter(s => s.matchScore >= 80);
+    const highBills = dedupedBillSuggestions.filter(s => s.matchScore >= 80);
+    if (highTransfers.length > 0) confirmSelectedMatches(highTransfers);
+    if (highBills.length > 0) confirmSelectedBillMatches(highBills);
+  }, [dedupedTransferSuggestions, dedupedBillSuggestions, confirmSelectedMatches, confirmSelectedBillMatches]);
+
+  const handleDismissAllPending = useCallback(() => {
+    dismissAllSuggestions();
+    dismissAllBillMatches();
+  }, [dismissAllSuggestions, dismissAllBillMatches]);
 
   return (
     <div
@@ -1529,32 +1577,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         onDelete={handleDeleteTransaction}
       />
       <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
-      {isMatcherModalOpen && (
-        <TransactionMatcherModal
-          isOpen={isMatcherModalOpen}
-          onClose={() => setIsMatcherModalOpen(false)}
-          suggestions={suggestions}
-          accounts={accounts}
-          onConfirmMatch={confirmMatch}
-          onDismissSuggestion={dismissSuggestion}
-          onConfirmAll={confirmAllMatches}
-          onDismissAll={dismissAllSuggestions}
-          onConfirmSelected={confirmSelectedMatches}
-          onDismissSelected={dismissSelectedMatches}
-        />
-      )}
-      {isBillMatcherModalOpen && (
-        <SyncedBillMatcherModal
-          isOpen={isBillMatcherModalOpen}
-          onClose={() => setIsBillMatcherModalOpen(false)}
-          suggestions={billSuggestions}
-          accounts={accounts}
-          onConfirmMatch={confirmBillMatch}
-          onDismissSuggestion={dismissBillMatch}
-          onConfirmAll={confirmAllBillMatches}
-          onDismissAll={dismissAllBillMatches}
-          onConfirmSelected={confirmSelectedBillMatches}
-          onDismissSelected={dismissSelectedBillMatches}
+      {isUnifiedPendingModalOpen && (
+        <UnifiedPendingMatchesModal
+          isOpen={isUnifiedPendingModalOpen}
+          onClose={() => setIsUnifiedPendingModalOpen(false)}
+          transferSuggestions={dedupedTransferSuggestions}
+          billSuggestions={dedupedBillSuggestions}
+          accounts={analyticsAccounts}
+          initialFilter={unifiedModalInitialFilter}
+          onConfirmTransferMatch={confirmMatch}
+          onDismissTransferMatch={dismissSuggestion}
+          onConfirmSelectedTransferMatches={confirmSelectedMatches}
+          onDismissSelectedTransferMatches={dismissSelectedMatches}
+          onConfirmBillMatch={confirmBillMatch}
+          onDismissBillMatch={dismissBillMatch}
+          onConfirmSelectedBillMatches={confirmSelectedBillMatches}
+          onDismissSelectedBillMatches={dismissSelectedBillMatches}
+          onConfirmAll={() => {
+            confirmAllMatches();
+            confirmAllBillMatches();
+          }}
+          onDismissAll={handleDismissAllPending}
+          onOpenFullPageTab={() => {
+            setIsUnifiedPendingModalOpen(false);
+            setActiveTab('pending_matches');
+          }}
         />
       )}
 
@@ -1650,12 +1697,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           handleOpenTransactionModal={handleOpenTransactionModal}
           isSyncingBanks={isSyncingBanks}
           onSyncBanks={onSyncBanks}
-          suggestions={suggestions}
-          setIsMatcherModalOpen={setIsMatcherModalOpen}
-          dismissAllSuggestions={dismissAllSuggestions}
-          billSuggestions={billSuggestions}
-          setIsBillMatcherModalOpen={setIsBillMatcherModalOpen}
-          dismissAllBillMatches={dismissAllBillMatches}
+          suggestions={dedupedTransferSuggestions}
+          setIsMatcherModalOpen={setIsUnifiedPendingModalOpen}
+          dismissAllSuggestions={handleDismissAllPending}
+          billSuggestions={dedupedBillSuggestions}
+          setIsBillMatcherModalOpen={setIsUnifiedPendingModalOpen}
+          dismissAllBillMatches={handleDismissAllPending}
           calculateAccountTotals={calculateAccountTotals}
           assetAllocationData={allocationData}
           assetGroups={assetGroups}
@@ -1726,19 +1773,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           />
         </div>
 
-        {suggestions.length > 0 && (
-          <TransactionMatcherCard
-            suggestionsCount={suggestions.length}
-            onReview={() => setIsMatcherModalOpen(true)}
-            onDismiss={dismissAllSuggestions}
-          />
-        )}
-
-        {billSuggestions.length > 0 && (
-          <SyncedBillMatcherCard
-            suggestionsCount={billSuggestions.length}
-            onReview={() => setIsBillMatcherModalOpen(true)}
-            onDismiss={dismissAllBillMatches}
+        {(dedupedTransferSuggestions.length > 0 || dedupedBillSuggestions.length > 0) && (
+          <UnifiedPendingMatcherCard
+            transferCount={dedupedTransferSuggestions.length}
+            billCount={dedupedBillSuggestions.length}
+            highConfidenceCount={highConfidencePendingCount}
+            onReview={(filter = 'all') => {
+              setUnifiedModalInitialFilter(filter);
+              setIsUnifiedPendingModalOpen(true);
+            }}
+            onDismissAll={handleDismissAllPending}
+            onQuickReconcileHighConfidence={handleQuickReconcileHighConfidence}
           />
         )}
 
@@ -2031,8 +2076,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
         {activeTab === 'pending_matches' && (
           <PendingMatchesView
-            billSuggestions={filteredBillSuggestions}
-            transferSuggestions={filteredTransferSuggestions}
+            billSuggestions={dedupedBillSuggestions}
+            transferSuggestions={dedupedTransferSuggestions}
             accounts={analyticsAccounts}
             config={matcherConfig}
             onUpdateConfig={updateMatcherConfig}

@@ -146,7 +146,13 @@ const ForecastChart: React.FC<ForecastChartProps> = ({
         className="w-full h-[400px]"
         margin={{ top: 20, right: 30, bottom: 30, left: 50 }}
       >
-        <Grid horizontal />
+        <Grid
+          horizontal
+          highlightRowValues={[0]}
+          highlightRowStrokeDasharray="6,4"
+          highlightRowStrokeWidth={1.5}
+          highlightRowStrokeOpacity={0.85}
+        />
         <XAxis />
         <YAxis tickFormatter={yAxisTickFormatter} />
 
