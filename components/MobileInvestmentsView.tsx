@@ -63,6 +63,7 @@ export interface MobileInvestmentsViewProps {
   displayHoldings: any[];
   holdingsByType: [string, any[]][];
   segmentValues: Record<string, number>;
+  segmentCostBases?: Record<string, number>;
   segmentMetrics: { totalValue: number; details: any[] };
   recentActivity: any[];
   realizedPerformance: {
@@ -120,6 +121,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
   displayHoldings,
   holdingsByType,
   segmentValues,
+  segmentCostBases,
   segmentMetrics,
   recentActivity,
   realizedPerformance,
@@ -162,9 +164,9 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
   );
 
   const currentSegmentTotal = segmentValues[activeSegment] ?? segmentValues.all ?? 0;
-  const { totalCostBasis, totalValue } = activeOverview;
-  const totalUnrealizedGain = totalValue - totalCostBasis;
-  const totalGainPercent = totalCostBasis > 0 ? (totalUnrealizedGain / totalCostBasis) * 100 : 0;
+  const currentSegmentCost = segmentCostBases?.[activeSegment] ?? segmentCostBases?.all ?? activeOverview.totalCostBasis;
+  const totalUnrealizedGain = currentSegmentTotal - currentSegmentCost;
+  const totalGainPercent = currentSegmentCost > 0 ? (totalUnrealizedGain / currentSegmentCost) * 100 : 0;
 
   // Pie chart data for allocation
   const allocationPieData: PieData[] = useMemo(() => {
@@ -353,7 +355,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                     {formatCurrency(totalUnrealizedGain, curr)} ({totalGainPercent.toFixed(1)}%)
                   </span>
                   <span className="text-xs text-white/60 font-medium">
-                    Basis: {formatCurrency(totalCostBasis, curr)}
+                    Basis: {formatCurrency(currentSegmentCost, curr)}
                   </span>
                 </div>
               </div>

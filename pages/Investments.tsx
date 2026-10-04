@@ -1,9 +1,9 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview, PriceHistoryEntry } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, BRAND_COLORS } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur } from '../utils';
+import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur, safeRound } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import EditAccountModal from '../components/EditAccountModal';
@@ -193,6 +193,98 @@ const Investments: React.FC<InvestmentsProps> = ({
         return map;
     }, [investmentAccounts]);
 
+    const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
+        (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
+        return acc;
+    }, {} as Record<string, Transaction[]>), [transactions]);
+
+    const nonSymbolDataByType = useMemo(() => {
+        const balances: Record<string, number> = {};
+        const costBases: Record<string, number> = {};
+        activeInvestmentAccounts.forEach(acc => {
+            if (!acc.symbol) {
+                const sub = acc.subType || 'Other';
+                const eurVal = convertToEur(acc.balance, acc.currency, conversionRates);
+                const eurCost = convertToEur(acc.purchasePrice && acc.purchasePrice > 0 ? acc.purchasePrice : acc.balance, acc.currency, conversionRates);
+                balances[sub] = (balances[sub] || 0) + eurVal;
+                costBases[sub] = (costBases[sub] || 0) + eurCost;
+            }
+        });
+        return { balances, costBases };
+    }, [activeInvestmentAccounts, conversionRates]);
+
+    // Strict segment values where segmentValues.all strictly equals the sum of all individual segments
+    const segmentValues = useMemo(() => {
+        const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
+        const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
+        const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
+        const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
+        const spareChangeHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Spare Change'), investmentTransactions, [], prices);
+        const pensionHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund'), investmentTransactions, [], prices);
+        const otherHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Other'), investmentTransactions, [], prices);
+
+        const stockTotal = safeRound(stocks.totalValue + (nonSymbolDataByType.balances['Stock'] || 0), 2);
+        const etfTotal = safeRound(etfs.totalValue + (nonSymbolDataByType.balances['ETF'] || 0), 2);
+        const cryptoTotal = safeRound(crypto.totalValue + (nonSymbolDataByType.balances['Crypto'] || 0), 2);
+        const warrantTotal = safeRound(warrantsOnly.totalValue, 2);
+        const spareChangeTotal = safeRound(spareChangeHoldings.totalValue + (nonSymbolDataByType.balances['Spare Change'] || 0), 2);
+        const pensionTotal = safeRound(pensionHoldings.totalValue + (nonSymbolDataByType.balances['Pension Fund'] || 0), 2);
+        const otherTotal = safeRound(otherHoldings.totalValue + (nonSymbolDataByType.balances['Other'] || 0), 2);
+
+        const allTotal = safeRound(
+            stockTotal + etfTotal + cryptoTotal + warrantTotal + spareChangeTotal + pensionTotal + otherTotal,
+            2
+        );
+
+        return {
+            all: allTotal,
+            Stock: stockTotal,
+            ETF: etfTotal,
+            Crypto: cryptoTotal,
+            Warrant: warrantTotal,
+            'Spare Change': spareChangeTotal,
+            'Pension Fund': pensionTotal,
+            Other: otherTotal,
+        };
+    }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, nonSymbolDataByType]);
+
+    const segmentCostBases = useMemo(() => {
+        const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
+        const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
+        const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
+        const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
+        const spareChangeHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Spare Change'), investmentTransactions, [], prices);
+        const pensionHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund'), investmentTransactions, [], prices);
+        const otherHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Other'), investmentTransactions, [], prices);
+
+        const stockCost = safeRound(stocks.totalCostBasis + (nonSymbolDataByType.costBases['Stock'] || 0), 2);
+        const etfCost = safeRound(etfs.totalCostBasis + (nonSymbolDataByType.costBases['ETF'] || 0), 2);
+        const cryptoCost = safeRound(crypto.totalCostBasis + (nonSymbolDataByType.costBases['Crypto'] || 0), 2);
+        const warrantCost = safeRound(warrantsOnly.totalCostBasis, 2);
+        const spareChangeCost = safeRound(spareChangeHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Spare Change'] || 0), 2);
+        const pensionCost = safeRound(pensionHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Pension Fund'] || 0), 2);
+        const otherCost = safeRound(otherHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Other'] || 0), 2);
+
+        const allCost = safeRound(
+            stockCost + etfCost + cryptoCost + warrantCost + spareChangeCost + pensionCost + otherCost,
+            2
+        );
+
+        return {
+            all: allCost,
+            Stock: stockCost,
+            ETF: etfCost,
+            Crypto: cryptoCost,
+            Warrant: warrantCost,
+            'Spare Change': spareChangeCost,
+            'Pension Fund': pensionCost,
+            Other: otherCost,
+        };
+    }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, nonSymbolDataByType]);
+
+    const currentValuation = segmentValues[activeSegment] ?? segmentValues.all;
+    const currentCostBasis = segmentCostBases[activeSegment] ?? segmentCostBases.all;
+
     const segmentPriceHistory = useMemo(() => {
         const matchingHoldings = activeOverview.holdings;
         const matchingSymbols = new Set(matchingHoldings.map(h => h.symbol));
@@ -213,7 +305,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         };
 
-        // Collect all distinct historical dates across relevant holdings, warrants, and transactions
+        const relevantNonSymbolAccounts = activeInvestmentAccounts.filter(acc =>
+            !acc.symbol && (activeSegment === 'all' || (acc.subType || 'Other') === activeSegment)
+        );
+
+        // Collect all distinct historical dates across relevant holdings, warrants, transactions, and non-symbol accounts
         const dateSet = new Set<string>();
 
         matchingHoldings.forEach(h => {
@@ -232,7 +328,27 @@ const Investments: React.FC<InvestmentsProps> = ({
             }
         });
 
+        relevantNonSymbolAccounts.forEach(acc => {
+            if (acc.priceHistory && acc.priceHistory.length > 0) {
+                acc.priceHistory.forEach(entry => {
+                    if (entry && entry.date) dateSet.add(entry.date);
+                });
+            }
+            const accTxs = transactionsByAccount[acc.id] || [];
+            accTxs.forEach(tx => {
+                if (tx && tx.date) dateSet.add(tx.date);
+            });
+        });
+
+        const todayStr = toLocalISOString(new Date());
+
         if (dateSet.size === 0) {
+            if (currentValuation > 0) {
+                return [{
+                    date: todayStr,
+                    price: Number(currentValuation.toFixed(2))
+                }];
+            }
             return [];
         }
 
@@ -240,14 +356,13 @@ const Investments: React.FC<InvestmentsProps> = ({
             (a, b) => new Date(a).getTime() - new Date(b).getTime()
         );
 
-        // Calculate valuation on each date strictly based on holdings and warrants in activeOverview
+        // Calculate valuation on each date based on holdings, warrants, and relevant non-symbol accounts
         const historyData = allDates.map(date => {
             let totalOnDate = 0;
 
             matchingHoldings.forEach(h => {
                 if (h.type === 'Warrant') return;
 
-                // Price of holding on date
                 const symHist = getSymbolHistory(h.symbol);
                 const past = symHist.filter(e => e.date <= date);
                 let priceOnDate = h.currentPrice;
@@ -258,7 +373,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                     priceOnDate = symHist[0].price;
                 }
 
-                // If no price logged on or before date, check transaction price
                 const txsForSymbol = investmentTransactions
                     .filter(t => t.symbol === h.symbol && t.date <= date)
                     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -267,7 +381,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                     priceOnDate = txsForSymbol[txsForSymbol.length - 1].price;
                 }
 
-                // Quantity on date
                 const allTxsForSymbol = investmentTransactions.filter(t => t.symbol === h.symbol);
                 let qtyOnDate = h.quantity;
                 if (allTxsForSymbol.length > 0) {
@@ -292,34 +405,57 @@ const Investments: React.FC<InvestmentsProps> = ({
                 totalOnDate += (w.quantity || 0) * priceOnDate;
             });
 
+            // Add non-symbol accounts valuation on date
+            relevantNonSymbolAccounts.forEach(acc => {
+                if (acc.priceHistory && acc.priceHistory.length > 0) {
+                    const past = acc.priceHistory
+                        .filter(e => e.date <= date)
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    let p = acc.balance;
+                    if (past.length > 0) {
+                        p = past[past.length - 1].price;
+                    } else {
+                        const sortedPh = [...acc.priceHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                        p = sortedPh[0].price;
+                    }
+                    totalOnDate += convertToEur(p, acc.currency, conversionRates);
+                } else {
+                    const accTxs = transactionsByAccount[acc.id] || [];
+                    if (accTxs.length > 0) {
+                        const futureTxs = accTxs.filter(t => t.date > date);
+                        const futureNetChange = futureTxs.reduce((sum, t) => {
+                            return sum + (t.type === 'income' ? t.amount : -t.amount);
+                        }, 0);
+                        const histBal = Math.max(0, acc.balance - futureNetChange);
+                        totalOnDate += convertToEur(histBal, acc.currency, conversionRates);
+                    } else {
+                        totalOnDate += convertToEur(acc.balance, acc.currency, conversionRates);
+                    }
+                }
+            });
+
             return {
                 date,
                 price: Number(totalOnDate.toFixed(2))
             };
         });
 
-        // Current valuation anchor for today based directly on totalValue
-        const todayStr = toLocalISOString(new Date());
+        // Current valuation anchor for today based directly on currentValuation
         if (historyData.length > 0 && historyData[historyData.length - 1].date !== todayStr) {
             historyData.push({
                 date: todayStr,
-                price: Number((totalValue || 0).toFixed(2))
+                price: Number(currentValuation.toFixed(2))
             });
         } else if (historyData.length > 0 && historyData[historyData.length - 1].date === todayStr) {
-            historyData[historyData.length - 1].price = Number((totalValue || 0).toFixed(2));
+            historyData[historyData.length - 1].price = Number(currentValuation.toFixed(2));
         }
 
         return historyData;
-    }, [activeOverview, activeSegment, warrants, priceHistory, investmentTransactions, prices, totalValue, accountBySymbol]);
-    
-    const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
-        (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
-        return acc;
-    }, {} as Record<string, Transaction[]>), [transactions]);
+    }, [activeOverview, activeSegment, warrants, priceHistory, investmentTransactions, prices, currentValuation, accountBySymbol, activeInvestmentAccounts, transactionsByAccount, conversionRates]);
 
-    const safeTotalValue = totalValue > 0 ? totalValue : 0;
+    const safeCurrentVal = currentValuation > 0 ? currentValuation : 0;
     const formatPercent = (value: number, digits = 1) => (
-        safeTotalValue > 0 ? ((value / safeTotalValue) * 100).toFixed(digits) : '0.0'
+        safeCurrentVal > 0 ? ((value / safeCurrentVal) * 100).toFixed(digits) : '0.0'
     );
 
     const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
@@ -713,52 +849,15 @@ const Investments: React.FC<InvestmentsProps> = ({
         return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }, [displayHoldings, activeSegment, activeInvestmentAccounts, accounts, transactionsByAccount]);
 
-    // Segment Values for Header
-    const segmentValues = useMemo(() => {
-        const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
-        const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
-        const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
-        const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
-        
-        // Non-symbol account values by subtype
-        const nonSymbolBalancesByType: Record<string, number> = {};
-        activeInvestmentAccounts.forEach(acc => {
-            if (!acc.symbol) {
-                const sub = acc.subType || 'Other';
-                const eurVal = convertToEur(acc.balance, acc.currency);
-                nonSymbolBalancesByType[sub] = (nonSymbolBalancesByType[sub] || 0) + eurVal;
-            }
-        });
-
-        const stockExtra = nonSymbolBalancesByType['Stock'] || 0;
-        const etfExtra = nonSymbolBalancesByType['ETF'] || 0;
-        const cryptoExtra = nonSymbolBalancesByType['Crypto'] || 0;
-        const spareChangeVal = nonSymbolBalancesByType['Spare Change'] || 0;
-        const pensionVal = nonSymbolBalancesByType['Pension Fund'] || 0;
-        const otherVal = nonSymbolBalancesByType['Other'] || 0;
-
-        const totalNonSymbol = Object.values(nonSymbolBalancesByType).reduce((a, b) => a + b, 0);
-
-        return {
-            all: globalOverview.totalValue,
-            Stock: stocks.totalValue,
-            ETF: etfs.totalValue,
-            Crypto: crypto.totalValue,
-            Warrant: warrantsOnly.totalValue,
-            'Spare Change': spareChangeVal,
-            'Pension Fund': pensionVal,
-            Other: otherVal
-        };
-    }, [activeInvestmentAccounts, investmentTransactions, warrants, prices, globalOverview.totalValue]);
-
     const segmentMetrics = useMemo(() => {
-        const currentSegmentValue = segmentValues[activeSegment] || 0;
+        const currentSegmentValue = segmentValues[activeSegment] ?? segmentValues.all ?? 0;
+        const currentSegmentCost = segmentCostBases[activeSegment] ?? segmentCostBases.all ?? 0;
 
-        const totalGainLoss = totalValue - totalCostBasis;
-        const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+        const totalGainLoss = currentSegmentValue - currentSegmentCost;
+        const totalGainLossPercent = currentSegmentCost > 0 ? (totalGainLoss / currentSegmentCost) * 100 : 0;
         
         let details = [
-            { label: 'Invested Capital', value: formatCurrency(investedCapital, 'EUR'), icon: 'credit_card' },
+            { label: 'Invested Capital', value: formatCurrency(currentSegmentCost, 'EUR'), icon: 'credit_card' },
             { label: 'Gain/Loss', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'candlestick_chart' },
             { label: 'Performance', value: `${totalGainLossPercent >= 0 ? '+' : ''}${totalGainLossPercent.toFixed(1)}%`, icon: 'trending_up' },
         ];
@@ -767,7 +866,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             details = [
                 { label: 'Granted Value', value: formatCurrency(grantedCapital, 'EUR'), icon: 'award' },
                 { label: 'Active Grants', value: activeHoldings.length.toString(), icon: 'list' },
-                { label: 'Unrealized PnL', value: formatCurrency(totalGainLoss, 'EUR'), icon: 'candlestick_chart' },
+                { label: 'Unrealized PnL', value: `${totalGainLoss >= 0 ? '+' : ''}${formatCurrency(totalGainLoss, 'EUR')}`, icon: 'candlestick_chart' },
             ];
         } else if (activeSegment === 'Spare Change') {
             const spareAccounts = activeInvestmentAccounts.filter(a => a.subType === 'Spare Change');
@@ -793,13 +892,13 @@ const Investments: React.FC<InvestmentsProps> = ({
         }
 
         return { totalValue: currentSegmentValue, details };
-    }, [activeOverview, activeSegment, grantedCapital, activeHoldings.length, activeInvestmentAccounts, transactions, segmentValues, totalValue, totalCostBasis, investedCapital]);
+    }, [activeSegment, grantedCapital, activeHoldings.length, activeInvestmentAccounts, transactions, segmentValues, segmentCostBases]);
 
     const trendData = useMemo(() => {
         // Mock trend data for investments since we don't have historical snapshots here
         // We'll base it on current value with some random fluctuations for the sparkline effect
         const data = [];
-        const baseValue = segmentValues.all;
+        const baseValue = currentValuation;
         for (let i = 0; i < 30; i++) {
             data.push({
                 date: i.toString(),
@@ -807,7 +906,26 @@ const Investments: React.FC<InvestmentsProps> = ({
             });
         }
         return data;
-    }, [segmentValues.all]);
+    }, [currentValuation]);
+
+    const activeDistributionData = useMemo(() => {
+        const list = [...distributionData];
+        const relevantNonSym = activeInvestmentAccounts.filter(acc =>
+            !acc.symbol && (activeSegment === 'all' || (acc.subType || 'Other') === activeSegment)
+        );
+        relevantNonSym.forEach((acc, idx) => {
+            const val = convertToEur(acc.balance, acc.currency, conversionRates);
+            if (val > 0) {
+                const color = BRAND_COLORS[(list.length + idx) % BRAND_COLORS.length];
+                list.push({
+                    name: acc.name,
+                    value: val,
+                    color
+                });
+            }
+        });
+        return list.sort((a, b) => b.value - a.value);
+    }, [distributionData, activeInvestmentAccounts, activeSegment, conversionRates]);
 
     const segments = useMemo(() => {
         const base: { id: InvestmentSegment; label: string; icon: string; color: string }[] = [
@@ -947,6 +1065,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     displayHoldings={displayHoldings}
                     holdingsByType={holdingsByType}
                     segmentValues={segmentValues}
+                    segmentCostBases={segmentCostBases}
                     segmentMetrics={segmentMetrics}
                     recentActivity={recentActivity}
                     realizedPerformance={realizedPerformance}
@@ -1110,9 +1229,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <InvestmentCandlestickChart
                             title={`${activeSegment === 'all' ? 'All Portfolio Assets' : (segments.find(s => s.id === activeSegment)?.label || activeSegment)} Candlestick Performance`}
                             subtitle="Open, High, Low, and Close price action analysis for selected investment segment"
-                            currentValue={totalValue}
-                            costBasis={totalCostBasis}
-                            isNegativeTrend={totalValue < (totalCostBasis || 0)}
+                            currentValue={currentValuation}
+                            costBasis={currentCostBasis}
+                            isNegativeTrend={currentValuation < (currentCostBasis || 0)}
                             priceHistory={segmentPriceHistory}
                             transactions={investmentTransactions}
                             currency="EUR"
@@ -1387,17 +1506,17 @@ const Investments: React.FC<InvestmentsProps> = ({
                         </div>
                         <div className="h-48 relative mb-6 flex items-center justify-center">
                             <BklitPieChart
-                                data={distributionData.map((item) => ({
+                                data={activeDistributionData.map((item) => ({
                                     label: item.name,
                                     value: item.value,
                                     color: item.color,
                                 }))}
                                 innerRadius={55}
                                 cornerRadius={6}
-                                padAngle={distributionData.length > 1 ? 0.04 : 0}
+                                padAngle={activeDistributionData.length > 1 ? 0.04 : 0}
                                 className="w-full h-48"
                             >
-                                {distributionData.map((_, index) => (
+                                {activeDistributionData.map((_, index) => (
                                     <PieSlice key={index} index={index} showGlow />
                                 ))}
                                 <PieCenter defaultLabel="Total">
@@ -1407,7 +1526,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 {label}
                                             </span>
                                             <span className="text-base font-bold font-mono text-light-text dark:text-dark-text privacy-blur">
-                                                {formatCurrency(isHovered ? value : totalValue, 'EUR')}
+                                                {formatCurrency(isHovered ? value : currentValuation, 'EUR')}
                                             </span>
                                         </div>
                                     )}
@@ -1415,7 +1534,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </BklitPieChart>
                         </div>
                         <div className="space-y-3">
-                            {distributionData.slice(0, 4).map(item => (
+                            {activeDistributionData.slice(0, 4).map(item => (
                                 <div key={item.name} className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
