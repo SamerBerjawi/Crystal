@@ -216,7 +216,7 @@ export const UnifiedPendingMatchesModal: React.FC<UnifiedPendingMatchesModalProp
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Reconcile Pending Matches" maxWidth="max-w-4xl">
+    <Modal onClose={onClose} title="Reconcile Pending Matches" size="4xl">
       <div className="space-y-4 max-h-[75vh] flex flex-col">
         {/* Header summary & switch to full tab */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/10 shrink-0">
