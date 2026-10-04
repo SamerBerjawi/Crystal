@@ -142,11 +142,11 @@ const Integrations: React.FC<IntegrationsProps> = ({
     brandfetchClientId: preferences.brandfetchClientId || '',
   });
 
-  const [cartoApiKey, setCartoApiKey] = useLocalStorage<string>('crystal_carto_api_key', '');
-  const [localCartoKey, setLocalCartoKey] = React.useState(cartoApiKey);
+  const [cartoApiKey, setCartoApiKey] = useLocalStorage<string>('crystal_carto_api_key', preferences.cartoApiKey || '');
+  const [localCartoKey, setLocalCartoKey] = React.useState(cartoApiKey || preferences.cartoApiKey || '');
   React.useEffect(() => {
-    setLocalCartoKey(cartoApiKey);
-  }, [cartoApiKey]);
+    setLocalCartoKey(cartoApiKey || preferences.cartoApiKey || '');
+  }, [cartoApiKey, preferences.cartoApiKey]);
 
   React.useEffect(() => {
     setLocalApiKeys({
@@ -281,7 +281,12 @@ const Integrations: React.FC<IntegrationsProps> = ({
             name="cartoApiKey"
             value={localCartoKey}
             onChange={value => setLocalCartoKey(value)}
-            onBlur={() => setCartoApiKey(localCartoKey)}
+            onBlur={() => {
+              setCartoApiKey(localCartoKey);
+              if (preferences.cartoApiKey !== localCartoKey) {
+                setPreferences({ ...preferences, cartoApiKey: localCartoKey });
+              }
+            }}
             placeholder="API Key"
             colorClass="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20"
             docsUrl="https://carto.com/basemaps"

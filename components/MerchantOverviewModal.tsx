@@ -10,6 +10,7 @@ const MarkerAny = LeafletMarker as any;
 import { formatCurrency, parseLocalDate } from '../utils';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { useCartoBasemap } from '../hooks/useCartoBasemap';
 import Icon from './ui/Icon';
 
 interface MerchantOverviewModalProps {
@@ -89,6 +90,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const [logoLoadError, setLogoLoadError] = useState(false);
+  const { tileUrl, attribution, subdomains } = useCartoBasemap(undefined, isDarkMode);
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
@@ -274,11 +276,10 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   className="w-full h-full !z-0"
                 >
                   <TileLayerAny
-                    url={
-                      isDarkMode
-                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                    }
+                    key={tileUrl}
+                    attribution={attribution}
+                    url={tileUrl}
+                    subdomains={subdomains}
                     maxZoom={19}
                   />
                   {resolvedLocations.map(loc => (

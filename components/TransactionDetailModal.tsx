@@ -10,6 +10,7 @@ const MarkerAny = LeafletMarker as any;
 import { formatCurrency, parseLocalDate } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { useCartoBasemap } from '../hooks/useCartoBasemap';
 import Icon from './ui/Icon';
 
 interface TransactionDetailModalProps {
@@ -79,6 +80,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [logoLoadError, setLogoLoadError] = useState(false);
+  const { tileUrl, attribution, subdomains } = useCartoBasemap(undefined, isDarkMode);
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
@@ -243,11 +245,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   className="w-full h-full !z-0"
                 >
                   <TileLayerAny
-                    url={
-                      isDarkMode
-                        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                        : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                    }
+                    key={tileUrl}
+                    attribution={attribution}
+                    url={tileUrl}
+                    subdomains={subdomains}
                     maxZoom={19}
                   />
                   <MarkerAny position={mapCenter} icon={pinIcon} />
