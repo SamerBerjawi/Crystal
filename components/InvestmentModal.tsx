@@ -78,6 +78,11 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
     isEditingGrant ? 'grant' : (isEditingTrade ? 'trade' : initialMode)
   );
 
+  // Only offer switching between modes if the parent can actually persist both kinds of records.
+  const canSaveTrade = !!(onSaveTrade || onSave);
+  const canSaveGrant = !!(onSaveGrant || onSave);
+  const canSwitchMode = !isEditing && canSaveTrade && canSaveGrant;
+
   const [isVisible, setIsVisible] = useState(false);
   const [activeTradeTab, setActiveTradeTab] = useState<TradeTabType>('order');
   const [activeGrantTab, setActiveGrantTab] = useState<GrantTabType>('grant');
@@ -395,6 +400,9 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
       onSaveTrade(invTxData, cashTxData, newAccountData);
     } else if (onSave) {
       onSave(invTxData, cashTxData, newAccountData);
+    } else {
+      toast.error('Unable to save trade from this screen');
+      return;
     }
 
     handleCloseDrawer();
@@ -436,6 +444,9 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
       onSaveGrant(warrantData);
     } else if (onSave) {
       onSave(warrantData);
+    } else {
+      toast.error('Unable to save grant from this screen');
+      return;
     }
 
     handleCloseDrawer();
@@ -501,7 +512,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
           </div>
 
             {/* Mode Switcher (Trade vs. Grant) */}
-            {!isEditing && (
+            {canSwitchMode && (
               <div className="px-5 sm:px-6 pt-1 pb-2">
                 <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
                   <button

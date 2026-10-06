@@ -1,6 +1,6 @@
 import React from 'react';
 import InvestmentModal, { InvestmentModalProps } from './InvestmentModal';
-import { Account, InvestmentTransaction, Transaction, HoldingSummary } from '../types';
+import { Account, InvestmentTransaction, Transaction, HoldingSummary, Warrant } from '../types';
 
 interface AddInvestmentTransactionModalProps {
   onClose: () => void;
@@ -9,6 +9,7 @@ interface AddInvestmentTransactionModalProps {
     cashTx?: Omit<Transaction, 'id'>, 
     newAccount?: Omit<Account, 'id'>
   ) => void;
+  onSaveGrant?: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
   accounts: Account[];
   cashAccounts: Account[];
   transactionToEdit?: InvestmentTransaction | null;
@@ -18,6 +19,7 @@ interface AddInvestmentTransactionModalProps {
 const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({
   onClose,
   onSave,
+  onSaveGrant,
   accounts,
   cashAccounts,
   transactionToEdit,
@@ -27,6 +29,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
     <InvestmentModal
       onClose={onClose}
       onSaveTrade={onSave}
+      onSaveGrant={onSaveGrant}
       accounts={accounts}
       cashAccounts={cashAccounts}
       transactionToEdit={transactionToEdit}

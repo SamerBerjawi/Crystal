@@ -221,7 +221,7 @@ export const DEBT_TYPES: AccountType[] = ['Credit Card', 'Loan', 'Other Liabilit
 export const ALL_ACCOUNT_TYPES: AccountType[] = [...ASSET_TYPES, ...DEBT_TYPES];
 export const LIQUID_ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Credit Card'];
 export const CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'BTC', 'RON'];
-export const INVESTMENT_SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Pension Fund', 'Spare Change', 'Other'];
+export const INVESTMENT_SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Warrant', 'Pension Fund', 'Spare Change', 'Other'];
 export const PROPERTY_TYPES: PropertyType[] = ['Apartment', 'Detached House', 'Semi-Detached House', 'Terraced House', 'Land', 'Commercial', 'Other'];
 export const FUEL_TYPES: FuelType[] = ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'LPG'];
 export const VEHICLE_OWNERSHIP_TYPES: VehicleOwnership[] = ['Owned', 'Leased'];
@@ -319,6 +319,7 @@ export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: s
   'Stock': { icon: 'candlestick_chart', color: 'text-purple-500' },
   'ETF': { icon: 'bar_chart', color: 'text-teal-500' },
   'Crypto': { icon: 'zap', color: 'text-amber-500' },
+  'Warrant': { icon: 'Certificate01', color: 'text-rose-500' },
   'Pension Fund': { icon: 'assured_workload', color: 'text-indigo-500' },
   'Spare Change': { icon: 'coins_stacked', color: 'text-cyan-500' },
   'Other': { icon: 'Box', color: 'text-slate-500' },

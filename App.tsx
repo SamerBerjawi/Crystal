@@ -809,7 +809,18 @@ const App: React.FC = () => {
     if (options?.skipNextSave) { skipNextSaveRef.current = true; }
 
     startTransition(() => {
-      setAccounts(dataToLoad.accounts || []);
+      // Migration: grant-created accounts used to be hardcoded as 'ETF'. Reclassify accounts that
+      // are backed only by equity grants (no market trades) as 'Warrant'.
+      const loadedWarrantIsins = new Set((dataToLoad.warrants || []).map(w => w.isin?.toUpperCase()).filter(Boolean));
+      const tradedSymbols = new Set((dataToLoad.investmentTransactions || []).map(t => t.symbol?.toUpperCase()).filter(Boolean));
+      const migratedAccounts = (dataToLoad.accounts || []).map(acc => {
+        const sym = acc.symbol?.toUpperCase();
+        if (acc.type === 'Investment' && acc.subType === 'ETF' && sym && loadedWarrantIsins.has(sym) && !tradedSymbols.has(sym)) {
+          return { ...acc, subType: 'Warrant' as const };
+        }
+        return acc;
+      });
+      setAccounts(migratedAccounts);
       setTransactions(dataToLoad.transactions || []);
       setInvestmentTransactions(dataToLoad.investmentTransactions || []);
       setRecurringTransactions(dataToLoad.recurringTransactions || []);
@@ -1789,8 +1800,8 @@ const App: React.FC = () => {
     else {
       warrantId = `warr-${uuidv4()}`;
       setWarrants(prev => [...prev, { ...warrantData, id: warrantId } as Warrant]);
-      if (warrantData.isin && !accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase())) {
-        handleSaveAccount({ name: warrantData.name || 'Warrant', type: 'Investment', subType: 'ETF', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
+      if (warrantData.isin && !accounts.some(acc => acc.type === 'Investment' && acc.symbol?.toUpperCase() === warrantData.isin.toUpperCase())) {
+        handleSaveAccount({ name: warrantData.name || 'Warrant', type: 'Investment', subType: 'Warrant', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
       }
     }
 

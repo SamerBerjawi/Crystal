@@ -38,7 +38,7 @@ export const buildHoldingsOverview = (
                 currentValue: 0,
                 currentPrice: 0,
                 type: 'Warrant',
-                subType: 'Other',
+                subType: 'Warrant',
                 warrantId: w.id
             };
         }
@@ -154,6 +154,8 @@ export const formatHoldingType = (subType?: InvestmentSubType) => {
             return 'Exchange Traded Fund';
         case 'Crypto':
             return 'Cryptocurrency';
+        case 'Warrant':
+            return 'Warrant';
         case 'Pension Fund':
             return 'Pension Fund';
         case 'Spare Change':

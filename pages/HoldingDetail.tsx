@@ -204,6 +204,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 <AddInvestmentTransactionModal
                     onClose={() => setIsTransactionModalOpen(false)}
                     onSave={saveInvestmentTransaction}
+                    onSaveGrant={saveWarrant}
                     accounts={accounts}
                     cashAccounts={cashAccounts}
                     transactionToEdit={editingTransaction}

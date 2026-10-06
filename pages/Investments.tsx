@@ -147,7 +147,6 @@ const Investments: React.FC<InvestmentsProps> = ({
     // Filter accounts and warrants based on active segment
     const filteredInvestmentAccounts = useMemo(() => {
         if (activeSegment === 'all') return activeInvestmentAccounts;
-        if (activeSegment === 'Warrant') return [];
         return activeInvestmentAccounts.filter(a => a.subType === activeSegment);
     }, [activeInvestmentAccounts, activeSegment]);
 
@@ -168,7 +167,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             const overview = activeSegment === 'all' 
                 ? buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices)
                 : buildHoldingsOverview(
-                    activeSegment === 'Warrant' ? [] : investmentAccounts.filter(a => a.subType === (activeSegment as any)),
+                    investmentAccounts.filter(a => a.subType === (activeSegment as any)),
                     investmentTransactions,
                     activeSegment === 'Warrant' ? warrants : [],
                     prices
@@ -218,7 +217,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
         const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
         const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
-        const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
+        const warrantsOnly = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Warrant'), investmentTransactions, warrants, prices);
         const spareChangeHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Spare Change'), investmentTransactions, [], prices);
         const pensionHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund'), investmentTransactions, [], prices);
         const otherHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Other'), investmentTransactions, [], prices);
@@ -226,7 +225,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         const stockTotal = safeRound(stocks.totalValue + (nonSymbolDataByType.balances['Stock'] || 0), 2);
         const etfTotal = safeRound(etfs.totalValue + (nonSymbolDataByType.balances['ETF'] || 0), 2);
         const cryptoTotal = safeRound(crypto.totalValue + (nonSymbolDataByType.balances['Crypto'] || 0), 2);
-        const warrantTotal = safeRound(warrantsOnly.totalValue, 2);
+        const warrantTotal = safeRound(warrantsOnly.totalValue + (nonSymbolDataByType.balances['Warrant'] || 0), 2);
         const spareChangeTotal = safeRound(spareChangeHoldings.totalValue + (nonSymbolDataByType.balances['Spare Change'] || 0), 2);
         const pensionTotal = safeRound(pensionHoldings.totalValue + (nonSymbolDataByType.balances['Pension Fund'] || 0), 2);
         const otherTotal = safeRound(otherHoldings.totalValue + (nonSymbolDataByType.balances['Other'] || 0), 2);
@@ -252,7 +251,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         const stocks = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Stock'), investmentTransactions, [], prices);
         const etfs = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'ETF'), investmentTransactions, [], prices);
         const crypto = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Crypto'), investmentTransactions, [], prices);
-        const warrantsOnly = buildHoldingsOverview([], [], warrants, prices);
+        const warrantsOnly = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Warrant'), investmentTransactions, warrants, prices);
         const spareChangeHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Spare Change'), investmentTransactions, [], prices);
         const pensionHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Pension Fund'), investmentTransactions, [], prices);
         const otherHoldings = buildHoldingsOverview(activeInvestmentAccounts.filter(a => a.subType === 'Other'), investmentTransactions, [], prices);
@@ -260,7 +259,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         const stockCost = safeRound(stocks.totalCostBasis + (nonSymbolDataByType.costBases['Stock'] || 0), 2);
         const etfCost = safeRound(etfs.totalCostBasis + (nonSymbolDataByType.costBases['ETF'] || 0), 2);
         const cryptoCost = safeRound(crypto.totalCostBasis + (nonSymbolDataByType.costBases['Crypto'] || 0), 2);
-        const warrantCost = safeRound(warrantsOnly.totalCostBasis, 2);
+        const warrantCost = safeRound(warrantsOnly.totalCostBasis + (nonSymbolDataByType.costBases['Warrant'] || 0), 2);
         const spareChangeCost = safeRound(spareChangeHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Spare Change'] || 0), 2);
         const pensionCost = safeRound(pensionHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Pension Fund'] || 0), 2);
         const otherCost = safeRound(otherHoldings.totalCostBasis + (nonSymbolDataByType.costBases['Other'] || 0), 2);
@@ -972,6 +971,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 <AddInvestmentTransactionModal
                     onClose={() => setIsModalOpen(false)}
                     onSave={saveInvestmentTransaction}
+                    onSaveGrant={saveWarrant}
                     accounts={accounts}
                     cashAccounts={cashAccounts}
                     transactionToEdit={editingTransaction}
