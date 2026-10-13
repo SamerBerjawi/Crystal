@@ -66,7 +66,6 @@ test.describe('W29 Trade & holdings', () => {
   });
 
   test('holding detail opens and survives a refresh', async ({ authedPage: page }) => {
-    openBug('AUD-46');
     test.skip(isMobile(page), 'desktop holding table');
     await goTo(page, '/investments');
     await page.getByRole('button', { name: 'Holding Details' }).first().click();

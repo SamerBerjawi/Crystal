@@ -681,12 +681,23 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const notFoundNoticeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isDataLoaded || !notFoundNoticeRef.current) return;
+    toast.error(`Page not found: ${notFoundNoticeRef.current}`);
+    notFoundNoticeRef.current = null;
+  }, [isDataLoaded]);
+
   useEffect(() => {
     const route = parseRoute(currentPath);
     setCurrentPageState(route.page);
     setViewingAccountId(route.accountId ?? null);
     setViewingHoldingSymbol(route.holdingSymbol ?? null);
-    if (!route.matched && currentPath !== '/') { navigateToPath('/', true); }
+    if (!route.matched && currentPath !== '/') {
+      // The Toaster is not mounted until the app has loaded; show the notice after that.
+      notFoundNoticeRef.current = currentPath;
+      navigateToPath('/', true);
+    }
   }, [currentPath, navigateToPath]);
 
   useEffect(() => {
@@ -997,8 +1008,9 @@ const App: React.FC = () => {
         if (isDevEnvironment) {
           void saveDevCache(data);
         }
+        // loadAllFinancialData flips isDataLoaded inside the same transition as the data itself;
+        // setting it again here would let isDataLoaded commit before accounts do (QA-B-006).
         loadAllFinancialData(data, { skipNextSave: true });
-        setIsDataLoaded(true);
       } else {
         if (isDevEnvironment) {
           try {
@@ -1010,7 +1022,6 @@ const App: React.FC = () => {
               setIsDemoMode(true);
               safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
               loadAllFinancialData(cached, { skipNextSave: true });
-              setIsDataLoaded(true);
               return;
             }
           } catch (e) {
@@ -2739,8 +2750,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isDataLoaded) {
-      if (viewingAccountId && !viewingAccount) { setViewingAccountId(null); setCurrentPage('Dashboard'); }
-      if (viewingHoldingSymbol && !viewingHolding) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
+      if (viewingAccountId && !viewingAccount) { toast.error('Account not found'); setViewingAccountId(null); setCurrentPage('Accounts'); }
+      if (viewingHoldingSymbol && !viewingHolding) { toast.error('Holding not found'); setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
     }
   }, [isDataLoaded, viewingAccount, viewingAccountId, viewingHolding, viewingHoldingSymbol, setCurrentPage]);
 

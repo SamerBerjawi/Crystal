@@ -265,7 +265,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** new e2e: after a page crash, navigating elsewhere renders the new page; unit test for `fetchWithTimeout`.
 
-#### WP-2.4 ⚡ Routing fixes `[ ]`
+#### WP-2.4 ⚡ Routing fixes `[x]`
+- **Done:** isDataLoaded is only set inside the load transition (no early commit before accounts), so detail-page refresh stays on the page; unknown routes and missing accounts/holdings now show a 'not found' toast and land on the list. Specs B12, E5, F23 and the deep-link spec pass.
 - **Covers:** AUD-46 (QA-B-006, QA-E-001), AUD-72 (QA-F-009)
 - **Files:** `App.tsx` L179-208, L2748-2752
 - **Depends on:** —

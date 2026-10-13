@@ -156,7 +156,6 @@ test.describe('W12 Account detail', () => {
   }
 
   test('open detail, browser Back returns to the list, refresh keeps the detail', async ({ authedPage: page }) => {
-    openBug('AUD-46');
     await openDetail(page, 'Everyday Checking');
     const detailUrl = page.url();
     await page.reload();
@@ -168,9 +167,9 @@ test.describe('W12 Account detail', () => {
 
   test('deep link to a non-existent account shows a not-found state (not an endless loader)', async ({ authedPage: page }) => {
     await goTo(page, '/accounts/does-not-exist', false);
-    await page.waitForTimeout(4000);
-    const text = await page.locator('main').innerText();
-    expect(text).not.toMatch(/loading account/i);
+    await expect(page.getByText('Account not found')).toBeVisible({ timeout: 8000 });
+    await expect(page).toHaveURL(/\/accounts$/);
+    await expect(page.locator('main')).not.toContainText('Loading account...');
   });
 
   test('add a transaction from the account detail updates the account', async ({ authedPage: page, user }) => {

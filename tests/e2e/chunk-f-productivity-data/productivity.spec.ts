@@ -294,11 +294,8 @@ test.describe('W39 Global navigation', () => {
   });
 
   test('unknown URL tells the user the page does not exist', async ({ authedPage: page }) => {
-    openBug('AUD-72');
     await goTo(page, '/this-page-does-not-exist', false);
-    await page.waitForTimeout(1500);
-    const shownNotFound = /not found|404|doesn.t exist/i.test(await page.locator('body').innerText());
-    expect(shownNotFound || !page.url().endsWith('/'), 'silently showing the Dashboard hides broken links').toBe(true);
+    await expect(page.getByText(/page not found/i), 'broken links must be reported, not silently shown as the Dashboard').toBeVisible({ timeout: 8000 });
   });
 });
 
