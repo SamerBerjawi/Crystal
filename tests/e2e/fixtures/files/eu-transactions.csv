@@ -1,0 +1,4 @@
+Date,Description,Amount,Account
+2026-10-01,QA Coffee,"-12,50",QA Import Account
+2026-10-02,QA Salary,"1.234,56",QA Import Account
+2026-10-03,QA Groceries,-45.10,QA Import Account

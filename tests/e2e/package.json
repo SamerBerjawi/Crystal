@@ -1,0 +1,13 @@
+{
+  "name": "crystal-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:chunk": "playwright test --project"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "embedded-postgres": "^18.4.0-beta.17"
+  }
+}

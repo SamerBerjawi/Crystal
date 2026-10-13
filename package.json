@@ -9,7 +9,8 @@
     "build": "node scripts/bump-version.cjs && vite build",
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build --mode production",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test tests/unit/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
