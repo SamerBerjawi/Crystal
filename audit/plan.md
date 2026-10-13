@@ -342,7 +342,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** API tests: `/health` hides DB error text; urlencoded body → 415; 200 kB login body → 413; `ALLOW_REGISTRATION=false` → 403; `last_seen_at` is throttled.
 
-#### WP-2.12 Account-level state and password reset `[ ]` — needs decision K10
+#### WP-2.12 Account-level state and password reset `[x]` — needs decision K10
+- **Done:** Onboarding-completed flag and savings sprints now live in the account preferences (localStorage values migrate once), so they follow the user to new devices; 'Forgot password?' shows administrator guidance (K10) and server/src/cli/reset-password.ts (documented in README) resets a password and revokes sessions. A22/E15/A14 updated and passing; 2 CLI API tests.
 - **Covers:** AUD-71 (QA-A-012, QA-E-005), AUD-51 (SEC-010, QA-A-011)
 - **Files:** `App.tsx` (onboarding flag), `pages/Challenges.tsx` (sprints), `types.ts`, `pages/SignIn.tsx`, new `server/src/cli/reset-password.ts`
 - **Depends on:** WP-1.1

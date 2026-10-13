@@ -15,6 +15,7 @@ interface SignInProps {
 const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDemoMode, isLoading, error }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showResetHelp, setShowResetHelp] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +70,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
                  <label htmlFor="password" className="block text-sm font-semibold text-light-text dark:text-dark-text">Password</label>
-                 <button type="button" className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot password?</button>
+                 <button type="button" onClick={() => setShowResetHelp(v => !v)} aria-expanded={showResetHelp} className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot password?</button>
             </div>
             <div className="relative">
                 <input
@@ -84,6 +85,11 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                 />
                 <Icon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             </div>
+            {showResetHelp && (
+              <p role="note" className="text-xs text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 rounded-xl px-3 py-2.5 leading-relaxed">
+                Crystal doesn't send emails, so passwords are reset by whoever runs this server. Ask your administrator to reset your password.
+              </p>
+            )}
           </div>
 
           <button type="submit" className={`${BTN_PRIMARY_STYLE} w-full !py-3.5 !text-base !rounded-xl shadow-lg shadow-primary-500/20 mt-2`} disabled={isLoading}>

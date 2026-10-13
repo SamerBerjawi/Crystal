@@ -645,6 +645,10 @@ export interface AppPreferences {
   dashboardLayouts?: Record<string, WidgetConfig[]>;
   /** Widget ids the user removed, per layout key; they are not re-added automatically. */
   dashboardHiddenWidgets?: Record<string, string[]>;
+  /** Account-level flag (kept with the data, not the browser) so onboarding does not reappear on a new device. */
+  onboardingCompleted?: boolean;
+  /** Savings sprints the user started; synced across devices. */
+  activeSprints?: { id: string; startDate: string }[];
   showBalanceAdjustments?: boolean;
   regexCategorizationRules?: RegexCategorizationRule[];
   transactionRules?: TransactionRule[];

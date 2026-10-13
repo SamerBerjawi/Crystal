@@ -181,11 +181,12 @@ test.describe('W33 Challenges', () => {
   });
 
   test('a started savings sprint is visible on another device', async ({ authedPage: page, user, browser }, testInfo) => {
-    openBug('AUD-71');
     await goTo(page, '/challenges');
     await page.getByRole('button', { name: 'Sprints', exact: true }).first().click();
+    const saved = waitForSave(page);
     await page.locator('main').getByText('Start', { exact: true }).first().click();
     await expect(page.getByRole('button', { name: /abandon/i }).first()).toBeVisible();
+    expect((await saved).status()).toBe(200);
     const ctx = await browser.newContext({ ...testInfo.project.use, storageState: await user.api.storageState() });
     const p2 = await ctx.newPage();
     await p2.goto('/challenges');

@@ -1162,14 +1162,15 @@ const App: React.FC = () => {
   }, [isDevEnvironment, loadAllFinancialData, checkAuthStatus]);
 
   useEffect(() => {
-    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
+    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding && !preferences.onboardingCompleted) {
       const timer = setTimeout(() => { setIsOnboardingOpen(true); }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding]);
+  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding, preferences.onboardingCompleted]);
 
   const handleOnboardingFinish = () => {
     setHasCompletedOnboarding(true);
+    setPreferences(prev => (prev.onboardingCompleted ? prev : { ...prev, onboardingCompleted: true }));
     setIsOnboardingOpen(false);
   };
 

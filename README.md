@@ -121,6 +121,16 @@ It needs an API backend:
 - **In-memory mock (UI work only):** `CRYSTAL_MOCK_API=1 npm run dev`. Data is lost on restart, the sample user
   is `demo@crystal.app` / `password`, and it must never be exposed to a network.
 
+### Resetting a password
+
+Crystal has no email service, so an administrator resets passwords from the server:
+
+```bash
+docker compose exec backend node dist/cli/reset-password.js user@example.com
+```
+
+A random password is printed (pass a second argument to choose one). All of that user's sessions are signed out.
+
 ### Tests
 
 ```bash

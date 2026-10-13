@@ -160,14 +160,10 @@ test.describe('W4 Sign out (mobile reachability)', () => {
 });
 
 test.describe('W5 Password reset', () => {
-  test('"Forgot password?" starts a reset flow', async ({ page }) => {
-    openBug('AUD-51');
+  test('"Forgot password?" tells the user how to get a reset (administrator CLI, no email flow)', async ({ page }) => {
     await page.goto('/');
-    const before = page.url();
     await page.getByRole('button', { name: /forgot password/i }).click();
-    await page.waitForTimeout(800);
-    const changed = page.url() !== before || (await page.getByText(/reset|recover|send.*link/i).count()) > 0;
-    expect(changed, 'clicking "Forgot password?" should do something').toBe(true);
+    await expect(page.getByRole('note')).toContainText(/administrator/i);
   });
 });
 
@@ -261,7 +257,6 @@ test.describe('W9 Onboarding', () => {
   });
 
   test('onboarding completion follows the account to a new browser', async ({ page, browser, baseURL }) => {
-    openBug('AUD-71');
     const email = newEmail('onb');
     await openSignUp(page);
     await fillSignUp(page, { email });

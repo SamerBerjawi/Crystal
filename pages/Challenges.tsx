@@ -4,6 +4,7 @@ import Card from '../components/Card';
 import { UserStats, Account, Transaction, FinancialGoal, Currency, Category, Prediction, PredictionType, InvestmentTransaction, Warrant } from '../types';
 import { calculateAccountTotals, convertToEur, parseLocalDate, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { usePreferencesContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import PredictionCard from '../components/PredictionCard';
@@ -532,7 +533,15 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const { expenseCategories } = useCategoryContext();
   
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
-  const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
+  // Sprints live in the account's preferences so they follow the user across devices. Sprints a browser started
+  // before this was synced are carried over once from localStorage.
+  const { preferences, setPreferences } = usePreferencesContext();
+  const [legacySprints, setLegacySprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
+  const activeSprints: ActiveSprint[] = preferences.activeSprints ?? legacySprints;
+  const setActiveSprints = (next: ActiveSprint[]) => {
+    setPreferences(prev => ({ ...prev, activeSprints: next }));
+    if (legacySprints.length > 0) setLegacySprints([]);
+  };
   const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
 
   const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
