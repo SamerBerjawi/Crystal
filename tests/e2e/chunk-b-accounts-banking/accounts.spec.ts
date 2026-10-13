@@ -252,7 +252,6 @@ test.describe('W12 Account detail', () => {
   });
 
   test('asset closing actions (Record Sale / Retire Vehicle) are available at this width', async ({ authedPage: page }) => {
-    openBug('AUD-47', isMobile(page));
     await openDetail(page, 'Canal View Apartment');
     await expect(page.locator('main').getByRole('button', { name: /record sale|close|sell/i }).first()).toBeVisible();
     await openDetail(page, 'Tesla Model 3 LR');

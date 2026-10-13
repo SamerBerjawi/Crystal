@@ -234,7 +234,6 @@ test.describe('W27 Schedule & bills', () => {
   });
 
   test('notification center lists bills and can be cleared', async ({ authedPage: page }) => {
-    openBug('AUD-47', isMobile(page));
     await goTo(page, '/');
     const bell = page.getByRole('button', { name: /bill notifications/i });
     expect(await bell.count(), 'bill notifications must be reachable at this width').toBeGreaterThan(0);
@@ -258,7 +257,6 @@ test.describe('W28 Subscriptions & memberships', () => {
   });
 
   test('add a loyalty/membership card', async ({ authedPage: page, user }) => {
-    openBug('AUD-47', isMobile(page));
     const before = (await serverData(user)).memberships.length;
     await goTo(page, '/subscriptions');
     const wallet = page.getByRole('button', { name: /^wallet/i }).first();

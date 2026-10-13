@@ -132,6 +132,8 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
         subText={account.address || 'Global Portfolio'}
         valuationAction={{ label: 'Valuation', icon: 'Edit02', onClick: onUpdateValuation }}
         syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+        closeAction={!isClosed && onCloseAsset ? { label: 'Record Sale', icon: 'sell', onClick: onCloseAsset } : undefined}
+        reopenAction={isClosed && onRevertClosure ? { label: 'Reopen', icon: 'history', onClick: onRevertClosure } : undefined}
       />
 
       {/* Dynamic Desktop Header */}

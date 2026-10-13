@@ -11,6 +11,7 @@ import {
 import NetWorthChart from './NetWorthChart';
 import Icon from './ui/Icon';
 import PullToRefresh from './PullToRefresh';
+import { useHeaderControls } from '../contexts/HeaderContext';
 import MobileFilterSheet from './MobileFilterSheet';
 import SwipeableRow from './SwipeableRow';
 
@@ -391,6 +392,8 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
   const activeFilterCount = selectedAccountIds.length;
 
+  const { notificationCenter } = useHeaderControls();
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="space-y-3.5 pb-20 animate-fade-in md:hidden relative font-sans px-0.5">
@@ -407,6 +410,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {notificationCenter}
             <button
               onClick={() => setIsPrivacyMode(!isPrivacyMode)}
               className="w-9 h-9 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-xs flex items-center justify-center text-light-text dark:text-white active:scale-95 touch-feedback transition-transform"

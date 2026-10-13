@@ -257,6 +257,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
         subText={`${account.year || ''} ${account.make || ''} ${account.model || ''}`}
         valuationAction={!isClosed ? { label: 'Value Update', icon: 'PlusCircle', onClick: () => { if (onUpdateValuation) onUpdateValuation(); else if (onAddTransaction) onAddTransaction(); } } : undefined}
         secondaryAction={{ label: 'Add Log', icon: 'Activity', onClick: () => onAddLog() }}
+        closeAction={!isClosed && onCloseAsset ? { label: 'Retire Vehicle', icon: 'event_busy', onClick: () => onCloseAsset() } : undefined}
+        reopenAction={isClosed && onRevertClosure ? { label: 'Reopen', icon: 'history', onClick: () => onRevertClosure() } : undefined}
       />
 
       {/* Dynamic Desktop Header */}

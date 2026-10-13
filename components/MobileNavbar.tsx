@@ -8,6 +8,8 @@ import Icon from './ui/Icon';
 interface MobileNavbarProps {
   currentPage: string;
   setCurrentPage: (page: Page) => void;
+  /** When provided, the More sheet shows a Sign Out action. */
+  onLogout?: () => void;
 }
 
 /**
@@ -83,7 +85,7 @@ const navIconMap: Record<string, string> = NAV_ITEMS.reduce((acc, item) => {
   return acc;
 }, {} as Record<string, string>);
 
-const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage }) => {
+const MobileNavbar: React.FC<MobileNavbarProps> = ({ onLogout, currentPage, setCurrentPage }) => {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const isPrimaryActive = PRIMARY_TABS.some(tab => tab.id === currentPage);
@@ -264,6 +266,19 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ currentPage, setCurrentPage
                     </div>
                   </div>
                 ))}
+
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsMoreOpen(false); onLogout(); }}
+                    className="touch-feedback w-full flex items-center gap-3 p-3 rounded-2xl text-left border border-rose-500/20 bg-rose-500/5 text-rose-600 dark:text-rose-400 min-h-[44px]"
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-rose-500/10">
+                      <Icon name="logout" className="text-xl" />
+                    </div>
+                    <span className="text-xs font-semibold">Sign Out</span>
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>

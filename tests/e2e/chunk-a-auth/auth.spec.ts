@@ -150,7 +150,6 @@ test.describe('W4 Sign out', () => {
 
 test.describe('W4 Sign out (mobile reachability)', () => {
   test('mobile: Sign Out is reachable from the Dashboard', async ({ authedPage: page }) => {
-    openBug('AUD-47');
     test.skip(!isMobile(page), 'mobile only');
     await goTo(page, '/');
     const viaMenu = await page.getByRole('button', { name: 'Open navigation menu' }).count();

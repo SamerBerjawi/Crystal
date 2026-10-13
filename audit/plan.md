@@ -318,7 +318,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** e2e E4 "holding with no price data is not shown as −100%".
 
-#### WP-2.9 Mobile feature parity `[ ]`
+#### WP-2.9 Mobile feature parity `[x]`
+- **Done:** Mobile: Sign Out in the More sheet; bill notification bell in the mobile dashboard header; Record Sale / Retire Vehicle / Reopen buttons in MobileAccountHeader; Wallet section with Add Card (list, edit, delete) in MobileSubscriptionsView. A13, B24, D15, D17 un-annotated and passing at 375 px.
 - **Covers:** AUD-47 (QA-A-010, QA-B-007, QA-D-003, QA-D-004)
 - **Files:** `components/MobileNavbar.tsx`, `components/MobileAccountHeader.tsx` / account views, `components/MobileSubscriptionsView.tsx`, `components/MobileDashboardView.tsx`
 - **Depends on:** WP-2.5

@@ -3154,7 +3154,7 @@ const App: React.FC = () => {
               </main>
             </HeaderProvider>
           </div>
-          <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} />
           {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
           <CommandCenter
             isOpen={isCommandCenterOpen}

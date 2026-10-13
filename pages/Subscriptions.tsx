@@ -463,6 +463,10 @@ const Subscriptions: React.FC = () => {
                     onAddSubscription={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }}
                     onEditSubscription={handleEditActive}
                     onDeleteSubscription={handleDeleteActive}
+                    memberships={memberships}
+                    onAddMembership={handleAddMembership}
+                    onEditMembership={handleEditMembership}
+                    onDeleteMembership={handleDeleteMembershipRequest}
                 />
             ) : (
                 <div className="space-y-6 pb-12 animate-fade-in-up">
