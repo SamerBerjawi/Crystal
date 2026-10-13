@@ -185,11 +185,11 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
            )}
         </td>
         <td className="py-4 px-4">
-          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onEdit(goal)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 rounded-lg">
+          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            <button aria-label={`Edit goal ${goal.name}`} onClick={() => onEdit(goal)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 rounded-lg">
               <Icon name="edit" className="text-base" />
             </button>
-            <button onClick={() => onDelete(goal.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-500 rounded-lg">
+            <button aria-label={`Delete goal ${goal.name}`} onClick={() => onDelete(goal.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-500 rounded-lg">
               <Icon name="delete" className="text-base" />
             </button>
           </div>

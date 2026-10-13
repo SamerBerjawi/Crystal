@@ -205,8 +205,15 @@ const MobileAccountItem: React.FC<{
     >
       <div
         onClick={() => onAccountClick(account.id)}
-        className="p-3.5 flex items-center justify-between gap-2.5 min-h-[64px] bg-white dark:bg-[#18181b] touch-feedback cursor-pointer active:bg-gray-100 dark:active:bg-gray-800/80 transition-colors"
+        className="relative p-3.5 flex items-center justify-between gap-2.5 min-h-[64px] bg-white dark:bg-[#18181b] touch-feedback cursor-pointer active:bg-gray-100 dark:active:bg-gray-800/80 transition-colors"
       >
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onAccountClick(account.id); }}
+          className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-2 focus-visible:top-2 focus-visible:z-40 focus-visible:px-3 focus-visible:py-1.5 focus-visible:rounded-lg focus-visible:bg-primary-500 focus-visible:text-white focus-visible:text-xs focus-visible:font-bold"
+        >
+          Open {account.name}
+        </button>
         {/* Left Avatar & Name */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {renderInstitutionAvatar(account)}

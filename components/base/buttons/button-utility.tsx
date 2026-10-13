@@ -46,6 +46,7 @@ export const ButtonUtility = ({
         <button
             type={type}
             disabled={disabled}
+            aria-label={typeof tooltip === 'string' ? tooltip : undefined}
             className={cx(
                 "group inline-flex items-center justify-center font-medium transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none select-none shrink-0",
                 sizeStyles[size],

@@ -275,6 +275,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                     currentConfig.text.includes('red') ? '#ef4444' : '#3b82f6'
                 }}
             >
+                {/* Keyboard / screen-reader entry point: the card itself is a mouse target only. */}
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onClick(); }}
+                    className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-2 focus-visible:top-2 focus-visible:z-40 focus-visible:px-3 focus-visible:py-1.5 focus-visible:rounded-lg focus-visible:bg-primary-500 focus-visible:text-white focus-visible:text-xs focus-visible:font-bold"
+                >
+                    Open {account.name}
+                </button>
                 {/* Left Section: Icon and Account Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="relative shrink-0">
@@ -418,6 +426,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 boxShadow: `0 10px 40px -10px ${glowColor}`
             }}
         >
+            {/* Keyboard / screen-reader entry point: the card itself is a mouse target only. */}
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onClick(); }}
+                    className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-2 focus-visible:top-2 focus-visible:z-40 focus-visible:px-3 focus-visible:py-1.5 focus-visible:rounded-lg focus-visible:bg-primary-500 focus-visible:text-white focus-visible:text-xs focus-visible:font-bold"
+                >
+                    Open {account.name}
+                </button>
             {/* Inner Glow Effect */}
             <div 
                 className="absolute inset-0 pointer-events-none rounded-[2rem] overflow-hidden"

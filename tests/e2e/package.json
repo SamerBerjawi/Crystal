@@ -7,6 +7,7 @@
     "test:chunk": "playwright test --project"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "1.56.1",
     "embedded-postgres": "^18.4.0-beta.17"
   }

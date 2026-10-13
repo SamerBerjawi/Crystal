@@ -565,7 +565,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </div>
 
                     <div className={`${SELECT_WRAPPER_STYLE} !w-auto h-9`}>
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-xs !font-semibold pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
+                        <select aria-label="Sort accounts" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-xs !font-semibold pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
                             <option value="manual">Sort: Manual</option>
                             <option value="name">Sort: Name</option>
                             <option value="balance">Sort: Balance</option>

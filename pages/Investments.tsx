@@ -1486,8 +1486,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <div className="min-w-[100px]">
                                             <p className="text-sm font-bold font-mono text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
                                         </div>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                             <button 
+                                                aria-label={`Delete ${item.symbol || 'holding'}`}
                                                 onClick={(e) => { e.stopPropagation(); setItemToDelete({ id: item.id, isWarrant: item.isWarrant }); }}
                                                 className="p-1 text-gray-400 hover:text-red-500"
                                             >

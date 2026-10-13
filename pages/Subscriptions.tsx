@@ -816,8 +816,9 @@ const Subscriptions: React.FC = () => {
                                                                     </span>
                                                                 </div>
                                                                 <button 
+                                                                    aria-label={`Delete ${sub.description || 'subscription'}`}
                                                                     onClick={(e) => { e.stopPropagation(); handleDeleteActive(sub.id); }}
-                                                                    className="opacity-0 group-hover:opacity-100 transition-all p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg text-light-text-secondary/30 active:scale-[0.95]"
+                                                                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all p-1.5 hover:bg-rose-500/10 hover:text-rose-500 rounded-lg text-light-text-secondary/30 active:scale-[0.95]"
                                                                 >
                                                                     <Icon name="delete" className="text-sm" />
                                                                 </button>

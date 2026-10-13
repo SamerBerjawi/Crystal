@@ -225,7 +225,8 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
           <div className="flex gap-4">
                 <div className="glass-subwell p-1 rounded-2xl flex shadow-xs">
                    <select 
-                     value={sortBy} 
+                     aria-label="Sort tags"
+                     value={sortBy}  
                      onChange={(e) => setSortBy(e.target.value as SortOption)}
                      className="bg-transparent text-xs font-bold text-light-text dark:text-dark-text px-4 py-2 focus:outline-none cursor-pointer"
                    >
@@ -237,12 +238,16 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                 
                 <div className="flex glass-subwell p-1 rounded-2xl shadow-xs">
                     <button 
+                       aria-label="Grid view"
+                       aria-pressed={viewMode === 'grid'}
                        onClick={() => setViewMode('grid')}
                        className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'glass-tile shadow-card text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                     >
                         <Icon name="layout_alt" className="text-sm" />
                     </button>
                     <button 
+                       aria-label="List view"
+                       aria-pressed={viewMode === 'list'}
                        onClick={() => setViewMode('list')}
                        className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'glass-tile shadow-card text-primary-500' : 'text-light-text-secondary hover:text-primary-500'}`}
                     >
@@ -276,14 +281,16 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                        </div>
                                    </div>
                                </div>
-                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
                                     <button 
+                                       aria-label={`Edit tag ${tag.name}`}
                                        onClick={(e) => { e.stopPropagation(); handleOpenModal(tag); }} 
                                        className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white text-light-text-secondary transition-all"
                                    >
                                        <Icon name="edit_square" className="text-sm" />
                                    </button>
                                    <button 
+                                       aria-label={`Delete tag ${tag.name}`}
                                        onClick={(e) => { e.stopPropagation(); setDeletingTagId(tag.id); }} 
                                        className="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white text-light-text-secondary transition-all"
                                    >

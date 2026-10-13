@@ -522,6 +522,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
           <div className="relative flex-1 min-w-0">
             <select
               name="selectedBank"
+              aria-label="Bank"
               value={formState.selectedBank}
               onChange={handleFormChange}
               disabled={banksLoading || bankOptions.length === 0}

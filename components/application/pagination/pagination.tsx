@@ -87,6 +87,7 @@ export const PaginationPageMinimalCenter: React.FC<PaginationPageMinimalCenterPr
                     <div className="flex items-center gap-2 mr-2">
                         <span className="text-xs text-quaternary font-medium">Show</span>
                         <select
+                            aria-label="Rows per page"
                             value={itemsPerPage}
                             onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
                             className="text-xs font-semibold rounded-lg border border-secondary bg-primary px-2 py-1.5 text-secondary outline-none cursor-pointer focus:ring-1 focus:ring-primary-500"

@@ -296,7 +296,6 @@ test.describe('W21 Tags', () => {
   });
 
   test('tag cards expose named edit/delete actions', async ({ authedPage: page }) => {
-    openBug('AUD-24');
     await goTo(page, '/tags');
     await expect(page.locator('main')).toContainText('Work');
     await expect(page.locator('main').getByRole('button', { name: /delete/i }).first()).toBeAttached();

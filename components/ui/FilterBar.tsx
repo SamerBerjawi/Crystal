@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { createContext, forwardRef, useContext, useId } from 'react';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
 
@@ -59,12 +59,18 @@ export interface FilterFieldProps {
   children: React.ReactNode;
 }
 
+// The id of the control a <FilterField> labels, so FilterSelect / FilterInput can pick it up automatically.
+const FieldControlContext = createContext<string | undefined>(undefined);
+
 export const FilterField: React.FC<FilterFieldProps> = ({ label, htmlFor, className, children }) => {
+  const generatedId = useId();
+  const controlId = htmlFor ?? generatedId;
   return (
+    <FieldControlContext.Provider value={label ? controlId : undefined}>
     <div className={cn('flex flex-col min-w-0', className)}>
       {label && (
         <label
-          htmlFor={htmlFor}
+          htmlFor={controlId}
           className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 mb-1.5 truncate select-none"
         >
           {label}
@@ -72,6 +78,7 @@ export const FilterField: React.FC<FilterFieldProps> = ({ label, htmlFor, classN
       )}
       {children}
     </div>
+    </FieldControlContext.Provider>
   );
 };
 
@@ -132,6 +139,7 @@ export interface FilterSelectProps extends React.SelectHTMLAttributes<HTMLSelect
 
 export const FilterSelect = forwardRef<HTMLSelectElement, FilterSelectProps>(
   ({ children, containerClassName, className, icon, ...props }, ref) => {
+    const fieldControlId = useContext(FieldControlContext);
     return (
       <div className={cn('relative min-w-[140px] flex-1', containerClassName)}>
         {icon && (
@@ -142,6 +150,7 @@ export const FilterSelect = forwardRef<HTMLSelectElement, FilterSelectProps>(
         )}
         <select
           ref={ref}
+          id={props.id ?? fieldControlId}
           className={cn(
             'w-full min-h-[44px] h-11 py-2 rounded-xl appearance-none cursor-pointer',
             icon ? 'pl-10 pr-9' : 'pl-3.5 pr-9',
@@ -171,10 +180,12 @@ export interface FilterInputProps extends React.InputHTMLAttributes<HTMLInputEle
 
 export const FilterInput = forwardRef<HTMLInputElement, FilterInputProps>(
   ({ containerClassName, className, ...props }, ref) => {
+    const fieldControlId = useContext(FieldControlContext);
     return (
       <div className={cn('relative flex-1 min-w-[120px]', containerClassName)}>
         <input
           ref={ref}
+          id={props.id ?? fieldControlId}
           className={cn(
             'w-full min-h-[44px] h-11 px-3.5 rounded-xl',
             'bg-white/80 dark:bg-dark-card/60 border border-slate-200/80 dark:border-white/10',

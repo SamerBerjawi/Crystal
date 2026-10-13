@@ -781,12 +781,16 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
                <div className="flex glass-subwell p-1 rounded-xl shadow-xs">
                    <button 
+                      aria-label="Grid view"
+                      aria-pressed={viewMode === 'grid'}
                       onClick={() => setViewMode('grid')}
                       className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'glass-tile shadow-card text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
                        <Icon name="grid_view" className="text-lg" />
                    </button>
                    <button 
+                      aria-label="List view"
+                      aria-pressed={viewMode === 'list'}
                       onClick={() => setViewMode('list')}
                       className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'glass-tile shadow-card text-primary-500 scale-110' : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:text-primary-500'}`}
                    >
@@ -796,6 +800,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                
                <div className="relative group">
                    <select 
+                        aria-label="Sort merchants"
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value as any)} 
                         className="appearance-none glass-tile border border-slate-200/80 dark:border-white/10 rounded-xl pl-4 pr-10 py-3 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all shadow-card cursor-pointer"

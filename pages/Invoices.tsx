@@ -319,17 +319,20 @@ const InvoicesPage: React.FC = () => {
                                                  </span>
                                              </td>
                                              <td className="px-6 sm:px-10 py-6">
-                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                                      {doc.type === 'quote' && (
                                                          <button 
                                                              onClick={(e) => { e.stopPropagation(); handleConvertToInvoice(doc); }}
                                                              className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 rounded-2xl transition-all active:scale-90"
                                                              title="Convert to Invoice"
+                                                             aria-label="Convert to invoice"
+
                                                          >
                                                              <Icon name="transform" className="text-xl sm:text-2xl" />
                                                          </button>
                                                      )}
                                                      <button 
+                                                         aria-label={`Delete ${doc.type} ${doc.number}`}
                                                          onClick={(e) => { e.stopPropagation(); setDeletingId(doc.id); }}
                                                          className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
                                                      >

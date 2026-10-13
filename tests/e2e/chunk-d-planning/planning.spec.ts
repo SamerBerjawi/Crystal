@@ -59,7 +59,6 @@ test.describe('W24 Budgets', () => {
   });
 
   test('mobile: the add-budget button has an accessible name', async ({ authedPage: page }) => {
-    openBug('AUD-24');
     test.skip(!isMobile(page), 'mobile only');
     await goTo(page, '/budget');
     const btn = page.locator('main button.bg-purple-600').first();

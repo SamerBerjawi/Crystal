@@ -418,7 +418,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** new e2e: an open modal has `role="dialog"` + `aria-modal`; Tab from the last control stays inside; focus returns to the opener on close.
 
-#### WP-4.3 Accessible names and keyboard access `[ ]`
+#### WP-4.3 Accessible names and keyboard access `[x]`
+- **Done:** axe button-name/select-name/label/aria-required-attr are 0 on 14 populated pages (desktop and mobile): ButtonUtility forwards tooltip as aria-label, labelled row actions/sort selects/view toggles/switches (aria-checked coerced), FilterBar.Field links its label to the control, hover-only actions are also revealed on focus. Account cards (desktop + mobile) gain a keyboard entry point ('Open <name>' button); one h1 + one main verified on key pages. Other clickable non-account cards still rely on their inner buttons.
 - **Covers:** AUD-24 (UI-016, UI-007, QA-C-002, QA-D-006), AUD-22 (UI-005), AUD-69 (UI-015)
 - **Files:** `components/base/buttons/button-utility.tsx`, `pages/Tags.tsx`, `components/MobileBudgetView.tsx`, `pages/Preferences.tsx`, `components/AccountRow.tsx`, `pages/Investments.tsx`, `pages/Forecasting.tsx`, `pages/SignIn.tsx` / `SignUp.tsx`
 - **Depends on:** —

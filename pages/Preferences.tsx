@@ -505,6 +505,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
                 <div className={SELECT_WRAPPER_STYLE}>
                   <select
                     name="currency"
+                    aria-label="Currency"
                     value={preferences.currency}
                     onChange={handleSelectChange}
                     className={SELECT_STYLE}
@@ -796,7 +797,8 @@ export const Preferences: React.FC<PreferencesProps> = ({
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={preferences.excludeTransfersFromAnalytics}
+                    aria-checked={!!preferences.excludeTransfersFromAnalytics}
+                    aria-label="Exclude internal transfers from charts"
                     onClick={() => handleToggle('excludeTransfersFromAnalytics')}
                     className={`w-11 h-6 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
                       preferences.excludeTransfersFromAnalytics ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'
@@ -822,7 +824,8 @@ export const Preferences: React.FC<PreferencesProps> = ({
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={preferences.showBalanceAdjustments}
+                    aria-checked={!!preferences.showBalanceAdjustments}
+                    aria-label="Show manual balance adjustments"
                     onClick={() => handleToggle('showBalanceAdjustments')}
                     className={`w-11 h-6 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
                       preferences.showBalanceAdjustments ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'
@@ -848,7 +851,8 @@ export const Preferences: React.FC<PreferencesProps> = ({
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={preferences.isPrivacyMode}
+                    aria-checked={!!preferences.isPrivacyMode}
+                    aria-label="Privacy mode"
                     onClick={() => handleToggle('isPrivacyMode')}
                     className={`w-11 h-6 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
                       preferences.isPrivacyMode ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'

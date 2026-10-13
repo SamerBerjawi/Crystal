@@ -267,6 +267,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
             {/* Quick Action Button */}
             <button
               type="button"
+              aria-label="Add budget"
               onClick={() => onAddBudget()}
               className="h-9 w-9 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/25 active:scale-95 transition-all"
             >
@@ -281,6 +282,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
         <div className="p-1 rounded-2xl bg-black/5 dark:bg-white/[0.06] border border-black/[0.04] dark:border-white/[0.04] flex items-center justify-between">
           <button
             type="button"
+            aria-label="Previous month"
             onClick={() => onMonthChange(-1)}
             className="h-8 w-8 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all"
           >
@@ -296,6 +298,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
 
           <button
             type="button"
+            aria-label="Next month"
             onClick={() => onMonthChange(1)}
             className="h-8 w-8 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all"
           >

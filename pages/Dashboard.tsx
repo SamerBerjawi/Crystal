@@ -1829,6 +1829,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   <>
                     <div className="relative flex-1 sm:flex-initial h-10">
                       <select
+                        aria-label="Forecast horizon"
                         value={forecastDuration}
                         onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
                         className="appearance-none bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white h-10 pl-3.5 pr-8 rounded-xl sm:rounded-[1.25rem] text-xs font-bold tracking-wide transition-all cursor-pointer border-0 outline-none focus:ring-2 focus:ring-primary-500/30"
