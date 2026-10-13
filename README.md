@@ -96,20 +96,37 @@ Crystal handles complex portfolios beyond simple bank accounts.
 
 ## Installation
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/yourusername/crystal.git
-    cd crystal
-    ```
+### Self-hosted (recommended)
 
-2.  **Initialize Node:**
-    ```bash
-    npm install
-    npm run dev
-    ```
+Crystal is meant to run with its PostgreSQL backend via Docker:
 
-3.  **Access the App:**
-    Open `http://localhost:3000` in your browser.
+```bash
+export DATA_ROOT=./data JWT_SECRET="$(openssl rand -hex 32)" POSTGRES_PASSWORD="$(openssl rand -hex 16)"
+docker compose up -d
+```
+
+Then open `http://localhost:7157`. Set `JWT_SECRET` to a long random value; it signs session tokens.
+
+### Local development
+
+```bash
+npm install
+npm run dev
+```
+
+`npm run dev` serves the app on `http://localhost:3000` (loopback only; set `HOST` to change it).
+It needs an API backend:
+
+- **Real backend:** run `server/` (see `server/package.json`) and set `VITE_BACKEND_URL=http://localhost:3001`.
+- **In-memory mock (UI work only):** `CRYSTAL_MOCK_API=1 npm run dev`. Data is lost on restart, the sample user
+  is `demo@crystal.app` / `password`, and it must never be exposed to a network.
+
+### Tests
+
+```bash
+npm test               # unit tests
+tests/run-all.sh       # unit tests + Playwright e2e against a throwaway Postgres
+```
 
 ## License
 MIT

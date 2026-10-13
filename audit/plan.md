@@ -178,7 +178,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Changes:** every writer uses a single atomic `UPDATE … SET data = data || $2::jsonb` (or a `FOR UPDATE` transaction); `/pending` no longer touches `lastUpdatedAt`; password change in one transaction.
 - **Verify:** new API test `tests/e2e/api/blob-writes.spec.ts` (concurrent `/pending` + `/api/data`: both writes kept, `lastUpdatedAt` not rolled back); e2e B29 "connection ready persisted".
 
-#### WP-1.4 ⚡ SSRF and dev mock server `[ ]` — needs decision K11
+#### WP-1.4 ⚡ SSRF and dev mock server `[x]` — needs decision K11
+- **Done:** smart-fetch now requires auth, is rate limited, and fetches through server/src/urlGuard.ts (blocks private/loopback/metadata IPs at connect time incl. redirects, 10 s timeout, 2 MB cap); dev server mock is opt-in (CRYSTAL_MOCK_API=1), loopback-bound, checks passwords, has no user-1 fallback and no /api/ai/proxy; README rewritten. Tests: tests/unit/urlGuard + dev-server, tests/e2e/api/smart-fetch.
 - **Covers:** AUD-10 (SEC-001), AUD-11 (SEC-002)
 - **Files:** `server/src/smartFetcher.ts`, new `server/src/urlGuard.ts`, `server.ts`, `README.md`
 - **Depends on:** —
