@@ -157,6 +157,34 @@ export const FONT_CATEGORIES: { id: 'all' | AppFontCategory; label: string; icon
 /**
  * Normalizes any font key to a valid AppFont key
  */
+// Plus Jakarta Sans (the default) is bundled through @fontsource. Every other face is fetched from Google Fonts only
+// when it is selected or previewed, so a first visit makes no third-party font request.
+const GOOGLE_FONT_FAMILIES: Record<string, string> = {
+  'inter': 'Inter',
+  'open-sans': 'Open+Sans',
+  'montserrat': 'Montserrat',
+  'ubuntu': 'Ubuntu',
+  'delius': 'Delius',
+  'crimson-pro': 'Crimson+Pro',
+  'neuton': 'Neuton',
+  'dm-serif-display': 'DM+Serif+Display',
+  'noto-serif': 'Noto+Serif',
+  'crete-round': 'Crete+Round',
+};
+
+export function ensureFontLoaded(font: AppFont | string) {
+  if (typeof document === 'undefined') return;
+  const family = GOOGLE_FONT_FAMILIES[font];
+  if (!family) return;
+  const id = `crystal-font-${font}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${family}&display=swap`;
+  document.head.appendChild(link);
+}
+
 export function normalizeFontKey(font: string | undefined): AppFont {
   if (!font) return 'plus-jakarta';
   if (font === 'plus-jakarta-sans') return 'plus-jakarta';
@@ -176,6 +204,7 @@ export function applyAppFont(font: AppFont | string) {
   root.setAttribute('data-font', canonicalKey);
   root.style.setProperty('--app-font-family', def.fontFamily);
   root.style.setProperty('--app-font', def.fontFamily);
+  ensureFontLoaded(canonicalKey);
 }
 
 /**

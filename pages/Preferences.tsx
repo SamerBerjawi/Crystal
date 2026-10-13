@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppPreferences, Theme, Page, AppFont, AppFontCategory } from '../types';
-import { FONT_DEFINITIONS, FONT_CATEGORIES, normalizeFontKey } from '../hooks/useFont';
+import { FONT_DEFINITIONS, FONT_CATEGORIES, normalizeFontKey, ensureFontLoaded } from '../hooks/useFont';
 import {
   CURRENCY_OPTIONS,
   TIMEZONE_OPTIONS,
@@ -65,6 +65,11 @@ export const Preferences: React.FC<PreferencesProps> = ({
     if (selectedFontCategory === 'all') return allDefs;
     return allDefs.filter((f) => f.category === selectedFontCategory);
   }, [selectedFontCategory]);
+
+  // The picker previews every face, so load them now (and only now) rather than at startup.
+  useEffect(() => {
+    visibleFonts.forEach(f => ensureFontLoaded(f.id));
+  }, [visibleFonts]);
 
   const activeFontDef = useMemo(() => {
     return (

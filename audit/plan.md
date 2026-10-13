@@ -391,7 +391,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** unit test: logo URL is stable across days; e2e C23/C24 merchants stay green.
 
-#### WP-3.5 Fonts `[ ]`
+#### WP-3.5 Fonts `[x]`
+- **Done:** Removed the Google Fonts <link>/@import and Inter's @fontsource imports; only Plus Jakarta Sans is bundled. Other faces are injected as a single <link> when chosen (applyAppFont) or when the Preferences picker previews them. Regression test: no fonts.googleapis/gstatic requests on sign-in or the dashboard.
 - **Covers:** AUD-40 (PERF-009)
 - **Files:** `index.html`, `index.css`, `hooks/useFont.ts`
 - **Depends on:** —
