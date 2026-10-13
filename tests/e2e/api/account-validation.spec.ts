@@ -35,3 +35,22 @@ test('an 8-character password is accepted', async ({ baseURL }) => {
   expect(res.status()).toBe(201);
   await api.dispose();
 });
+
+/** AUD-28 (SEC-005): POST /api/data validates the payload before it reaches the user's blob. */
+test('data save rejects malformed payloads with 400 and leaves stored data untouched', async ({ baseURL }) => {
+  const user = await registerUser(baseURL!, { seed: true, tag: 'badblob' });
+  const before = await (await user.api.get('/api/data')).json();
+  const bad: Record<string, unknown>[] = [
+    { partial: true, data: { transactions: { id: 'not-an-array' } } },
+    { partial: true, data: { transactions: [{ id: 't', accountId: 'a', amount: 1, date: '2026-13-45', description: 'x' }] } },
+    { partial: true, data: { accounts: 'oops' } },
+    { partial: true, data: { userStats: [1, 2] } },
+  ];
+  for (const body of bad) {
+    const res = await user.api.post('/api/data', { data: body });
+    expect(res.status(), JSON.stringify(body).slice(0, 80)).toBe(400);
+  }
+  const after = await (await user.api.get('/api/data')).json();
+  expect(after).toEqual(before);
+  await user.api.dispose();
+});

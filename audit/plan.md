@@ -211,7 +211,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** L
 - **Verify:** API test: the key is stored encrypted and never returned; the `/api/data` blob contains no `clientCertificate`; e2e `chunk-b` banking specs stay green.
 
-#### WP-1.7 Validation of stored and restored data `[ ]`
+#### WP-1.7 Validation of stored and restored data `[x]`
+- **Done:** POST /api/data validates every payload with the zod schema (400, blob untouched; calendar-valid dates required); Smart Restore validates files per record with a readable problem list (utils/validateBackup); new parseLocalDateStrict returns null for invalid dates. parseLocalDate itself keeps its never-throw fallback because it has 254 call sites — migrating them is tracked under WP-2.13.
 - **Covers:** AUD-28 (SEC-005, REL-013)
 - **Files:** `server/src/data.ts`, `server/src/schemas.ts`, `components/SmartRestoreModal.tsx`, `utils.ts` (`parseLocalDate`)
 - **Depends on:** WP-1.3

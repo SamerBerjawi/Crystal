@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+// Calendar-valid "YYYY-MM-DD" (optionally followed by a time part). "2026-13-45" is rejected, not rolled over.
+export const isValidDateString = (value: string): boolean => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(value);
+    if (!m) return false;
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    if (mo < 1 || mo > 12 || d < 1) return false;
+    return d <= new Date(Date.UTC(y, mo, 0)).getUTCDate();
+};
+const dateString = z.string().refine(isValidDateString, { message: 'must be a valid YYYY-MM-DD date' });
+
 export const accountSchema = z.object({
     id: z.string(),
     name: z.string(),
@@ -15,7 +25,7 @@ export const transactionSchema = z.object({
     id: z.string(),
     accountId: z.string(),
     amount: z.number().or(z.string().transform(v => parseFloat(v) || 0)),
-    date: z.string(),
+    date: dateString,
     description: z.string(),
     category: z.string().optional(),
     type: z.string().optional(),
@@ -35,7 +45,7 @@ export const recurringTransactionSchema = z.object({
     accountId: z.string(),
     amount: z.number().or(z.string().transform(v => parseFloat(v) || 0)),
     frequency: z.string(),
-    startDate: z.string(),
+    startDate: dateString,
 }).passthrough();
 
 export const financialDataSchema = z.object({

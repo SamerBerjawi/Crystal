@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { FinancialData } from '../types';
 import Icon from './ui/Icon';
+import { validateBackup } from '../utils/validateBackup';
 
 interface SmartRestoreModalProps {
   onClose: () => void;
@@ -87,6 +88,12 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                     const json = JSON.parse(event.target?.result as string);
                     // Basic validation
                     if (!json || typeof json !== 'object') throw new Error("Invalid JSON format");
+                    const problems = validateBackup(json);
+                    if (problems.length > 0) {
+                        setParsedData(null);
+                        setError(`This backup can't be restored because it contains invalid data:\n• ${problems.join('\n• ')}`);
+                        return;
+                    }
                     
                     setParsedData(json);
                     
@@ -170,7 +177,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                         <label htmlFor="backup-upload" className={`${BTN_PRIMARY_STYLE} inline-flex items-center cursor-pointer`}>
                             Browse Files
                         </label>
-                        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+                        {error && <p className="text-red-500 text-sm mt-4 whitespace-pre-line text-left">{error}</p>}
                     </div>
                 ) : (
                     <div className="space-y-4">

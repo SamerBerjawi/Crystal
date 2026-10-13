@@ -1,6 +1,7 @@
 
 import express from 'express';
 import { db } from './database';
+import { validateFinancialDataPayload } from './schemas';
 import { authenticateToken, AuthRequest } from './middleware';
 
 const router = express.Router();
@@ -81,6 +82,13 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;
         delete incomingData.allowEmpty;
+
+        // Reject malformed payloads (wrong container types, bad dates) before they reach the user's blob.
+        const validation = validateFinancialDataPayload(incomingData);
+        if (!validation.success) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: validation.error || 'Invalid payload.' });
+        }
 
         const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
         if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {

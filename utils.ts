@@ -192,6 +192,24 @@ export const toLocalISOYearMonth = (date: Date): string => {
  * This ensures that the date component remains stable regardless of the user's timezone
  * when displayed using local formatting functions.
  */
+/**
+ * Strict counterpart of parseLocalDate: returns null for anything that is not a calendar-valid date
+ * ("2026-13-45", "2026-02-30", "abc", non-strings) instead of rolling over or falling back to today.
+ * Use it where bad input must be reported (imports, restores, validation).
+ */
+export const parseLocalDateStrict = (value: unknown): Date | null => {
+    if (typeof value !== 'string') return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(value.trim());
+    if (!m) {
+        const d = new Date(value);
+        return value.trim() && !isNaN(d.getTime()) && /\d{4}/.test(value) ? d : null;
+    }
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    if (mo < 1 || mo > 12 || d < 1 || d > new Date(y, mo, 0).getDate()) return null;
+    return new Date(y, mo - 1, d);
+};
+
+/** Never throws; empty input means "today" and unparseable input falls back to today. Use parseLocalDateStrict to detect bad input. */
 export const parseLocalDate = (dateString: string): Date => {
     if (!dateString) return new Date();
 
