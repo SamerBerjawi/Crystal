@@ -57,7 +57,6 @@ test.describe('W29 Trade & holdings', () => {
   });
 
   test('a holding with no price data is not shown as a -100% loss', async ({ authedPage: page }) => {
-    openBug('AUD-15');
     test.skip(isMobile(page), 'desktop holdings table');
     await goTo(page, '/investments');
     const row = page.locator('main').getByRole('row').filter({ hasText: 'VWCE' }).first().or(page.locator('main div').filter({ hasText: /^VWCE/ }).first());

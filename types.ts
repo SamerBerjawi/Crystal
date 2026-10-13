@@ -341,6 +341,8 @@ export interface HoldingSummary {
   totalCost: number;
   currentValue: number;
   currentPrice: number;
+  /** True when no live or manual price exists, so currentValue falls back to the last trade price or cost basis. */
+  priceUnavailable?: boolean;
   type: 'Standard' | 'Warrant';
   subType?: InvestmentSubType;
   warrantId?: string;
@@ -358,6 +360,9 @@ export interface HoldingsOverview {
   holdings: HoldingSummary[];
   totalValue: number;
   totalCostBasis: number;
+  /** Cost basis of holdings without a price; excluded from gain/loss percentages. */
+  unpricedCostBasis?: number;
+  unpricedValue?: number;
   investedCapital: number;
   grantedCapital: number;
   distributionData: HoldingDistribution[];

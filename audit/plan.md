@@ -310,7 +310,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e D5 "delete a budget", F17/F18 widgets, F4 pagination, B15 Enter submits, B23 mileage.
 
-#### WP-2.8 Investments valuation `[ ]` — needs decision K8
+#### WP-2.8 Investments valuation `[x]` — needs decision K8
+- **Done:** buildHoldingsOverview no longer treats a missing quote as €0: uses the last trade price (else average cost), flags priceUnavailable, and excludes those holdings from gain/loss % (overview, per-row, detail, mobile); rows show 'Price unavailable'. 4 unit tests; E4 un-annotated and passing.
 - **Covers:** AUD-15 (QA-E-003)
 - **Files:** `utils/investments.ts` L60-130, `pages/Investments.tsx`
 - **Depends on:** —

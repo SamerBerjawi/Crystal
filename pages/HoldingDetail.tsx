@@ -125,8 +125,8 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     }
 
     const averageCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
-    const gainLoss = holding.currentValue - holding.totalCost;
-    const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
+    const gainLoss = holding.priceUnavailable ? 0 : holding.currentValue - holding.totalCost;
+    const gainLossPercent = !holding.priceUnavailable && holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
     const isPositive = gainLoss >= 0;
     
     // Style logic

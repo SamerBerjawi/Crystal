@@ -12,6 +12,7 @@ export const buildHoldingsOverview = (
     prices: Record<string, number | null>
 ): HoldingsOverview => {
     const holdingsMap: Record<string, HoldingSummary> = {};
+    const lastTradePrice: Record<string, number> = {};
 
     investmentAccounts.forEach(acc => {
         if (acc.symbol) {
@@ -69,6 +70,7 @@ export const buildHoldingsOverview = (
             
             const q = Number(tx.quantity) || 0;
             const p = Number(tx.price) || 0;
+            if (p > 0) lastTradePrice[tx.symbol] = p;
 
             if (tx.type?.toLowerCase() === 'buy') {
                 holding.quantity += q;
@@ -87,7 +89,14 @@ export const buildHoldingsOverview = (
         });
 
     Object.values(holdingsMap).forEach(h => {
-        const price = prices[h.symbol] ?? 0;
+        const quoted = prices[h.symbol];
+        let price = typeof quoted === 'number' && Number.isFinite(quoted) && quoted > 0 ? quoted : 0;
+        if (price === 0 && h.quantity > 0) {
+            // No live or manual price: use the last trade price, else the average cost, instead of valuing the
+            // position at zero (which showed as a -100% loss). The row is flagged so the UI can say so.
+            price = lastTradePrice[h.symbol] ?? (h.totalCost > 0 ? h.totalCost / h.quantity : 0);
+            h.priceUnavailable = true;
+        }
         h.currentPrice = price;
         h.currentValue = h.quantity * price;
         h.remainingQuantity = h.quantity;
@@ -109,6 +118,9 @@ export const buildHoldingsOverview = (
     });
 
     const totalCostBasis = investedCapital + grantedCapital;
+    const unpriced = filteredHoldings.filter(h => h.priceUnavailable);
+    const unpricedCostBasis = unpriced.reduce((sum, h) => sum + h.totalCost, 0);
+    const unpricedValue = unpriced.reduce((sum, h) => sum + h.currentValue, 0);
 
     const distributionData: HoldingDistribution[] = filteredHoldings
         .map((holding, index) => {
@@ -141,6 +153,8 @@ export const buildHoldingsOverview = (
         holdings,
         totalValue,
         totalCostBasis,
+        unpricedCostBasis,
+        unpricedValue,
         investedCapital,
         grantedCapital,
         distributionData,

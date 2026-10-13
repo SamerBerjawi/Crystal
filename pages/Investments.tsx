@@ -496,8 +496,10 @@ const Investments: React.FC<InvestmentsProps> = ({
         setIsPriceModalOpen(true);
     }, []);
 
-    const totalGainLoss = totalValue - totalCostBasis;
-    const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+    // Holdings without a price are left out of gain/loss so a missing quote never reads as a loss.
+    const pricedCostBasis = totalCostBasis - (activeOverview.unpricedCostBasis || 0);
+    const totalGainLoss = (totalValue - (activeOverview.unpricedValue || 0)) - pricedCostBasis;
+    const totalGainLossPercent = pricedCostBasis > 0 ? (totalGainLoss / pricedCostBasis) * 100 : 0;
     
     const recentActivity = useMemo(() => {
         const txs = investmentTransactions.map(tx => ({
@@ -1374,8 +1376,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         );
                                                     }
 
-                                                    const gainLoss = holding.currentValue - holding.totalCost;
-                                                    const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
+                                                    const gainLoss = holding.priceUnavailable ? 0 : holding.currentValue - holding.totalCost;
+                                                    const gainLossPercent = !holding.priceUnavailable && holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
                                                     const isPositive = gainLoss >= 0;
                                                     const holdingAccount = accountBySymbol.get(holding.symbol);
                                                     const isClosed = holdingAccount?.status === 'closed';
@@ -1394,6 +1396,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     <div className="min-w-0 flex-1">
                                                                         <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
                                                                         <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                        {holding.priceUnavailable && <p className="text-2xs font-semibold text-amber-600 dark:text-amber-400">Price unavailable</p>}
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -1554,7 +1557,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
                         <div className="space-y-4">
                             {displayHoldings
-                                .map(h => ({ ...h, gain: h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
+                                .map(h => ({ ...h, gain: !h.priceUnavailable && h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
                                 .sort((a, b) => b.gain - a.gain)
                                 .slice(0, 5)
                                 .map((h, i) => (

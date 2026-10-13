@@ -213,7 +213,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
         name: h.symbol || h.name,
         value: h.currentValue || 0,
         cost: h.totalCost || 0,
-        gain: (h.currentValue || 0) - (h.totalCost || 0),
+        gain: h.priceUnavailable ? 0 : (h.currentValue || 0) - (h.totalCost || 0),
         color: ASSET_TYPE_COLORS[h.subType || (h.type === 'Warrant' ? 'Warrant' : 'Stock')] || '#0d9488',
       }));
   }, [displayHoldings]);
@@ -545,9 +545,9 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                         const isWarrant = h.type === 'Warrant';
                         const isCustom = h.isCustomAccount;
                         const valueEur = h.currentValue || 0;
-                        const gainEur = h.currentValue - (h.totalCost || 0);
+                        const gainEur = h.priceUnavailable ? 0 : h.currentValue - (h.totalCost || 0);
                         const gainPct =
-                          h.totalCost > 0 ? (gainEur / h.totalCost) * 100 : 0;
+                          !h.priceUnavailable && h.totalCost > 0 ? (gainEur / h.totalCost) * 100 : 0;
 
                         const color =
                           ASSET_TYPE_COLORS[h.subType || (isWarrant ? 'Warrant' : 'Stock')] ||
