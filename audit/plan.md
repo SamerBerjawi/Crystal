@@ -360,7 +360,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 
 ### Phase 3 — Performance
 
-#### WP-3.1 Bundle diet `[ ]` — needs decision K1
+#### WP-3.1 Bundle diet `[x]` — needs decision K1
+- **Done:** Entry chunk 1,394 kB -> 796 kB raw: Phosphor icon definitions reduced to the one weight the app renders (vite plugin), manualChunks no longer force Recharts/Leaflet into startup (no modulepreload for them), demo seed split into demoSeed.ts and loaded on demand, quick-add modal lazy, route preloading only after sign-in. react-aria stays per K1; further wins would need LazyMotion (framer-motion is ~390 kB of the entry). New regression test checks script count, preloads and entry size.
 - **Covers:** AUD-16 (PERF-001), AUD-17 (PERF-002), AUD-39 (PERF-008), AUD-64 (PERF-011); AUD-63 (PERF-010) per K1
 - **Files:** `components/ui/Icon.tsx`, `vite.config.ts`, `App.tsx` (preloader, quick-add, demoData import)
 - **Depends on:** —

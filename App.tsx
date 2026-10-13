@@ -9,7 +9,6 @@ import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import AddTransactionModal from './components/AddTransactionModal';
 import { useIsMobile } from './hooks/useIsMobile';
 import { applyAppFont } from './hooks/useFont';
 function lazyWithRetry<T extends React.ComponentType<any>>(
@@ -91,7 +90,7 @@ const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
-import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
+import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
@@ -103,6 +102,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
+const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
@@ -695,9 +695,11 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Preload primary route chunks when browser is idle for instant tab switching
+  // Preload primary route chunks when browser is idle for instant tab switching. Only once the user is signed in
+  // and their data is loaded: the sign-in screen used to pull ~3 MB of pages nobody had asked for (AUD-39).
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!isAuthenticated || !isDataLoaded) return;
     const preloadRoutes = async () => {
       const primaryLoaders = [
         pageRegistry.Accounts.loader,
@@ -722,7 +724,7 @@ const App: React.FC = () => {
     } else {
       setTimeout(preloadRoutes, 1500);
     }
-  }, []);
+  }, [isAuthenticated, isDataLoaded]);
 
   const notFoundNoticeRef = useRef<string | null>(null);
   useEffect(() => {
@@ -851,10 +853,10 @@ const App: React.FC = () => {
     });
   }, [assetPrices, warrantHoldingsBySymbol]);
 
-  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
-    const dataToLoad = data ?? (options?.useDemoDefaults ? initialFinancialData : emptyFinancialData);
+  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
+    const dataToLoad = data ?? emptyFinancialData;
     const loadedPrefs = {
-      ...initialFinancialData.preferences,
+      ...defaultPreferences,
       ...(dataToLoad.preferences || {}),
     };
     lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
@@ -1106,7 +1108,8 @@ const App: React.FC = () => {
         console.warn('[Dev Cache] Failed loading cache on enter demo mode:', e);
       }
     }
-    loadAllFinancialData(null, { useDemoDefaults: true });
+    const { initialFinancialData: demoSeed } = await import('./demoSeed');
+    loadAllFinancialData(demoSeed);
     setDemoUser(createDemoUser());
     setIsDemoMode(true);
     if (isDevEnvironment) {
@@ -1153,7 +1156,8 @@ const App: React.FC = () => {
           if (isDevEnvironment && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
             setDemoUser(createDemoUser());
             setIsDemoMode(true);
-            loadAllFinancialData(null, { useDemoDefaults: true });
+            const { initialFinancialData: demoSeed } = await import('./demoSeed');
+            loadAllFinancialData(demoSeed);
           }
           setIsDataLoaded(true);
         }
@@ -3175,15 +3179,17 @@ const App: React.FC = () => {
             onClose={() => setIsShortcutsModalOpen(false)}
           />
           {isQuickAddTxModalOpen && (
-            <AddTransactionModal
-              onClose={() => setIsQuickAddTxModalOpen(false)}
-              onSave={(txs) => { handleSaveTransaction(txs); setIsQuickAddTxModalOpen(false); }}
-              accounts={accounts}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-              tags={tags}
-              userProfile={currentUser!}
-            />
+            <Suspense fallback={null}>
+              <AddTransactionModal
+                onClose={() => setIsQuickAddTxModalOpen(false)}
+                onSave={(txs) => { handleSaveTransaction(txs); setIsQuickAddTxModalOpen(false); }}
+                accounts={accounts}
+                incomeCategories={incomeCategories}
+                expenseCategories={expenseCategories}
+                tags={tags}
+                userProfile={currentUser!}
+              />
+            </Suspense>
           )}
         </div>
       </InsightsViewProvider>
