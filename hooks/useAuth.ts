@@ -172,8 +172,11 @@ export const useAuth = () => {
       return data as FinancialData;
     } catch (err) {
       console.error('Auth status check failed:', err);
-      signOut();
-      setError(err instanceof Error ? err.message : 'Failed to authenticate.');
+      // A server hiccup is not a sign-out: do not call /api/auth/logout (it would revoke a perfectly good
+      // session). Just show the sign-in screen locally; a reload restores the session once the API is back.
+      setUserState(null);
+      setIsAuthenticated(false);
+      setError('Unable to reach the server. Please check your connection and try again.');
       return null;
     } finally {
       setIsLoading(false);

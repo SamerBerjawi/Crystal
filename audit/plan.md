@@ -247,7 +247,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 
 ### Phase 2 — High-severity bugs and reliability
 
-#### WP-2.1 ⚡ Backend and startup resilience `[ ]`
+#### WP-2.1 ⚡ Backend and startup resilience `[x]`
+- **Done:** db.connect() moved inside try in register and save (client?.release), pool 'error' listener, JSON error middleware, unhandledRejection logger, PORT env; startup failures no longer call signOut (session not revoked). tests/unit/backend-resilience (hangs/crashes on old code); A11 un-annotated and passing.
 - **Covers:** AUD-09 (REL-005), AUD-27 (REL-008, QA-A-006)
 - **Files:** `server/src/auth.ts`, `server/src/data.ts`, `server/src/database.ts`, `server/src/index.ts`, `hooks/useAuth.ts`
 - **Depends on:** —

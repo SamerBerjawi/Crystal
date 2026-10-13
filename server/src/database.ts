@@ -21,6 +21,11 @@ try {
         end: async () => {}
     };
 }
+// An idle client can fail (DB restart, network blip). Without a listener that 'error' event is fatal.
+if (typeof db.on === 'function') {
+    db.on('error', (err: Error) => console.error('Unexpected PostgreSQL pool error:', err.message));
+}
+
 export { db };
 
 export const initializeDatabase = async () => {

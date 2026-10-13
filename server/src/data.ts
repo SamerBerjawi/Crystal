@@ -36,8 +36,9 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const body = req.body || {}; // Data is already a JSON object from body-parser
     const allowEmpty = Boolean(body.allowEmpty);
     
-    const client = await db.connect();
+    let client: any;
     try {
+        client = await db.connect();
         await client.query('BEGIN');
 
         // Use SELECT ... FOR UPDATE to lock the row and avoid concurrency races
@@ -119,11 +120,11 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         
         res.json({ message: 'Data saved successfully', lastUpdatedAt: nextUpdatedAt });
     } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client?.query('ROLLBACK').catch(() => {});
         console.error(err);
         res.status(500).json({ message: 'Failed to save data' });
     } finally {
-        client.release();
+        client?.release();
     }
 });
 

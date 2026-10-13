@@ -13,7 +13,7 @@ const startServer = async () => {
         await initializeDatabase();
 
         const app = express();
-        const port = 3001;
+        const port = Number(process.env.PORT || 3001);
 
         // Number of reverse proxies in front of the API (the bundled nginx is one). `true` would trust a
         // client-supplied X-Forwarded-For and let anyone choose the address the rate limiter sees.
@@ -80,6 +80,13 @@ const startServer = async () => {
         app.use('/api/users', usersRouter);
         app.use('/api/smart-fetch', smartFetcherRouter);
 
+        // Last line of defence: anything that escapes a route becomes a JSON 500, never a crash or an HTML page.
+        app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+            if (res.headersSent) return next(err);
+            console.error('Unhandled request error:', err?.message || err);
+            res.status(err?.status || 500).json({ message: 'Internal server error.' });
+        });
+
         const server = app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
         });
@@ -107,6 +114,7 @@ const startServer = async () => {
             }, 10000).unref();
         };
 
+        process.on('unhandledRejection', reason => console.error('Unhandled promise rejection:', reason));
         process.on('SIGTERM', () => handleShutdown('SIGTERM'));
         process.on('SIGINT', () => handleShutdown('SIGINT'));
     } catch (error) {

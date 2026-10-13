@@ -124,7 +124,6 @@ test.describe('W2/W3 Sign in & session restore', () => {
   });
 
   test('transient 500 on /api/data during startup does not sign the user out', async ({ authedPage: page }) => {
-    openBug('AUD-27');
     let failed = false;
     await page.route('**/api/data', async route => {
       if (route.request().method() === 'GET' && !failed) { failed = true; return route.fulfill({ status: 500, body: '{"message":"boom"}' }); }

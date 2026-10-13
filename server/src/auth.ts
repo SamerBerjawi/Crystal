@@ -87,8 +87,9 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const client = await db.connect();
+    let client: any;
     try {
+        client = await db.connect();
         await client.query('BEGIN');
 
         const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
@@ -114,14 +115,14 @@ router.post('/register', async (req, res) => {
         res.status(201).json({ user: loginData.user, financialData: loginData.financialData });
     } catch (err) {
         try {
-            await client.query('ROLLBACK');
+            await client?.query('ROLLBACK');
         } catch (rollbackErr) {
             console.error('Error during rollback:', rollbackErr);
         }
         console.error('Error during registration:', err);
         res.status(500).json({ message: 'Failed to register user.' });
     } finally {
-        client.release();
+        client?.release();
     }
 });
 
