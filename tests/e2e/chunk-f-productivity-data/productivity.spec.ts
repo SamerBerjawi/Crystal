@@ -196,7 +196,6 @@ test.describe('W37 Data management', () => {
   });
 
   test('restore a JSON backup brings deleted data back', async ({ authedPage: page, user }) => {
-    openBug('AUD-23', isMobile(page));
     // Make a backup file from the server copy, then remove a task and restore.
     const d = await serverData(user);
     const backupPath = test.info().outputPath('backup.json');

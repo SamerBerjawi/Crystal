@@ -262,7 +262,6 @@ test.describe('W20 Categories', () => {
   });
 
   test('delete a category asks for confirmation and removes it', async ({ authedPage: page, user }) => {
-    openBug('AUD-23');
     await goTo(page, '/categories');
     const row = page.locator('main').locator('div').filter({ hasText: /^Miscellaneous/ }).first();
     await row.hover();

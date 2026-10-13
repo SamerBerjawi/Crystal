@@ -9,7 +9,6 @@ import { writeFileSync } from 'node:fs';
 const LOCAL = 'http://localhost:4173';
 
 test('restore on localhost keeps the account live; edits afterwards are saved', async ({ browser }, testInfo) => {
-  test.fixme(testInfo.project.name === 'mobile-375', 'AUD-23 open: mobile nav covers the Restore button (audit/plan.md)');
   const user = await registerUser(LOCAL, { tag: 'localhost' });
   const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: LOCAL, storageState: await user.api.storageState() });
   const page = await ctx.newPage();

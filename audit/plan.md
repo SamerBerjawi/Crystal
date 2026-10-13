@@ -285,7 +285,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** e2e B12 "refresh keeps the detail", E5 "holding detail survives refresh", F23 "unknown URL".
 
-#### WP-2.5 Modal stacking and mobile footers `[ ]` — needs decision K2
+#### WP-2.5 Modal stacking and mobile footers `[x]` — needs decision K2
+- **Done:** Root cause: the Z_INDEX classes (z-modal, z-popover, …) were never defined in CSS, so modals had no z-index and sat under page content and the mobile nav. Defined them with @utility in index.css (modal 1300 above nav). Category delete, mobile change-password, mobile restore and mobile prediction specs un-annotated and passing; dialog semantics/focus trap stay in WP-4.2.
 - **Covers:** AUD-23 functional part (QA-C-001, QA-A-005, QA-F-007, QA-E-004)
 - **Files:** `components/Modal.tsx`, `pages/Categories.tsx`, `pages/Challenges.tsx`, `components/ChangePasswordModal.tsx`, `components/SmartRestoreModal.tsx`, `components/PredictionModal.tsx`, `components/MobileNavbar.tsx`
 - **Depends on:** —

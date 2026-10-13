@@ -180,7 +180,6 @@ test.describe('W6 Change password', () => {
   }
 
   test('mismatched confirmation is rejected client-side', async ({ authedPage: page }) => {
-    test.fixme(isMobile(page), 'AUD-23 open: mobile nav covers the modal footer (hangs); audit/plan.md');
     await openChange(page);
     await page.getByLabel('Current Password').fill(TEST_PASSWORD);
     await page.getByLabel('New Password', { exact: true }).fill('NewPassw0rd!');
@@ -190,7 +189,6 @@ test.describe('W6 Change password', () => {
   });
 
   test('wrong current password shows an error', async ({ authedPage: page }) => {
-    test.fixme(isMobile(page), 'AUD-23 open: mobile nav covers the modal footer (hangs); audit/plan.md');
     await openChange(page);
     await page.getByLabel('Current Password').fill('not-my-password');
     await page.getByLabel('New Password', { exact: true }).fill('NewPassw0rd!');
@@ -200,7 +198,6 @@ test.describe('W6 Change password', () => {
   });
 
   test('happy path: user is signed out, new password works, old one does not', async ({ authedPage: page, user, browser }) => {
-    test.fixme(isMobile(page), 'AUD-23 open: mobile nav covers the modal footer (hangs); audit/plan.md');
     await openChange(page);
     await page.getByLabel('Current Password').fill(TEST_PASSWORD);
     await page.getByLabel('New Password', { exact: true }).fill('NewPassw0rd!');

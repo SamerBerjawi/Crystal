@@ -167,7 +167,6 @@ test.describe('W33 Challenges', () => {
   });
 
   test('create a prediction', async ({ authedPage: page, user }) => {
-    openBug('AUD-23', isMobile(page));
     const before = ((await serverData(user)).predictions ?? []).length;
     await goTo(page, '/challenges');
     await page.getByRole('button', { name: 'Predictions', exact: true }).first().click();
