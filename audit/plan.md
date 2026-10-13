@@ -364,7 +364,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S (ETag); L (tables, out of scope)
 - **Verify:** API test: second `GET /api/data` with `If-None-Match` → 304.
 
-#### WP-3.4 ⚡ Merchants page and logo caching `[ ]`
+#### WP-3.4 ⚡ Merchants page and logo caching `[x]`
+- **Done:** Merchant spend trends computed in one pass via utils/merchantTrends.ts (unit-tested equal to the per-entity scan; 10k tx x 600 merchants < 500 ms); Brandfetch logo URLs no longer carry a daily version parameter. Pagination/virtualization of the merchant grid is not done (see note).
 - **Covers:** AUD-37 (PERF-006), AUD-38 (PERF-007)
 - **Files:** `pages/Merchants.tsx` L372-410, `utils/brandfetch.ts` L97-105
 - **Depends on:** —

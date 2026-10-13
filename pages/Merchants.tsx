@@ -18,6 +18,7 @@ import Icon from '../components/ui/Icon';
 import HeroMetricCard from '../components/ui/HeroMetricCard';
 import MetricCardRow from '../components/ui/MetricCardRow';
 import FilterBar from '../components/ui/FilterBar';
+import { computeSpendTrends } from '../utils/merchantTrends';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -370,47 +371,13 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   }, [transactions, accounts, effectiveMerchantRules, legacyOverrides]);
 
   const spendTrendsMap = useMemo(() => {
-      const map: Record<string, number[]> = {};
       const now = new Date(2026, 4, 23); // May 23, 2026
       const months: string[] = [];
       for (let i = 5; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           months.push(d.toISOString().slice(0, 7)); // "YYYY-MM"
       }
-      
-      entities.forEach(entity => {
-          const monthlySums = Array(6).fill(0);
-          if (entity.type === 'Merchant') {
-              transactions.forEach(tx => {
-                  if (!showBalanceAdjustments && tx.isBalanceAdjustment) return;
-                  if (!tx.merchant) return;
-                  const txKey = normalizeMerchantKey(tx.merchant);
-                  if (txKey === entity.logoKey) {
-                      const txMonth = tx.date.slice(0, 7);
-                      const bucketIdx = months.indexOf(txMonth);
-                      if (bucketIdx !== -1) {
-                          monthlySums[bucketIdx] += Math.abs(convertToEur(tx.amount, tx.currency));
-                      }
-                  }
-              });
-          } else {
-              const instAccounts = accounts.filter(acc => acc.financialInstitution && normalizeMerchantKey(acc.financialInstitution) === entity.logoKey);
-              const instAccountIds = new Set(instAccounts.map(acc => acc.id));
-              transactions.forEach(tx => {
-                  if (!showBalanceAdjustments && tx.isBalanceAdjustment) return;
-                  if (instAccountIds.has(tx.accountId)) {
-                      const txMonth = tx.date.slice(0, 7);
-                      const bucketIdx = months.indexOf(txMonth);
-                      if (bucketIdx !== -1) {
-                          monthlySums[bucketIdx] += Math.abs(convertToEur(tx.amount, tx.currency));
-                      }
-                  }
-              });
-          }
-          map[entity.id] = monthlySums;
-      });
-      
-      return map;
+      return computeSpendTrends(entities, transactions, accounts, months, showBalanceAdjustments);
   }, [entities, transactions, accounts, showBalanceAdjustments]);
 
   // Filtering & Sorting
