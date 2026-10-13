@@ -12,6 +12,7 @@ import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useCartoBasemap } from '../hooks/useCartoBasemap';
 import Icon from './ui/Icon';
+import { safeImageSrcAttr } from '../utils/safeImageUrl';
 
 interface MerchantOverviewModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ const MultiLocationBoundsFitter: React.FC<{ locations: { lat: number; lon: numbe
 
 // Create custom Apple Workout fluorescent neon pin marker for branches
 const createAppleNeonPinIcon = (logoUrl?: string | null, label?: string) => {
+  const safeLogoSrc = safeImageSrcAttr(logoUrl);
   const html = `
     <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2 group">
       <!-- Pulsing Aura Ring -->
@@ -52,8 +54,8 @@ const createAppleNeonPinIcon = (logoUrl?: string | null, label?: string) => {
       <!-- Glowing Outer Badge -->
       <div class="relative w-11 h-11 rounded-full bg-[#a3e635] shadow-[0_0_22px_rgba(163,230,53,0.9)] flex items-center justify-center p-0">
         ${
-          logoUrl
-            ? `<img src="${logoUrl}" class="w-full h-full object-cover rounded-full bg-black/10 p-0 border-0" onerror="this.style.display='none'" />`
+          safeLogoSrc
+            ? `<img src="${safeLogoSrc}" class="w-full h-full object-cover rounded-full bg-black/10 p-0 border-0" onerror="this.style.display='none'" />`
             : `<div class="w-full h-full flex items-center justify-center text-black font-black text-xs">🏢</div>`
         }
       </div>

@@ -223,7 +223,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** e2e B25 "user with no bank connections sees none", B26 "deleting all connections is permanent"; new e2e "restore on localhost does not enter demo mode" (runs against `http://localhost:4173`).
 
-#### WP-1.9 ⚡ DOM XSS in map pins `[ ]`
+#### WP-1.9 ⚡ DOM XSS in map pins `[x]`
+- **Done:** Logo URLs interpolated into Leaflet divIcon HTML go through utils/safeImageUrl.ts (http(s)/data:image only, attribute-escaped) in TransactionDetailModal and MerchantOverviewModal. tests/e2e/regression/logo-xss.spec.ts executes the payload on the old code (__pwned=1) and not on the new; unit tests for the util.
 - **Covers:** AUD-29 (SEC-006)
 - **Files:** `components/MerchantOverviewModal.tsx`, `components/TransactionDetailModal.tsx`
 - **Depends on:** —
