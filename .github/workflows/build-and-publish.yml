@@ -13,7 +13,41 @@ env:
   IMAGE_NAME: samerberjawi/crystal
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix server
+
+      - name: Type check
+        run: |
+          npm run lint
+          npx --prefix server tsc --noEmit -p server
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Dependency audit (production, high and above)
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm audit --omit=dev --audit-level=high --prefix server
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read

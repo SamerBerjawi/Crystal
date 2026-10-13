@@ -321,7 +321,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e A13 "mobile sign out from Dashboard", B24 "asset closing actions at 375", D17 "add loyalty card at 375", D15 "notification center at 375".
 
-#### WP-2.10 Test infrastructure and supply chain `[ ]`
+#### WP-2.10 Test infrastructure and supply chain `[x]`
+- **Done:** Lockfiles committed for both packages (npm audit --omit=dev --audit-level=high: 0 high/critical after audit fix); Dockerfiles use npm ci; shadcn moved to devDependencies; CI gains a test job (lint, npm test, audit) gating the image builds; legacy script tests exit non-zero on failure and the three tests that re-implemented logic inline were removed (covered by real-module and e2e tests); npm test chains unit + utils + server tests.
 - **Covers:** AUD-33 (REL-014), AUD-58 (SEC-017)
 - **Files:** `package.json` (`test` script), `utils.test.ts`, `server/src/*.test.ts`, `server/package.json`, lockfiles, `.github/workflows/build-and-publish.yml`, `Dockerfile`, `server/Dockerfile`, `tests/run-all.sh`
 - **Depends on:** —

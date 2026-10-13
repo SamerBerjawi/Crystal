@@ -20,7 +20,7 @@ try {
     assert(res.success === true, 'Valid payload must pass schema validation');
     console.log('✓ Test 1 Passed: Valid payload accepted');
 } catch (e: any) {
-    console.error('✕ Test 1 Failed:', e.message);
+    process.exitCode = 1; console.error('✕ Test 1 Failed:', e.message);
 }
 
 // Test 2: Corrupted payload with transactions as object ({}) instead of array ([])
@@ -35,7 +35,7 @@ try {
     assert(res.error?.includes('transactions') === true, 'Error message must specify transactions field');
     console.log('✓ Test 2 Passed: Corrupted transactions object rejected with 400 validation error');
 } catch (e: any) {
-    console.error('✕ Test 2 Failed:', e.message);
+    process.exitCode = 1; console.error('✕ Test 2 Failed:', e.message);
 }
 
 // Test 3: Partial payload wrapper validation
@@ -51,7 +51,7 @@ try {
     assert(res.success === true, 'Partial payload wrapper must pass schema validation');
     console.log('✓ Test 3 Passed: Partial payload wrapper accepted');
 } catch (e: any) {
-    console.error('✕ Test 3 Failed:', e.message);
+    process.exitCode = 1; console.error('✕ Test 3 Failed:', e.message);
 }
 
 // Test 4: Empty body or null rejected
@@ -60,7 +60,7 @@ try {
     assert(res.success === false, 'Null body must fail validation');
     console.log('✓ Test 4 Passed: Null payload rejected');
 } catch (e: any) {
-    console.error('✕ Test 4 Failed:', e.message);
+    process.exitCode = 1; console.error('✕ Test 4 Failed:', e.message);
 }
 
 console.log('--- All Zod Schema Unit Tests Executed Successfully ---');

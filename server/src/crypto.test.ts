@@ -19,7 +19,7 @@ try {
     assert(decrypted === rawKey, 'Decrypted key must match original plain text key');
     console.log('✓ Test 1 Passed: AES-256-GCM encryption & decryption matches');
 } catch (e: any) {
-    console.error('✕ Test 1 Failed:', e.message);
+    process.exitCode = 1; console.error('✕ Test 1 Failed:', e.message);
 }
 
 // Test 2: Connection sanitization
@@ -39,7 +39,7 @@ try {
     assert(decrypted === rawConnection.clientCertificate, 'Decrypted certificate from sanitized object must equal original PEM');
     console.log('✓ Test 2 Passed: Connection sanitization & secret redacting');
 } catch (e: any) {
-    console.error('✕ Test 2 Failed:', e.message);
+    process.exitCode = 1; console.error('✕ Test 2 Failed:', e.message);
 }
 
 console.log('--- All Crypto Unit Tests Executed Successfully ---');
