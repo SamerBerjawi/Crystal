@@ -1741,6 +1741,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   </span>
                   <input
                     id="tx-amount"
+                    form="transaction-form"
                     type="text"
                     inputMode="decimal"
                     value={amount}

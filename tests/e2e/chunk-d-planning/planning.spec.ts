@@ -83,7 +83,6 @@ test.describe('W24 Budgets', () => {
   });
 
   test('delete a budget (with confirmation)', async ({ authedPage: page, user }) => {
-    openBug('AUD-48');
     const before = (await serverData(user)).budgets.length;
     await goTo(page, '/budget');
     if (isMobile(page)) {
@@ -97,9 +96,13 @@ test.describe('W24 Budgets', () => {
     } else {
       await page.getByRole('button', { name: 'Edit Budget' }).first().click();
       await page.waitForTimeout(600);
-      const inModal = await page.locator('div.fixed').last().getByRole('button', { name: /delete|remove/i }).count();
-      const onCards = await page.locator('main').getByRole('button', { name: /delete|remove/i }).count();
-      expect(inModal + onCards, 'desktop needs a way to delete a budget (Edit Budget even says "Delete or reset…")').toBeGreaterThan(0);
+      await page.getByRole('button', { name: 'Delete Budget' }).first().click();
+      // The confirmation dialog repeats the label; the last one is the dialog's confirm button.
+      await expect(page.getByText('Delete budget?')).toBeVisible();
+      const saved = waitForSave(page);
+      await page.getByRole('button', { name: 'Delete Budget' }).last().click();
+      expect((await saved).status()).toBe(200);
+      expect((await serverData(user)).budgets.length).toBe(before - 1);
     }
   });
 });

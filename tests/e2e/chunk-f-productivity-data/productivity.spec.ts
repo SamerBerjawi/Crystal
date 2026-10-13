@@ -66,14 +66,27 @@ test.describe('W34 Quotes & invoices', () => {
     expect(invoice.number).toMatch(/^INV-/);
   });
 
-  test('pagination controls work when there are more records', async ({ authedPage: page }) => {
-    openBug('AUD-70');
+  test('pagination controls work when there are more records', async ({ authedPage: page, user }) => {
+    // 24 invoices -> 3 pages of 10. Seeded through the API so the list is long enough to page.
+    const base = (await serverData(user)).invoices.find((i: any) => i.type === 'invoice');
+    const many = Array.from({ length: 24 }, (_, i) => ({ ...base, id: `qa-inv-${i}`, number: `INV-QA-${String(i).padStart(3, '0')}`, entityName: `QA Client ${i}`, date: `2026-09-${String((i % 28) + 1).padStart(2, '0')}` }));
+    const res = await user.api.post('/api/data', { data: { partial: true, data: { invoices: many } } });
+    expect(res.status()).toBe(200);
     await goTo(page, '/invoices');
-    const prev = page.getByRole('button').filter({ has: page.locator('[class*="chevron_left"], svg') }).filter({ hasText: '' });
-    const enabled = await page.locator('main button:has-text("")').evaluateAll(bs => bs.filter(b => (b as HTMLButtonElement).disabled).length);
-    // Inventory flags the pagination arrows as hard-coded disabled: verify they are interactive.
-    const arrows = await page.locator('main button[disabled]').count();
-    expect(arrows, 'pagination arrows are permanently disabled').toBe(0);
+    const next = page.getByRole('button', { name: 'Next page' });
+    const prev = page.getByRole('button', { name: 'Previous page' });
+    const rows = page.locator('main tbody tr');
+    await expect(prev).toBeDisabled();
+    await expect(rows).toHaveCount(10);
+    await expect(page.locator('main')).toContainText('Page 1 of 3');
+    await next.click();
+    await expect(page.locator('main')).toContainText('Page 2 of 3');
+    await next.click();
+    await expect(page.locator('main')).toContainText('Page 3 of 3');
+    await expect(rows).toHaveCount(4);
+    await expect(next).toBeDisabled();
+    await prev.click();
+    await expect(page.locator('main')).toContainText('Page 2 of 3');
   });
 });
 
@@ -228,36 +241,41 @@ test.describe('W37 Data management', () => {
 });
 
 test.describe('W38 Dashboard customization', () => {
-  test('add a widget in edit mode and it persists after refresh', async ({ authedPage: page, user }) => {
-    openBug('AUD-50');
+  test('add a widget in edit mode and it persists after refresh', async ({ authedPage: page }) => {
     test.skip(isMobile(page), 'desktop dashboard grid');
     await goTo(page, '/');
     await page.getByRole('button', { name: 'Customize' }).click();
     const beforeCount = await page.getByRole('button', { name: 'Remove widget' }).count();
+    // Everything is on display by default, so remove one first, then add it back from the picker.
+    await page.getByRole('button', { name: 'Remove widget' }).first().click();
+    await expect(page.getByRole('button', { name: 'Remove widget' })).toHaveCount(beforeCount - 1);
     await page.getByRole('button', { name: 'Add Widget' }).click();
-    const modal = page.locator('div.fixed').last();
-    await modal.locator('button:visible').filter({ hasNotText: /close|cancel/i }).first().click();
-    await page.waitForTimeout(600);
-    expect(await page.getByRole('button', { name: 'Remove widget' }).count()).toBe(beforeCount + 1);
+    // Each available widget is a full-width list button inside the "Add Dashboard Widget" dialog.
+    await page.locator('div.fixed button.w-full').first().click();
+    await expect(page.getByRole('button', { name: 'Remove widget' })).toHaveCount(beforeCount);
     await page.getByRole('button', { name: 'Finish Editing' }).click();
     await page.waitForTimeout(2500);
     await page.reload();
     await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(SETTLE_MS);
     await page.getByRole('button', { name: 'Customize' }).click();
-    expect(await page.getByRole('button', { name: 'Remove widget' }).count(), 'added widget should persist').toBe(beforeCount + 1);
+    expect(await page.getByRole('button', { name: 'Remove widget' }).count(), 'added widget should persist').toBe(beforeCount);
   });
 
-  test('remove a widget', async ({ authedPage: page }) => {
-    openBug('AUD-50');
+  test('remove a widget and it stays removed after refresh', async ({ authedPage: page }) => {
     test.skip(isMobile(page), 'desktop dashboard grid');
     await goTo(page, '/');
     await page.getByRole('button', { name: 'Customize' }).click();
     const before = await page.getByRole('button', { name: 'Remove widget' }).count();
     await page.getByRole('button', { name: 'Remove widget' }).first().click();
-    page.on('dialog', d => d.accept());
-    await page.waitForTimeout(600);
-    expect(await page.getByRole('button', { name: 'Remove widget' }).count()).toBe(before - 1);
+    await expect(page.getByRole('button', { name: 'Remove widget' })).toHaveCount(before - 1);
+    await page.getByRole('button', { name: 'Finish Editing' }).click();
+    await page.waitForTimeout(2500);
+    await page.reload();
+    await expect(page.locator('main')).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(SETTLE_MS);
+    await page.getByRole('button', { name: 'Customize' }).click();
+    expect(await page.getByRole('button', { name: 'Remove widget' }).count(), 'removed widget must not come back').toBe(before - 1);
   });
 });
 

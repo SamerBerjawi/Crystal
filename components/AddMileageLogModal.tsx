@@ -37,6 +37,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
   // Single entry state
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [reading, setReading] = useState('');
+  const [readingError, setReadingError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   // Bulk entry state
@@ -77,6 +78,19 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
     if (date && reading !== '') {
       const parsedReading = parseInt(reading.replace(/[^0-9]/g, ''), 10);
       if (!isNaN(parsedReading)) {
+        // An odometer never goes backwards: compare with the nearest earlier and later readings.
+        const others = existingLogs.filter(l => l.id !== logToEdit?.id);
+        const previous = others.filter(l => l.date <= date).sort((a, b) => b.date.localeCompare(a.date) || b.reading - a.reading)[0];
+        const next = others.filter(l => l.date > date).sort((a, b) => a.date.localeCompare(b.date))[0];
+        if (previous && parsedReading < previous.reading) {
+          setReadingError(`Reading can't be lower than the previous reading of ${previous.reading.toLocaleString()} km (${previous.date}).`);
+          return;
+        }
+        if (next && parsedReading > next.reading) {
+          setReadingError(`Reading can't be higher than the later reading of ${next.reading.toLocaleString()} km (${next.date}).`);
+          return;
+        }
+        setReadingError(null);
         onSave({ id: logToEdit?.id, date, reading: parsedReading });
         handleClose();
       }
@@ -300,7 +314,9 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                           id="reading"
                           type="number"
                           value={reading}
-                          onChange={(e) => setReading(e.target.value)}
+                          onChange={(e) => { setReading(e.target.value); setReadingError(null); }}
+                          aria-invalid={readingError ? true : undefined}
+                          aria-describedby={readingError ? 'reading-error' : undefined}
                           className={`${INPUT_BASE_STYLE} pr-14 h-14 !text-2xl font-bold tabular-nums`}
                           placeholder="e.g. 45000"
                           required
@@ -312,6 +328,8 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                         </span>
                       </div>
                     </div>
+
+ {readingError && <p id="reading-error" role="alert" className="text-xs font-semibold text-rose-600 dark:text-rose-400">{readingError}</p>}
 
                     <div className="space-y-2">
                       <label htmlFor="date" className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">

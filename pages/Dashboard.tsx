@@ -1313,7 +1313,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
     const requiredWidgets = WIDGET_TABS[activeTab];
     const currentIds = new Set(widgets.map(w => w.id));
-    const missing = requiredWidgets.filter(id => !currentIds.has(id));
+    const hiddenIds = new Set(preferences.dashboardHiddenWidgets?.[layoutKey] || []);
+    // Widgets the user removed on purpose stay removed (AUD-50).
+    const missing = requiredWidgets.filter(id => !currentIds.has(id) && !hiddenIds.has(id));
 
     let newWidgets = widgets.filter(w => requiredWidgets.includes(w.id));
     let changed = false;
@@ -1344,7 +1346,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     if (changed) {
       saveLayouts(newWidgets);
     }
-  }, [activeTab, allWidgets, widgets, saveLayouts]);
+  }, [activeTab, allWidgets, widgets, saveLayouts, preferences.dashboardHiddenWidgets, layoutKey]);
 
 
   const [currentBreakpoint, setCurrentBreakpoint] = useState<string>('lg');
@@ -1387,7 +1389,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     };
   }, [getBreakpointLayout, widgets, activeTab]);
 
+  const setWidgetHidden = (widgetId: string, hidden: boolean) => {
+    setPreferences(prev => {
+      const current = prev.dashboardHiddenWidgets?.[layoutKey] || [];
+      const next = hidden ? Array.from(new Set([...current, widgetId])) : current.filter(id => id !== widgetId);
+      return { ...prev, dashboardHiddenWidgets: { ...(prev.dashboardHiddenWidgets || {}), [layoutKey]: next } };
+    });
+  };
+
   const removeWidget = (widgetId: string) => {
+    setWidgetHidden(widgetId, true);
     saveLayouts(widgets.filter(w => w.id !== widgetId));
   };
 
@@ -1400,6 +1411,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     if (widgetToAdd) {
       const yOffset = Math.max(0, ...widgets.map(w => w.y + w.h));
       const newWidget = { id: widgetToAdd.id, title: widgetToAdd.name, x: 0, y: yOffset, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH };
+      setWidgetHidden(widgetId, false);
       saveLayouts([...widgets, newWidget]);
     }
     setIsAddWidgetModalOpen(false);

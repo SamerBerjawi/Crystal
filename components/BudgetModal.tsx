@@ -9,6 +9,8 @@ interface BudgetModalProps {
   onClose: () => void;
   onSave: (budget: Omit<Budget, 'id'> & { id?: string }) => void;
   budgetToEdit?: Budget | null;
+  /** Shown as a Delete button when editing; the caller is responsible for confirming. */
+  onDelete?: () => void;
   categoryNameToCreate?: string;
   existingBudgets: Budget[];
   expenseCategories: Category[];
@@ -20,6 +22,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
   onClose, 
   onSave, 
   budgetToEdit, 
+  onDelete,
   categoryNameToCreate, 
   existingBudgets, 
   expenseCategories 
@@ -388,6 +391,16 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
             >
               Clear Fields
             </button>
+
+            {isEditing && onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 hover:text-rose-700 transition-colors cursor-pointer"
+              >
+                Delete Budget
+              </button>
+            )}
 
             <div className="flex items-center gap-3">
               <button

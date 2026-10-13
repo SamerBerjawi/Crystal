@@ -638,6 +638,8 @@ export interface AppPreferences {
   isPrivacyMode?: boolean;
   excludeTransfersFromAnalytics?: boolean;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
+  /** Widget ids the user removed, per layout key; they are not re-added automatically. */
+  dashboardHiddenWidgets?: Record<string, string[]>;
   showBalanceAdjustments?: boolean;
   regexCategorizationRules?: RegexCategorizationRule[];
   transactionRules?: TransactionRule[];

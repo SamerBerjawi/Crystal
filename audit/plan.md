@@ -302,7 +302,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** e2e F3 "convert to invoice", F16 "factory reset final step", A19 "failed profile save reported".
 
-#### WP-2.7 Feature gaps: budgets, widgets, pagination, small form bugs `[ ]`
+#### WP-2.7 Feature gaps: budgets, widgets, pagination, small form bugs `[x]`
+- **Done:** Budgets: Delete Budget in the edit modal (desktop) and mobile swipe both go through a confirmation; removed dashboard widgets are remembered (preferences.dashboardHiddenWidgets) so they are no longer re-added and can be added back; invoices paginate 10/page with working arrows; amount field joined to the transaction form so Enter submits; odometer readings are validated against neighbouring logs. Specs D5, F4 (24-invoice seed), F17/F18, B15, B23 now real and passing.
 - **Covers:** AUD-48 (QA-D-001, QA-D-002), AUD-50 (QA-F-006), AUD-70 (QA-F-008), AUD-74 (QA-B-008), AUD-75 (QA-B-010)
 - **Files:** `pages/Budgeting.tsx`, `components/BudgetModal.tsx`, `pages/Dashboard.tsx` L1311-1345, `pages/Invoices.tsx`, `components/AddTransactionModal.tsx`, `components/AddMileageLogModal.tsx`
 - **Depends on:** —

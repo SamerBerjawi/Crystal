@@ -211,6 +211,21 @@ const Budgeting: React.FC<BudgetingProps> = ({
     setIsModalOpen(true);
   };
 
+  const handleDeleteBudget = async (id: string) => {
+    const budget = budgets.find(b => b.id === id);
+    const confirmed = await confirm({
+      title: 'Delete budget?',
+      message: `The ${budget?.categoryName ? `"${budget.categoryName}" ` : ''}budget will be removed. Your transactions are not affected.`,
+      confirmLabel: 'Delete Budget',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    deleteBudget(id);
+    setIsModalOpen(false);
+    setEditingBudget(null);
+    setCategoryNameToCreate(undefined);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingBudget(null);
@@ -225,6 +240,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onClose={handleCloseModal}
           onSave={saveBudget}
           budgetToEdit={editingBudget}
+          onDelete={editingBudget ? () => handleDeleteBudget(editingBudget.id) : undefined}
           categoryNameToCreate={categoryNameToCreate}
           existingBudgets={budgets}
           expenseCategories={expenseCategories.filter(c => !c.parentId)}
@@ -250,7 +266,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onMonthChange={handleMonthChange}
           onAddBudget={(catName) => handleOpenModal(undefined, catName)}
           onEditBudget={(b) => handleOpenModal(b)}
-          onDeleteBudget={(id) => deleteBudget(id)}
+          onDeleteBudget={(id) => { void handleDeleteBudget(id); }}
           onApplyQuickBudget={handleApplyQuickBudget}
           onQuickCreateDefault={handleQuickCreateDefault}
           preferredCurrency={preferences.currency || 'EUR'}

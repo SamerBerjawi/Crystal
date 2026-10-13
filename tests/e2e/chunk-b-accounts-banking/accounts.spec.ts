@@ -188,7 +188,6 @@ test.describe('W12 Account detail', () => {
   });
 
   test('pressing Enter in the amount field saves the transaction (does not close the drawer)', async ({ authedPage: page, user }) => {
-    openBug('AUD-74');
     await openDetail(page, 'Everyday Checking');
     await page.locator('main').getByRole('button', { name: /^(transaction|log tx)$/i }).first().click();
     await page.getByPlaceholder('Store, entity, or person...').fill('QA Enter Shop');
@@ -236,13 +235,20 @@ test.describe('W12 Account detail', () => {
     expect(logs(await serverData(user))).toBe(before + 1);
   });
 
-  test('vehicle: mileage lower than the previous reading is rejected', async ({ authedPage: page }) => {
-    openBug('AUD-75');
+  test('vehicle: mileage lower than the previous reading is rejected', async ({ authedPage: page, user }) => {
     await openDetail(page, 'Tesla Model 3 LR');
+    // First a normal reading, then one that is lower than it.
+    await page.locator('main').getByRole('button', { name: /^add log$/i }).click();
+    await page.getByPlaceholder('e.g. 45000').fill('50000');
+    const saved = waitForSave(page);
+    await page.getByRole('button', { name: /record mileage/i }).click();
+    await saved;
+    await page.waitForTimeout(600);
     await page.locator('main').getByRole('button', { name: /^add log$/i }).click();
     await page.getByPlaceholder('e.g. 45000').fill('1');
     await page.getByRole('button', { name: /record mileage/i }).click();
-    await expect(page.getByText(/lower|less than|previous|invalid/i).first()).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/can't be lower than the previous reading/i)).toBeVisible({ timeout: 3000 });
+    expect(((await serverData(user)).accounts.find((a: any) => a.id === 'acc-vehicle').mileageLogs ?? []).length, 'the lower reading is not saved').toBe(1);
   });
 
   test('asset closing actions (Record Sale / Retire Vehicle) are available at this width', async ({ authedPage: page }) => {
