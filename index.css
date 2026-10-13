@@ -113,18 +113,21 @@
   --app-font: var(--app-font-family);
 }
 
-/* Stacking order. These names are referenced through Z_INDEX in constants.tsx; without definitions the classes
-   did nothing, which left modals underneath the mobile navigation (AUD-23). */
-@utility z-dropdown { z-index: 1000; }
-@utility z-sticky { z-index: 1100; }
-@utility z-popover { z-index: 1200; }
-@utility z-modal { z-index: 1300; }
-@utility z-toast { z-index: 1400; }
-@utility z-max { z-index: 2000; }
+/* Stacking order (DESIGN.md "Layer & Stacking Order"). These names are referenced through Z_INDEX in constants.tsx;
+   without definitions the classes did nothing, which left modals underneath the mobile navigation (AUD-23). */
+@utility z-dropdown { z-index: 50; }
+@utility z-sticky { z-index: 100; }
+@utility z-popover { z-index: 200; }
+@utility z-modal { z-index: 500; }
+@utility z-toast { z-index: 1000; }
+@utility z-max { z-index: 9999; }
 
 @theme {
   --font-sans: var(--app-font-family), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-serif: var(--app-font-family), Georgia, serif;
+  --text-3xs: 0.5625rem;
+  --text-3xs--line-height: 0.75rem;
+  --text-3xs--letter-spacing: 0.01em;
   --text-2xs: 0.625rem;
   --text-2xs--line-height: 0.875rem;
   --text-2xs--letter-spacing: 0.01em;

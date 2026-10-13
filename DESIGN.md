@@ -14,14 +14,14 @@ colors:
   primary-700: "#c1670e"
   primary-800: "#995111"
   primary-900: "#7d4312"
-  semantic-red: "#FF3B30"
-  semantic-green: "#34C759"
-  semantic-yellow: "#FFCC00"
-  semantic-blue: "#007AFF"
+  semantic-red: "#EF4444"
+  semantic-green: "#10B981"
+  semantic-yellow: "#F59E0B"
+  semantic-blue: "#06B6D4"
   light-bg: "#FAFAFA"
-  light-text: "#2D2D2D"
-  dark-bg: "#050505"
-  dark-text: "#FFFFFF"
+  light-text: "#171717"
+  dark-bg: "#0A0A0A"
+  dark-text: "#FAFAFA"
 typography:
   sans:
     fontFamily: "var(--app-font), 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
@@ -44,9 +44,9 @@ The Crystal Personal Finance Dashboard offers a sleek, modern, and data-dense UI
 ## Colors & Surface Architecture
 
 - **Primary (#FA9A1D):** An energetic warm gold/amber driving interaction points, representing growth and capital flow.
-- **Light Theme Canvas:** `#FAFAFA` with dark charcoal text (`#2D2D2D`) conveying clean elegance for daylight usage.
+- **Light Theme Canvas:** `#FAFAFA` with near-black text (`#171717`) conveying clean elegance for daylight usage.
 - **Dark Theme Canvas:** `#050505` with high-contrast bright text (`#FFFFFF`), tailored specifically for power-user financial reviews.
-- **Semantic Signals:** Red (`#FF3B30`), Green (`#34C759`), Yellow (`#FFCC00`), Blue (`#007AFF`).
+- **Semantic Signals:** Red (`#EF4444`), Green (`#10B981`), Yellow (`#F59E0B`), Blue (`#06B6D4`).
 
 ## Typography (Apple HIG Hierarchy)
 
@@ -76,6 +76,10 @@ Crystal supports dynamic switching between **Plus Jakarta Sans** and **Inter** w
 - **Elevated Overlays & Modals:** `bg-light-card dark:bg-dark-card backdrop-blur-2xl border border-black/10 dark:border-white/10 shadow-2xl`
 - **Backdrops:** `bg-black/60 backdrop-blur-sm` (consistent modal and bottom-sheet scrim)
 - **Hairline Reflex Highlights:** `shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]` in dark mode to simulate real glass edge reflection.
+
+## Design token source
+
+`index.css` (`@theme` plus the `@utility z-*` rules) is the single source of truth for tokens; there is no `tailwind.config.js`. Values in this document mirror it.
 
 ## Layer & Stacking Order (Z-Index Scale)
 

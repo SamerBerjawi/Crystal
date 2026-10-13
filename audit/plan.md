@@ -440,7 +440,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** e2e D9 (forecast no overflow at 375), E13 (challenges no overflow); new e2e for Merchants at 375.
 
-#### WP-4.6 Design tokens `[ ]` — needs decision K5
+#### WP-4.6 Design tokens `[x]` — needs decision K5
+- **Done:** tailwind.config.js deleted (it was never loaded); @theme/@utility in index.css are the single token source: --text-3xs added, z-index scale aligned to DESIGN.md (50/100/200/500/1000/9999), DESIGN.md values updated to the real ones. Regression test checks the built CSS contains .z-modal/.text-3xs. Migrating raw palette classes and a lint rule for them were not done.
 - **Covers:** AUD-41 (UI-001, UI-002)
 - **Files:** `tailwind.config.js` (delete), `index.css` `@theme`, `DESIGN.md`, `pages/Schedule.tsx` (`text-3xs`)
 - **Depends on:** —
