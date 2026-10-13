@@ -272,34 +272,34 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
   }
 });
 
+// Pending OAuth connections are kept inside the user's data blob under `enableBankingPendingConnections`.
+// Both writers below are single atomic statements that touch only that key (never `lastUpdatedAt` or any
+// other slice), so they cannot revert a concurrent POST /api/data (REL-001).
 router.post('/pending', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
     const connection = req.body?.connection;
-    if (!userId || !connection?.id) {
+    if (!userId || !connection?.id || typeof connection.id !== 'string') {
       return res.status(400).json({ message: 'connection with id is required' });
     }
 
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const upsertSql = `
-        INSERT INTO financial_data (user_id, data)
-        VALUES ($1, $2)
-        ON CONFLICT (user_id)
-        DO UPDATE SET data = EXCLUDED.data;
-    `;
-    const existing = await db.query(selectSql, [userId]);
-    const currentData = existing.rows?.[0]?.data || {};
-    const pendingConnections = {
-      ...(currentData.enableBankingPendingConnections || {}),
-      [connection.id]: connection,
-    };
-    const mergedData = { ...currentData, enableBankingPendingConnections: pendingConnections };
-    await db.query(upsertSql, [userId, mergedData]);
+    await db.query(
+      `INSERT INTO financial_data (user_id, data)
+       VALUES ($1, jsonb_build_object('enableBankingPendingConnections', $2::jsonb))
+       ON CONFLICT (user_id)
+       DO UPDATE SET data = jsonb_set(
+         COALESCE(financial_data.data, '{}'::jsonb),
+         '{enableBankingPendingConnections}',
+         COALESCE(financial_data.data->'enableBankingPendingConnections', '{}'::jsonb) || $2::jsonb,
+         true
+       )`,
+      [userId, JSON.stringify({ [connection.id]: connection })]
+    );
 
     res.json({ message: 'Pending connection stored' });
   } catch (error: any) {
     console.error('Failed to store pending Enable Banking connection', error);
-    res.status(500).json({ message: error?.message || 'Unable to store pending connection' });
+    res.status(500).json({ message: 'Unable to store pending connection' });
   }
 });
 
@@ -311,12 +311,11 @@ router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest,
       return res.status(400).json({ message: 'connectionId is required' });
     }
 
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const existing = await db.query(selectSql, [userId]);
-    const currentData = existing.rows?.[0]?.data || {};
-    const pendingConnections = currentData.enableBankingPendingConnections || {};
-    const connection = pendingConnections[connectionId];
-
+    const result = await db.query(
+      `SELECT data->'enableBankingPendingConnections'->$2::text AS connection FROM financial_data WHERE user_id = $1`,
+      [userId, connectionId]
+    );
+    const connection = result.rows?.[0]?.connection;
     if (!connection) {
       return res.status(404).json({ message: 'Pending connection not found' });
     }
@@ -324,7 +323,7 @@ router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest,
     res.json({ connection });
   } catch (error: any) {
     console.error('Failed to fetch pending Enable Banking connection', error);
-    res.status(500).json({ message: error?.message || 'Unable to fetch pending connection' });
+    res.status(500).json({ message: 'Unable to fetch pending connection' });
   }
 });
 
@@ -336,26 +335,18 @@ router.delete('/pending/:connectionId', authenticateToken, async (req: AuthReque
       return res.status(400).json({ message: 'connectionId is required' });
     }
 
-    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
-    const upsertSql = `
-        INSERT INTO financial_data (user_id, data)
-        VALUES ($1, $2)
-        ON CONFLICT (user_id)
-        DO UPDATE SET data = EXCLUDED.data;
-    `;
-    const existing = await db.query(selectSql, [userId]);
-    const currentData = existing.rows?.[0]?.data || {};
-    const pendingConnections = { ...(currentData.enableBankingPendingConnections || {}) };
-    if (pendingConnections[connectionId]) {
-      delete pendingConnections[connectionId];
-      const mergedData = { ...currentData, enableBankingPendingConnections: pendingConnections };
-      await db.query(upsertSql, [userId, mergedData]);
-    }
+    await db.query(
+      `UPDATE financial_data
+       SET data = jsonb_set(data, '{enableBankingPendingConnections}',
+                            COALESCE(data->'enableBankingPendingConnections', '{}'::jsonb) - $2::text, true)
+       WHERE user_id = $1 AND data ? 'enableBankingPendingConnections'`,
+      [userId, connectionId]
+    );
 
     res.json({ message: 'Pending connection removed' });
   } catch (error: any) {
     console.error('Failed to remove pending Enable Banking connection', error);
-    res.status(500).json({ message: error?.message || 'Unable to remove pending connection' });
+    res.status(500).json({ message: 'Unable to remove pending connection' });
   }
 });
 

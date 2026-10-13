@@ -65,9 +65,19 @@ router.post('/me/change-password', authenticateToken, passwordChangeRateLimiter,
         }
 
         const hashedNewPassword = await bcrypt.hash(newPassword, PASSWORD_HASH_ROUNDS);
-        const updateSql = `UPDATE users SET password = $1 WHERE id = $2`;
-        await db.query(updateSql, [hashedNewPassword, userId]);
-        await db.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+        // One transaction: either the password changes AND every session is revoked, or neither happens.
+        const client = await db.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query(`UPDATE users SET password = $1 WHERE id = $2`, [hashedNewPassword, userId]);
+            await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
+            await client.query('COMMIT');
+        } catch (txErr) {
+            await client.query('ROLLBACK').catch(() => {});
+            throw txErr;
+        } finally {
+            client.release();
+        }
         clearAuthCookie(res);
 
         res.json({ message: 'Password updated successfully. Please sign in again.' });

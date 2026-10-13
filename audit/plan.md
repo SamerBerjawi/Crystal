@@ -171,7 +171,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** e2e B33 "imported transactions belong to an account that exists", B34 "row shows as linked", F12 "CSV import that creates a new account…".
 
-#### WP-1.3 Server-side blob write safety `[ ]` — needs decision K3
+#### WP-1.3 Server-side blob write safety `[x]` — needs decision K3
+- **Done:** POST /api/data is one atomic jsonb merge under the row lock (no blob read into Node; empty-payload guard evaluated in SQL); /pending store/delete are single atomic key-scoped statements that never touch lastUpdatedAt; password change + session revocation in one transaction. tests/e2e/api/blob-writes (20 racing rounds), connect 'ready' persisted spec un-annotated.
 - **Covers:** AUD-02 (REL-001, QA-B-005), AUD-19 short-term (PERF-004), AUD-62 (REL-017)
 - **Files:** `server/src/data.ts`, `server/src/enableBanking.ts` (pending handlers), `server/src/users.ts`, `App.tsx` L1940-1947 (await `/pending`), `pages/EnableBankingCallback.tsx`
 - **Depends on:** —

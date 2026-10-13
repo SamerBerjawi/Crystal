@@ -7,7 +7,7 @@ for f in glob.glob('tests/e2e/chunk-*/*.spec.ts'):
     s = open(f).read(); o = s
     for i in ids:
         s = re.sub(r"\n[ \t]*openBug\('%s'[^;]*\);" % re.escape(i), "", s)
-        s = re.sub(r"\n[ \t]*test\.fixme\([^;]*'%s open[^;]*\);" % re.escape(i), "", s)
+        s = re.sub(r"\n[ \t]*test\.fixme\([^\n]*'%s open[^\n]*\);" % re.escape(i), "", s)
     if s != o:
         open(f, 'w').write(s); n += 1
 print('files changed:', n)

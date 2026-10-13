@@ -86,7 +86,6 @@ test.describe('W13 Connect a bank', () => {
   });
 
   test('happy path (mocked provider): authorize → callback → connection ready, pending record cleaned up', async ({ authedPage: page, baseURL, user }) => {
-    test.fixme(true, 'AUD-02 open (intermittent; audit/plan.md)');
     await mockEnableBanking(page, baseURL!);
     await connectQaBank(page);
     await expect(page).toHaveURL(/enable-banking\/callback|integrations/, { timeout: 15_000 });
