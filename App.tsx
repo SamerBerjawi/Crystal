@@ -424,7 +424,7 @@ const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
-  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(initialFinancialData.enableBankingConnections || []);
+  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>([]);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
@@ -843,10 +843,8 @@ const App: React.FC = () => {
       if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
       else { setUserStats(emptyFinancialData.userStats!); }
       streakUpdatedRef.current = false;
-      const resolvedConnections = (dataToLoad.enableBankingConnections && dataToLoad.enableBankingConnections.length > 0)
-        ? dataToLoad.enableBankingConnections
-        : (initialFinancialData.enableBankingConnections || []);
-      setEnableBankingConnections(resolvedConnections);
+      // Never fall back to the demo connections for a real account: an empty list is a valid state.
+      setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
       setPreferences(loadedPrefs);
       if (loadedPrefs.conversionRates) {
         updateConversionRates(loadedPrefs.conversionRates);
@@ -911,11 +909,9 @@ const App: React.FC = () => {
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
 
-  const isDevEnvironment = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    Boolean((import.meta as any)?.env?.DEV)
-  );
+  // Dev-only behaviours (IndexedDB data cache, auto demo mode) belong to the Vite dev build only.
+  // They must never key off the hostname: a production install opened on localhost is not "dev".
+  const isDevEnvironment = Boolean((import.meta as any)?.env?.DEV);
 
   const postData = useCallback(
     async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
@@ -959,9 +955,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
-    if (isDevEnvironment && isDataLoaded && hasMaterialData(dataToSave)) {
-      void saveDevCache(dataToSave);
-    }
+    if (!(isDevEnvironment && isDataLoaded && hasMaterialData(dataToSave))) return;
+    // Debounced: serializing the whole dataset on every state change is expensive.
+    const timer = setTimeout(() => { void saveDevCache(dataToSave); }, 1500);
+    return () => clearTimeout(timer);
   }, [dataToSave, isDevEnvironment, isDataLoaded]);
 
   const handleEnterDemoMode = async () => {

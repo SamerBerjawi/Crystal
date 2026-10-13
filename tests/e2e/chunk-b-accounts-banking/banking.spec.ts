@@ -47,7 +47,6 @@ async function connectQaBank(page: Page) {
 
 test.describe('W13 Connect a bank', () => {
   test('a user with no bank connections sees none (no demo connections injected)', async ({ authedPage: page, user }) => {
-    openBug('AUD-05');
     expect((await serverData(user)).enableBankingConnections ?? []).toEqual([]);
     await goTo(page, '/integrations');
     await expect(page.getByRole('heading', { name: 'BNP Paribas Fortis' })).toHaveCount(0);
@@ -55,7 +54,6 @@ test.describe('W13 Connect a bank', () => {
   });
 
   test('deleting all connections is permanent (they do not come back after refresh)', async ({ authedPage: page, user }) => {
-    openBug('AUD-05');
     await goTo(page, '/integrations');
     page.on('dialog', d => d.accept());
     for (let i = 0; i < 5 && (await page.getByRole('button', { name: 'Delete connection' }).count()) > 0; i++) {

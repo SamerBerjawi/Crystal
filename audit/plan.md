@@ -213,7 +213,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** API test: malformed payload → 400; unit test: `parseLocalDate` rejects invalid input; e2e restore (F15) still passes.
 
-#### WP-1.8 ⚡ Demo data and dev-mode leakage `[ ]`
+#### WP-1.8 ⚡ Demo data and dev-mode leakage `[x]`
+- **Done:** Removed the demo-connection fallback and the demo initial state; isDevEnvironment is now import.meta.env.DEV only (no hostname check); dev-cache write debounced to 1.5 s. New tests/e2e/regression/localhost-install.spec.ts (fails without the fix); AUD-05 specs un-annotated.
 - **Covers:** AUD-05 (QA-B-002, QA-B-003), AUD-08 (REL-007, PERF-013)
 - **Files:** `App.tsx` L846-848, L914-918, L960-965, L1006-1018, L1134-1142; `utils/browserCache.ts`
 - **Depends on:** —
