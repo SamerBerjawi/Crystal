@@ -36,3 +36,10 @@ test('upsertEntity / removeEntityById', () => {
   assert.equal(upsertEntity(list, { id: 'b', v: 3 }).length, 2);
   assert.deepEqual(removeEntityById(list, 'a'), []);
 });
+
+test('convertToEur falls back to 1:1 for a currency with no usable rate instead of NaN/0', async () => {
+    const { convertToEur } = await import('../../utils');
+    assert.equal(convertToEur(100, 'USD' as any, { EUR: 1 }), 100);
+    assert.equal(convertToEur(100, 'USD' as any, { USD: Number.NaN, EUR: 1 }), 100);
+    assert.equal(convertToEur(100, 'USD' as any, { USD: 0.5, EUR: 1 }), 50);
+});

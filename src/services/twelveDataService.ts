@@ -7,6 +7,15 @@ export interface ExchangeRateResponse {
     timestamp: number;
 }
 
+/** A usable exchange rate is a finite number above zero; anything else is an error, never silently 1:1. */
+const asRate = (value: unknown, label: string): number => {
+    const n = typeof value === 'string' ? Number(value) : value;
+    if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) {
+        throw new Error(`TwelveData returned no usable exchange rate for ${label}.`);
+    }
+    return n;
+};
+
 export async function fetchExchangeRate(from: Currency, to: Currency, apiKey: string): Promise<number> {
     if (from === to) return 1;
 
@@ -23,7 +32,7 @@ export async function fetchExchangeRate(from: Currency, to: Currency, apiKey: st
         throw new Error(`TwelveData API error: ${data.message}`);
     }
 
-    return data.rate;
+    return asRate(data.rate, symbol);
 }
 
 export interface SymbolMetadata {
@@ -80,7 +89,7 @@ export async function fetchAllExchangeRates(base: Currency, targets: Currency[],
     
     if (symbolsToFetch.length === 1) {
         if (data.status === 'error') throw new Error(data.message);
-        rates[targets.find(t => t !== base)!] = data.rate;
+        rates[targets.find(t => t !== base)!] = asRate(data.rate, `${base}/${targets.find(t => t !== base)}`);
     } else {
         // Batch response is an object with symbols as keys
         Object.entries(data).forEach(([symbol, result]: [string, any]) => {
@@ -89,7 +98,11 @@ export async function fetchAllExchangeRates(base: Currency, targets: Currency[],
                 return;
             }
             const fromCurrency = symbol.split('/')[0] as Currency;
-            rates[fromCurrency] = result.rate;
+            try {
+                rates[fromCurrency] = asRate(result.rate, symbol);
+            } catch (error) {
+                console.warn(String((error as Error).message));
+            }
         });
     }
 

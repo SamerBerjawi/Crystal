@@ -4,6 +4,7 @@ import { Currency, Account, Transaction, Duration, Category, FinancialGoal, Recu
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import Big from 'big.js';
+import { warnIgnored } from './utils/logging';
 
 // Setup to avoid scientific notation for typical business figures
 Big.NE = -10;
@@ -137,9 +138,17 @@ export const updateConversionRates = (rates: Record<string, number>) => {
     dynamicRates = { ...dynamicRates, ...rates };
 };
 
+// A currency without a rate is converted 1:1 so totals still render, but that is a guess: say so once per currency.
+const rateFor = (activeRates: Record<string, number>, currency: string): number => {
+    const rate = activeRates[currency];
+    if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0) return rate;
+    if (currency !== 'EUR') warnIgnored(`exchange rate for ${currency} (treated as 1:1)`, new Error('missing rate'));
+    return 1;
+};
+
 export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    return safeMultiply(balance, activeRates[currency] || 1);
+    return safeMultiply(balance, rateFor(activeRates, currency));
 }
 
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
@@ -147,10 +156,10 @@ export const convertCurrency = (amount: number, from: Currency, to: Currency, ra
     if (from === to) return amount;
 
     // Convert from 'from' to EUR
-    const amountInEur = safeMultiply(amount, activeRates[from] || 1);
+    const amountInEur = safeMultiply(amount, rateFor(activeRates, from));
 
     // Convert from EUR to 'to'
-    const rateTo = activeRates[to] || 1;
+    const rateTo = rateFor(activeRates, to);
     return safeDivide(amountInEur, rateTo);
 }
 
@@ -1326,7 +1335,7 @@ export function generateBalanceForecast(
                         runningTotalBalance = safeRound(runningTotalBalance + amountInEur, 2);
                     }
 
-                    tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: safeRound(runningTotalBalance, 2) });
+                    tableData.push({ id: uuidv4(), ...event, amount: amountInEur, balance: safeRound(runningTotalBalance, 2) });
                     dailySummary.push({
                         description: event.description,
                         amount: amountInEur,

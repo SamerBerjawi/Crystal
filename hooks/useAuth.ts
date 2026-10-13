@@ -170,6 +170,9 @@ export const useAuth = () => {
       }
 
       const data = await dataRes.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('The server returned data in an unexpected format.');
+      }
       return data as FinancialData;
     } catch (err) {
       console.error('Auth status check failed:', err);

@@ -350,7 +350,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e A22 "onboarding follows the account", E15 "sprint visible on another device", A14 "Forgot password shows guidance"; CLI script test.
 
-#### WP-2.13 Typing and catch hygiene `[ ]`
+#### WP-2.13 Typing and catch hygiene `[x]`
+- **Done:** No empty catch blocks remain in app code (best-effort storage/cache failures log once via utils/logging.warnIgnored; rollbacks log); tsconfig.strict.json (strict: true) now covers the new/rewritten utils and runs in npm run lint (it caught a duplicated date key in utils.ts); unusable FX rates are rejected at the Twelve Data boundary and warned about once when converting; /api/data response shape checked. Remaining: the 279 any's and non-strict root config are left for incremental adoption (add files to tsconfig.strict.json).
 - **Covers:** AUD-60 (REL-015), AUD-61 remainder (REL-016)
 - **Files:** `tsconfig.json`, boundary fetches, empty catches listed in REL-016
 - **Depends on:** WP-2.10

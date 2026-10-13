@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Transaction, RecurringTransaction, BillPayment, Account, Currency } from '../types';
 import { parseLocalDate, toLocalISOString, adjustDateForWeekend, convertToEur } from '../utils';
 import { MatcherConfig, DEFAULT_MATCHER_CONFIG } from './useMatcherConfig';
+import { warnIgnored } from '../utils/logging';
 
 export interface SyncedBillMatchSuggestion {
   id: string; // unique identifier for the match suggestion
@@ -208,7 +209,7 @@ export const useSyncedBillMatcher = (
     setIgnoredMatchIds(ids);
     try {
       localStorage.setItem('synced_bill_ignored_matches', JSON.stringify(ids));
-    } catch {}
+    } catch (error) { warnIgnored('remembering ignored bill matches', error); }
   };
 
   const suggestions = useMemo(() => {

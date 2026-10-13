@@ -148,7 +148,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
         res.json({ message: 'Data saved successfully', lastUpdatedAt: nextUpdatedAt });
     } catch (err) {
-        await client?.query('ROLLBACK').catch(() => {});
+        await client?.query('ROLLBACK').catch((rollbackError: unknown) => console.error('Rollback failed:', rollbackError));
         console.error(err);
         res.status(500).json({ message: 'Failed to save data' });
     } finally {

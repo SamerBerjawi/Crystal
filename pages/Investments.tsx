@@ -27,6 +27,7 @@ import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { SmartPriceBinding } from '../types';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { warnIgnored } from '../utils/logging';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -733,7 +734,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             try {
                 const raw = localStorage.getItem('smartPriceBindings');
                 if (raw) localFallbackBindings = JSON.parse(raw) as Record<string, SmartPriceBinding>;
-            } catch {}
+            } catch (error) { warnIgnored('reading local price bindings', error); }
 
             const settled = await Promise.allSettled(displayHoldings.map(async (holding) => {
                 const binding = syncedSmartBindings[holding.symbol] || syncedPriceConfigs[holding.symbol]?.binding || localFallbackBindings[holding.symbol];

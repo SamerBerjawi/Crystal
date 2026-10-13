@@ -1,4 +1,5 @@
 import { FinancialData } from '../types';
+import { warnIgnored } from './logging';
 
 const DB_NAME = 'crystal_dev_db';
 const DB_VERSION = 1;
@@ -39,7 +40,7 @@ export async function saveDevCache(data: FinancialData): Promise<void> {
   // 1. Save flag indicating dev mode session is active
   try {
     window.localStorage.setItem(DEV_MODE_ACTIVE_KEY, 'true');
-  } catch {}
+  } catch (error) { warnIgnored('flagging the dev session', error); }
 
   // 2. Save in localStorage (fast sync read on page refresh)
   try {
@@ -112,7 +113,7 @@ export async function clearDevCache(): Promise<void> {
   try {
     window.localStorage.removeItem(DEV_STORAGE_KEY);
     window.localStorage.removeItem(DEV_MODE_ACTIVE_KEY);
-  } catch {}
+  } catch (error) { warnIgnored('clearing the dev cache flags', error); }
 
   try {
     const db = await openDB();
@@ -123,5 +124,5 @@ export async function clearDevCache(): Promise<void> {
       req.onsuccess = () => resolve();
       req.onerror = () => resolve();
     });
-  } catch {}
+  } catch (error) { warnIgnored('clearing the IndexedDB dev cache', error); }
 }

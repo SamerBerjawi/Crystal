@@ -9,7 +9,7 @@
     "build": "node scripts/bump-version.cjs && vite build",
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build --mode production",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc -p tsconfig.strict.json",
     "test": "tsx --test tests/unit/*.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts"
   },
   "dependencies": {

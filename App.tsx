@@ -112,6 +112,7 @@ import { persistPendingConnection, removePendingConnection } from './utils/enabl
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache';
 import { threeWayMerge } from './utils/threeWayMerge';
+import { warnIgnored } from './utils/logging';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -414,7 +415,7 @@ const App: React.FC = () => {
             const parsed = JSON.parse(cached);
             if (parsed?.userProfile) return parsed.userProfile;
           }
-        } catch {}
+        } catch (error) { warnIgnored('reading the cached dev profile', error); }
         return createDemoUser();
       }
     }
@@ -813,7 +814,7 @@ const App: React.FC = () => {
     applyAppFont(activeFont);
     try {
       localStorage.setItem('crystal_font', activeFont);
-    } catch (e) {}
+    } catch (error) { warnIgnored('remembering the font preference', error); }
   }, [preferences.appFont]);
 
   const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
@@ -2261,7 +2262,7 @@ const App: React.FC = () => {
             if (!isNaN(parsed.getTime())) {
               return toLocalISOString(parsed);
             }
-          } catch (e) {}
+          } catch (e) { /* not a parseable date: try the next candidate */ }
           const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
           if (match) return match[1];
         }
@@ -2352,7 +2353,7 @@ const App: React.FC = () => {
               if (diffDays >= 0 && diffDays <= 90) {
                 return extractedStr;
               }
-            } catch (e) {}
+            } catch (e) { /* not a parseable date: try the next candidate */ }
           }
         }
 
@@ -2368,7 +2369,7 @@ const App: React.FC = () => {
               if (diffDays >= 0 && diffDays <= 90) {
                 return extractedStr;
               }
-            } catch (e) {}
+            } catch (e) { /* not a parseable date: try the next candidate */ }
           }
         }
 
@@ -2387,7 +2388,7 @@ const App: React.FC = () => {
               if (diffDays >= 0 && diffDays <= 90) {
                 return extractedStr;
               }
-            } catch (e) {}
+            } catch (e) { /* not a parseable date: try the next candidate */ }
           }
         }
       }

@@ -11,15 +11,15 @@ import RootErrorBoundary from './components/RootErrorBoundary';
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(registrations => {
     for (const registration of registrations) {
-      registration.unregister().catch(() => {});
+      registration.unregister().catch(error => console.warn('Could not unregister a service worker:', error));
     }
-  }).catch(() => {});
+  }).catch(error => console.warn('Could not list service workers:', error));
   if ('caches' in window) {
     caches.keys().then(names => {
       for (const name of names) {
-        caches.delete(name).catch(() => {});
+        caches.delete(name).catch(error => console.warn('Could not delete cache', name, error));
       }
-    }).catch(() => {});
+    }).catch(error => console.warn('Could not list caches:', error));
   }
 }
 

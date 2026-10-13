@@ -260,7 +260,7 @@ export const AnimatedThemeToggler = ({
       flushSync(applyTheme)
     })
     if (typeof transition?.finished?.finally === "function") {
-      transition.finished.finally(cleanup).catch(() => {})
+      transition.finished.finally(cleanup).catch(() => { /* a skipped view transition rejects; the theme is already applied */ })
     } else {
       cleanup()
     }
@@ -282,7 +282,7 @@ export const AnimatedThemeToggler = ({
             }
           )
         })
-        .catch(() => {})
+        .catch(() => { /* animate() is cosmetic; the theme change itself already happened */ })
     }
   }, [shape, fromCenter, duration, isDark, isControlled, onThemeChange])
 

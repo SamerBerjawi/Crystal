@@ -76,7 +76,7 @@ router.post('/me/change-password', authenticateToken, passwordChangeRateLimiter,
             await client.query(`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`, [userId]);
             await client.query('COMMIT');
         } catch (txErr) {
-            await client.query('ROLLBACK').catch(() => {});
+            await client.query('ROLLBACK').catch((rollbackError: unknown) => console.error('Rollback failed:', rollbackError));
             throw txErr;
         } finally {
             client.release();
