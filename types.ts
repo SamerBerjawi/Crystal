@@ -211,7 +211,8 @@ export interface EnableBankingConnection {
   id: string;
   applicationId: string;
   countryCode: string;
-  clientCertificate: string;
+  /** Never populated from the server; the private key is held server-side only (AUD-13). */
+  clientCertificate?: string;
   status: EnableBankingConnectionStatus;
   selectedBank?: string;
   selectedBankId?: string;

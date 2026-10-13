@@ -113,7 +113,6 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
             },
             body: JSON.stringify({
               applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
               code,
             }),
           });

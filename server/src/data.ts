@@ -2,6 +2,7 @@
 import express from 'express';
 import { db } from './database';
 import { validateFinancialDataPayload } from './schemas';
+import { loadCredentials, saveCredentials, scrubStoredKeys, stripKeysFromBlob } from './ebCredentials';
 import { authenticateToken, AuthRequest } from './middleware';
 
 const router = express.Router();
@@ -23,7 +24,18 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
             return res.json({});
         }
         // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-        res.json(row.data || {});
+        let data = row.data || {};
+        // Blobs written by older versions carry the Enable Banking private key. Move it to the encrypted credential
+        // store and scrub it from the blob before it is sent to the browser.
+        if (JSON.stringify(data).includes('"clientCertificate"')) {
+            const { data: scrubbed, found } = stripKeysFromBlob(data);
+            if (found && !(await loadCredentials(userId!))) {
+                await saveCredentials(userId!, found.applicationId, found.clientCertificate);
+            }
+            await scrubStoredKeys(userId!);
+            data = scrubbed;
+        }
+        res.json(data);
     } catch (err) {
         console.error(err);
         // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
@@ -82,6 +94,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;
         delete incomingData.allowEmpty;
+
+        // The signing key never lives in the blob: move it to the encrypted credential store.
+        if (incomingData.enableBankingConnections || incomingData.enableBankingPendingConnections) {
+            const { data: scrubbed, found } = stripKeysFromBlob(incomingData);
+            Object.assign(incomingData, scrubbed);
+            if (found && !(await loadCredentials(userId!))) {
+                await saveCredentials(userId!, found.applicationId, found.clientCertificate);
+            }
+        }
 
         // Reject malformed payloads (wrong container types, bad dates) before they reach the user's blob.
         const validation = validateFinancialDataPayload(incomingData);

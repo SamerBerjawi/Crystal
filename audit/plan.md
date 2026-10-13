@@ -204,7 +204,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e A4 (short password rejected), A5 (300-char name → field message); API tests for 400s; the server refuses to start in production without `JWT_SECRET`.
 
-#### WP-1.6 Enable Banking key off the client `[ ]`
+#### WP-1.6 Enable Banking key off the client `[x]`
+- **Done:** Enable Banking key now lives only in the new enable_banking_credentials table (AES-256-GCM, per user); provider routes resolve it server-side, /credentials reports status only; /api/data and /pending strip clientCertificate and legacy blobs/localStorage are migrated and scrubbed on next load; client no longer sends or stores the key. 4 API tests incl. DB inspection.
 - **Covers:** AUD-13 (SEC-004)
 - **Files:** `server/src/enableBanking.ts`, `server/src/crypto.ts`, `server/src/database.ts` (new `enable_banking_credentials` table), `App.tsx` EB handlers, `pages/EnableBankingCallback.tsx`, `components/EnableBankingIntegrationCard.tsx`, `utils/enableBankingStorage.ts`
 - **Depends on:** WP-1.3

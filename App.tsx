@@ -2114,7 +2114,6 @@ const App: React.FC = () => {
       id: connectionId,
       applicationId: (payload.applicationId || '').trim(),
       countryCode: (payload.countryCode || '').trim().toUpperCase(),
-      clientCertificate: (payload.clientCertificate || '').trim(),
       status: 'pending',
       selectedBank: selectedBankName,
       selectedBankId: selectedBankId,
@@ -2132,7 +2131,7 @@ const App: React.FC = () => {
     });
     if (!isDemoMode && isDataLoaded) { void savePartialDataWithRetry({ enableBankingConnections: nextConnections }); }
     try {
-      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: baseConnection.clientCertificate, countryCode: baseConnection.countryCode, aspspName: baseConnection.selectedBank, aspspId: baseConnection.selectedBankId, state: connectionId, }), });
+      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: (payload.clientCertificate || '').trim() || undefined, countryCode: baseConnection.countryCode, aspspName: baseConnection.selectedBank, aspspId: baseConnection.selectedBankId, state: connectionId, }), });
       const data = await response.json();
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, authorizationId: data.authorizationId, lastError: undefined, } : conn));
       if (data.authorizationUrl) { window.location.href = data.authorizationUrl; }
@@ -2653,7 +2652,7 @@ const App: React.FC = () => {
       // The status is deliberately not set to 'pending' here: 'pending' is persisted, so a tab closed
       // mid-sync used to leave the connection stuck and excluded from "Sync all" forever.
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
-      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, }), }).then(res => res.json());
+      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
       const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
       const updatedAccounts: EnableBankingAccount[] = [];
@@ -2669,8 +2668,8 @@ const App: React.FC = () => {
         }
         const existingAccount = existingAccountsById.get(providerAccountId);
         const [details, balances] = await Promise.all([
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()),
         ]);
         const resolvedBalance = resolveBalanceAmount(balances);
         const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
@@ -2702,7 +2701,6 @@ const App: React.FC = () => {
             method: 'POST',
             body: JSON.stringify({
               applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
               sessionId: connection.sessionId,
               dateFrom,
               continuationKey,

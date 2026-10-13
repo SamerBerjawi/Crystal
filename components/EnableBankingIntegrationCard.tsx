@@ -9,7 +9,7 @@ import {
   EnableBankingSyncOptions,
 } from '../types';
 import { toLocalISOString } from '../utils';
-import { loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
+import { fetchCredentialStatus, loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
 import EnableBankingSyncModal from './EnableBankingSyncModal';
 import Icon from './ui/Icon';
 
@@ -59,7 +59,9 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
     });
   };
 
-  const hasCredentials = Boolean(formState.applicationId.trim() && formState.clientCertificate.trim());
+  // The private key is held by the server; the field below is only for entering or replacing it.
+  const [hasStoredKey, setHasStoredKey] = useState(false);
+  const hasCredentials = Boolean(formState.applicationId.trim() && (formState.clientCertificate.trim() || hasStoredKey));
   const [isCredentialsOpen, setIsCredentialsOpen] = useState(false);
   const [expandedRowKeys, setExpandedRowKeys] = useState<Set<string>>(new Set());
 
@@ -111,14 +113,17 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
   useEffect(() => {
     const savedConfig = loadEnableBankingConfig();
-    if (savedConfig) {
-      updateFormState(prev => ({ ...prev, ...savedConfig }));
-      if (!savedConfig.applicationId?.trim() || !savedConfig.clientCertificate?.trim()) {
-        setIsCredentialsOpen(true);
+    if (savedConfig) updateFormState(prev => ({ ...prev, ...savedConfig }));
+    let cancelled = false;
+    fetchCredentialStatus().then(status => {
+      if (cancelled) return;
+      setHasStoredKey(status.configured);
+      if (status.configured && status.applicationId) {
+        updateFormState(prev => ({ ...prev, applicationId: prev.applicationId || status.applicationId }));
       }
-    } else {
-      setIsCredentialsOpen(true);
-    }
+      if (!status.configured) setIsCredentialsOpen(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const clampSyncDate = (value?: string) => {
@@ -140,7 +145,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
   };
 
   const loadBanks = async () => {
-    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
+    if (!hasCredentials) {
       alert('Enter Application ID and Client Certificate first.');
       setIsCredentialsOpen(true);
       return;
@@ -156,6 +161,11 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
         clientCertificate: formState.clientCertificate.trim(),
       });
       setBankOptions(options);
+      if (formState.clientCertificate.trim()) {
+        // The server stored the key once the provider accepted it; drop it from the page.
+        setHasStoredKey(true);
+        setFormState(prev => ({ ...prev, clientCertificate: '' }));
+      }
       updateFormState(prev => ({ ...prev, selectedBank: options[0]?.id || '' }));
     } catch (error: any) {
       console.error('Failed to load banks', error);
@@ -202,7 +212,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
   };
 
   const handleCreate = () => {
-    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
+    if (!hasCredentials) {
       alert('Application ID and client certificate are required.');
       setIsCredentialsOpen(true);
       return;
@@ -226,12 +236,12 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
   const handleReauthorize = (connection: EnableBankingConnection) => {
     const resolvedApplicationId = (connection.applicationId || formState.applicationId || '').trim();
-    const resolvedCertificate = (connection.clientCertificate || formState.clientCertificate || '').trim();
+    const resolvedCertificate = (formState.clientCertificate || '').trim();
     const resolvedCountry = (connection.countryCode || formState.countryCode || '').trim().toUpperCase();
     const resolvedBankId = (connection.selectedBankId || formState.selectedBank || '').trim();
     const resolvedBankName = connection.selectedBank || bankOptions.find(option => option.id === resolvedBankId)?.name || '';
 
-    if (!resolvedApplicationId || !resolvedCertificate) {
+    if (!resolvedApplicationId || !(resolvedCertificate || hasStoredKey)) {
       alert('Application ID and certificate are required to reauthorize.');
       setIsCredentialsOpen(true);
       return;
@@ -439,14 +449,14 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                   Client Certificate (PEM Private Key)
                 </label>
                 <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                  Stored securely in local browser storage
+                  Encrypted and stored on the server; never kept in this browser
                 </span>
               </div>
               <textarea
                 name="clientCertificate"
                 value={formState.clientCertificate}
                 onChange={handleFormChange}
-                placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                placeholder={hasStoredKey ? 'A key is stored on the server. Paste a new one only to replace it.' : '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----'}
                 rows={2}
                 className="w-full text-2xs font-mono p-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-black/10 dark:border-white/10 text-light-text dark:text-dark-text focus:outline-none focus:ring-1.5 focus:ring-primary-500/50 resize-y"
               />
@@ -454,7 +464,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
             <div className="flex items-center justify-between pt-1">
               <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-                Credentials are saved automatically to your device.
+                The application ID is remembered on this device; the key is kept on the server.
               </span>
               <button
                 type="button"

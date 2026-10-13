@@ -65,6 +65,17 @@ export const initializeDatabase = async () => {
             )
         `);
 
+        // Enable Banking signing key, encrypted at rest and never returned to the client (AUD-13).
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS enable_banking_credentials (
+                user_id INTEGER PRIMARY KEY,
+                application_id TEXT NOT NULL,
+                encrypted_key TEXT NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
         await db.query(`
             CREATE TABLE IF NOT EXISTS user_sessions (
                 id TEXT PRIMARY KEY,
