@@ -133,7 +133,6 @@ test.describe('W14 Link & sync', () => {
   }
 
   test('sync imports every provider transaction, including two distinct same-day €3.50 purchases', async ({ authedPage: page, baseURL, user }) => {
-    openBug('AUD-06');
     await connectAndLinkNew(page, baseURL!);
     await syncLast(page);
     await expect.poll(async () => imported(await serverData(user)).length, { timeout: 12_000 }).toBeGreaterThan(0);
@@ -170,8 +169,6 @@ test.describe('W14 Link & sync', () => {
   });
 
   test('sync failure is shown to the user', async ({ authedPage: page, baseURL }) => {
-    test.fixme(isMobile(page), 'AUD-25 open: mobile sync button differs (hangs); audit/plan.md');
-    openBug('AUD-25', !isMobile(page));
     const opts: MockOpts = {};
     await connectAndLinkNew(page, baseURL!, opts);
     opts.failBalances = true;       // the provider starts failing only after the connection is set up

@@ -228,6 +228,8 @@ export interface EnableBankingSyncOptions {
   updateBalance?: boolean;
   syncStartDate?: string;
   targetAccountIds?: string[];
+  /** Suppress the per-connection success toast (used by "sync all", which reports once). */
+  silent?: boolean;
 }
 
 export type EnableBankingLinkPayload =

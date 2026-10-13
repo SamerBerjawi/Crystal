@@ -615,6 +615,11 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                               : 'Never synced'}
                           </span>
                         </div>
+                        {connection.lastError && (
+                          <p role="alert" className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400 break-words">
+                            Last sync failed: {connection.lastError.length > 200 ? `${connection.lastError.slice(0, 197)}…` : connection.lastError}
+                          </p>
+                        )}
                       </div>
                     </div>
 

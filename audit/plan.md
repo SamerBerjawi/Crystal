@@ -233,7 +233,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** new e2e: a merchant logo override containing `"><img onerror>` doesn't execute (dialog listener never fires).
 
-#### WP-1.10 Bank sync correctness `[ ]`
+#### WP-1.10 Bank sync correctness `[x]`
+- **Done:** Sync guards against concurrent runs, dedupes by provider id (identical same-day purchases kept), surfaces per-connection failures via toast and card lastError alert; sync-all shows a summary.
 - **Covers:** AUD-06 (REL-009, QA-B-004), AUD-25 (REL-010, QA-B-011)
 - **Files:** `App.tsx` L2456-2620, `components/EnableBankingIntegrationCard.tsx`
 - **Depends on:** WP-1.2

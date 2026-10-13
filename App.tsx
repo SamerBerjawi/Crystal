@@ -540,6 +540,7 @@ const App: React.FC = () => {
   const baselinePendingRef = useRef(true);   // true until the freshly loaded data has been captured as the baseline
   const saveInFlightRef = useRef(false);
   const saveAgainRef = useRef(false);
+  const syncingConnectionIdsRef = useRef<Set<string>>(new Set());
   const lastSaveFailureRef = useRef<{ ok: boolean; status?: number } | null>(null);
   const retryDelayRef = useRef(5000);
   const [loadGeneration, setLoadGeneration] = useState(0);
@@ -2642,8 +2643,16 @@ const App: React.FC = () => {
     if (!isAuthenticated) return;
     const connection = connectionOverride || enableBankingConnections.find(c => c.id === connectionId);
     if (!connection?.sessionId) return;
+    // One sync per connection at a time: overlapping runs both dedupe against the same snapshot and import twice.
+    if (syncingConnectionIdsRef.current.has(connectionId)) return;
+    syncingConnectionIdsRef.current.add(connectionId);
+    let newTransactionCount = 0;
+    let updatedTransactionCount = 0;
+    const truncatedAccountNames: string[] = [];
     try {
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
+      // The status is deliberately not set to 'pending' here: 'pending' is persisted, so a tab closed
+      // mid-sync used to leave the connection stuck and excluded from "Sync all" forever.
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
       const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
       const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
@@ -2687,6 +2696,7 @@ const App: React.FC = () => {
 
         let continuationKey: string | undefined;
         const seenPageKeys = new Set<string>();
+        let pageCapReached = true;
         for (let page = 0; page < 100; page += 1) {
           const txResponse = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
             method: 'POST',
@@ -2714,15 +2724,24 @@ const App: React.FC = () => {
           });
 
           const nextContinuationKey = txResponse?.continuation_key || txResponse?.continuationKey;
-          if (!nextContinuationKey || seenPageKeys.has(nextContinuationKey)) break;
+          if (!nextContinuationKey || seenPageKeys.has(nextContinuationKey)) { pageCapReached = false; break; }
           seenPageKeys.add(nextContinuationKey);
           continuationKey = nextContinuationKey;
         }
 
-        updatedAccounts[updatedAccounts.length - 1] = {
-          ...updatedAccounts[updatedAccounts.length - 1],
-          lastSyncedAt: toLocalDateTimeString(new Date()),
-        };
+        if (pageCapReached) {
+          // Not everything was fetched: keep the old checkpoint so the next sync resumes from there.
+          truncatedAccountNames.push(updatedAccounts[updatedAccounts.length - 1].name);
+          updatedAccounts[updatedAccounts.length - 1] = {
+            ...updatedAccounts[updatedAccounts.length - 1],
+            lastSyncedAt: existingLinkedAccount?.lastSyncedAt,
+          };
+        } else {
+          updatedAccounts[updatedAccounts.length - 1] = {
+            ...updatedAccounts[updatedAccounts.length - 1],
+            lastSyncedAt: toLocalDateTimeString(new Date()),
+          };
+        }
       }
 
       if (importedTransactions.length > 0) {
@@ -2730,35 +2749,54 @@ const App: React.FC = () => {
         const existingTxMapSureId = new Map<string, Transaction>(
           transactions.filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`) && tx.sureId).map(tx => [tx.sureId as string, tx])
         );
-        const existingFingerprints = new Map<string, Transaction>(
-          transactions
-            .filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`))
-            .map(tx => [`${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`, tx])
-        );
+        // Only used for transactions the bank gave no identifier for. Each stored transaction can be
+        // matched at most once, so two genuine identical purchases are not collapsed into one.
+        const fingerprintOf = (tx: Transaction) => `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`;
+        const existingByFingerprint = new Map<string, Transaction[]>();
+        for (const tx of transactions) {
+          if (!tx.importId?.startsWith(`enable-banking-${connectionId}-`)) continue;
+          const key = fingerprintOf(tx);
+          const list = existingByFingerprint.get(key);
+          if (list) list.push(tx); else existingByFingerprint.set(key, [tx]);
+        }
 
         const deduped: Transaction[] = [];
         const toUpdate: Transaction[] = [];
+        const occurrencesOfFallbackId = new Map<string, number>();
 
-        for (const tx of importedTransactions) {
-          const fingerprint = `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`;
-          const existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined) || existingFingerprints.get(fingerprint);
+        for (let candidate of importedTransactions) {
+          const hasBankIdentifier = !!candidate.sureId && !candidate.sureId.startsWith('fallback-');
+          if (!hasBankIdentifier) {
+            // No bank id: the id is a hash of the fields, so identical rows collide. Number repeats within
+            // the batch so each genuine row keeps its own stable id.
+            const seen = occurrencesOfFallbackId.get(candidate.id) || 0;
+            occurrencesOfFallbackId.set(candidate.id, seen + 1);
+            if (seen > 0) candidate = { ...candidate, id: `${candidate.id}-${seen}`, sureId: candidate.sureId ? `${candidate.sureId}-${seen}` : candidate.sureId };
+          }
+          const tx = candidate;
+
+          let existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined);
+          if (!existing && !hasBankIdentifier) {
+            const matches = existingByFingerprint.get(fingerprintOf(tx));
+            existing = matches?.shift();
+          }
 
           if (existing) {
             if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
-              const updatedTx = {
+              toUpdate.push({
                 ...existing,
                 merchant: existing.merchant || tx.merchant,
                 description: existing.description || tx.description
-              };
-              toUpdate.push(updatedTx);
+              });
             }
           } else {
             deduped.push(tx);
             existingTxMapCountId.set(tx.id, tx);
             if (tx.sureId) existingTxMapSureId.set(tx.sureId, tx);
-            existingFingerprints.set(fingerprint, tx);
           }
         }
+        newTransactionCount = deduped.length;
+        updatedTransactionCount = toUpdate.length;
 
         const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
 
@@ -2784,20 +2822,36 @@ const App: React.FC = () => {
       }
 
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts, lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
+      const bankName = connection.selectedBank || 'your bank';
+      if (truncatedAccountNames.length > 0) {
+        toast.warning(`${bankName}: sync incomplete`, { description: `Very long history for ${truncatedAccountNames.join(', ')}. Sync again to fetch the rest.` });
+      } else if (!syncOptions?.silent) {
+        toast.success(`${bankName} synced`, {
+          description: `${newTransactionCount} new transaction${newTransactionCount === 1 ? '' : 's'}${updatedTransactionCount ? `, ${updatedTransactionCount} updated` : ''}.`,
+        });
+      }
     } catch (error: any) {
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
+      const message = error?.message || 'Sync failed';
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: message } : conn));
+      toast.error(`${connection.selectedBank || 'Bank'} sync failed`, { description: message.length > 160 ? message.slice(0, 157) + '…' : message });
+    } finally {
+      syncingConnectionIdsRef.current.delete(connectionId);
     }
   }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser, incomeCategories, expenseCategories]);
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
-    if (activeConnections.length === 0) return;
+    if (activeConnections.length === 0) {
+      toast.info('No connected banks to sync yet', { description: 'Add a bank under Settings → Integrations.' });
+      return;
+    }
 
     setIsSyncingBanks(true);
     try {
       for (const connection of activeConnections) {
-        await handleSyncEnableBankingConnection(connection.id, connection, { transactionMode: 'incremental' });
+        await handleSyncEnableBankingConnection(connection.id, connection, { transactionMode: 'incremental', silent: true });
       }
+      toast.success(`Synced ${activeConnections.length} bank connection${activeConnections.length === 1 ? '' : 's'}`);
     } finally {
       setIsSyncingBanks(false);
     }
