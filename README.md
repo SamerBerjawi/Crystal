@@ -105,7 +105,7 @@ export DATA_ROOT=./data JWT_SECRET="$(openssl rand -hex 32)" POSTGRES_PASSWORD="
 docker compose up -d
 ```
 
-Then open `http://localhost:7157`. Set `JWT_SECRET` to a long random value; it signs session tokens.
+Then open `http://localhost:7157`. `JWT_SECRET` (a long random value; it signs session tokens) and `POSTGRES_PASSWORD` are required — the stack and the production server refuse to start without them.
 
 ### Local development
 

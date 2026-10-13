@@ -1,3 +1,4 @@
+import { validatePassword } from './validation';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { db } from './database';
@@ -49,6 +50,8 @@ router.post('/me/change-password', authenticateToken, passwordChangeRateLimiter,
     if (!currentPassword || !newPassword) {
         return res.status(400).json({ message: 'All fields are required' });
     }
+    const invalidPassword = validatePassword(newPassword);
+    if (invalidPassword) return res.status(400).json({ message: invalidPassword });
 
     try {
         const sql = `SELECT password FROM users WHERE id = $1`;

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
+import { validateEmail, validateName, validatePassword } from './validation';
 import { AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig';
 import { createRateLimiter } from './rateLimit';
 
@@ -81,18 +82,23 @@ async function performLogin(userId: number, email: string) {
     return { token, sessionExpiresAt, user: mappedUser, financialData };
 }
 
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('crystal-timing-equaliser', PASSWORD_HASH_ROUNDS);
+
 router.post('/register', async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body || {};
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ message: 'All fields are required' });
     }
+    const invalid = validateName('First name', firstName) || validateName('Last name', lastName)
+        || validateEmail(email) || validatePassword(password);
+    if (invalid) return res.status(400).json({ message: invalid });
 
     let client: any;
     try {
         client = await db.connect();
         await client.query('BEGIN');
 
-        const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+        const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
         if (userExistsResult.rows.length > 0) {
             await client.query('ROLLBACK');
             return res.status(409).json({ message: 'Email already in use.' });
@@ -102,7 +108,7 @@ router.post('/register', async (req, res) => {
         const profilePic = `https://i.pravatar.cc/150?u=${email}`;
 
         const userSql = `INSERT INTO users (first_name, last_name, email, password, profile_picture_url, last_login) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, email`;
-        const userResult = await client.query(userSql, [firstName, lastName, email.toLowerCase(), hashedPassword, profilePic]);
+        const userResult = await client.query(userSql, [firstName.trim(), lastName.trim(), email.trim().toLowerCase(), hashedPassword, profilePic]);
         const newUser = userResult.rows[0];
 
         const dataSql = `INSERT INTO financial_data (user_id, data) VALUES ($1, $2)`;
@@ -127,8 +133,8 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', ...loginRateLimiters, async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { email, password } = req.body || {};
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
         return res.status(400).json({ message: 'Email and password are required' });
     }
 
@@ -137,7 +143,8 @@ router.post('/login', ...loginRateLimiters, async (req, res) => {
         const userResult = await db.query(userSql, [email.toLowerCase()]);
         const user = userResult.rows[0];
 
-        const passwordMatches = user ? await bcrypt.compare(password, user.password) : false;
+        // Always run one bcrypt comparison so an unknown email costs the same as a wrong password (no timing oracle).
+        const passwordMatches = await bcrypt.compare(password, user ? user.password : DUMMY_PASSWORD_HASH);
         if (!user || !passwordMatches) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }

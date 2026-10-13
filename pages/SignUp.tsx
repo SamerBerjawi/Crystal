@@ -16,11 +16,20 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    onSignUp({ firstName, lastName, email, password });
+    const problem =
+      (firstName.trim().length > 100 && 'First name must be 100 characters or fewer.') ||
+      (lastName.trim().length > 100 && 'Last name must be 100 characters or fewer.') ||
+      (password.length < 8 && 'Password must be at least 8 characters long.') ||
+      (new TextEncoder().encode(password).length > 72 && 'Password must be at most 72 bytes long.') ||
+      null;
+    setLocalError(problem || null);
+    if (problem) return;
+    onSignUp({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), password });
   };
 
   const FeatureItem = ({ icon, title, desc }: { icon: string, title: string, desc: string }) => (
@@ -84,10 +93,10 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
+            {(localError || error) && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
                     <Icon name="error" className="text-lg mt-0.5" />
-                    <span>{error}</span>
+                    <span>{localError || error}</span>
                 </div>
             )}
 

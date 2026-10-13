@@ -196,7 +196,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** API test: 6 attempts with rotating `X-Forwarded-For` → 429; spraying 11 emails from one IP → 429.
 
-#### WP-1.5b Password policy, input validation, defaults `[ ]` — needs decision K9
+#### WP-1.5b Password policy, input validation, defaults `[x]` — needs decision K9
+- **Done:** Server validates names (≤100), email, password (8–72 bytes) on register and change-password with 400 field messages; client checks mirror it; production refuses to start without a real JWT_SECRET; no hardcoded fallback secrets; compose requires JWT_SECRET/POSTGRES_PASSWORD; login runs a dummy bcrypt compare (no timing oracle). Register still returns 409 for a taken email (open registration makes enumeration inherent).
 - **Covers:** AUD-32 (SEC-009, QA-A-007, QA-A-008), AUD-30 (SEC-007), AUD-53 (SEC-012)
 - **Files:** `server/src/auth.ts`, `server/src/users.ts`, `server/src/authConfig.ts`, `server/src/crypto.ts`, `pages/SignUp.tsx`, `components/ChangePasswordModal.tsx`, `docker-compose.yml`, `crystal/docker-compose.yml`
 - **Depends on:** WP-1.5a

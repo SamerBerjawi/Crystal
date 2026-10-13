@@ -62,7 +62,6 @@ test.describe('W1 Sign up', () => {
   });
 
   test('password shorter than the advertised "Min. 8 characters" is rejected', async ({ page, request }) => {
-    openBug('AUD-32');
     const email = newEmail('short');
     await openSignUp(page);
     await expect(page.getByLabel('Password')).toHaveAttribute('placeholder', /min\. 8 characters/i);
@@ -74,14 +73,12 @@ test.describe('W1 Sign up', () => {
   });
 
   test('very long first name (300 chars) gives a specific validation message', async ({ page }) => {
-    openBug('AUD-32');
     await openSignUp(page);
-    const reg = page.waitForResponse(r => r.url().endsWith('/api/auth/register'));
+    let registerCalls = 0;
+    page.on('request', r => { if (r.url().endsWith('/api/auth/register')) registerCalls++; });
     await fillSignUp(page, { first: 'A'.repeat(300) });
-    const status = (await reg).status();
-    // Expected: client-side length limit or a 400 with a field message; never a 500 / generic failure.
-    expect(status, 'server should validate, not crash').toBeLessThan(500);
-    await expect(page.getByText(/first name.*(too long|255|characters)/i)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/first name.*(too long|100|characters)/i)).toBeVisible({ timeout: 3000 });
+    expect(registerCalls, 'client-side validation stops the request').toBe(0);
   });
 });
 
