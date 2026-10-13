@@ -5,6 +5,7 @@ import App from './App';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import { IconContext } from '@phosphor-icons/react';
+import RootErrorBoundary from './components/RootErrorBoundary';
 
 // Unregister any active service worker and clear stale caches in iframe/cloud preview
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -32,7 +33,9 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <IconContext.Provider value={{ weight: 'duotone', mirrored: false }}>
-        <App />
+        <RootErrorBoundary>
+          <App />
+        </RootErrorBoundary>
       </IconContext.Provider>
     </QueryClientProvider>
   </React.StrictMode>

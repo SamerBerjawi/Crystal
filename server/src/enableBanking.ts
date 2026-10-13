@@ -50,6 +50,7 @@ class EnableBankingClient {
     const token = this.generateJwt();
     const url = `${ENABLE_BANKING_API}${path}`;
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(20_000),
       ...init,
       headers: {
         'Content-Type': 'application/json',

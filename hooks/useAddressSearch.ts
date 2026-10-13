@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from './useDebounce';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 export interface AddressData {
   id: string;
@@ -249,7 +250,7 @@ export const fetchAddressSuggestions = async (query: string): Promise<AddressDat
 
   // 1. Try Photon API (Ultra-fast search for POIs, streets, house numbers, and cities)
   try {
-    const photonRes = await fetch(
+    const photonRes = await fetchWithTimeout(
       `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=10&lang=en`
     );
     if (photonRes.ok) {
@@ -267,7 +268,7 @@ export const fetchAddressSuggestions = async (query: string): Promise<AddressDat
   // 2. Fallback to Nominatim if Photon yields no results or fails
   if (results.length === 0) {
     try {
-      const nomRes = await fetch(
+      const nomRes = await fetchWithTimeout(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=10`,
         { headers: { 'User-Agent': 'CrystalApp/2.0' } }
       );

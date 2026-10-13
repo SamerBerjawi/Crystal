@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User, FinancialData } from '../types';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 interface AuthResponse {
   user?: any;
@@ -59,7 +60,7 @@ export const useAuth = () => {
   }, []);
 
   const authorizedFetch = useCallback(async (input: RequestInfo | URL, init: RequestInit = {}) => {
-    return fetch(input, {
+    return fetchWithTimeout(input, {
       ...init,
       credentials: 'include',
     });

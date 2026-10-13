@@ -5,6 +5,7 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../con
 import { toLocalISOString } from '../utils';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 const normalizeDecimalString = (str: string): string => {
     const cleaned = str
@@ -143,7 +144,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         if (cookies) {
             params.set('cookies', cookies);
         }
-        const response = await fetch(`/api/smart-fetch?${params.toString()}`);
+        const response = await fetchWithTimeout(`/api/smart-fetch?${params.toString()}`);
         if (!response.ok) {
             throw new Error(`Smart fetch failed with status ${response.status}`);
         }
@@ -434,7 +435,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         setFetchError(null);
 
         const fetchPrice = async (query: string) => {
-            const response = await fetch(query);
+            const response = await fetchWithTimeout(query);
             const data = await response.json();
 
             if (data.status === 'error' || data.code) {

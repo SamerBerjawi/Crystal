@@ -316,6 +316,8 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
 
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
+  /** When this value changes the boundary clears its error, so navigating away from a crashed page recovers. */
+  resetKey?: string;
 }
 
 interface ErrorBoundaryState {
@@ -339,21 +341,35 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error('Uncaught error in Crystal UI', error, errorInfo);
   }
 
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, message: undefined });
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] px-6">
+        <div role="alert" className="flex items-center justify-center min-h-[50vh] px-6">
           <div className="bg-white dark:bg-dark-card shadow-2xl rounded-2xl p-6 max-w-lg w-full border border-black/5 dark:border-white/10">
             <h1 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Something went wrong</h1>
             <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-4">
               {this.state.message || 'An unexpected error occurred while rendering this page.'}
             </p>
-            <button
-              className="px-4 py-2 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition"
-              onClick={() => window.location.reload()}
-            >
-              Reload
-            </button>
+            <div className="flex gap-3">
+              <button
+                className="px-4 py-2 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition"
+                onClick={() => this.setState({ hasError: false, message: undefined })}
+              >
+                Try again
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-black/5 dark:bg-white/10 text-light-text dark:text-dark-text font-medium hover:bg-black/10 dark:hover:bg-white/15 transition"
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -3119,7 +3135,7 @@ const App: React.FC = () => {
               }}
             >
               <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pt-5 md:pt-7 lg:pt-8 relative scroll-smooth focus:outline-none pb-28 md:pb-8 scroll-touch safe-top" id="main-content">
-                <ErrorBoundary>
+                <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
                   <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
                     <AnimatePresence mode="wait">
                       <motion.div

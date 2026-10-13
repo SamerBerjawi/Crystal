@@ -270,7 +270,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e A25 "network failure surfaced", A26 "two tabs: conflict", A27 "session revoked → re-login prompt".
 
-#### WP-2.3 Error boundaries and timeouts `[ ]`
+#### WP-2.3 Error boundaries and timeouts `[x]`
+- **Done:** Page ErrorBoundary now resets on route change and offers Try again; new RootErrorBoundary wraps the whole app in index.tsx; utils/fetchWithTimeout (20s, caller-signal aware) used for auth/API wrapper, Twelve Data, geocoding, smart-fetch callers; Enable Banking outbound calls use AbortSignal.timeout. Regression e2e (fails on old code) + 3 unit tests.
 - **Covers:** AUD-34 (REL-011), AUD-35 (REL-012)
 - **Files:** `App.tsx` (`ErrorBoundary`), `index.tsx`, new `utils/fetchWithTimeout.ts`, `src/services/twelveDataService.ts`, `server/src/enableBanking.ts`, `server/src/smartFetcher.ts`, `pages/Investments.tsx`
 - **Depends on:** —

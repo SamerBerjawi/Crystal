@@ -26,6 +26,7 @@ import Icon from '../components/ui/Icon';
 import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { SmartPriceBinding } from '../types';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -661,7 +662,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         }
 
         const fetchPrice = async (query: string) => {
-            const response = await fetch(query);
+            const response = await fetchWithTimeout(query);
             const data = await response.json();
             if (data.status === 'error' || data.code) {
                 throw new Error(data.message || 'Unable to fetch price');
@@ -699,7 +700,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const fetchFromSmartBinding = useCallback(async (symbol: string, binding: { url: string; selector: string; cookies?: string }) => {
         const encodedUrl = encodeURIComponent(binding.url);
         const cookieParam = binding.cookies ? `&cookies=${encodeURIComponent(binding.cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        const response = await fetchWithTimeout(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
         if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
         }

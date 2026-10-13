@@ -1,4 +1,5 @@
 import { Currency } from '../../types';
+import { fetchWithTimeout } from '../../utils/fetchWithTimeout';
 
 export interface ExchangeRateResponse {
     symbol: string;
@@ -12,7 +13,7 @@ export async function fetchExchangeRate(from: Currency, to: Currency, apiKey: st
     const symbol = `${from}/${to}`;
     const url = `https://api.twelvedata.com/exchange_rate?symbol=${symbol}&apikey=${apiKey}`;
 
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
         throw new Error(`TwelveData API error: ${response.statusText}`);
     }
@@ -39,7 +40,7 @@ export async function fetchSymbolMetadata(symbol: string, apiKey: string): Promi
     const url = `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${apiKey}`;
     
     try {
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         if (!response.ok) return null;
         
         const data = await response.json();
@@ -70,7 +71,7 @@ export async function fetchAllExchangeRates(base: Currency, targets: Currency[],
 
     const url = `https://api.twelvedata.com/exchange_rate?symbol=${symbolsToFetch.join(',')}&apikey=${apiKey}`;
     
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
     if (!response.ok) {
         throw new Error(`TwelveData API error: ${response.statusText}`);
     }
