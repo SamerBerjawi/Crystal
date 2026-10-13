@@ -150,7 +150,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 
 ### Phase 1 — Critical security and data-integrity issues
 
-#### WP-1.1 Autosave correctness `[ ]`
+#### WP-1.1 Autosave correctness `[x]`
+- **Done:** Replaced the 1 s isJustLoaded timer and skip-next-save flag with reference baselines (savedSlicesRef, captured on the first commit after each load): edits at any time are tracked, saves are serialized and only the sent slices are marked saved, unload sends dirty slices only (<=60 KB keepalive, else the browser's leave prompt), logout waits for/reports the save. New specs: edit during in-flight save, edit right after load, unload save.
 - **Covers:** AUD-01 (QA-A-001, REL-003, REL-004), AUD-61 (REL-016 logout save)
 - **Files:** `App.tsx` (load/save pipeline ~L800-1210, logout ~L1262-1277)
 - **Depends on:** —
@@ -255,7 +256,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** script test: register while the DB is down → 500 JSON and the process stays alive; e2e A11 "transient 500 on startup does not sign the user out".
 
-#### WP-2.2 Save status, conflicts and session expiry `[ ]` — needs decision K4
+#### WP-2.2 Save status, conflicts and session expiry `[x]` — needs decision K4
+- **Done:** Save outcomes are reported (persistent toast, retry with 5-30 s backoff, retry on 'online'); a 409 conflict fetches the server copy, three-way merges the slices being sent (utils/threeWayMerge.ts, unit-tested), re-sends and refreshes the screen with a 'Synced' toast (K4 as accepted); 401/403 shows a session-expired notice. A25-A27 un-annotated.
 - **Covers:** AUD-04 (REL-002, QA-A-002, QA-A-003, QA-A-004)
 - **Files:** `App.tsx` save pipeline, new `components/SaveStatusIndicator.tsx`
 - **Depends on:** WP-1.1, WP-1.3

@@ -26,7 +26,13 @@ export async function registerUser(baseURL: string, opts: { seed?: boolean; tag?
 export function watch(page: Page) {
   const consoleErrors: string[] = [];
   const apiFailures: string[] = [];
-  page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 200)); });
+  page.on('console', m => {
+    if (m.type() !== 'error') return;
+    const text = m.text();
+    // The browser logs every non-2xx response; a 409 on /api/data is a handled save conflict (merged and retried).
+    if (/Failed to load resource.*409/.test(text)) return;
+    consoleErrors.push(text.slice(0, 200));
+  });
   page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message.slice(0, 200)));
   page.on('response', r => { if (r.url().includes('/api/') && r.status() >= 400) apiFailures.push(`${r.request().method()} ${new URL(r.url()).pathname} -> ${r.status()}`); });
   return { consoleErrors, apiFailures };

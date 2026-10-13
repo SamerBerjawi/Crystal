@@ -173,11 +173,11 @@ test.describe('W14 Link & sync', () => {
   test('sync failure is shown to the user', async ({ authedPage: page, baseURL }) => {
     test.fixme(isMobile(page), 'AUD-25 open: mobile sync button differs (hangs); audit/plan.md');
     openBug('AUD-25', !isMobile(page));
-    const card = await connectAndLinkNew(page, baseURL!, { failBalances: true });
-    await page.getByRole('button', { name: /^sync$/i }).last().click();
-    const confirm = page.getByRole('button', { name: /sync|start|confirm/i }).last();
-    if (await confirm.isVisible().catch(() => false)) await confirm.click();
-    await page.waitForTimeout(3000);
-    await expect(page.getByText(/503|failed|error|requires update|reauthori/i).first()).toBeVisible();
+    const opts: MockOpts = {};
+    await connectAndLinkNew(page, baseURL!, opts);
+    opts.failBalances = true;       // the provider starts failing only after the connection is set up
+    await syncLast(page);
+    await page.waitForTimeout(2500);
+    await expect(page.getByText(/couldn.t sync|sync failed|requires update|reauthori|503/i).first()).toBeVisible({ timeout: 5000 });
   });
 });

@@ -285,7 +285,8 @@ test.describe('W9 Onboarding', () => {
 
 test.describe('W10 Autosave & conflicts', () => {
   test('an edit made right after page load is saved (not silently dropped)', async ({ authedPage: page, user }) => {
-    openBug('AUD-01');
+    // Let the fixture page's own start-up save finish first; otherwise its (409-conflicting, AUD-04) save races ours.
+    await page.waitForTimeout(2500);
     await goTo(page, '/preferences', false);
     const sw = page.getByRole('switch').first();
     await sw.waitFor();
@@ -315,33 +316,37 @@ test.describe('W10 Autosave & conflicts', () => {
   });
 
   test('a failed save (network down) is surfaced to the user', async ({ authedPage: page }) => {
-    openBug('AUD-04');
     await page.route('**/api/data', r => (r.request().method() === 'POST' ? r.abort('internetdisconnected') : r.continue()));
     await togglePrivacyPref(page);
     await page.waitForTimeout(2500);
     await expect(page.getByText(/not saved|unsaved|offline|failed to save|couldn.t save|retry/i).first()).toBeVisible({ timeout: 3000 });
   });
 
-  test('two tabs: a stale tab is told about the conflict instead of silently failing', async ({ authedPage: page, user, browser }, testInfo) => {
-    openBug('AUD-04');
+  test('two tabs: a save that loses a race is merged on top of the other tab\'s version', async ({ authedPage: page, user, browser }, testInfo) => {
     const ctx2 = await browser.newContext({ ...testInfo.project.use, storageState: await user.api.storageState() });
     const tab2 = await ctx2.newPage();
     // Both tabs open the same page and settle; neither reloads afterwards.
     await goTo(page, '/preferences');
     await goTo(tab2, '/preferences');
+    const initial = (await serverData(user)).preferences;
     const s1 = waitForSave(page);
     await page.getByRole('switch').first().click();
     expect((await s1).status()).toBe(200);
-    const s2 = waitForSave(tab2);
+    // Tab 2 still holds the older version: its save is rejected once (409) and then re-applied on top.
+    const statuses: number[] = [];
+    tab2.on('response', r => { if (r.url().endsWith('/api/data') && r.request().method() === 'POST') statuses.push(r.status()); });
     await tab2.getByRole('switch').nth(1).click();
-    const r2 = await s2;
-    expect(r2.status()).toBe(409);
-    await expect(tab2.getByText(/conflict|out of date|stale|reload|refresh/i).first()).toBeVisible({ timeout: 3000 });
+    await expect.poll(() => statuses.length, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
+    expect(statuses.slice(0, 2)).toEqual([409, 200]);
+    await expect(tab2.getByText('Synced with changes from another device')).toBeVisible({ timeout: 5000 });
+    // Neither edit was lost, on the server or on screen.
+    const merged = (await serverData(user)).preferences;
+    expect(merged.excludeTransfersFromAnalytics ?? false).toBe(!(initial.excludeTransfersFromAnalytics ?? false));
+    expect(merged.showBalanceAdjustments ?? false).toBe(!(initial.showBalanceAdjustments ?? false));
     await ctx2.close();
   });
 
   test('session revoked elsewhere: the next edit prompts re-login instead of silently failing', async ({ authedPage: page, user }) => {
-    openBug('AUD-04');
     await goTo(page, '/preferences');
     // Revoke this browser's session by changing the password via the API (revokes all sessions).
     const r = await user.api.post('/api/users/me/change-password', { data: { currentPassword: TEST_PASSWORD, newPassword: 'Another-Passw0rd!' } });
@@ -350,5 +355,57 @@ test.describe('W10 Autosave & conflicts', () => {
     await page.getByRole('switch').first().click();
     expect((await save).status()).toBe(403);
     await expect(page.getByText(/sign in again|session expired|signed out|log in/i).first()).toBeVisible({ timeout: 3000 });
+  });
+});
+
+test.describe('W10 Autosave — edits during and around saves (AUD-01)', () => {
+  test('an edit made while a save is in flight is also saved', async ({ authedPage: page, user }) => {
+    await goTo(page, '/preferences');
+    const switches = page.getByRole('switch');
+    const before = await serverData(user);
+    const flagA = before.preferences?.excludeTransfersFromAnalytics ?? false;
+    const flagB = before.preferences?.showBalanceAdjustments ?? false;
+
+    // Hold the first save open so the second edit lands while it is in flight.
+    let release!: () => void;
+    const gate = new Promise<void>(r => { release = r; });
+    let held = false;
+    await page.route('**/api/data', async route => {
+      if (route.request().method() === 'POST' && !held) { held = true; await gate; }
+      await route.continue();
+    });
+
+    await switches.nth(0).click();
+    await expect.poll(() => held, { timeout: 5000 }).toBe(true);
+    await switches.nth(1).click();      // second edit while the first request is still open
+    await page.waitForTimeout(1500);    // longer than the debounce
+    release();
+
+    await expect.poll(async () => {
+      const d = await serverData(user);
+      return [d.preferences?.excludeTransfersFromAnalytics ?? false, d.preferences?.showBalanceAdjustments ?? false];
+    }, { timeout: 10_000 }).toEqual([!flagA, !flagB]);
+  });
+
+  test('an edit shortly after load, then a refresh, is not lost', async ({ authedPage: page, user }) => {
+    await goTo(page, '/tasks', false);
+    const before = (await serverData(user)).tasks.length;
+    await page.getByRole('button', { name: 'New Task' }).first().click();
+    await page.getByPlaceholder('Define mission goal...').fill('QA early edit');
+    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await expect.poll(async () => (await serverData(user)).tasks.length, { timeout: 8000 }).toBe(before + 1);
+  });
+
+  test('closing the tab with unsaved edits sends them (small keepalive payload)', async ({ authedPage: page, user }) => {
+    await goTo(page, '/tasks');
+    const before = (await serverData(user)).tasks.length;
+    await page.getByRole('button', { name: 'New Task' }).first().click();
+    await page.getByPlaceholder('Define mission goal...').fill('QA unload edit');
+    // Block the debounced autosave so only the unload handler can persist the change.
+    await page.route('**/api/data', route => (route.request().method() === 'POST' && !route.request().headers()['x-keepalive-test'] ? route.fulfill({ status: 200, body: '{}' , contentType: 'application/json' }) : route.continue()));
+    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await page.unroute('**/api/data');
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeunload', { cancelable: true })));
+    await expect.poll(async () => (await serverData(user)).tasks.length, { timeout: 8000 }).toBe(before + 1);
   });
 });
