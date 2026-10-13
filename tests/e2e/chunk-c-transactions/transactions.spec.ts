@@ -179,7 +179,12 @@ test.describe('W17 Bulk & advanced', () => {
 
   test('bulk categorize two transactions', async ({ authedPage: page, user }) => {
     await goTo(page, '/transactions');
-    for (const m of ['Netflix', 'Spotify']) await page.locator('main').getByRole('row').filter({ hasText: m }).first().getByRole('checkbox').click({ force: true });
+    // The selection toolbar appears after the first tick and shifts the rows down, so wait for it before the next click.
+    for (const [i, m] of ['Netflix', 'Spotify'].entries()) {
+      await page.locator('main').getByRole('row').filter({ hasText: m }).first().getByRole('checkbox').click({ force: true });
+      await expect(page.getByText(`${i + 1} item${i === 0 ? '' : 's'} selected`)).toBeVisible();
+      await page.waitForTimeout(400);
+    }
     await page.getByRole('button', { name: 'Categorize', exact: true }).click();
     const modal = page.locator('div.fixed').last();
     const sel = modal.locator('select').first();

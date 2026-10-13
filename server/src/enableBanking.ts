@@ -8,6 +8,27 @@ import { deleteCredentials, loadCredentials, saveCredentials, stripKeyFromConnec
 const ENABLE_BANKING_API = process.env.ENABLE_BANKING_API || 'https://api.enablebanking.com';
 const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://localhost:5173/enable-banking/callback';
 
+/** Error whose message is safe to show to the user; upstream details stay in the server log. */
+class EnableBankingError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+const publicMessageFor = (status: number): string => {
+  if (status === 401 || status === 403) return `Enable Banking rejected the request (HTTP ${status}). Check the application ID and private key.`;
+  if (status === 404) return 'Enable Banking could not find the requested resource (HTTP 404).';
+  if (status === 429) return 'Enable Banking is rate limiting requests (HTTP 429). Try again in a few minutes.';
+  if (status >= 500) return `Enable Banking is currently unavailable (HTTP ${status}). Try again later.`;
+  return `Enable Banking request failed (HTTP ${status}).`;
+};
+
+/** Maps any thrown error to a client-safe message (never upstream bodies or internal error text). */
+const toPublicMessage = (error: any, fallback: string): string => {
+  if (error instanceof EnableBankingError) return error.message;
+  if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return 'Enable Banking did not respond in time. Try again.';
+  if (/PEM|private key|asn1|DECODER|key/i.test(String(error?.message || ''))) return 'The private key could not be read. Check that it is a PEM private key.';
+  return fallback;
+};
+
 class EnableBankingClient {
   constructor(private applicationId: string, private clientCertificate: string) {}
 
@@ -62,8 +83,8 @@ class EnableBankingClient {
 
     if (!response.ok) {
       const text = await response.text();
-      // Throw with status code info if possible to help upstream handling
-      throw new Error(`Enable Banking request failed (${response.status}): ${text || response.statusText}`);
+      console.error(`Enable Banking request to ${path.split('?')[0]} failed (${response.status}): ${text.slice(0, 500)}`);
+      throw new EnableBankingError(response.status, publicMessageFor(response.status));
     }
 
     return (await response.json()) as T;
@@ -194,7 +215,7 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
     res.json(data);
   } catch (error: any) {
     console.error('Failed to fetch ASPSPs', error);
-    res.status(500).json({ message: error?.message || 'Unable to fetch banks' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch banks') });
   }
 });
 
@@ -212,7 +233,7 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
     res.json(details);
   } catch (error: any) {
     console.error('Failed to fetch account details', error);
-    res.status(500).json({ message: error?.message || 'Unable to fetch account details' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch account details') });
   }
 });
 
@@ -239,7 +260,7 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
   } catch (error: any) {
     console.error('Failed to start authorization', error);
-    res.status(500).json({ message: error?.message || 'Unable to start authorization' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to start authorization') });
   }
 });
 
@@ -255,7 +276,7 @@ router.post('/session', authenticateToken, async (req: AuthRequest, res) => {
     res.json(session);
   } catch (error: any) {
     console.error('Failed to create session', error);
-    res.status(500).json({ message: error?.message || 'Unable to create session' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to create session') });
   }
 });
 
@@ -271,7 +292,7 @@ router.post('/session/fetch', authenticateToken, async (req: AuthRequest, res) =
     res.json(session);
   } catch (error: any) {
     console.error('Failed to fetch session', error);
-    res.status(500).json({ message: error?.message || 'Unable to fetch session' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch session') });
   }
 });
 
@@ -288,7 +309,7 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
     res.json(balances);
   } catch (error: any) {
     console.error('Failed to fetch balances', error);
-    res.status(500).json({ message: error?.message || 'Unable to fetch balances' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch balances') });
   }
 });
 
@@ -309,7 +330,7 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
     res.json(transactions);
   } catch (error: any) {
     console.error('Failed to fetch transactions', error);
-    res.status(500).json({ message: error?.message || 'Unable to fetch transactions' });
+    res.status(error instanceof EnableBankingError && error.status >= 400 && error.status < 500 ? 502 : 500).json({ message: toPublicMessage(error, 'Unable to fetch transactions') });
   }
 });
 

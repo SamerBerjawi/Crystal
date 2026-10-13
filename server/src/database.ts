@@ -87,8 +87,22 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)`);
         console.log('Database tables are ready.');
     } catch (err) {
         console.warn('Error connecting to database tables — running with fallback mock:', err);
+    }
+};
+
+/** Deletes sessions that expired or were revoked more than a week ago so the table does not grow without bound. */
+export const purgeStaleSessions = async () => {
+    try {
+        await db.query(
+            `DELETE FROM user_sessions
+             WHERE expires_at < NOW() - INTERVAL '7 days' OR revoked_at < NOW() - INTERVAL '7 days'`
+        );
+    } catch (err) {
+        console.warn('Failed to purge stale sessions:', err);
     }
 };

@@ -130,7 +130,7 @@ async function startServer() {
         firstName: firstName || 'New',
         lastName: lastName || 'User',
         email: normalizedEmail,
-        profilePictureUrl: `https://i.pravatar.cc/150?u=${normalizedEmail}`,
+        profilePictureUrl: '',
         role: 'Member',
         is2FAEnabled: false,
         status: 'Active',

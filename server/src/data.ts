@@ -3,12 +3,12 @@ import express from 'express';
 import { db } from './database';
 import { validateFinancialDataPayload } from './schemas';
 import { loadCredentials, saveCredentials, scrubStoredKeys, stripKeysFromBlob } from './ebCredentials';
-import { authenticateToken, AuthRequest } from './middleware';
+import { AuthRequest } from './middleware';
 
 const router = express.Router();
 
 // Get all financial data for a user
-router.get('/', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/', async (req: AuthRequest, res) => {
     const userId = req.user?.id;
     const sql = `SELECT data FROM financial_data WHERE user_id = $1`;
 
@@ -72,7 +72,7 @@ const STORED_HAS_MATERIAL_DATA_SQL = '(' + [
 // atomic jsonb merge (`data || incoming`): top-level keys present in the payload replace the stored ones, all
 // other keys are left untouched. The stored blob is never loaded into Node, so a one-task edit no longer
 // costs a parse + re-serialisation of the user's whole history.
-router.post('/', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/', async (req: AuthRequest, res) => {
     const userId = req.user?.id;
     const body = req.body || {}; // Data is already a JSON object from body-parser
     const allowEmpty = Boolean(body.allowEmpty);

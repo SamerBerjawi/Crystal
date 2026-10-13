@@ -70,7 +70,11 @@ export const authenticateToken = async (req: AuthRequest, res: ExpressResponse, 
             return res.status(403).json({ message: 'Session expired or revoked.' });
         }
 
-        await db.query(`UPDATE user_sessions SET last_seen_at = NOW() WHERE id = $1`, [payload.sid]);
+        // last_seen_at is informational: refresh it at most every 5 minutes instead of on every request.
+        await db.query(
+            `UPDATE user_sessions SET last_seen_at = NOW() WHERE id = $1 AND last_seen_at < NOW() - INTERVAL '5 minutes'`,
+            [payload.sid]
+        );
 
         req.user = { id: payload.id, email: payload.email, sessionId: payload.sid };
         next();

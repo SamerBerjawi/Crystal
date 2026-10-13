@@ -334,7 +334,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** `npm test` exits non-zero on a deliberately failing assertion; tests import real modules; CI runs `npm test`.
 
-#### WP-2.11 Backend hardening (low-severity bundle) `[ ]` — needs decision K7
+#### WP-2.11 Backend hardening (low-severity bundle) `[x]` — needs decision K7
+- **Done:** ALLOW_REGISTRATION flag (default true, K7) in server/compose/.env.example; local initials avatar instead of pravatar; /health returns status only and Enable Banking errors are mapped to safe messages (details logged); urlencoded removed, non-JSON bodies 415, 100 kB global body limit with the 50 MB limit only on /api/data after auth, 413/400 JSON errors; Sec-Fetch-Site/Origin CSRF guard; last_seen_at throttled to 5 min + indexes + stale-session purge; backend image runs as USER node (frontend nginx image left as is: it needs port 80 and the compose/Umbrel mappings). 11 API tests + 4 unit tests.
 - **Covers:** AUD-52 (SEC-011), AUD-54 (SEC-013), AUD-55 (SEC-014), AUD-56 (SEC-015), AUD-57 (SEC-016), AUD-59 (SEC-018), AUD-65 (PERF-012)
 - **Files:** `server/src/index.ts`, `server/src/auth.ts`, `server/src/middleware.ts`, `server/src/database.ts`, `Dockerfile`, `server/Dockerfile`
 - **Depends on:** WP-2.1

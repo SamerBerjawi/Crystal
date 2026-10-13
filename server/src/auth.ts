@@ -3,8 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
+import { buildInitialsAvatar } from './avatar';
 import { validateEmail, validateName, validatePassword } from './validation';
-import { AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig';
+import { isRegistrationEnabled, AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig';
 import { createRateLimiter } from './rateLimit';
 
 const router = express.Router();
@@ -85,6 +86,9 @@ async function performLogin(userId: number, email: string) {
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('crystal-timing-equaliser', PASSWORD_HASH_ROUNDS);
 
 router.post('/register', async (req, res) => {
+    if (!isRegistrationEnabled()) {
+        return res.status(403).json({ message: 'Registration is disabled on this server. Ask the administrator for an account.' });
+    }
     const { firstName, lastName, email, password } = req.body || {};
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ message: 'All fields are required' });
@@ -105,7 +109,7 @@ router.post('/register', async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
-        const profilePic = `https://i.pravatar.cc/150?u=${email}`;
+        const profilePic = buildInitialsAvatar(firstName, lastName, email.trim().toLowerCase());
 
         const userSql = `INSERT INTO users (first_name, last_name, email, password, profile_picture_url, last_login) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, email`;
         const userResult = await client.query(userSql, [firstName.trim(), lastName.trim(), email.trim().toLowerCase(), hashedPassword, profilePic]);

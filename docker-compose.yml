@@ -34,6 +34,8 @@ services:
     # No published port: the frontend (nginx) reaches the API over the internal network.
     environment:
       NODE_ENV: production
+      # Set to false once everyone who needs an account has one.
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (e.g. export JWT_SECRET=$(openssl rand -hex 32))}
       DATABASE_HOST: db
       DATABASE_PORT: 5432

@@ -56,3 +56,7 @@ export const clearAuthCookie = (res: Response) => {
         path: '/',
     });
 };
+
+/** ALLOW_REGISTRATION=false turns self-registration off (default: on). */
+export const isRegistrationEnabled = (): boolean =>
+    String(process.env.ALLOW_REGISTRATION ?? 'true').trim().toLowerCase() !== 'false';

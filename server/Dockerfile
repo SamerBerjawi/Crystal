@@ -21,4 +21,6 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3001
+# Run as the unprivileged user that ships with the node image.
+USER node
 CMD ["node", "dist/index.js"]
