@@ -146,7 +146,6 @@ test.describe('W14 Link & sync', () => {
   });
 
   test('imported transactions belong to an account that exists on the server (no orphans)', async ({ authedPage: page, baseURL, user }) => {
-    openBug('AUD-03');
     await connectAndLinkNew(page, baseURL!);
     await syncLast(page);
     await expect.poll(async () => imported(await serverData(user)).length, { timeout: 12_000 }).toBeGreaterThan(0);
@@ -158,7 +157,6 @@ test.describe('W14 Link & sync', () => {
   });
 
   test('after Save on a "New" destination the row shows as linked', async ({ authedPage: page, baseURL }) => {
-    openBug('AUD-03');
     await connectAndLinkNew(page, baseURL!);
     await expect(page.locator('main').getByText('QA Current').locator('..').locator('..')).not.toContainText('Not linked');
   });

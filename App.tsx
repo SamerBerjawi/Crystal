@@ -1279,20 +1279,15 @@ const App: React.FC = () => {
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
 
-    let finalAccountId: string;
-    let isNew = false;
-
-    if (accountData.id) {
-      finalAccountId = accountData.id;
-    } else {
-      finalAccountId = `acc-${uuidv4()}`;
-      isNew = true;
-    }
-
+    // A caller may pre-assign an id to a brand-new account (bank linking, CSV import);
+    // whether it is new is decided by whether the id already exists, not by having an id.
+    const finalAccountId = accountData.id || `acc-${uuidv4()}`;
     const savedAccount = { ...accountWithDefaults, id: finalAccountId } as Account;
-    if (isNew) savedAccount.status = 'open';
 
     setAccounts(prev => {
+      const isNew = !prev.some(acc => acc.id === finalAccountId);
+      if (isNew) savedAccount.status = 'open';
+
       // 1. Update/Add the primary account
       let nextAccounts: Account[];
       if (isNew) {

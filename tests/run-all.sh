@@ -10,7 +10,13 @@ E2E="$ROOT/tests/e2e"
 STACK="$E2E/.stack"
 mkdir -p "$STACK"
 
-cleanup() { [[ -n "${PREVIEW_PID:-}" ]] && kill "$PREVIEW_PID" 2>/dev/null || true; [[ -n "${BACKEND_PID:-}" ]] && kill "$BACKEND_PID" 2>/dev/null || true; [[ -n "${PG_PID:-}" ]] && kill "$PG_PID" 2>/dev/null || true; }
+cleanup() {
+  # Free the stack ports directly (the processes are children of npx/tsx wrappers).
+  for port in 4173 3001; do for pid in $(lsof -ti tcp:$port -sTCP:LISTEN 2>/dev/null || true); do kill "$pid" 2>/dev/null || true; done; done
+  [[ -n "${PG_PID:-}" ]] && kill "$PG_PID" 2>/dev/null || true
+  sleep 2
+  for pid in $(lsof -ti tcp:54329 -sTCP:LISTEN 2>/dev/null || true); do kill "$pid" 2>/dev/null || true; done
+}
 trap cleanup EXIT
 
 echo "== unit tests"

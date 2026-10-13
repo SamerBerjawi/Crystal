@@ -162,7 +162,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
   - Logout checks the save result.
 - **Verify:** e2e `chunk-a-auth` "an edit made right after page load is saved"; new e2e "edits made during an in-flight save are persisted" and "tab close with > 64 KiB saves dirty slices"; whole suite green.
 
-#### WP-1.2 ⚡ Accounts created with a pre-set id `[ ]`
+#### WP-1.2 ⚡ Accounts created with a pre-set id `[x]`
+- **Done:** handleSaveAccount now decides new-vs-update by whether the id exists, so bank-link and CSV-import accounts are created (App.tsx). Tests: banking 'no orphans' / 'linked' and CSV 'new account' specs un-annotated and passing.
 - **Covers:** AUD-03 (QA-B-001, QA-F-002)
 - **Files:** `App.tsx` (`handleSaveAccount` ~L1279-1330; callers L2629, L2642)
 - **Depends on:** —

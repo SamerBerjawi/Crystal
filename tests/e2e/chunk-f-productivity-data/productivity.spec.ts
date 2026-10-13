@@ -161,7 +161,6 @@ test.describe('W37 Data management', () => {
   });
 
   test('CSV import that creates a new account attaches transactions to an account that exists', async ({ authedPage: page, user }) => {
-    openBug('AUD-03');
     await runImport(page, 'fixtures/files/eu-transactions.csv');
     await expect.poll(async () => imported(await serverData(user)).length, { timeout: 12_000 }).toBeGreaterThan(0);
     await page.waitForTimeout(2000);
