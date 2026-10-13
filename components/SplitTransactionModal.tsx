@@ -4,6 +4,7 @@ import { Transaction, Category } from '../types';
 import { formatCurrency, safeRound } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface SplitTransactionModalProps {
   isOpen?: boolean;
@@ -29,6 +30,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
   incomeCategories,
   expenseCategories,
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [splits, setSplits] = useState<SplitItem[]>([
     { id: '1', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 1)` },
     { id: '2', amount: (Math.abs(transaction.amount) / 2).toFixed(2), category: transaction.category, description: `${transaction.description} (Part 2)` },
@@ -113,7 +115,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
   };
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

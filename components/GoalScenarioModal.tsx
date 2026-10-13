@@ -5,6 +5,7 @@ import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE,
 import { toLocalISOString } from '../utils';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface GoalScenarioModalProps {
   onClose: () => void;
@@ -25,6 +26,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
   parentId: preselectedParentId, 
   accounts 
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!goalToEdit;
   const isSubGoal = !!preselectedParentId;
 
@@ -176,7 +178,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
     : (isBucket ? 'New Goal Bucket' : (isSubGoal ? 'Add Item to Goal' : 'New Financial Goal'));
 
   const drawerContent = (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

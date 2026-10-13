@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ForecastItem {
     id: string;
@@ -25,6 +26,7 @@ interface ForecastDayModalProps {
 }
 
 const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, date, items, onEditItem, onAddTransaction }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -66,7 +68,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
     const dayTotal = items.reduce((sum, item) => sum + item.amount, 0);
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

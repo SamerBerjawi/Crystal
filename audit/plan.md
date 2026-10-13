@@ -410,7 +410,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** new e2e: the viewport meta has no `user-scalable=no` / `maximum-scale=1`.
 
-#### WP-4.2 Dialog semantics `[ ]` — needs decision K2
+#### WP-4.2 Dialog semantics `[x]` — needs decision K2
+- **Done:** Modal.tsx now renders role=dialog/aria-modal/aria-labelledby, traps Tab, restores focus to the opener and lets only the topmost dialog handle Escape; new hooks/useDialogA11y applied to the 31 hand-rolled overlays (BudgetModal, AddTransactionModal, InvestmentModal, EditAccountModal, …) and ConfirmationModal (alertdialog). Rules.tsx's overlays already had role=dialog. Escape on stacked custom overlays is still per-component.
 - **Covers:** AUD-23 a11y part (UI-006)
 - **Files:** `components/Modal.tsx`, `components/AddTransactionModal.tsx`, overlays listed in UI-009
 - **Depends on:** WP-2.5

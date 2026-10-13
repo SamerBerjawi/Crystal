@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Task, TaskPriority, TaskStatus } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface TaskModalProps {
   isOpen?: boolean;
@@ -28,6 +29,7 @@ const STATUS_CONFIG: Record<TaskStatus, { color: string; icon: string }> = {
 };
 
 const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, onDelete, task }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!task;
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
@@ -106,7 +108,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
     'block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5';
 
   const content = (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

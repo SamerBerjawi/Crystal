@@ -5,6 +5,7 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE,
 import AddressAutocomplete from './AddressAutocomplete';
 import { toLocalISOString, safeRound } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[]; level: number }> = ({ categories, level }) => {
   const indent = '\u00A0\u00A0'.repeat(level * 2);
@@ -103,6 +104,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   expenseCategories,
   tags,
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [fieldsToUpdate, setFieldsToUpdate] = useState({
     date: false,
     accountId: false,
@@ -297,7 +299,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   };
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

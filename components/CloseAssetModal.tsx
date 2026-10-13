@@ -4,6 +4,7 @@ import { Account, AssetClosureDetails } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface CloseAssetModalProps {
   isOpen?: boolean;
@@ -20,6 +21,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
   accounts,
   onConfirm
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [closureType, setClosureType] = useState<AssetClosureDetails['closureType']>('Sold');
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [value, setValue] = useState(account.balance.toString());
@@ -65,7 +67,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
   };
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

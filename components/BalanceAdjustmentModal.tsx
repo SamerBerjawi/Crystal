@@ -4,6 +4,7 @@ import { Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface BalanceAdjustmentModalProps {
   onClose: () => void;
@@ -12,6 +13,7 @@ interface BalanceAdjustmentModalProps {
 }
 
 const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose, onSave, account }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [newBalance, setNewBalance] = useState(String(account.balance));
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [notes, setNotes] = useState('');
@@ -68,7 +70,7 @@ const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose
   const isZero = Math.abs(adjustmentAmount) < 0.0001;
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

@@ -4,6 +4,7 @@ import { Budget, Category, Currency } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface BudgetModalProps {
   onClose: () => void;
@@ -27,6 +28,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
   existingBudgets, 
   expenseCategories 
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!budgetToEdit;
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTabType>('domain');
@@ -140,7 +142,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
   const labelStyle = "block text-xs font-bold text-slate-700 dark:text-slate-300 tracking-wider mb-1.5";
 
   const drawerContent = (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

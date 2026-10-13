@@ -7,6 +7,7 @@ import { Account, Category, Transaction, Currency, AccountType } from '../types'
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { flattenCategories, toLocalISOString, safeRound } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 
 // --- Helper Functions ---
@@ -193,6 +194,7 @@ interface ImportWizardProps {
 
 // --- Main Wizard Component ---
 const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPublish, existingAccounts, allCategories }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [currentStep, setCurrentStep] = useState(1);
     const [fileName, setFileName] = useState('');
     const [rawCSV, setRawCSV] = useState('');
@@ -604,7 +606,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     };
     
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
             <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
                 <button onClick={() => currentStep > 1 ? goToStep(currentStep - 1) : onClose()} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><Icon name="arrow_back" /></button>
                 <nav aria-label="Import Steps" className="flex-grow">

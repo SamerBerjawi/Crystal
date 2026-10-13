@@ -4,6 +4,7 @@ import { Account, PriceHistoryEntry } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString, parseLocalDate } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface PropertyValuationModalProps {
   isOpen?: boolean;
@@ -20,6 +21,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
   onDeleteEntry,
   account
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [newValue, setNewValue] = useState(String(account.balance));
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [isVisible, setIsVisible] = useState(false);
@@ -61,7 +63,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
   const deltaPercent = account.balance > 0 ? (delta / account.balance) * 100 : 0;
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

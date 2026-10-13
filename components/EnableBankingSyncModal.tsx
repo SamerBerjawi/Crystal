@@ -4,6 +4,7 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../con
 import { EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface EnableBankingSyncModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const clampDate = useMemo(
     () => (value?: string) => {
       if (!value) return value;
@@ -105,7 +107,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
   if (!isOpen && !isVisible) return null;
 
   const content = (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-sans">
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
           isVisible ? 'opacity-100' : 'opacity-0'

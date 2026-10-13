@@ -4,6 +4,7 @@ import { Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import IconPicker from './IconPicker';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface TagModalProps {
   isOpen?: boolean;
@@ -13,6 +14,7 @@ interface TagModalProps {
 }
 
 const TagModal: React.FC<TagModalProps> = ({ isOpen = true, onClose, onSave, tagToEdit }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!tagToEdit;
   const [name, setName] = useState('');
   const [color, setColor] = useState('#6366f1');
@@ -61,7 +63,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen = true, onClose, onSave, tag
   const title = isEditing ? 'Edit Tag' : 'Create Tag';
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

@@ -11,6 +11,7 @@ import Icon from './ui/Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
 import { usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface MerchantDetailModalProps {
     isOpen: boolean;
@@ -55,6 +56,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     transactions,
     brandfetchClientId
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [isVisible, setIsVisible] = useState(false);
     const [activeTab, setActiveTab] = useState<ActiveTabType>('rules');
 
@@ -484,7 +486,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     if (!isOpen && !isVisible) return null;
 
     const drawerContent = (
-        <div className="fixed inset-0 z-[9999] overflow-hidden">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
             {/* Backdrop Blur Overlay */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

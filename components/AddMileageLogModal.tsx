@@ -4,6 +4,7 @@ import { MileageLog } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { toLocalISOString, parseLocalDate } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface AddMileageLogModalProps {
   isOpen?: boolean;
@@ -31,6 +32,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
   logToEdit,
   existingLogs = []
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!logToEdit;
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
   
@@ -224,7 +226,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
   };
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

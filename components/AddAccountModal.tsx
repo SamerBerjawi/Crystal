@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { toLocalISOString } from '../utils';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface AddAccountModalProps {
   onClose: () => void;
@@ -17,6 +18,7 @@ interface AddAccountModalProps {
 type ActiveTabType = 'core' | 'specs' | 'extras';
 
 const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accounts }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTabType>('core');
 
@@ -478,7 +480,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const showSpecsTab = true;
 
   const drawerContent = (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

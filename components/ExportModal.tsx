@@ -4,6 +4,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE, INPUT_BASE_STYL
 import { Account } from '../types';
 import Icon from './ui/Icon';
 import TransactionDateAndAccountFilter from './TransactionDateAndAccountFilter';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ExportModalProps {
   isOpen?: boolean;
@@ -37,6 +38,7 @@ const DATA_TYPES: { id: string; label: string; icon: string }[] = [
 ];
 
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen = true, onClose, onExport, accounts, initialFormat = 'csv' }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [format, setFormat] = useState<'json' | 'csv'>(initialFormat);
     const [selectedTypes, setSelectedTypes] = useState<string[]>(DATA_TYPES.map(d => d.id));
     const [accountIds, setAccountIds] = useState<string[]>([]);
@@ -100,7 +102,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen = true, onClose, onExp
     const isAllSelected = selectedTypes.length === DATA_TYPES.length;
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

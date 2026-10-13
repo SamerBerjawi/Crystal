@@ -23,6 +23,7 @@ import {
 } from '../constants';
 import { parseLocalDate, toLocalISOString, formatCurrency, safeRound } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 export interface RecurringTransactionModalProps {
   isOpen?: boolean;
@@ -100,6 +101,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
   initialMode = 'recurring',
   initialDate,
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [isVisible, setIsVisible] = useState(false);
   
   // Primary mode switcher: 'recurring' | 'one-time'
@@ -309,7 +311,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
   if (!isOpen) return null;
 
   const content = (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

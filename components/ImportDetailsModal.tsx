@@ -4,6 +4,7 @@ import { ImportExportHistoryItem } from '../types';
 import ConfirmationModal from './ConfirmationModal';
 import { BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface ImportDetailsModalProps {
     isOpen?: boolean;
@@ -13,6 +14,7 @@ interface ImportDetailsModalProps {
 }
 
 const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, onDeleteImport }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [activeTab, setActiveTab] = useState<'successful' | 'errors'>('successful');
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
@@ -54,7 +56,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
     };
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

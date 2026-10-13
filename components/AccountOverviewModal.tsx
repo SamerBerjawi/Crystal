@@ -14,6 +14,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import Icon from './ui/Icon';
 import TransactionDetailModal from './TransactionDetailModal';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 export interface AccountOverviewModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
   onOpenHoldingDetail,
   onNavigateToTransactions,
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [isVisible, setIsVisible] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -935,7 +937,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-scrollbar">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-scrollbar">
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

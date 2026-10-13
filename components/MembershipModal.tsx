@@ -4,6 +4,7 @@ import { Membership } from '../types';
 import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import IconPicker from './IconPicker';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface MembershipModalProps {
   onClose: () => void;
@@ -14,6 +15,7 @@ interface MembershipModalProps {
 const MEMBERSHIP_CATEGORIES = ['Retail', 'Airline', 'Hotel', 'Grocery', 'Dining', 'Health', 'Services', 'Other'];
 
 const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, membershipToEdit }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!membershipToEdit;
   
   const [provider, setProvider] = useState('');
@@ -109,7 +111,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
   const labelStyle = "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5";
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

@@ -6,6 +6,7 @@ import { toLocalISOString } from '../utils';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 const normalizeDecimalString = (str: string): string => {
     const cleaned = str
@@ -45,6 +46,7 @@ interface WarrantPriceModalProps {
 }
 
 const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
     const [newPrice, setNewPrice] = useState(
         initialEntry 
@@ -507,7 +509,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const title = initialEntry ? `Edit Valuation Entry` : `Log Valuation`;
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

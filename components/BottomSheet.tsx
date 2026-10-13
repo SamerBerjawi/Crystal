@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, PanInfo } from 'motion/react';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   footer,
   className = '',
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const sheetRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
@@ -89,7 +91,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex flex-col justify-end md:hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] flex flex-col justify-end md:hidden font-sans">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
