@@ -280,7 +280,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e C19 "delete a category", A15-A17 mobile change password, F15 mobile restore, E14 mobile prediction.
 
-#### WP-2.6 ⚡ One-place logic bugs `[ ]`
+#### WP-2.6 ⚡ One-place logic bugs `[x]`
+- **Done:** Convert-to-Invoice drops the quote id so a new invoice is created (Invoices.tsx); ConfirmationModal's trailing onClose no longer cancels the reset's second step and reset now persists the empty state to the server (DataImportExport.tsx, App.tsx); profile save is awaited, rolled back and reported by toast (useAuth.ts, PersonalInfo.tsx). Specs F3, F16 (now asserts server wipe), A19 pass.
 - **Covers:** AUD-14 (QA-F-004), AUD-49 (QA-F-005), AUD-44 functional part (QA-A-009)
 - **Files:** `pages/Invoices.tsx`, `components/ConfirmationModal.tsx` / `pages/DataImportExport.tsx`, `pages/PersonalInfo.tsx`, `hooks/useAuth.ts`
 - **Depends on:** —

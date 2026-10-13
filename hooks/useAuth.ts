@@ -181,26 +181,31 @@ export const useAuth = () => {
   }, [signOut]);
 
   const setUser = useCallback(
-    (updates: Partial<User>) => {
+    async (updates: Partial<User>): Promise<boolean> => {
       setUserState(prev => (prev ? { ...prev, ...updates } : prev));
 
-      (async () => {
-        try {
-          const response = await authorizedFetch('/api/users/me', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates),
-          });
+      try {
+        const response = await authorizedFetch('/api/users/me', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
 
-          if (!response.ok) {
-            const body = await response.json().catch(() => ({}));
-            throw new Error(body.message || 'Failed to update profile.');
-          }
-        } catch (err) {
-          console.error('Failed to update user profile:', err);
-          setError(err instanceof Error ? err.message : 'Failed to update user profile.');
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || 'Failed to update profile.');
         }
-      })();
+        return true;
+      } catch (err) {
+        console.error('Failed to update user profile:', err);
+        setError(err instanceof Error ? err.message : 'Failed to update user profile.');
+        // Roll back the optimistic update to what the server actually has.
+        try {
+          const me = await authorizedFetch('/api/auth/me');
+          if (me.ok) setUserState(mapApiUserToUser(await me.json()));
+        } catch { /* keep the optimistic value if the server is unreachable */ }
+        return false;
+      }
     },
     [authorizedFetch]
   );

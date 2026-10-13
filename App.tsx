@@ -900,9 +900,9 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty]);
 
-  const handleSetUser = useCallback((updates: Partial<User>) => {
-    if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); }
-    else { setUser(updates); }
+  const handleSetUser = useCallback((updates: Partial<User>): Promise<boolean> => {
+    if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); return Promise.resolve(true); }
+    return setUser(updates);
   }, [isDemoMode, setUser]);
 
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
@@ -2682,15 +2682,22 @@ const App: React.FC = () => {
 
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
   const handleDeleteImportedTransactions = (importId: string) => { const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id); if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete); };
-  const handleResetAccount = () => {
-    if (user || isDemoMode) {
-      allowEmptySaveRef.current = true;
-      if (isDevEnvironment) {
-        void clearDevCache();
-      }
-      loadAllFinancialData(emptyFinancialData);
-      alert("Client-side data reset.");
+  const handleResetAccount = async () => {
+    if (!(user || isDemoMode)) return;
+    allowEmptySaveRef.current = true;
+    if (isDevEnvironment) {
+      void clearDevCache();
     }
+    loadAllFinancialData(emptyFinancialData);
+    if (isDemoMode || !isAuthenticated) {
+      toast.success('Data reset');
+      return;
+    }
+    // loadAllFinancialData marks the new state as already saved, so persist it explicitly.
+    const saved = await saveData(emptyFinancialData, { allowEmpty: true });
+    allowEmptySaveRef.current = false;
+    if (saved) toast.success('All data has been reset');
+    else toast.error('Your data was cleared here but could not be reset on the server. Please try again.');
   };
 
   useEffect(() => {

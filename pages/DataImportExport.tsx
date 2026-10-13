@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page, FinancialData } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -318,9 +318,18 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
         setImportType(null);
     };
 
+    // ConfirmationModal calls onConfirm() and then onClose(); when confirming opens the second step
+    // the following onClose() must not clear the pending action (QA-F-005).
+    const keepActionOnNextClose = useRef(false);
+    const handleConfirmationClose = () => {
+        if (keepActionOnNextClose.current) { keepActionOnNextClose.current = false; return; }
+        setConfirmingAction(null);
+    };
+
     const handleConfirmAction = () => {
         if (!confirmingAction) return;
         if (confirmingAction.type === 'reset') {
+            keepActionOnNextClose.current = true;
             setFinalConfirmOpen(true);
             return;
         }
@@ -372,7 +381,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       {confirmingAction && getConfirmationDetails() && !isFinalConfirmOpen && (
         <ConfirmationModal
           isOpen={true}
-          onClose={() => setConfirmingAction(null)}
+          onClose={handleConfirmationClose}
           onConfirm={handleConfirmAction}
           title={getConfirmationDetails()!.title}
           message={getConfirmationDetails()!.message}

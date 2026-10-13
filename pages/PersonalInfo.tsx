@@ -1,4 +1,5 @@
 
+import { toast } from 'sonner';
 import React, { useState, useRef } from 'react';
 import { User, Page } from '../types';
 import Card from '../components/Card';
@@ -12,7 +13,7 @@ import LocationAutocomplete from '../components/LocationAutocomplete';
 
 interface PersonalInfoProps {
   user: User;
-  setUser: (updates: Partial<User>) => void;
+  setUser: (updates: Partial<User>) => Promise<boolean> | void;
   onChangePassword: (current: string, newPass: string) => Promise<boolean>;
   setCurrentPage: (page: Page) => void;
 }
@@ -42,10 +43,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
     fileInputRef.current?.click();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUser(formData);
-    alert('Profile updated successfully!');
+    const ok = await setUser(formData);
+    if (ok === false) toast.error('Could not save your profile. Please try again.');
+    else toast.success('Profile updated');
   };
 
   const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";

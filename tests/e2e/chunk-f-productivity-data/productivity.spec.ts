@@ -45,7 +45,6 @@ test.describe('W34 Quotes & invoices', () => {
   });
 
   test('draft a quote and convert it to an invoice', async ({ authedPage: page, user }) => {
-    openBug('AUD-14');
     await openNewInvoice(page, 'Draft Quote');
     await fillInvoice(page, 'QA Quote Client');
     const saved = waitForSave(page);
@@ -58,7 +57,13 @@ test.describe('W34 Quotes & invoices', () => {
     await convert.click();
     expect((await saved2).status()).toBe(200);
     const docs = (await serverData(user)).invoices.filter((i: any) => JSON.stringify(i).includes('QA Quote Client'));
-    expect(docs.some((d: any) => /invoice/i.test(d.type ?? d.kind ?? JSON.stringify(d)))).toBe(true);
+    expect(docs.length, 'the quote and a new invoice').toBe(2);
+    const quote = docs.find((d: any) => d.type === 'quote');
+    const invoice = docs.find((d: any) => d.type === 'invoice');
+    expect(quote?.status).toBe('accepted');
+    expect(invoice?.status).toBe('draft');
+    expect(invoice.id).not.toBe(quote.id);
+    expect(invoice.number).toMatch(/^INV-/);
   });
 
   test('pagination controls work when there are more records', async ({ authedPage: page }) => {
@@ -210,12 +215,18 @@ test.describe('W37 Data management', () => {
     expect((await serverData(user)).tasks.length).toBe(d.tasks.length);
   });
 
-  test('factory reset: Continue leads to the final "type RESET" step', async ({ authedPage: page }) => {
-    openBug('AUD-49');
+  test('factory reset: Continue → type RESET → server copy is wiped', async ({ authedPage: page, user }) => {
     await goTo(page, '/data-management');
     await page.getByRole('button', { name: 'Execute Wipe' }).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByText('Final Confirmation'), 'second confirmation step should appear').toBeVisible({ timeout: 3000 });
+    const confirm = page.getByRole('button', { name: 'Reset account' });
+    await expect(confirm).toBeDisabled();
+    await page.locator('#confirm-input').fill('RESET');
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+    await expect.poll(async () => ((await serverData(user)).accounts ?? []).length, { timeout: 10_000 }).toBe(0);
+    expect(((await serverData(user)).transactions ?? []).length).toBe(0);
   });
 });
 

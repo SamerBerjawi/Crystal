@@ -84,8 +84,10 @@ const InvoicesPage: React.FC = () => {
     };
     
     const handleConvertToInvoice = (quote: Invoice) => {
+        // Drop the quote's id: keeping it would make saveInvoice overwrite the quote instead of creating an invoice.
+        const { id: _quoteId, ...quoteFields } = quote;
         const newInvoice: Omit<Invoice, 'id'> = {
-            ...quote,
+            ...quoteFields,
             type: 'invoice',
             status: 'draft',
             number: `INV-${new Date().getTime().toString().slice(-6)}`,

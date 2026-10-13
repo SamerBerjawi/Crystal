@@ -234,16 +234,13 @@ test.describe('W7 Edit profile', () => {
     expect(me.firstName).toBe('Renamed');
   });
 
-  test('a failed profile save is reported to the user (not a success alert)', async ({ authedPage: page }) => {
-    openBug('AUD-44');
+  test('a failed profile save is reported to the user (not a success message)', async ({ authedPage: page }) => {
     await goTo(page, '/personal-info');
-    await page.route('**/api/users/me', r => r.fulfill({ status: 500, body: '{"message":"db down"}' }));
-    const dialogs: string[] = [];
-    page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
+    await page.route('**/api/users/me', r => (r.request().method() === 'PUT' ? r.fulfill({ status: 500, body: '{"message":"db down"}' }) : r.continue()));
     await page.getByLabel('Given Name').fill('ShouldFail');
     await page.getByRole('button', { name: /commit changes/i }).click();
-    await page.waitForTimeout(1500);
-    expect(dialogs.join(' ')).not.toMatch(/updated successfully/i);
+    await expect(page.getByText(/could not save your profile/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Profile updated', { exact: false })).toHaveCount(0);
   });
 });
 
