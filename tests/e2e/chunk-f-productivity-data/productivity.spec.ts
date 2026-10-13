@@ -150,7 +150,6 @@ test.describe('W37 Data management', () => {
   const imported = (d: any) => d.transactions.filter((t: any) => String(t.importId || '').startsWith('imp-'));
 
   test('CSV import keeps European-format amounts (-12,50 → -12.50; 1.234,56 → 1234.56)', async ({ authedPage: page, user }) => {
-    openBug('AUD-07');
     await runImport(page, 'fixtures/files/eu-transactions.csv');
     await expect.poll(async () => imported(await serverData(user)).length, { timeout: 12_000 }).toBe(3);
     const amounts = imported(await serverData(user)).map((t: any) => t.amount).sort((a: number, b: number) => a - b);
@@ -158,7 +157,6 @@ test.describe('W37 Data management', () => {
   });
 
   test('CSV import auto-maps an obvious "Description" column', async ({ authedPage: page, user }) => {
-    openBug('AUD-26');
     await runImport(page, 'fixtures/files/eu-transactions.csv');
     await expect.poll(async () => imported(await serverData(user)).length, { timeout: 12_000 }).toBe(3);
     const descs = imported(await serverData(user)).map((t: any) => t.description).sort();

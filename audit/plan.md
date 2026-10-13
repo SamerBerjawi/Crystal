@@ -241,7 +241,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e B32 "imports all 3 incl. identical purchases", B36 "sync failure is shown"; B35 re-sync no duplicates stays green.
 
-#### WP-1.11 CSV import correctness `[ ]`
+#### WP-1.11 CSV import correctness `[x]`
+- **Done:** New utils/parseAmount handles EU/US/space/paren/trailing-minus formats; short keywords (cr, in…) only match exactly and 'name' is mapped before credit/debit so Description auto-maps. 17 unit tests; F10/F11 un-annotated and passing.
 - **Covers:** AUD-07 (REL-006, QA-F-001), AUD-26 (QA-F-003)
 - **Files:** `components/ImportWizard.tsx`
 - **Depends on:** WP-1.2

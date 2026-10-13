@@ -1,5 +1,6 @@
 
 // This is a new file: components/ImportWizard.tsx
+import { parseAmount } from '../utils/parseAmount';
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Currency, AccountType } from '../types';
@@ -48,7 +49,8 @@ const calculateMatchScore = (header: string, keywords: string[]): number => {
             currentScore = 100;
         } 
         // 2. Contains match = 70-90
-        else if (normalizedHeader.includes(normalizedKeyword)) {
+        // (very short keywords such as "cr" or "in" only count on an exact match, otherwise "Description" matches "cr")
+        else if (normalizedKeyword.length > 3 && normalizedHeader.includes(normalizedKeyword)) {
             const lengthRatio = normalizedKeyword.length / normalizedHeader.length;
             currentScore = 70 + (20 * lengthRatio);
         }
@@ -241,7 +243,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         };
     
         const fieldPriority = importType === 'transactions' 
-            ? ['date', 'amount', 'amountIn', 'amountOut', 'name', 'account', 'category', 'currency']
+            ? ['date', 'amount', 'name', 'amountIn', 'amountOut', 'account', 'category', 'currency']
             : ['name', 'type', 'currency', 'balance'];
     
         for (const field of fieldPriority) {
@@ -322,8 +324,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
 
                 if (amountConfig === 'single_signed') {
                     const amountVal = row[columnMap.amount];
-                    if (columnMap.amount && amountVal && !isNaN(parseFloat(amountVal))) {
-                        newRow.amount = safeRound(parseFloat(amountVal), 2);
+                    if (columnMap.amount && amountVal && !isNaN(parseAmount(amountVal))) {
+                        newRow.amount = safeRound(parseAmount(amountVal), 2);
                     } else {
                         errorDetails.amount = `Invalid amount: ${amountVal || 'missing'}`;
                         rowHasErrors = true;
@@ -331,8 +333,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 } else { // double_entry
                     const inVal = row[columnMap.amountIn] || 0;
                     const outVal = row[columnMap.amountOut] || 0;
-                    const inNum = parseFloat(String(inVal).replace(/,/g, ''));
-                    const outNum = parseFloat(String(outVal).replace(/,/g, ''));
+                    const inNum = parseAmount(inVal);
+                    const outNum = parseAmount(outVal);
                     
                     if (isNaN(inNum) || isNaN(outNum)) {
                         errorDetails.amount = `Invalid amounts: In=${inVal}, Out=${outVal}`;
@@ -384,8 +386,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 newRow.currency = row[columnMap.currency] || 'EUR';
                 
                 const balanceVal = row[columnMap.balance];
-                if (columnMap.balance && balanceVal !== undefined && !isNaN(parseFloat(balanceVal))) {
-                    newRow.balance = parseFloat(balanceVal);
+                if (columnMap.balance && balanceVal !== undefined && !isNaN(parseAmount(balanceVal))) {
+                    newRow.balance = parseAmount(balanceVal);
                 } else {
                     errorDetails.balance = `Invalid balance: ${balanceVal || 'missing'}`;
                     rowHasErrors = true;
@@ -863,8 +865,8 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                     }
                 } catch { return false; }
             } else if (header === 'amount' || header === 'balance') {
-                const rowAmount = parseFloat(rowValue);
-                const filterAmount = parseFloat(filter.value);
+                const rowAmount = parseAmount(rowValue);
+                const filterAmount = parseAmount(filter.value);
                 if (isNaN(rowAmount) || isNaN(filterAmount)) return true;
                 switch (filter.type) {
                     case 'gt': return rowAmount > filterAmount;
