@@ -893,3 +893,11 @@ img {
 .leaflet-control-attribution {
   display: none !important;
 }
+
+/* Pinch-zoom is allowed (accessibility). iOS Safari zooms the page when a focused control has a font
+   size under 16px, so keep form controls at least that large on iOS only. */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+}

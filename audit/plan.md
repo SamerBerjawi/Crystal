@@ -380,7 +380,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 
 ### Phase 4 — UI consistency and accessibility
 
-#### WP-4.1 ⚡ Zoom `[ ]`
+#### WP-4.1 ⚡ Zoom `[x]`
+- **Done:** Removed maximum-scale=1/user-scalable=no from the viewport meta; iOS-only 16px form-control rule prevents focus-zoom. tests/e2e/regression/viewport.spec.ts.
 - **Covers:** AUD-21 (UI-004)
 - **Files:** `index.html`, `index.css` (16 px inputs on iOS)
 - **Depends on:** —
