@@ -7,5 +7,5 @@ const seen = new Set<string>();
 export const warnIgnored = (context: string, error: unknown): void => {
     if (seen.has(context)) return;
     seen.add(context);
-    console.warn(`[crystal] ${context} failed and was ignored:`, error);
+    console.warn(`[crystal] ${context} — ignored:`, error);
 };

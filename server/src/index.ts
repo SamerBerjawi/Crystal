@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import authRouter from './auth';
 import dataRouter from './data';
 import usersRouter from './users';
@@ -14,6 +15,17 @@ const startServer = async () => {
         await initializeDatabase();
 
         const app = express();
+        app.disable('x-powered-by');
+        // Gzip responses above 1 kB (the data blob is large, repetitive JSON).
+        app.use(compression({ threshold: 1024 }));
+        app.use((_req, res, next) => {
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            res.setHeader('X-Frame-Options', 'DENY');
+            res.setHeader('Referrer-Policy', 'no-referrer');
+            res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+            res.setHeader('Cache-Control', 'private, no-cache');
+            next();
+        });
         const port = Number(process.env.PORT || 3001);
 
         // Number of reverse proxies in front of the API (the bundled nginx is one). `true` would trust a

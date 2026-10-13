@@ -13,6 +13,16 @@ router.get('/', async (req: AuthRequest, res) => {
     const sql = `SELECT data FROM financial_data WHERE user_id = $1`;
 
     try {
+        // Cheap revalidation: the version marker is read from the JSONB without loading the whole blob, so an
+        // unchanged copy answers 304 without serialising it again.
+        const meta = await db.query(`SELECT data->>'lastUpdatedAt' AS version FROM financial_data WHERE user_id = $1`, [userId]);
+        const version = meta.rows[0]?.version as string | undefined;
+        if (version) {
+            const etag = `"u${userId}-${Buffer.from(version).toString('base64url')}"`;
+            res.setHeader('ETag', etag);
+            if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        }
+
         const result = await db.query(sql, [userId]);
         let row = result.rows[0];
 

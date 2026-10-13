@@ -367,14 +367,16 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** the build entry chunk is < 800 kB raw; `index.html` has no `modulepreload` for recharts/leaflet; the sign-in page loads ≤ 10 JS files; full e2e green.
 
-#### WP-3.2 Transport: compression and security headers `[ ]`
+#### WP-3.2 Transport: compression and security headers `[x]`
+- **Done:** Backend: gzip via compression (>1 kB), X-Powered-By off, nosniff / X-Frame-Options / Referrer-Policy / Permissions-Policy, private no-cache. nginx.conf: gzip for text types and the same headers on every static location, plus a CSP in Report-Only mode (enforcing it needs a pass in a real browser against the production bundle). nginx config could not be executed locally (no nginx).
 - **Covers:** AUD-18 (PERF-003), AUD-31 (SEC-008)
 - **Files:** `nginx.conf`, `server/src/index.ts`, `server/package.json`
 - **Depends on:** —
 - **Effort:** S
 - **Verify:** API test: `GET /api/data` with `Accept-Encoding: gzip` → `content-encoding: gzip`; headers include `X-Content-Type-Options`, `X-Frame-Options`, and no `X-Powered-By`. The nginx part needs a manual `docker compose` check (no nginx locally).
 
-#### WP-3.3 Data path efficiency `[ ]`
+#### WP-3.3 Data path efficiency `[x]`
+- **Done:** GET /api/data revalidates cheaply: ETag from the JSONB lastUpdatedAt (no blob read) and 304 on If-None-Match; combined with gzip. Normalised tables remain tracked separately (K3).
 - **Covers:** AUD-36 (PERF-005), AUD-19 long-term (K3, tracked separately)
 - **Files:** `server/src/data.ts`, `hooks/useAuth.ts`
 - **Depends on:** WP-1.3
