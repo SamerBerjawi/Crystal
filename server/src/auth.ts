@@ -8,17 +8,41 @@ import { createRateLimiter } from './rateLimit';
 
 const router = express.Router();
 
-const loginRateLimiter = createRateLimiter({
+const normalizedEmailOf = (req: { body?: any }) =>
+    typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : 'unknown';
+
+// 1) The same client guessing at the same account.
+const loginAttemptLimiter = createRateLimiter({
     namespace: 'login',
     windowMs: 15 * 60 * 1000,
     maxAttempts: 5,
     blockMs: 15 * 60 * 1000,
     message: 'Too many sign-in attempts. Please wait 15 minutes and try again.',
-    key: req => {
-        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : 'unknown';
-        return `${req.ip}:${email}`;
-    },
+    key: req => `${req.ip}:${normalizedEmailOf(req)}`,
 });
+
+// 2) Any number of clients (or spoofed addresses) guessing at one account. Independent of the client IP,
+//    so rotating X-Forwarded-For does not help. Trade-off: someone can briefly lock a known email out.
+const loginAccountLimiter = createRateLimiter({
+    namespace: 'login-account',
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 10,
+    blockMs: 15 * 60 * 1000,
+    message: 'Too many sign-in attempts for this account. Please wait 15 minutes and try again.',
+    key: req => normalizedEmailOf(req),
+});
+
+// 3) One client spraying many accounts.
+const loginClientLimiter = createRateLimiter({
+    namespace: 'login-client',
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 100,
+    blockMs: 15 * 60 * 1000,
+    message: 'Too many sign-in attempts. Please wait 15 minutes and try again.',
+    key: req => `${req.ip}`,
+});
+
+const loginRateLimiters = [loginClientLimiter, loginAccountLimiter, loginAttemptLimiter];
 
 async function performLogin(userId: number, email: string) {
     const dataSql = `SELECT data FROM financial_data WHERE user_id = $1`;
@@ -101,7 +125,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.post('/login', loginRateLimiter, async (req, res) => {
+router.post('/login', ...loginRateLimiters, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' });

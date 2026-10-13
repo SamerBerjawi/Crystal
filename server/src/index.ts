@@ -15,7 +15,10 @@ const startServer = async () => {
         const app = express();
         const port = 3001;
 
-        app.set('trust proxy', true);
+        // Number of reverse proxies in front of the API (the bundled nginx is one). `true` would trust a
+        // client-supplied X-Forwarded-For and let anyone choose the address the rate limiter sees.
+        const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
+        app.set('trust proxy', Number.isFinite(trustProxyHops) ? trustProxyHops : 1);
 
         const isProduction = process.env.NODE_ENV === 'production';
         const defaultOrigins = [

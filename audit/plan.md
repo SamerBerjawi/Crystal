@@ -186,7 +186,8 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S
 - **Verify:** API test: unauthenticated `smart-fetch` → 401; authenticated `http://127.0.0.1…` → 400; public URL allowed. Script test: mock login with a wrong password → 401; `/api/ai/proxy` → 404.
 
-#### WP-1.5a ⚡ Login brute force `[ ]`
+#### WP-1.5a ⚡ Login brute force `[x]`
+- **Done:** Login now has three limiters (client+account 5, account-only 10, client-only 100 per 15 min), trust proxy is a hop count (TRUST_PROXY_HOPS, default 1), nginx overwrites X-Forwarded-For, and compose no longer publishes the backend port. tests/e2e/api/login-limits.spec.ts fails on the old code (14×401) and passes now.
 - **Covers:** AUD-12 (SEC-003)
 - **Files:** `server/src/index.ts`, `server/src/auth.ts`, `nginx.conf`
 - **Depends on:** —

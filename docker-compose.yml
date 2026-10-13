@@ -31,8 +31,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    ports:
-      - "3001:3001"
+    # No published port: the frontend (nginx) reaches the API over the internal network.
     environment:
       NODE_ENV: production
       JWT_SECRET: ${JWT_SECRET:-a-very-secret-and-secure-key-that-you-should-change}
