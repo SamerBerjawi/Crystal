@@ -71,7 +71,7 @@ export const FilterField: React.FC<FilterFieldProps> = ({ label, htmlFor, classN
       {label && (
         <label
           htmlFor={controlId}
-          className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 mb-1.5 truncate select-none"
+          className="text-2xs sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 mb-1.5 truncate select-none"
         >
           {label}
         </label>
@@ -232,7 +232,7 @@ export const FilterAdvancedToggle: React.FC<FilterAdvancedToggleProps> = ({
       <Icon name={isExpanded ? 'keyboard_double_arrow_up' : 'tune'} className="text-base" />
       <span>{isExpanded ? 'Collapse filters' : 'Advanced filters'}</span>
       {activeCount > 0 && !isExpanded && (
-        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary-500 text-white leading-none">
+        <span className="px-1.5 py-0.5 rounded-md text-2xs font-bold bg-primary-500 text-white leading-none">
           {activeCount}
         </span>
       )}
@@ -328,7 +328,7 @@ export const FilterSavedViews: React.FC<FilterSavedViewsProps> = ({
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary opacity-60 mr-1">
+      <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary opacity-60 mr-1">
         Saved Views:
       </span>
       {views.map((view) => {

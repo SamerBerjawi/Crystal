@@ -8,7 +8,7 @@ import { formatCurrency, toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 import { toast } from 'sonner';
 
 interface InvoiceModalProps {
@@ -114,7 +114,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   // Handle ESC key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
         handleClose();
       }
     };

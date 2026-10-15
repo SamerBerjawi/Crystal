@@ -206,11 +206,11 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 <h4 className="font-bold text-xs sm:text-sm text-light-text dark:text-dark-text truncate leading-tight line-through opacity-80" title={goal.name}>
                   {goal.name}
                 </h4>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 shrink-0">
-                  <Icon name="check_circle" className="text-[10px]" />
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-2xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 shrink-0">
+                  <Icon name="check_circle" className="text-2xs" />
                   Completed Bucket
                 </span>
-                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-emerald-200/60 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 shrink-0">
+                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-2xs font-mono font-semibold bg-emerald-200/60 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 shrink-0">
                   {formatCurrency(goalToDisplay.amount, 'EUR')} target met
                 </span>
               </div>
@@ -535,7 +535,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                                  }`}
                                                  title={isSubComplete ? 'Mark item as incomplete' : 'Mark item as complete'}
                                              >
-                                                 {isSubComplete && <Icon name="check" className="text-[10px] font-bold" />}
+                                                 {isSubComplete && <Icon name="check" className="text-2xs font-bold" />}
                                              </button>
                                          )}
                                          <span className={`font-medium text-light-text dark:text-dark-text ${isSubComplete ? 'line-through opacity-75' : ''}`}>{sg.name}</span>

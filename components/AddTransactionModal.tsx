@@ -13,7 +13,7 @@ import { usePreferencesContext, usePreferencesSelector } from '../contexts/Domai
 import { useTagsContext } from '../contexts/FinancialDataContext';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -455,7 +455,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
                   className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition-colors shrink-0 cursor-pointer"
                   title={`Remove #${tag.name}`}
                 >
-                  <Icon name="close" className="text-[10px]" />
+                  <Icon name="close" className="text-2xs" />
                 </button>
               </span>
             ))
@@ -692,7 +692,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     const animationFrame = requestAnimationFrame(() => setIsVisible(true));
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleCloseDrawer();
       }
     };

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import HeaderButton from './HeaderButton';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 export interface ConfirmOptions {
   title: string;
@@ -76,7 +76,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);

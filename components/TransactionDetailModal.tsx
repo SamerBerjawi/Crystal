@@ -13,7 +13,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useCartoBasemap } from '../hooks/useCartoBasemap';
 import Icon from './ui/Icon';
 import { safeImageSrcAttr } from '../utils/safeImageUrl';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -101,7 +101,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
       document.body.style.overflow = 'hidden';
       const frame = requestAnimationFrame(() => setIsVisible(true));
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') handleClose();
+        if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) handleClose();
       };
       window.addEventListener('keydown', handleKeyDown);
       return () => {

@@ -309,7 +309,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
         {/* Floating provider status pill */}
         <div className="absolute bottom-2.5 left-2.5 z-[400] pointer-events-none">
-          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg backdrop-blur-md text-[10px] font-mono shadow-md ${
+          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg backdrop-blur-md text-2xs font-mono shadow-md ${
             isDarkMode
               ? 'bg-black/60 text-slate-300'
               : 'bg-white/80 text-slate-600'

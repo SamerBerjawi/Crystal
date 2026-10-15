@@ -64,7 +64,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
           {statusLabel && (
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_BADGE_CLASSES[statusVariant]}`}
+              className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider border ${STATUS_BADGE_CLASSES[statusVariant]}`}
             >
               {statusLabel}
             </span>
@@ -109,7 +109,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* ROW 4: Subtle Footer Divider, Min/Max Bounds & Mini Sparkline */}
       <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2 overflow-hidden">
-        <div className="min-w-0 flex-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate">
+        <div className="min-w-0 flex-1 text-2xs font-medium text-slate-400 dark:text-slate-500 truncate">
           {min !== undefined && max !== undefined ? (
             <span>
               Min:{' '}

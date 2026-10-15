@@ -1073,18 +1073,18 @@ const SchedulePage: React.FC = () => {
                                             <div className="w-5 h-5 rounded-md bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0">
                                                 <Icon name="credit_card" className="text-xs" />
                                             </div>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                            <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 30-Day Outflow
                                             </span>
                                         </div>
-                                        <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px] font-bold shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400 text-2xs font-bold shrink-0">
                                             {summaryMetrics.expCount} Ops
                                         </span>
                                     </div>
                                     <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur leading-tight my-0.5">
                                         {formatCurrency(summaryMetrics.expense, 'EUR')}
                                     </div>
-                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                    <div className="text-2xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
                                         {majorOutflow ? `${majorOutflow.description} (-${formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)})` : 'No major outflow scheduled'}
                                     </div>
                                 </div>
@@ -1096,18 +1096,18 @@ const SchedulePage: React.FC = () => {
                                             <div className="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                                 <Icon name="download" className="text-xs" />
                                             </div>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                            <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 Expected Income
                                             </span>
                                         </div>
-                                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-2xs font-bold shrink-0">
                                             {summaryMetrics.incCount} Ops
                                         </span>
                                     </div>
                                     <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-emerald-700 dark:text-emerald-400 privacy-blur leading-tight my-0.5">
                                         {formatCurrency(summaryMetrics.income, 'EUR')}
                                     </div>
-                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                    <div className="text-2xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
                                         {majorInflow ? `${majorInflow.description} (+${formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)})` : 'No major inflow scheduled'}
                                     </div>
                                 </div>
@@ -1119,18 +1119,18 @@ const SchedulePage: React.FC = () => {
                                             <div className="w-5 h-5 rounded-md bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
                                                 <Icon name="event_repeat" className="text-xs" />
                                             </div>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                            <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 Net Projected
                                             </span>
                                         </div>
-                                        <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[10px] font-bold shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-2xs font-bold shrink-0">
                                             {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden
                                         </span>
                                     </div>
                                     <div className={`text-base sm:text-lg font-bold font-mono tracking-tight leading-tight my-0.5 privacy-blur ${summaryMetrics.income - summaryMetrics.expense >= 0 ? 'text-light-text dark:text-dark-text' : 'text-rose-700 dark:text-rose-400'}`}>
                                         {summaryMetrics.income - summaryMetrics.expense >= 0 ? '+' : ''}{formatCurrency(summaryMetrics.income - summaryMetrics.expense, 'EUR')}
                                     </div>
-                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                    <div className="text-2xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
                                         {recurringTransactions.length} active recurring rules
                                     </div>
                                 </div>
@@ -1142,18 +1142,18 @@ const SchedulePage: React.FC = () => {
                                             <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
                                                 <Icon name={(groupedItems['Overdue']?.length || 0) > 0 ? 'warning' : 'check_circle'} className="text-xs" />
                                             </div>
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                            <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 Attention & Overdue
                                             </span>
                                         </div>
-                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-2xs font-bold shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
                                             {(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Overdue` : 'All Clear'}
                                         </span>
                                     </div>
                                     <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-light-text dark:text-dark-text leading-tight my-0.5">
                                         {groupedItems['Overdue']?.length || 0}
                                     </div>
-                                    <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
+                                    <div className="text-2xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
                                         {(groupedItems['Overdue']?.length || 0) > 0 ? `${formatCurrency(groupedItems['Overdue'].reduce((acc: number, i: any) => acc + Math.abs(i.amount), 0), 'EUR')} pending total` : 'All obligations on track'}
                                     </div>
                                 </div>

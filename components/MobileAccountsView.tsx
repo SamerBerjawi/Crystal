@@ -631,7 +631,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
           <div className="bg-emerald-500/15 rounded-xl p-2.5 border border-emerald-500/30 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">Total Assets</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">Total Assets</span>
               <span className="text-xs font-black font-mono text-emerald-700 dark:text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
             </div>
             <Icon name="arrow_upward" className="text-emerald-500 text-sm" />
@@ -639,7 +639,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
 
           <div className="bg-rose-500/15 rounded-xl p-2.5 border border-rose-500/30 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 block">Liabilities</span>
+              <span className="text-2xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 block">Liabilities</span>
               <span className="text-xs font-black font-mono text-rose-700 dark:text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
             </div>
             <Icon name="arrow_downward" className="text-rose-500 text-sm" />

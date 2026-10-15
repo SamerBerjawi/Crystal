@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Task, TaskPriority, TaskStatus } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 import { toast } from 'sonner';
 
 interface TaskModalProps {
@@ -66,7 +66,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };

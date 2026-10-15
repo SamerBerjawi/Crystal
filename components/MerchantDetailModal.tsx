@@ -11,7 +11,7 @@ import Icon from './ui/Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
 import { usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface MerchantDetailModalProps {
     isOpen: boolean;
@@ -228,7 +228,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
                 handleCloseDrawer();
             }
         };

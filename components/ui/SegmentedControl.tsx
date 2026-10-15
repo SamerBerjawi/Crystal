@@ -154,7 +154,7 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
 
           <div className="flex flex-col items-center px-4 sm:px-6 min-w-[130px] sm:min-w-[150px] select-none">
             {stepperLabel && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
+              <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
                 {stepperLabel}
               </span>
             )}
@@ -162,7 +162,7 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
               {stepperValue}
             </span>
             {stepperSubvalue && (
-              <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
+              <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 mt-0.5">
                 {stepperSubvalue}
               </span>
             )}
@@ -260,7 +260,7 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
               {displayBadge !== undefined && displayBadge !== null && (
                 <span
                   className={cn(
-                    'relative z-10 px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums leading-none',
+                    'relative z-10 px-1.5 py-0.5 rounded-md text-2xs font-semibold tabular-nums leading-none',
                     isActive
                       ? accent.countActive
                       : 'bg-black/5 dark:bg-white/5 text-light-text-secondary/70 dark:text-dark-text-secondary/70'

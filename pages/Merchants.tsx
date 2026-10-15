@@ -372,11 +372,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   }, [transactions, accounts, effectiveMerchantRules, legacyOverrides]);
 
   const spendTrendsMap = useMemo(() => {
-      const now = new Date(2026, 4, 23); // May 23, 2026
+      const now = new Date();
       const months: string[] = [];
       for (let i = 5; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          months.push(d.toISOString().slice(0, 7)); // "YYYY-MM"
+          // Local year/month: toISOString() would shift the 1st of the month into the previous month east of UTC.
+          months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); // "YYYY-MM"
       }
       return computeSpendTrends(entities, transactions, accounts, months, showBalanceAdjustments);
   }, [entities, transactions, accounts, showBalanceAdjustments]);

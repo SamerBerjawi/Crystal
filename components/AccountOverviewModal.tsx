@@ -14,7 +14,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import Icon from './ui/Icon';
 import TransactionDetailModal from './TransactionDetailModal';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 export interface AccountOverviewModalProps {
   isOpen: boolean;
@@ -89,7 +89,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       document.body.style.overflow = 'hidden';
       const frame = requestAnimationFrame(() => setIsVisible(true));
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
           if (isTxModalOpen) {
             setIsTxModalOpen(false);
           } else {

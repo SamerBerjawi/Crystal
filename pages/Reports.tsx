@@ -756,7 +756,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
         {/* Header with Predefined Periods */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h2 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">Configuration</h2>
+            <h2 className="text-2xs sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">Configuration</h2>
             <p className="text-base sm:text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
           </div>
 

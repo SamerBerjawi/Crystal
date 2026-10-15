@@ -63,7 +63,7 @@ const ApiKeyCard: React.FC<{
               <span className="font-bold text-xs text-light-text dark:text-dark-text tracking-tight truncate">
                 {title}
               </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary font-medium tracking-normal truncate">
+              <span className="text-2xs px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary font-medium tracking-normal truncate">
                 {tag}
               </span>
             </div>
@@ -71,7 +71,7 @@ const ApiKeyCard: React.FC<{
         </div>
 
         <span
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium leading-none shrink-0 border ${
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium leading-none shrink-0 border ${
             isConfigured
               ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
               : 'bg-black/5 text-neutral-500 dark:bg-white/5 dark:text-neutral-400 border-black/5 dark:border-white/10'
@@ -114,10 +114,10 @@ const ApiKeyCard: React.FC<{
               href={docsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-primary-700 dark:text-primary-400 hover:underline inline-flex items-center gap-0.5 min-h-[28px] opacity-90 hover:opacity-100 font-medium"
+              className="text-2xs text-primary-700 dark:text-primary-400 hover:underline inline-flex items-center gap-0.5 min-h-[28px] opacity-90 hover:opacity-100 font-medium"
             >
               <span>Get API key</span>
-              <Icon name="open_in_new" className="text-[10px]" />
+              <Icon name="open_in_new" className="text-2xs" />
             </a>
           </div>
         )}
@@ -191,7 +191,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
       />
 
       {/* QUICK STATUS PILLS BAR */}
-      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 text-[10px]">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 text-2xs">
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white dark:bg-white/[0.06] border border-black/5 dark:border-white/10 font-medium">
           <span className={`w-1.5 h-1.5 rounded-full ${readyBankCount > 0 ? 'bg-emerald-500' : 'bg-neutral-400'}`} />
           <span className="text-light-text dark:text-dark-text font-semibold">Open Banking:</span>
@@ -218,7 +218,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               Bank Synchronization
             </h3>
           </div>
-          <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-75">
+          <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-75">
             Enable Banking (PSD2)
           </span>
         </div>
@@ -243,7 +243,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               Data & Asset APIs
             </h3>
           </div>
-          <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-75">
+          <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-75">
             Stored locally
           </span>
         </div>

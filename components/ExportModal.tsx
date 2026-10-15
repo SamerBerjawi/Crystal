@@ -4,7 +4,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE, INPUT_BASE_STYL
 import { Account } from '../types';
 import Icon from './ui/Icon';
 import TransactionDateAndAccountFilter from './TransactionDateAndAccountFilter';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface ExportModalProps {
   isOpen?: boolean;
@@ -54,7 +54,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen = true, onClose, onExp
     // Handle ESC key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
                 handleClose();
             }
         };

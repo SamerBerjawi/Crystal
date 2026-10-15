@@ -4,7 +4,7 @@ import { ImportExportHistoryItem } from '../types';
 import ConfirmationModal from './ConfirmationModal';
 import { BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface ImportDetailsModalProps {
     isOpen?: boolean;
@@ -27,7 +27,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
     // Handle ESC key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && !isConfirmOpen) {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && !isConfirmOpen) {
                 handleClose();
             }
         };

@@ -300,7 +300,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 className="absolute -top-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
                                 title="Main Account"
                             >
-                                <Icon name="cryptocurrency-01" className="text-[10px] sm:text-xs" strokeWidth={2.5} />
+                                <Icon name="cryptocurrency-01" className="text-2xs sm:text-xs" strokeWidth={2.5} />
                             </div>
                         )}
 
@@ -310,7 +310,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
                                 title="Connected / Linked Account"
                             >
-                                <Icon name="link-04" className="text-[10px] sm:text-xs" strokeWidth={2.5} />
+                                <Icon name="link-04" className="text-2xs sm:text-xs" strokeWidth={2.5} />
                             </div>
                         )}
                     </div>

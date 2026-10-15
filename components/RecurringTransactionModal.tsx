@@ -23,7 +23,7 @@ import {
 } from '../constants';
 import { parseLocalDate, toLocalISOString, formatCurrency, safeRound } from '../utils';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 import { toast } from 'sonner';
 
 export interface RecurringTransactionModalProps {
@@ -145,7 +145,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
   // ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };

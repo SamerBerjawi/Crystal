@@ -4,7 +4,7 @@ import { Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface BalanceAdjustmentModalProps {
   onClose: () => void;
@@ -28,7 +28,7 @@ const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };

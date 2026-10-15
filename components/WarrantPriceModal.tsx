@@ -6,7 +6,7 @@ import { toLocalISOString } from '../utils';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 const normalizeDecimalString = (str: string): string => {
     const cleaned = str
@@ -80,7 +80,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     // Handle ESC key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
                 handleClose();
             }
         };

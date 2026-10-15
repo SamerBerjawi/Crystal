@@ -26,7 +26,7 @@ import { useConfirm } from './ConfirmationModal';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 export interface InvestmentModalProps {
   onClose: () => void;
@@ -143,7 +143,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
   // Handle ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleCloseDrawer();
       }
     };

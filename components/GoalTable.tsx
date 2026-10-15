@@ -135,7 +135,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
                 {isCompleted && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
-                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Completed</span>
+                    <span className="text-2xs font-bold text-emerald-700 dark:text-emerald-400">Completed</span>
                   </>
                 )}
               </div>

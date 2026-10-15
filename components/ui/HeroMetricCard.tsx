@@ -167,11 +167,11 @@ const HeroMetricCard: React.FC<HeroMetricCardProps> = ({
         {/* Right side: Badge or Kicker label */}
         <div className="flex items-center gap-1.5 min-w-0 justify-end">
           {badgeText && (
-            <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0', badgeColorClass)}>
+            <span className={cn('px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider border shrink-0', badgeColorClass)}>
               {badgeText}
             </span>
           )}
-          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 text-right leading-tight min-w-0 truncate">
+          <p className="text-2xs sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 text-right leading-tight min-w-0 truncate">
             {label}
           </p>
         </div>
@@ -197,10 +197,10 @@ const HeroMetricCard: React.FC<HeroMetricCardProps> = ({
           {trend && trendValue ? (
             <div className={cn('flex items-center gap-1', trendColorClass)}>
               <Icon name={trendIconName} className="text-xs shrink-0" />
-              <span className="text-[10px] font-semibold truncate">{trendValue}</span>
+              <span className="text-2xs font-semibold truncate">{trendValue}</span>
             </div>
           ) : (
-            <p className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 leading-normal truncate">
+            <p className="text-2xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 leading-normal truncate">
               {subtext}
             </p>
           )}

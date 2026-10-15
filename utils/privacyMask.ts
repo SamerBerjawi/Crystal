@@ -3,7 +3,12 @@
  * hundreds of formatCurrency() call sites (tables, chart labels, cards) and new ones appear all the time, so while
  * privacy mode is on this marks any element whose own text is a currency amount.
  */
-const AMOUNT = /(?:[€$£]\s?[-+−]?\s?\d|\d[\d.,\s]*\s?(?:€|EUR|USD|GBP)\b|[-+−]\s?[€$£]\s?\d)/;
+const CODES = 'EUR|USD|GBP|CHF|JPY|CNY|CAD|AUD|NZD|SEK|NOK|DKK|PLN|CZK|HUF|RON|BGN|TRY|INR|BRL|MXN|ZAR|AED|SAR|HKD|SGD|KRW|BTC|ETH';
+const AMOUNT = new RegExp(
+  `(?:[€$£¥₹₩₺]\\s?[-+−]?\\s?\\d|\\d[\\d.,\\s]*\\s?(?:[€£¥₹₩₺]|(?:${CODES})\\b)|(?:${CODES})\\s?[-+−]?\\d|[-+−]\\s?[€$£¥₹₩₺]\\s?\\d)`
+);
+
+export const looksLikeAmount = (text: string) => text.length <= 60 && AMOUNT.test(text);
 
 const markNode = (node: Node) => {
   const text = node.textContent || '';

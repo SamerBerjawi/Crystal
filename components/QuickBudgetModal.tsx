@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface QuickBudgetModalProps {
   isOpen: boolean;
@@ -33,7 +33,7 @@ const QuickBudgetModal: React.FC<QuickBudgetModalProps> = ({ isOpen, onClose, on
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
         handleClose();
       }
     };

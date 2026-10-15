@@ -4,7 +4,7 @@ import { Category } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import IconPicker from './IconPicker';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -57,7 +57,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
         handleClose();
       }
     };

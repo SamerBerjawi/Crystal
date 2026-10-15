@@ -5,7 +5,7 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE,
 import AddressAutocomplete from './AddressAutocomplete';
 import { toLocalISOString, safeRound } from '../utils';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[]; level: number }> = ({ categories, level }) => {
   const indent = '\u00A0\u00A0'.repeat(level * 2);
@@ -163,7 +163,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
         handleClose();
       }
     };

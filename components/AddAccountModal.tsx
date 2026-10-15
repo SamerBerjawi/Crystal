@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { toLocalISOString } from '../utils';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface AddAccountModalProps {
   onClose: () => void;
@@ -143,7 +143,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   // Handle ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isIconPickerOpen) {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && !isIconPickerOpen) {
         handleCloseDrawer();
       }
     };
@@ -544,7 +544,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                     <div className="w-14 h-14 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
                       <Icon name={icon} className={`${iconColorClass} text-2xl group-hover:scale-110 transition-transform`} />
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary-500 border-2 border-white dark:border-dark-card rounded-full flex items-center justify-center shadow-xs">
-                        <Icon name="edit" className="text-white text-[10px]" />
+                        <Icon name="edit" className="text-white text-2xs" />
                       </div>
                     </div>
                   </button>

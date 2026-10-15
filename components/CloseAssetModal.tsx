@@ -4,7 +4,7 @@ import { Account, AssetClosureDetails } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
-import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface CloseAssetModalProps {
   isOpen?: boolean;
@@ -37,7 +37,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };

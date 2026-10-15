@@ -937,7 +937,7 @@ export const MobileForecastView: React.FC<MobileForecastViewProps> = ({
                                       }`}
                                       title={isSubComplete ? 'Mark item as incomplete' : 'Mark item as complete'}
                                     >
-                                      {isSubComplete && <Icon name="check" className="text-[10px] font-bold" />}
+                                      {isSubComplete && <Icon name="check" className="text-2xs font-bold" />}
                                     </button>
                                   )}
                                   <div className="min-w-0 flex-1">
