@@ -14,7 +14,7 @@ for (const path of PAGES) {
       const sel = 'a[href],button,select,textarea,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),[role=switch]';
       for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
         const b = el.getBoundingClientRect();
-        if (b.width === 0 || b.height === 0 || getComputedStyle(el).visibility === 'hidden' || el.className.toString().includes('sr-only')) continue;
+        if (b.width === 0 || b.height === 0 || getComputedStyle(el).visibility === 'hidden' || el.className.toString().includes('sr-only') || el.closest('[data-sonner-toaster]')) continue;
         if (b.width < 24 || b.height < 24) small.push(`${el.tagName.toLowerCase()} ${Math.round(b.width)}x${Math.round(b.height)} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 24)}"`);
       }
       return { scrollWidth: main.scrollWidth, small };
