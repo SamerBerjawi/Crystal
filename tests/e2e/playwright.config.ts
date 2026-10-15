@@ -16,7 +16,7 @@ const BASE_URL = process.env.E2E_BASE_URL || 'http://crystal.localhost:4173';
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
-  testIgnore: ['diagnostics/**', 'node_modules/**'],
+  testIgnore: ['node_modules/**'],
   timeout: 45_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,
