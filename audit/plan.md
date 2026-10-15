@@ -450,7 +450,7 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S for the token source; L for migrating raw classes (incremental)
 - **Verify:** the build emits `.z-modal` and `.text-3xs` rules; lint rule for raw palette classes (warn).
 
-#### WP-4.7 Feedback, copy, empty states, duplicates `[x]`
+#### WP-4.7 Feedback, copy, empty states, duplicates `[~]`
 - **Done:** All 24 alert() calls became toasts (0 left); jargon labels renamed (Delete/Cancel, Change password, Save changes, New tag, Most used/Highest volume/Name, Manual order/Priority/Due date, Search transactions, Create task); transaction Description is marked required; Merchants empty state uses EmptyState. Not done: consolidating duplicate button/card/confirmation components (AUD-43) and the remaining empty states.
 - **Covers:** AUD-44 remainder (UI-010), AUD-67 (UI-013, QA-B-009), AUD-68 (UI-014), AUD-43 (UI-009 non-modal)
 - **Files:** pages with `alert()` (26 call sites), labels listed in UI-013, `components/EmptyState.tsx` adopters
