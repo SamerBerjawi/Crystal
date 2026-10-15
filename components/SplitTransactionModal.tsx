@@ -5,6 +5,7 @@ import { formatCurrency, safeRound } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 interface SplitTransactionModalProps {
   isOpen?: boolean;
@@ -90,7 +91,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
 
   const handleSave = () => {
     if (Math.abs(remaining) > 0.01) {
-      alert(`The split amounts must sum up to the original amount (${formatCurrency(totalAmount, transaction.currency)}). Remaining: ${formatCurrency(remaining, transaction.currency)}`);
+      toast.error(`The split amounts must sum up to the original amount (${formatCurrency(totalAmount, transaction.currency)}). Remaining: ${formatCurrency(remaining, transaction.currency)}`);
       return;
     }
 
@@ -178,8 +179,8 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                   </p>
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold mt-1 ${
                     Math.abs(remaining) < 0.01 
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                   }`}>
                     {Math.abs(remaining) < 0.01 ? 'Fully Allocated' : `Remaining: ${formatCurrency(remaining, transaction.currency)}`}
                   </span>
@@ -195,7 +196,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                   <button
                     type="button"
                     onClick={handleAddSplit}
-                    className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1"
+                    className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 flex items-center gap-1"
                   >
                     <Icon name="add" className="text-sm" />
                     <span>Add Split</span>
@@ -209,7 +210,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                       className="p-4 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm space-y-3 relative group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-2xs font-bold uppercase tracking-wider text-primary-500">
+                        <span className="text-2xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-400">
                           Part {index + 1}
                         </span>
                         {splits.length > 1 && (

@@ -203,7 +203,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                       <div className="flex items-center gap-2.5 min-w-0 pr-2">
                         <Icon
                           name={hintIcon}
-                          className={`text-sm shrink-0 ${isSelected ? 'text-white' : 'text-primary-500'}`}
+                          className={`text-sm shrink-0 ${isSelected ? 'text-white' : 'text-primary-700 dark:text-primary-400'}`}
                         />
                         <span className="truncate">{cat}</span>
                       </div>
@@ -273,7 +273,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
                           <div className="flex items-center gap-2">
                             <Icon
                               name={CATEGORY_ICON_HINTS[group.category] || 'SquaresFour'}
-                              className="text-primary-500 text-sm"
+                              className="text-primary-700 dark:text-primary-400 text-sm"
                             />
                             <h3 className="text-xs font-bold text-light-text dark:text-white uppercase tracking-wider">
                               {group.category}

@@ -93,7 +93,7 @@ const sections: Section[] = [
                         <p className="text-xs font-normal leading-relaxed text-light-text-secondary dark:text-dark-text-secondary">Strict parent-child relationships. Use for primary structure like "Housing &gt; Rent" or "Transportation &gt; Fuel".</p>
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-sm font-semibold tracking-tight text-orange-600 dark:text-orange-400">Semantics (Tags)</h4>
+                        <h4 className="text-sm font-semibold tracking-tight text-orange-700 dark:text-orange-400">Semantics (Tags)</h4>
                         <p className="text-xs font-normal leading-relaxed text-light-text-secondary dark:text-dark-text-secondary">Multi-dimensional overlays. Apply #vacation, #business, or #trip-2024 to cluster data across different taxonomic branches.</p>
                     </div>
                 </div>

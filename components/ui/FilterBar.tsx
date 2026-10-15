@@ -164,7 +164,7 @@ export const FilterSelect = forwardRef<HTMLSelectElement, FilterSelectProps>(
         >
           {children}
         </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary dark:text-dark-text-secondary opacity-80">
           <Icon name="expand_more" className="text-sm" />
         </div>
       </div>

@@ -33,7 +33,7 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-60 flex-col gap-2 p-6 text-center">
+      <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-80 flex-col gap-2 p-6 text-center">
         <Icon name="pie_chart" className="text-3xl opacity-40" />
         <p className="text-sm font-medium">No outflow data for this period.</p>
       </div>

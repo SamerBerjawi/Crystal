@@ -4,6 +4,7 @@ import { Task, TaskPriority, TaskStatus } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 interface TaskModalProps {
   isOpen?: boolean;
@@ -18,8 +19,8 @@ const STATUSES: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
 
 const PRIORITY_CONFIG: Record<TaskPriority, { color: string; bg: string; icon: string }> = {
   Low: { color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', icon: 'low_priority' },
-  Medium: { color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: 'flag' },
-  High: { color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', icon: 'priority_high' },
+  Medium: { color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: 'flag' },
+  High: { color: 'text-rose-700 dark:text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20', icon: 'priority_high' },
 };
 
 const STATUS_CONFIG: Record<TaskStatus, { color: string; icon: string }> = {
@@ -81,7 +82,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('Please specify an objective title for this task.');
+      toast.error('Please specify an objective title for this task.');
       return;
     }
 
@@ -171,7 +172,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
                     className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                       isSelected
                         ? `bg-white dark:bg-dark-card ${cfg.color} shadow-sm`
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name={cfg.icon} className="text-sm" />
@@ -321,7 +322,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen = true, onClose, onSave, o
                 form="task-drawer-form"
                 className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95`}
               >
-                <span>{isEditing ? 'Commit Changes' : 'Initialize Objective'}</span>
+                <span>{isEditing ? 'Save changes' : 'Create task'}</span>
                 <Icon name="check" className="text-base" />
               </button>
             </div>

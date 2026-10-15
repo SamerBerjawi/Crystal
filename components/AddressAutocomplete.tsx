@@ -28,7 +28,7 @@ const CategoryBadge: React.FC<{ category: AddressData['category'] }> = ({ catego
       );
     case 'street':
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
           <Icon name="marker_pin" className="text-xs" />
           <span>Street</span>
         </span>
@@ -42,7 +42,7 @@ const CategoryBadge: React.FC<{ category: AddressData['category'] }> = ({ catego
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
           <Icon name="map" className="text-xs" />
           <span>Area</span>
         </span>
@@ -164,7 +164,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         />
         <Icon
           name="marker_pin"
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500 text-sm pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-700 dark:text-primary-400 text-sm pointer-events-none"
         />
 
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
@@ -229,7 +229,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                       {item.title}
                     </p>
                     {item.country && (
-                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 shrink-0">
+                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80 shrink-0">
                         • {item.country}
                       </span>
                     )}

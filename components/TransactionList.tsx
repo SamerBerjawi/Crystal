@@ -219,7 +219,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
 
                 <div className={`flex items-center min-w-0 flex-1 relative z-10 ${tx.parentTransactionId ? 'pl-4 border-l-2 border-primary-500/40 ml-1' : ''}`}>
                   {tx.parentTransactionId && (
-                    <Icon name="CornerDownRight" className="text-sm text-primary-500 mr-2 shrink-0 opacity-70" />
+                    <Icon name="CornerDownRight" className="text-sm text-primary-700 dark:text-primary-400 mr-2 shrink-0 opacity-70" />
                   )}
                   <div 
                     className={`shrink-0 ${density === 'high' ? 'h-9 w-9 sm:h-9 sm:w-9' : 'h-10 w-10 sm:h-11 sm:w-11'} rounded-2xl flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-white/10' : ''}`}
@@ -253,7 +253,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                             {description}
                         </p>
                         {tx.isSplitParent && (
-                          <span className="text-2xs font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
+                          <span className="text-2xs font-extrabold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-md shrink-0 border border-amber-500/20">
                             SPLIT
                           </span>
                         )}
@@ -313,7 +313,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                       className={`${density === 'high' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} font-black font-mono tracking-tight privacy-blur ${
                         isTransfer 
                           ? 'text-light-text dark:text-dark-text' 
-                          : (tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-light-text dark:text-dark-text')
+                          : (tx.type === 'income' ? 'text-emerald-700 dark:text-emerald-400' : 'text-light-text dark:text-dark-text')
                       }`}
                     >
                       {amountDisplay}
@@ -321,7 +321,7 @@ const TransactionList: React.FC<TransactionListProps> = ({
                     {spareAmountEur && (
                       <div className="flex items-center gap-0.5 mt-0.5">
                         <Icon name="coins_stacked" className="text-xs text-emerald-500" />
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
                       </div>
                     )}
                   </div>

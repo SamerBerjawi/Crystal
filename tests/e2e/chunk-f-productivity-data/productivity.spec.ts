@@ -102,7 +102,7 @@ test.describe('W35 Tasks', () => {
     await openNewTask(page);
     await page.getByPlaceholder('Define mission goal...').fill('QA task');
     const saved = waitForSave(page);
-    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await page.getByRole('button', { name: /create task/i }).click();
     expect((await saved).status()).toBe(200);
     expect((await serverData(user)).tasks.length).toBe(before + 1);
   });
@@ -110,7 +110,7 @@ test.describe('W35 Tasks', () => {
   test('task without a title is rejected', async ({ authedPage: page, user }) => {
     const before = (await serverData(user)).tasks.length;
     await openNewTask(page);
-    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await page.getByRole('button', { name: /create task/i }).click();
     await page.waitForTimeout(2500);
     expect((await serverData(user)).tasks.length).toBe(before);
   });
@@ -118,7 +118,7 @@ test.describe('W35 Tasks', () => {
   test('very long task title does not break the layout', async ({ authedPage: page }) => {
     await openNewTask(page);
     await page.getByPlaceholder('Define mission goal...').fill('T'.repeat(400));
-    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await page.getByRole('button', { name: /create task/i }).click();
     await page.waitForTimeout(1500);
     expect(await page.locator('main').evaluate(m => m.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
   });
@@ -300,7 +300,6 @@ test.describe('W39 Global navigation', () => {
   });
 
   test('privacy mode hides amounts', async ({ authedPage: page }) => {
-    openBug('AUD-73');
     test.skip(isMobile(page), 'privacy toggle lives in the off-canvas sidebar on mobile');
     await goTo(page, '/accounts');
     const btn = page.getByRole('button', { name: /privacy mode/i }).filter({ visible: true }).first();

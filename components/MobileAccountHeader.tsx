@@ -164,7 +164,7 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
             <button
               type="button"
               onClick={closeAction.onClick}
-              className="flex-1 min-h-[44px] px-4 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+              className="flex-1 min-h-[44px] px-4 rounded-2xl bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
             >
               <Icon name={closeAction.icon} className="text-base" />
               <span>{closeAction.label}</span>

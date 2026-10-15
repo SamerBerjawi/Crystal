@@ -9,6 +9,7 @@ import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 interface InvoiceModalProps {
   isOpen: boolean;
@@ -178,7 +179,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!entityName.trim()) {
-      alert('Please specify the recipient / client entity name.');
+      toast.error('Please specify the recipient / client entity name.');
       return;
     }
 
@@ -263,7 +264,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                   <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
                     type === 'invoice'
                       ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
                   }`}>
                     {type}
                   </span>
@@ -293,7 +294,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   type === 'invoice'
                     ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                 }`}
               >
                 <Icon name="receipt_long" className="text-sm" />
@@ -304,8 +305,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                 onClick={() => handleTypeChange('quote')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   type === 'quote'
-                    ? 'bg-white dark:bg-dark-card text-amber-600 dark:text-amber-400 shadow-sm'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                    ? 'bg-white dark:bg-dark-card text-amber-700 dark:text-amber-400 shadow-sm'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                 }`}
               >
                 <Icon name="request_quote" className="text-sm" />
@@ -371,7 +372,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                         onClick={() => setDirection('received')}
                         className={`flex-1 text-xs font-bold rounded-lg transition-all ${
                           direction === 'received'
-                            ? 'bg-white dark:bg-dark-card text-rose-600 dark:text-rose-400 shadow-sm'
+                            ? 'bg-white dark:bg-dark-card text-rose-700 dark:text-rose-400 shadow-sm'
                             : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                         }`}
                       >
@@ -531,7 +532,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
                         <div>
-                          <label className="text-3xs font-semibold uppercase text-gray-400 block mb-1">Qty</label>
+                          <label className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Qty</label>
                           <input
                             type="number"
                             step="any"
@@ -542,7 +543,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                           />
                         </div>
                         <div>
-                          <label className="text-3xs font-semibold uppercase text-gray-400 block mb-1">Unit Rate</label>
+                          <label className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Unit Rate</label>
                           <input
                             type="number"
                             step="0.01"
@@ -553,7 +554,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                           />
                         </div>
                         <div>
-                          <label className="text-3xs font-semibold uppercase text-gray-400 block mb-1">Disc %</label>
+                          <label className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Disc %</label>
                           <input
                             type="number"
                             step="1"
@@ -568,7 +569,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
                           />
                         </div>
                         <div className="col-span-3 sm:col-span-1 flex flex-col justify-end text-right">
-                          <span className="text-3xs font-semibold uppercase text-gray-400 block mb-1">Total</span>
+                          <span className="text-2xs font-semibold uppercase text-gray-400 block mb-1">Total</span>
                           <span className="text-xs font-black font-mono text-primary-600 dark:text-primary-400 py-1">
                             {formatCurrency(item.total, currency)}
                           </span>

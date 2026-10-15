@@ -3,7 +3,7 @@ import { test, expect, goTo } from '../fixtures/test';
 
 test('a shared-Modal dialog has dialog semantics, traps Tab and restores focus on close', async ({ authedPage: page }) => {
   await goTo(page, '/tags');
-  const opener = page.getByRole('button', { name: 'Register New Tag' });
+  const opener = page.getByRole('button', { name: 'New tag' });
   await opener.focus();
   await opener.press('Enter');
 

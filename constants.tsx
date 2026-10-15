@@ -76,9 +76,9 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
 }
 
 // Common Styles based on Apple Health & Frosted Glass Architecture
-export const BTN_PRIMARY_STYLE = "h-9 inline-flex items-center justify-center bg-primary-600 hover:bg-primary-500 text-white font-semibold text-xs px-4 rounded-xl shadow-sm border border-primary-500/30 dark:bg-primary-500 dark:hover:bg-primary-400 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/40 active:scale-[0.98] whitespace-nowrap cursor-pointer";
+export const BTN_PRIMARY_STYLE = "h-9 inline-flex items-center justify-center bg-primary-700 hover:bg-primary-600 text-white font-semibold text-xs px-4 rounded-xl shadow-sm border border-primary-600/30 dark:bg-primary-700 dark:hover:bg-primary-600 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/40 active:scale-[0.98] whitespace-nowrap cursor-pointer";
 export const BTN_SECONDARY_STYLE = "h-9 inline-flex items-center justify-center bg-white/45 dark:bg-white/[0.06] hover:bg-white/75 dark:hover:bg-white/[0.12] text-neutral-900 dark:text-neutral-100 font-semibold text-xs px-4 rounded-xl border border-neutral-200/80 dark:border-white/10 backdrop-blur-md shadow-xs transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/30 active:scale-[0.98] whitespace-nowrap cursor-pointer";
-export const BTN_DANGER_STYLE = "h-9 inline-flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold text-xs px-4 rounded-xl border border-rose-500/20 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500/30 active:scale-[0.98] whitespace-nowrap cursor-pointer";
+export const BTN_DANGER_STYLE = "h-9 inline-flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 font-semibold text-xs px-4 rounded-xl border border-rose-500/20 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-500/30 active:scale-[0.98] whitespace-nowrap cursor-pointer";
 export const INPUT_BASE_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-white/50 dark:bg-white/[0.04] text-neutral-900 dark:text-neutral-100 rounded-xl px-4 border border-neutral-300/80 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500/40 backdrop-blur-md transition-all duration-200 text-sm touch-feedback";
 export const SELECT_STYLE = "h-11 min-h-[44px] w-full appearance-none bg-white/50 dark:bg-white/[0.04] text-neutral-900 dark:text-neutral-100 font-bold text-xs tracking-wider pl-4 pr-10 rounded-xl border border-neutral-300/80 dark:border-white/10 hover:border-neutral-400 dark:hover:border-white/20 backdrop-blur-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/40 whitespace-nowrap cursor-pointer touch-feedback";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
@@ -93,47 +93,47 @@ export const CLOSE_BTN_STYLE = "w-11 h-11 min-w-[44px] min-h-[44px] inline-flex 
 // Semantic Status Tokens from Design System Blueprint
 export const STATUS_TOKENS = {
   optimal: {
-    badge: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30',
+    badge: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
     lightBadge: 'bg-emerald-50 text-emerald-900 border-emerald-200/80',
     hex: '#10B981',
   },
   elevated: {
-    badge: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30',
+    badge: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30',
     lightBadge: 'bg-rose-50 text-rose-900 border-rose-200/80',
     hex: '#EF4444',
   },
   low: {
-    badge: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30',
+    badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
     lightBadge: 'bg-amber-50 text-amber-950 border-amber-200/90',
     hex: '#F59E0B',
   },
   normal: {
-    badge: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30',
+    badge: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
     lightBadge: 'bg-cyan-50 text-cyan-900 border-cyan-200/80',
     hex: '#06B6D4',
   },
 } as const;
 
 // Backward-compatible Status Color Tokens
-export const STATUS_DANGER_TEXT = "text-rose-600 dark:text-rose-400";
+export const STATUS_DANGER_TEXT = "text-rose-700 dark:text-rose-400";
 export const STATUS_DANGER_BG = "bg-rose-500/10 dark:bg-rose-500/20";
 export const STATUS_DANGER_BORDER = "border-rose-500/20 dark:border-rose-500/30";
-export const STATUS_DANGER_BADGE = "bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30";
+export const STATUS_DANGER_BADGE = "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30";
 
-export const STATUS_SUCCESS_TEXT = "text-emerald-600 dark:text-emerald-400";
+export const STATUS_SUCCESS_TEXT = "text-emerald-700 dark:text-emerald-400";
 export const STATUS_SUCCESS_BG = "bg-emerald-500/10 dark:bg-emerald-500/20";
 export const STATUS_SUCCESS_BORDER = "border-emerald-500/20 dark:border-emerald-500/30";
-export const STATUS_SUCCESS_BADGE = "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30";
+export const STATUS_SUCCESS_BADGE = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30";
 
-export const STATUS_WARNING_TEXT = "text-amber-600 dark:text-amber-400";
+export const STATUS_WARNING_TEXT = "text-amber-700 dark:text-amber-400";
 export const STATUS_WARNING_BG = "bg-amber-500/10 dark:bg-amber-500/20";
 export const STATUS_WARNING_BORDER = "border-amber-500/20 dark:border-amber-500/30";
-export const STATUS_WARNING_BADGE = "bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30";
+export const STATUS_WARNING_BADGE = "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30";
 
-export const STATUS_INFO_TEXT = "text-cyan-600 dark:text-cyan-400";
+export const STATUS_INFO_TEXT = "text-cyan-700 dark:text-cyan-400";
 export const STATUS_INFO_BG = "bg-cyan-500/10 dark:bg-cyan-500/20";
 export const STATUS_INFO_BORDER = "border-cyan-500/20 dark:border-cyan-500/30";
-export const STATUS_INFO_BADGE = "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30";
+export const STATUS_INFO_BADGE = "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30";
 
 // Stacking Order Hierarchy
 export const Z_INDEX = {

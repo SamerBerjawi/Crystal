@@ -327,7 +327,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                          <div className="flex justify-between items-start mb-8">
                              <div>
                                  <h3 className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/60 mb-2">Interconnected Assets</h3>
-                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors flex items-center gap-2">
+                                 <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-xs font-semibold tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors flex items-center gap-2">
                                      Asset portfolio <Icon name="arrow_forward" className="text-xs" />
                                  </button>
                              </div>

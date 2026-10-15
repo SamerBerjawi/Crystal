@@ -7,6 +7,7 @@ import Card from './Card';
 import { toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
     }
     if (step === 3) {
       if (!accountName || !balance) {
-        alert('Please fill in all account details.');
+        toast.error('Please fill in all account details.');
         return;
       }
       const newAccount: Omit<Account, 'id'> = {

@@ -19,16 +19,16 @@ export interface PageHeaderProps {
 }
 
 const BADGE_ACCENT_MAP: Record<string, string> = {
-  primary: 'bg-primary-500/10 dark:bg-primary-500/15 border-primary-500/20 text-primary-600 dark:text-primary-400',
-  emerald: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
-  rose: 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-600 dark:text-rose-400',
+  primary: 'bg-primary-500/10 dark:bg-primary-500/15 border-primary-500/20 text-primary-700 dark:text-primary-400',
+  emerald: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
+  rose: 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-700 dark:text-rose-400',
   amber: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 text-amber-700 dark:text-amber-300',
-  blue: 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-400',
-  indigo: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 text-indigo-600 dark:text-indigo-400',
-  purple: 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/20 text-purple-600 dark:text-purple-400',
-  teal: 'bg-teal-500/10 dark:bg-teal-500/15 border-teal-500/20 text-teal-600 dark:text-teal-400',
-  orange: 'bg-orange-500/10 dark:bg-orange-500/15 border-orange-500/20 text-orange-600 dark:text-orange-400',
-  slate: 'bg-slate-500/10 dark:bg-slate-500/15 border-slate-500/20 text-slate-600 dark:text-slate-400',
+  blue: 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/20 text-blue-700 dark:text-blue-400',
+  indigo: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 text-indigo-700 dark:text-indigo-400',
+  purple: 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/20 text-purple-700 dark:text-purple-400',
+  teal: 'bg-teal-500/10 dark:bg-teal-500/15 border-teal-500/20 text-teal-700 dark:text-teal-400',
+  orange: 'bg-orange-500/10 dark:bg-orange-500/15 border-orange-500/20 text-orange-700 dark:text-orange-400',
+  slate: 'bg-slate-500/10 dark:bg-slate-500/15 border-slate-500/20 text-slate-700 dark:text-slate-400',
 };
 
 /**

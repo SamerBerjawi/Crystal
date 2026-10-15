@@ -104,9 +104,9 @@ test.describe('W31 Prices', () => {
     const dialogs: string[] = [];
     page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
     await page.getByRole('button', { name: /sync (market )?prices|update live prices/i }).first().click({ timeout: 5000 });
-    await page.waitForTimeout(8000);
-    const text = dialogs.join(' ') + ' ' + (await page.locator('body').innerText());
-    expect(text, 'expected a message about the missing Twelve Data API key').toMatch(/api key|twelve ?data|configure|integrations|unable to update|failed/i);
+    // The message is a toast now (not a browser dialog); poll because toasts are short-lived.
+    await expect.poll(async () => dialogs.join(' ') + ' ' + (await page.locator('body').innerText()), { timeout: 30_000, message: 'expected a message about the missing Twelve Data API key' })
+      .toMatch(/api key|twelve ?data|configure|integrations|unable to update|failed/i);
   });
 });
 
@@ -153,7 +153,6 @@ test.describe('W32 Reports', () => {
 
 test.describe('W33 Challenges', () => {
   test('all challenge tabs render without errors', async ({ authedPage: page }) => {
-    openBug('AUD-45', isMobile(page));
     const w = watch(page);
     await goTo(page, '/challenges');
     for (const t of ['Score', 'Battles', 'Badges', 'Mastery', 'Sprints', 'Predictions', 'Records']) {

@@ -97,7 +97,7 @@ const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose
                   <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
                     Adjust Balance
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                  <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
                     {account.subType || account.type}
                   </span>
                 </div>
@@ -171,42 +171,42 @@ const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose
 
               {/* Quick Adjustment Presets */}
               <div className="space-y-2">
-                <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 block">
+                <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 block">
                   Quick Adjustments
                 </span>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => handleQuickAdjust(50)}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-all active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-all active:scale-95"
                   >
                     +50
                   </button>
                   <button
                     type="button"
                     onClick={() => handleQuickAdjust(100)}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-all active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-all active:scale-95"
                   >
                     +100
                   </button>
                   <button
                     type="button"
                     onClick={() => handleQuickAdjust(500)}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-all active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 transition-all active:scale-95"
                   >
                     +500
                   </button>
                   <button
                     type="button"
                     onClick={() => handleQuickAdjust(-50)}
-                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold border border-rose-500/20 transition-all active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-bold border border-rose-500/20 transition-all active:scale-95"
                   >
                     -50
                   </button>
                   <button
                     type="button"
                     onClick={() => handleQuickAdjust(-100)}
-                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold border border-rose-500/20 transition-all active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-bold border border-rose-500/20 transition-all active:scale-95"
                   >
                     -100
                   </button>

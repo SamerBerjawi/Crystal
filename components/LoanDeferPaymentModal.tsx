@@ -86,7 +86,7 @@ const LoanDeferPaymentModal: React.FC<LoanDeferPaymentModalProps> = ({
       <form onSubmit={handleApply} className="space-y-6">
         {/* Intro Banner */}
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3 text-xs text-amber-800 dark:text-amber-300">
-          <Icon name="info" className="text-lg shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <Icon name="info" className="text-lg shrink-0 mt-0.5 text-amber-700 dark:text-amber-400" />
           <div className="space-y-1 leading-relaxed">
             <p className="font-semibold text-amber-900 dark:text-amber-200">Payment Grace Period & Deferral</p>
             <p>
@@ -121,7 +121,7 @@ const LoanDeferPaymentModal: React.FC<LoanDeferPaymentModalProps> = ({
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Deferral Duration
             </label>
-            <span className="text-xs font-semibold text-primary-500">
+            <span className="text-xs font-semibold text-primary-700 dark:text-primary-400">
               {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'}
             </span>
           </div>
@@ -202,7 +202,7 @@ const LoanDeferPaymentModal: React.FC<LoanDeferPaymentModalProps> = ({
                   onChange={() => setDeferralType('interest_only')}
                   className="sr-only"
                 />
-                {deferralType === 'interest_only' && <Icon name="check_circle" className="text-primary-500 text-sm" />}
+                {deferralType === 'interest_only' && <Icon name="check_circle" className="text-primary-700 dark:text-primary-400 text-sm" />}
               </div>
               <p className="text-2xs opacity-80 leading-relaxed">
                 Principal payments are paused ($0), while regular monthly interest is settled.
@@ -225,7 +225,7 @@ const LoanDeferPaymentModal: React.FC<LoanDeferPaymentModalProps> = ({
             </div>
             <div>
               <span className="text-light-text-secondary dark:text-dark-text-secondary block">New Payoff Date</span>
-              <span className="font-bold text-amber-600 dark:text-amber-400">
+              <span className="font-bold text-amber-700 dark:text-amber-400">
                 {projectedPayoffDate ? projectedPayoffDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A'}
               </span>
             </div>

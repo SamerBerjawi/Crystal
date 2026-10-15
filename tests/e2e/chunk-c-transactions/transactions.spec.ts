@@ -271,7 +271,7 @@ test.describe('W20 Categories', () => {
     const row = page.locator('main').locator('div').filter({ hasText: /^Miscellaneous/ }).first();
     await row.hover();
     await page.locator('main').getByText('Miscellaneous', { exact: true }).first().locator('xpath=ancestor::*[.//button[@aria-label="Delete" or @title="Delete"]][1]').getByRole('button', { name: 'Delete' }).first().click();
-    const btn = page.getByRole('button', { name: /execute deletion/i });
+    const btn = page.getByRole('button', { name: 'Delete', exact: true }).last();
     await expect(btn).toBeVisible();
     await page.waitForTimeout(600);
     const onTop = await btn.evaluate(b => { const r = b.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !!hit && (hit === b || b.contains(hit)); });
@@ -286,7 +286,7 @@ test.describe('W20 Categories', () => {
 test.describe('W21 Tags', () => {
   test('register a tag; it is saved', async ({ authedPage: page, user }) => {
     await goTo(page, '/tags');
-    await page.getByRole('button', { name: 'Register New Tag' }).click();
+    await page.getByRole('button', { name: 'New tag' }).click();
     const modal = page.locator('div.fixed').last();
     await modal.locator('input[type="text"]').first().fill('QA Tag');
     const saved = waitForSave(page);
@@ -331,7 +331,7 @@ test.describe('W23 Merchants', () => {
   test('merchants page lists seeded merchants and opens the detail configuration', async ({ authedPage: page }) => {
     await goTo(page, '/merchants');
     for (const m of ['Netflix', 'Spotify']) await expect(page.locator('main')).toContainText(m);
-    await page.getByRole('button', { name: 'Protocol Configuration' }).first().click();
+    await page.getByRole('button', { name: 'Merchant settings' }).first().click();
     await expect(page.locator('div.fixed').last()).toBeVisible();
   });
 

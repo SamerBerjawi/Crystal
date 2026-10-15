@@ -48,7 +48,7 @@ const CircularGauge: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg' }> = ({
   } else if (clamped >= 50) {
       colorStart = '#eab308'; // Golden Yellow
       colorEnd = '#fde047';
-      tone = 'text-yellow-600 dark:text-yellow-400';
+      tone = 'text-yellow-700 dark:text-yellow-400';
   }
 
   const gaugeGradient = `conic-gradient(${colorStart} ${angle}deg, rgba(255,255,255,0.1) 0deg)`;
@@ -87,17 +87,17 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
     const colorStyles: Record<string, { bg: string; text: string; border: string; shadow: string; iconBg: string }> = {
         blue: { bg: 'from-blue-500/10 to-blue-500/5', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800', shadow: 'shadow-blue-500/20', iconBg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
         purple: { bg: 'from-purple-500/10 to-purple-500/5', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-800', shadow: 'shadow-purple-500/20', iconBg: 'bg-gradient-to-br from-purple-400 to-purple-600' },
-        amber: { bg: 'from-amber-500/10 to-amber-500/5', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', shadow: 'shadow-amber-500/20', iconBg: 'bg-gradient-to-br from-amber-400 to-amber-600' },
-        teal: { bg: 'from-teal-500/10 to-teal-500/5', text: 'text-teal-600 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800', shadow: 'shadow-teal-500/20', iconBg: 'bg-gradient-to-br from-teal-400 to-teal-600' },
+        amber: { bg: 'from-amber-500/10 to-amber-500/5', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', shadow: 'shadow-amber-500/20', iconBg: 'bg-gradient-to-br from-amber-400 to-amber-600' },
+        teal: { bg: 'from-teal-500/10 to-teal-500/5', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800', shadow: 'shadow-teal-500/20', iconBg: 'bg-gradient-to-br from-teal-400 to-teal-600' },
         pink: { bg: 'from-pink-500/10 to-pink-500/5', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-200 dark:border-pink-800', shadow: 'shadow-pink-500/20', iconBg: 'bg-gradient-to-br from-pink-400 to-pink-600' },
-        emerald: { bg: 'from-emerald-500/10 to-emerald-500/5', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-800', shadow: 'shadow-emerald-500/20', iconBg: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
-        cyan: { bg: 'from-cyan-500/10 to-cyan-500/5', text: 'text-cyan-600 dark:text-cyan-400', border: 'border-cyan-200 dark:border-cyan-800', shadow: 'shadow-cyan-500/20', iconBg: 'bg-gradient-to-br from-cyan-400 to-cyan-600' },
-        green: { bg: 'from-green-500/10 to-green-500/5', text: 'text-green-600 dark:text-green-400', border: 'border-green-200 dark:border-green-800', shadow: 'shadow-green-500/20', iconBg: 'bg-gradient-to-br from-green-400 to-green-600' },
-        orange: { bg: 'from-orange-500/10 to-orange-500/5', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', shadow: 'shadow-orange-500/20', iconBg: 'bg-gradient-to-br from-orange-400 to-orange-600' },
+        emerald: { bg: 'from-emerald-500/10 to-emerald-500/5', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-800', shadow: 'shadow-emerald-500/20', iconBg: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
+        cyan: { bg: 'from-cyan-500/10 to-cyan-500/5', text: 'text-cyan-700 dark:text-cyan-400', border: 'border-cyan-200 dark:border-cyan-800', shadow: 'shadow-cyan-500/20', iconBg: 'bg-gradient-to-br from-cyan-400 to-cyan-600' },
+        green: { bg: 'from-green-500/10 to-green-500/5', text: 'text-green-700 dark:text-green-400', border: 'border-green-200 dark:border-green-800', shadow: 'shadow-green-500/20', iconBg: 'bg-gradient-to-br from-green-400 to-green-600' },
+        orange: { bg: 'from-orange-500/10 to-orange-500/5', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', shadow: 'shadow-orange-500/20', iconBg: 'bg-gradient-to-br from-orange-400 to-orange-600' },
         indigo: { bg: 'from-indigo-500/10 to-indigo-500/5', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-800', shadow: 'shadow-indigo-500/20', iconBg: 'bg-gradient-to-br from-indigo-400 to-indigo-600' },
         slate: { bg: 'from-slate-500/10 to-slate-500/5', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-800', shadow: 'shadow-slate-500/20', iconBg: 'bg-gradient-to-br from-slate-400 to-slate-600' },
-        red: { bg: 'from-red-500/10 to-red-500/5', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800', shadow: 'shadow-red-500/20', iconBg: 'bg-gradient-to-br from-red-400 to-red-600' },
-        yellow: { bg: 'from-yellow-500/10 to-yellow-500/5', text: 'text-yellow-600 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800', shadow: 'shadow-yellow-500/20', iconBg: 'bg-gradient-to-br from-yellow-400 to-yellow-600' },
+        red: { bg: 'from-red-500/10 to-red-500/5', text: 'text-red-700 dark:text-red-400', border: 'border-red-200 dark:border-red-800', shadow: 'shadow-red-500/20', iconBg: 'bg-gradient-to-br from-red-400 to-red-600' },
+        yellow: { bg: 'from-yellow-500/10 to-yellow-500/5', text: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800', shadow: 'shadow-yellow-500/20', iconBg: 'bg-gradient-to-br from-yellow-400 to-yellow-600' },
         violet: { bg: 'from-violet-500/10 to-violet-500/5', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800', shadow: 'shadow-violet-500/20', iconBg: 'bg-gradient-to-br from-violet-400 to-violet-600' },
     };
 
@@ -266,7 +266,7 @@ const PersonalBestLeaderboard: React.FC<{
                          <Icon name="military_tech" className="text-8xl" />
                      </div>
                      
-                     <p className="text-xs font-bold tracking-widest text-amber-600 dark:text-amber-400 uppercase mb-1">All-Time High Net Worth</p>
+                     <p className="text-xs font-bold tracking-widest text-amber-700 dark:text-amber-400 uppercase mb-1">All-Time High Net Worth</p>
                      <h3 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
                          {formatCurrency(ath, 'EUR')}
                      </h3>
@@ -276,12 +276,12 @@ const PersonalBestLeaderboard: React.FC<{
                          <div className="mt-4">
                              <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
                                  <span>Current Progress</span>
-                                 <span className="text-amber-600 dark:text-amber-400">{((currentNetWorth / ath) * 100).toFixed(1)}%</span>
+                                 <span className="text-amber-700 dark:text-amber-400">{((currentNetWorth / ath) * 100).toFixed(1)}%</span>
                              </div>
                              <div className="w-full h-3 bg-gray-100 dark:bg-black/40 rounded-full overflow-hidden">
                                  <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full shadow-xs" style={{ width: `${(currentNetWorth / ath) * 100}%` }}></div>
                              </div>
-                             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-semibold text-right">
+                             <p className="text-xs text-amber-700 dark:text-amber-400 mt-1.5 font-semibold text-right">
                                  {formatCurrency(ath - currentNetWorth, 'EUR')} to go
                              </p>
                          </div>
@@ -425,8 +425,8 @@ const CategoryMasteryCard: React.FC<CategoryMasteryProps> = ({
     const getLevelStyle = () => {
         if (level === 1) return { border: 'border-amber-700/20 dark:border-amber-700/30', bg: 'bg-gradient-to-b from-amber-700/5 to-transparent', text: 'text-amber-800 dark:text-amber-600', shadow: 'shadow-amber-900/5' };
         if (level === 2) return { border: 'border-slate-400/20 dark:border-slate-400/30', bg: 'bg-gradient-to-b from-slate-400/5 to-transparent', text: 'text-slate-600 dark:text-slate-300', shadow: 'shadow-slate-500/5' };
-        if (level === 3) return { border: 'border-yellow-500/30 dark:border-yellow-500/40', bg: 'bg-gradient-to-b from-yellow-500/10 to-transparent', text: 'text-yellow-600 dark:text-yellow-400', shadow: 'shadow-yellow-500/10' };
-        if (level === 4) return { border: 'border-cyan-400/30 dark:border-cyan-400/40', bg: 'bg-gradient-to-b from-cyan-400/10 to-transparent', text: 'text-cyan-600 dark:text-cyan-400', shadow: 'shadow-cyan-500/10' };
+        if (level === 3) return { border: 'border-yellow-500/30 dark:border-yellow-500/40', bg: 'bg-gradient-to-b from-yellow-500/10 to-transparent', text: 'text-yellow-700 dark:text-yellow-400', shadow: 'shadow-yellow-500/10' };
+        if (level === 4) return { border: 'border-cyan-400/30 dark:border-cyan-400/40', bg: 'bg-gradient-to-b from-cyan-400/10 to-transparent', text: 'text-cyan-700 dark:text-cyan-400', shadow: 'shadow-cyan-500/10' };
         return { border: 'border-purple-500/40 dark:border-purple-500/50', bg: 'bg-gradient-to-b from-purple-500/15 to-transparent', text: 'text-purple-600 dark:text-purple-400', shadow: 'shadow-purple-500/20' };
     };
 
@@ -946,7 +946,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   ];
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in-up relative">
+    <div className="space-y-8 pb-12 animate-fade-in-up relative overflow-x-clip">
       {/* Radiant Golden Background Glow Orbs */}
       <div className="absolute -top-20 -left-20 w-[550px] h-[550px] bg-gradient-to-br from-amber-400/20 via-yellow-500/15 to-transparent rounded-full blur-3xl pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '8s' }}></div>
       <div className="absolute top-10 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-yellow-400/15 via-amber-500/10 to-transparent rounded-full blur-3xl pointer-events-none -z-10"></div>
@@ -993,7 +993,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               <div className="space-y-12 animate-fade-in-up">
                   {debtBosses.length > 0 && (
                       <div>
-                          <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+                          <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-4 flex items-center gap-2">
                               <Icon name="swords" />
                               Debt Nemeses
                           </h3>
@@ -1007,7 +1007,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
                   {savingsBosses.length > 0 && (
                       <div>
-                           <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
+                           <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-4 flex items-center gap-2">
                               <Icon name="shield" />
                               Savings Guardians
                           </h3>
@@ -1105,7 +1105,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-2">{sprint.description}</p>
                                    <div className="flex justify-between items-center mt-auto pt-3 border-t border-black/5 dark:border-white/5">
                                        <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">{sprint.durationDays} Days</span>
-                                       <span className="text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:text-amber-500 transition-colors">Start</span>
+                                       <span className="text-xs font-bold text-amber-700 dark:text-amber-400 group-hover:text-amber-500 transition-colors">Start</span>
                                    </div>
                                </Card>
                            ))}

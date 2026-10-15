@@ -150,7 +150,6 @@ test.describe('W25 Goals', () => {
 
 test.describe('W26 Forecasting', () => {
   test('forecast renders for every horizon without errors', async ({ authedPage: page }) => {
-    openBug('AUD-45', isMobile(page));
     const w = watch(page);
     await goTo(page, '/forecasting');
     for (const h of ['3M', '6M', 'EOY', '1Y']) {

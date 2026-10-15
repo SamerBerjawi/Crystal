@@ -369,7 +369,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                         <Icon name="verified" className="text-lg" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wider mb-0.5">Auto-Pay Active</p>
+                                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 tracking-wider mb-0.5">Auto-Pay Active</p>
                                         <p className="text-xs font-medium text-emerald-600/70 transition-colors group-hover/status:text-emerald-500 tracking-wide">Linked to Clearing Account</p>
                                     </div>
                                 </div>
@@ -378,7 +378,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                     <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
                                         <Icon name="warning" className="text-lg" />
                                     </div>
-                                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400 tracking-wider">Manual Payment Required</p>
+                                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400 tracking-wider">Manual Payment Required</p>
                                 </div>
                             )}
                         </div>

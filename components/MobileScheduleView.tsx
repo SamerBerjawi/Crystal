@@ -305,7 +305,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
         {/* ================================================================= */}
         <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
               Cashflow & Commitments
             </p>
             <div className="flex items-center gap-2">
@@ -313,7 +313,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                 Schedule & Bills
               </h1>
               {overdueItems.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                   {overdueItems.length} Overdue
                 </span>
@@ -437,7 +437,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
             onClick={() => setActiveTab('timeline')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
               activeTab === 'timeline'
-                ? 'bg-white dark:bg-[#2c2d30] text-orange-600 dark:text-orange-400 shadow-sm'
+                ? 'bg-white dark:bg-[#2c2d30] text-orange-700 dark:text-orange-400 shadow-sm'
                 : 'text-light-text-secondary dark:text-dark-text-secondary'
             }`}
           >
@@ -450,7 +450,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
             onClick={() => setActiveTab('rules')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
               activeTab === 'rules'
-                ? 'bg-white dark:bg-[#2c2d30] text-orange-600 dark:text-orange-400 shadow-sm'
+                ? 'bg-white dark:bg-[#2c2d30] text-orange-700 dark:text-orange-400 shadow-sm'
                 : 'text-light-text-secondary dark:text-dark-text-secondary'
             }`}
           >
@@ -463,7 +463,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
             onClick={() => setActiveTab('analytics')}
             className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
               activeTab === 'analytics'
-                ? 'bg-white dark:bg-[#2c2d30] text-orange-600 dark:text-orange-400 shadow-sm'
+                ? 'bg-white dark:bg-[#2c2d30] text-orange-700 dark:text-orange-400 shadow-sm'
                 : 'text-light-text-secondary dark:text-dark-text-secondary'
             }`}
           >
@@ -477,7 +477,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
               onClick={() => setActiveTab('overdue')}
               className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
                 activeTab === 'overdue'
-                  ? 'bg-white dark:bg-[#2c2d30] text-rose-600 dark:text-rose-400 shadow-sm'
+                  ? 'bg-white dark:bg-[#2c2d30] text-rose-700 dark:text-rose-400 shadow-sm'
                   : 'text-rose-500'
               }`}
             >
@@ -501,15 +501,15 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                   className="w-full p-4 flex items-center justify-between text-left active:bg-rose-500/15 transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
                       <Icon name="warning" className="text-xl animate-pulse" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                        <span className="text-xs font-bold text-rose-700 dark:text-rose-400">
                           Overdue Obligations
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-600 dark:text-rose-300">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300">
                           {overdueItems.length}
                         </span>
                       </div>
@@ -520,7 +520,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
+                    <span className="text-xs font-bold text-rose-700 dark:text-rose-400 privacy-blur">
                       -{formatCurrency(overdueTotal, curr)}
                     </span>
                     <Icon
@@ -630,7 +630,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                       {dateRelative}
                                     </span>
                                     {accountName && (
-                                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80 truncate">
                                         • {accountName}
                                       </span>
                                     )}
@@ -639,10 +639,10 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                               </div>
 
                               <div className="text-right shrink-0">
-                                <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
+                                <p className="text-xs font-bold text-rose-700 dark:text-rose-400 privacy-blur">
                                   -{formatCurrency(Math.abs(item.amount), curr)}
                                 </p>
-                                <span className="text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 inline-block mt-0.5">
+                                <span className="text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-700 dark:text-rose-300 inline-block mt-0.5">
                                   {frequency}
                                 </span>
                               </div>
@@ -784,7 +784,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                       {dateRelative}
                                     </span>
                                     {accountName && (
-                                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80 truncate">
                                         • {accountName}
                                       </span>
                                     )}
@@ -796,7 +796,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                                 <p
                                   className={`text-xs font-bold privacy-blur ${
                                     isIncome
-                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      ? 'text-emerald-700 dark:text-emerald-400'
                                       : 'text-light-text dark:text-white'
                                   }`}
                                 >
@@ -905,7 +905,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                             {rule.description}
                           </p>
                           {rule.isSynthetic && (
-                            <span className="px-1.5 py-0.5 rounded text-2xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <span className="px-1.5 py-0.5 rounded text-2xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">
                               Auto-Sync
                             </span>
                           )}
@@ -1057,7 +1057,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                   <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">
                     Dominant Inflow
                   </span>
-                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
                     +{formatCurrency(majorInflow.amount, curr)}
                   </p>
                   <p className="text-xs text-light-text dark:text-white font-bold truncate mt-0.5">
@@ -1079,7 +1079,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
           <div className="space-y-3 animate-fade-in">
             <div className="p-4 rounded-3xl bg-rose-500/10 border border-rose-500/20 shadow-sm flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                <h3 className="text-sm font-bold text-rose-700 dark:text-rose-400">
                   Overdue Obligations ({overdueItems.length})
                 </h3>
                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
@@ -1140,7 +1140,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
+                      <p className="text-xs font-bold text-rose-700 dark:text-rose-400 privacy-blur">
                         -{formatCurrency(Math.abs(item.amount), curr)}
                       </p>
                       <button
@@ -1176,7 +1176,7 @@ export const MobileScheduleView: React.FC<MobileScheduleViewProps> = ({
               }}
               className="w-full p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center gap-3.5 text-left active:bg-black/5 transition-all"
             >
-              <div className="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20">
+              <div className="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-700 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20">
                 <Icon name="receipt_long" className="text-xl" />
               </div>
               <div>

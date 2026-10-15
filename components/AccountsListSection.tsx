@@ -201,7 +201,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                         <h4 className="font-bold text-light-text dark:text-dark-text text-m tracking-tight">{groupName}</h4>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className={`font-mono text-m font-bold px-2 py-0.5 rounded-full transition-colors ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.pill || 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'}`}>
+                                        <span className={`font-mono text-m font-bold privacy-blur px-2 py-0.5 rounded-full transition-colors ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.pill || 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'}`}>
                                             {formatCurrency(groupTotal, 'EUR')}
                                         </span>
                                          <Icon name="expand_more" className={`text-m text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`} />

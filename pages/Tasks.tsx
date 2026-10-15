@@ -256,9 +256,9 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                             onChange={e => setSortBy(e.target.value as any)} 
                             className="w-full glass-tile rounded-2xl px-4 py-3 text-xs font-bold appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-card"
                         >
-                            <option value="manual">Manual Sequence</option>
-                            <option value="priority-desc">Priority Sift</option>
-                            <option value="dueDate-asc">Temporal Sort</option>
+                            <option value="manual">Manual order</option>
+                            <option value="priority-desc">Priority</option>
+                            <option value="dueDate-asc">Due date</option>
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
                             <Icon name="sliders" className="text-lg" />

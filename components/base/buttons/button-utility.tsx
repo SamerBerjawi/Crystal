@@ -39,7 +39,7 @@ export const ButtonUtility = ({
         primary: "bg-primary-600 text-white hover:bg-primary-700 shadow-xs active:bg-primary-800",
         secondary: "bg-white dark:bg-dark-card text-light-text dark:text-dark-text ring-1 ring-black/10 dark:ring-white/10 hover:bg-black/5 dark:hover:bg-white/5 shadow-xs",
         tertiary: "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/15",
-        error: "text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20",
+        error: "text-red-700 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20",
     };
 
     const button = (

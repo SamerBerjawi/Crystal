@@ -223,17 +223,17 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                 ) : (
                                     <>
                                         <td className="p-4 text-right font-semibold">{formatCurrency(payment.totalPayment, account.currency)}</td>
-                                        <td className="p-4 text-right text-light-text-secondary/60 dark:text-dark-text-secondary/60 font-medium">{formatCurrency(payment.principal, account.currency)}</td>
-                                        <td className="p-4 text-right text-light-text-secondary/60 dark:text-dark-text-secondary/60 font-medium">{formatCurrency(payment.interest, account.currency)}</td>
+                                        <td className="p-4 text-right text-light-text-secondary/80 dark:text-dark-text-secondary/80 font-medium">{formatCurrency(payment.principal, account.currency)}</td>
+                                        <td className="p-4 text-right text-light-text-secondary/80 dark:text-dark-text-secondary/80 font-medium">{formatCurrency(payment.interest, account.currency)}</td>
                                     </>
                                 )}
                                 
                                 <td className="p-4 text-right font-mono text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.outstandingBalance, account.currency)}</td>
                                 <td className="p-4 text-center">
                                     <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${
-                                        payment.status === 'Paid' ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
-                                        payment.status === 'Deferred' ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20' :
-                                        payment.status === 'Overdue' ? 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20' :
+                                        payment.status === 'Paid' ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' :
+                                        payment.status === 'Deferred' ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/20' :
+                                        payment.status === 'Overdue' ? 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-500/20' :
                                         'bg-slate-500/5 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-500/10'
                                     }`}>{payment.status}</span>
                                 </td>
@@ -253,7 +253,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                                     setTargetModalPaymentNumber(payment.paymentNumber);
                                                     setIsEarlyModalOpen(true);
                                                 }} 
-                                                className="p-1.5 rounded-full hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors" 
+                                                className="p-1.5 rounded-full hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 transition-colors" 
                                                 title="Early Extra Payment"
                                             >
                                                 <Icon name="bolt" className="text-base" />
@@ -263,7 +263,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                                                     setTargetModalPaymentNumber(payment.paymentNumber);
                                                     setIsDeferModalOpen(true);
                                                 }} 
-                                                className="p-1.5 rounded-full hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors" 
+                                                className="p-1.5 rounded-full hover:bg-amber-500/10 text-amber-700 dark:text-amber-400 transition-colors" 
                                                 title="Defer This Payment"
                                             >
                                                 <Icon name="pause_circle" className="text-base" />

@@ -5,6 +5,7 @@ import { EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 interface EnableBankingSyncModalProps {
   isOpen: boolean;
@@ -93,7 +94,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
     const resolvedUpdateBalance = transactionMode === 'none' ? true : state.updateBalance;
 
     if (transactionMode === 'full' && !resolvedSyncStartDate) {
-      alert('Select a sync start date to continue.');
+      toast.error('Select a sync start date to continue.');
       return;
     }
 

@@ -11,14 +11,14 @@ const ACCENT_MAP: Record<string, { active: string; glow: string; countActive: st
     countActive: 'bg-primary-500/15 text-primary-600 dark:text-primary-400',
   },
   amber: {
-    active: 'glass-tile text-amber-600 dark:text-amber-300 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]',
+    active: 'glass-tile text-amber-700 dark:text-amber-300 border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]',
     glow: '',
     countActive: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
   },
   emerald: {
-    active: 'glass-tile text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-card',
+    active: 'glass-tile text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shadow-card',
     glow: '',
-    countActive: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    countActive: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
   },
   indigo: {
     active: 'glass-tile text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shadow-card',
@@ -26,14 +26,14 @@ const ACCENT_MAP: Record<string, { active: string; glow: string; countActive: st
     countActive: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
   },
   cyan: {
-    active: 'glass-tile text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-card',
+    active: 'glass-tile text-cyan-700 dark:text-cyan-400 border border-cyan-500/30 shadow-card',
     glow: '',
-    countActive: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400',
+    countActive: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400',
   },
   rose: {
-    active: 'glass-tile text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-card',
+    active: 'glass-tile text-rose-700 dark:text-rose-400 border border-rose-500/30 shadow-card',
     glow: '',
-    countActive: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
+    countActive: 'bg-rose-500/15 text-rose-700 dark:text-rose-400',
   },
   purple: {
     active: 'glass-tile text-purple-600 dark:text-purple-400 border border-purple-500/30 shadow-card',
@@ -41,14 +41,14 @@ const ACCENT_MAP: Record<string, { active: string; glow: string; countActive: st
     countActive: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
   },
   teal: {
-    active: 'glass-tile text-teal-600 dark:text-teal-400 border border-teal-500/30 shadow-card',
+    active: 'glass-tile text-teal-700 dark:text-teal-400 border border-teal-500/30 shadow-card',
     glow: '',
-    countActive: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
+    countActive: 'bg-teal-500/15 text-teal-700 dark:text-teal-400',
   },
   orange: {
-    active: 'glass-tile text-orange-600 dark:text-orange-400 border border-orange-500/30 shadow-card',
+    active: 'glass-tile text-orange-700 dark:text-orange-400 border border-orange-500/30 shadow-card',
     glow: '',
-    countActive: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+    countActive: 'bg-orange-500/15 text-orange-700 dark:text-orange-400',
   },
 };
 
@@ -154,7 +154,7 @@ const SegmentedControl: React.FC<SegmentedControlProps> = ({
 
           <div className="flex flex-col items-center px-4 sm:px-6 min-w-[130px] sm:min-w-[150px] select-none">
             {stepperLabel && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
                 {stepperLabel}
               </span>
             )}

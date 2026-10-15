@@ -360,7 +360,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedFontCategory(cat.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3 py-1 min-h-[28px] rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                         isActive
                           ? 'bg-purple-600 text-white shadow-xs'
                           : 'bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-neutral-300 hover:bg-black/10 dark:hover:bg-white/10'
@@ -471,7 +471,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
                     </p>
                   </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
                   {preferences.currency.split(' ')[0]}
                 </span>
               </div>
@@ -494,7 +494,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
                         }`}
                       >
                         <span className="text-xs truncate">{c.label}</span>
-                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 ml-1">
+                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 ml-1">
                           {c.symbol}
                         </span>
                       </button>
@@ -592,7 +592,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
                     </p>
                   </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
                   {formattedTodayPreview}
                 </span>
               </div>
@@ -602,7 +602,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
                   <label htmlFor="date-format-select" className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
                     Date Presentation Standard
                   </label>
-                  <span className="text-2xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                  <span className="text-2xs font-mono font-bold text-amber-700 dark:text-amber-400">
                     Live: {formattedTodayPreview}
                   </span>
                 </div>
@@ -800,12 +800,12 @@ export const Preferences: React.FC<PreferencesProps> = ({
                     aria-checked={!!preferences.excludeTransfersFromAnalytics}
                     aria-label="Exclude internal transfers from charts"
                     onClick={() => handleToggle('excludeTransfersFromAnalytics')}
-                    className={`w-11 h-6 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
+                    className={`w-12 h-7 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
                       preferences.excludeTransfersFromAnalytics ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'
                     }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                      className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
                         preferences.excludeTransfersFromAnalytics ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
@@ -827,12 +827,12 @@ export const Preferences: React.FC<PreferencesProps> = ({
                     aria-checked={!!preferences.showBalanceAdjustments}
                     aria-label="Show manual balance adjustments"
                     onClick={() => handleToggle('showBalanceAdjustments')}
-                    className={`w-11 h-6 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
+                    className={`w-12 h-7 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
                       preferences.showBalanceAdjustments ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'
                     }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                      className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
                         preferences.showBalanceAdjustments ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />
@@ -854,12 +854,12 @@ export const Preferences: React.FC<PreferencesProps> = ({
                     aria-checked={!!preferences.isPrivacyMode}
                     aria-label="Privacy mode"
                     onClick={() => handleToggle('isPrivacyMode')}
-                    className={`w-11 h-6 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
+                    className={`w-12 h-7 rounded-full transition-colors duration-200 relative cursor-pointer shrink-0 p-0.5 ${
                       preferences.isPrivacyMode ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-700'
                     }`}
                   >
                     <div
-                      className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                      className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
                         preferences.isPrivacyMode ? 'translate-x-5' : 'translate-x-0'
                       }`}
                     />

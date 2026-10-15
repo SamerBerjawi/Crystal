@@ -326,7 +326,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   {formatCurrency(primaryTx.amount, primaryTx.currency)}
                 </span>
 
-                <span className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider font-mono">
+                <span className="text-xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider font-mono">
                   {primaryTx.currency}
                 </span>
               </div>
@@ -346,7 +346,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="credit_card" className="text-sky-600 dark:text-sky-400 text-sm shrink-0" />
+              <Icon name="credit_card" className="text-sky-700 dark:text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Method</span>
                 <span className="font-bold text-slate-900 dark:text-white text-xs">{account?.type || 'Direct'}</span>
@@ -357,7 +357,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               <>
                 <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Icon name="check_circle" className="text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
+                  <Icon name="check_circle" className="text-emerald-700 dark:text-emerald-400 text-sm shrink-0" />
                   <div className="flex flex-col">
                     <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Status</span>
                     <span className="font-bold text-slate-900 dark:text-white text-xs capitalize">{(primaryTx as any).status}</span>
@@ -394,7 +394,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               <div className="grid grid-cols-2 gap-5">
                 {/* Metric 1: Account */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Account
                   </p>
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -412,7 +412,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 truncate leading-tight font-mono">
+                      <p className="text-sm sm:text-base font-black text-amber-700 dark:text-amber-400 truncate leading-tight font-mono">
                         {account?.name || 'Account'}
                       </p>
                       {account?.last4 && (
@@ -424,7 +424,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
                 {/* Metric 2: Amount */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Net Flow
                   </p>
                   <p
@@ -440,7 +440,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
                 {/* Metric 3: Category */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Classification
                   </p>
                   <p className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate leading-tight">
@@ -451,10 +451,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
                 {/* Metric 4: Route / Execution */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Execution
                   </p>
-                  <p className="text-sm sm:text-base font-black text-sky-600 dark:text-sky-400 truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-sky-700 dark:text-sky-400 truncate leading-tight font-mono">
                     {isTransfer ? 'Transfer' : (account?.financialInstitution || 'Direct')}
                   </p>
                   <p className="text-2xs text-slate-500 dark:text-gray-500">{primaryTx.date}</p>
@@ -464,13 +464,13 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               {/* Transfer Details Card (if Transfer) */}
               {isTransfer && counterpartAccount && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Transfer Bridge
                   </p>
                   <div className="flex items-center justify-between bg-white dark:bg-black/30 p-3 rounded-2xl text-xs font-semibold border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
-                    <span className="text-amber-600 dark:text-amber-400 truncate">{account?.name}</span>
+                    <span className="text-amber-700 dark:text-amber-400 truncate">{account?.name}</span>
                     <Icon name="arrow_forward" className="text-xs text-slate-400 dark:text-gray-400 mx-2 shrink-0" />
-                    <span className="text-emerald-600 dark:text-emerald-400 truncate">{counterpartAccount.name}</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 truncate">{counterpartAccount.name}</span>
                   </div>
                 </div>
               )}
@@ -479,7 +479,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               {(primaryTx.placeName || primaryTx.locationLabel || primaryTx.city || primaryTx.address) && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                       Location
                     </p>
                     <a
@@ -515,7 +515,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               {/* Description / Memo */}
               {primaryTx.description && primaryTx.description !== primaryTx.merchant && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Internal Memo
                   </p>
                   <p className="text-xs text-slate-800 dark:text-gray-200 leading-relaxed font-medium bg-white dark:bg-black/20 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
@@ -527,7 +527,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               {/* Notes */}
               {primaryTx.notes && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Notes & Remarks
                   </p>
                   <div className="bg-white dark:bg-black/30 p-3 rounded-2xl text-xs text-slate-800 dark:text-gray-300 whitespace-pre-wrap border border-slate-200/80 dark:border-white/5 leading-relaxed shadow-xs dark:shadow-none">
@@ -539,7 +539,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               {/* Tags */}
               {txTags.length > 0 && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Tags
                   </p>
                   <div className="flex flex-wrap gap-1.5">
@@ -559,19 +559,19 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               {/* Loan Breakdown if applicable */}
               {(primaryTx.principalAmount || primaryTx.interestAmount) && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Loan Payment Breakdown
                   </p>
                   <div className="grid grid-cols-2 gap-3 bg-white dark:bg-black/30 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-xs dark:shadow-none">
                     <div>
                       <span className="text-2xs text-slate-600 dark:text-gray-400 font-medium">Principal</span>
-                      <p className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      <p className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-400 mt-0.5">
                         {formatCurrency(primaryTx.principalAmount || 0, primaryTx.currency)}
                       </p>
                     </div>
                     <div>
                       <span className="text-2xs text-slate-600 dark:text-gray-400 font-medium">Interest</span>
-                      <p className="text-xs font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+                      <p className="text-xs font-bold font-mono text-rose-700 dark:text-rose-400 mt-0.5">
                         {formatCurrency(primaryTx.interestAmount || 0, primaryTx.currency)}
                       </p>
                     </div>

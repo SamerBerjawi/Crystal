@@ -24,6 +24,7 @@ import {
 import { parseLocalDate, toLocalISOString, formatCurrency, safeRound } from '../utils';
 import Icon from './ui/Icon';
 import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 export interface RecurringTransactionModalProps {
   isOpen?: boolean;
@@ -230,13 +231,13 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
     const interval = parseInt(frequencyInterval, 10);
 
     if (!amount || !accountId || !startDate || isMissingCategory || isMissingToAccount || !interval || interval < 1) {
-      alert('Please fill in all required fields with valid values.');
+      toast.error('Please fill in all required fields with valid values.');
       return;
     }
 
     const fromAccount = accounts.find((acc) => acc.id === accountId);
     if (!fromAccount) {
-      alert("Selected 'from' account is invalid.");
+      toast.error("Selected 'from' account is invalid.");
       return;
     }
 
@@ -283,7 +284,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
 
     const numAmount = parseFloat(billAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert('Please enter a valid amount.');
+      toast.error('Please enter a valid amount.');
       return;
     }
 
@@ -372,7 +373,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 mode === 'recurring'
                   ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
-                  : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                  : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
               }`}
             >
               <Icon name="event_repeat" className="text-base" />
@@ -383,8 +384,8 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
               onClick={() => setMode('one-time')}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 mode === 'one-time'
-                  ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
-                  : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                  ? 'bg-white dark:bg-dark-card text-teal-700 dark:text-teal-400 shadow-sm'
+                  : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
               }`}
             >
               <Icon name="receipt" className="text-base" />
@@ -408,7 +409,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                   className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     type === 'expense'
                       ? 'bg-white dark:bg-dark-card text-rose-500 shadow-sm'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                   }`}
                 >
                   Expense
@@ -419,7 +420,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                   className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     type === 'income'
                       ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                   }`}
                 >
                   Income
@@ -430,7 +431,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                   className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     type === 'transfer'
                       ? 'bg-white dark:bg-dark-card text-blue-500 shadow-sm'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                   }`}
                 >
                   Transfer
@@ -464,7 +465,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
               {/* Core Logistics Section */}
               <div className="space-y-4 p-5 rounded-3xl bg-black/[0.015] dark:bg-white/[0.015] border border-black/5 dark:border-white/5">
                 <h4 className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                  <Icon name="tag" className="text-primary-500 text-sm" />
+                  <Icon name="tag" className="text-primary-700 dark:text-primary-400 text-sm" />
                   <span>Entity & Taxonomy</span>
                 </h4>
 
@@ -753,7 +754,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                   className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     billType === 'payment'
                       ? 'bg-white dark:bg-dark-card text-rose-500 shadow-sm'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                   }`}
                 >
                   Expenditure / Outflow
@@ -764,7 +765,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({
                   className={`flex-1 py-2.5 text-xs font-bold tracking-wider uppercase rounded-xl transition-all ${
                     billType === 'deposit'
                       ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
-                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                      : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                   }`}
                 >
                   Acquisition / Inflow

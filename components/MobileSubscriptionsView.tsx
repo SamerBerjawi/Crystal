@@ -142,7 +142,7 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
+                    <p className="text-xs font-bold text-rose-700 dark:text-rose-400 privacy-blur">
                       {formatCurrency(sub.amount, subCurrency)}
                     </p>
                     <span className="text-2xs font-semibold text-gray-400 block mt-0.5 uppercase tracking-wider">

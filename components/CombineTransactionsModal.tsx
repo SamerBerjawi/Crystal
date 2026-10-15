@@ -4,6 +4,7 @@ import { Transaction, Category, Account } from '../types';
 import { formatCurrency, safeRound } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { toast } from 'sonner';
 
 interface CombineTransactionsModalProps {
   onClose: () => void;
@@ -60,7 +61,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
 
   const handleSave = () => {
     if (!description.trim()) {
-      alert('Please enter a valid description for the combined transaction.');
+      toast.error('Please enter a valid description for the combined transaction.');
       return;
     }
 
@@ -102,7 +103,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
           </div>
           <div className="text-right shrink-0">
             <p className="text-2xl font-mono font-bold text-light-text dark:text-dark-text">{formatCurrency(Math.abs(totalAmount), currency)}</p>
-            <span className={`text-2xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-block mt-1 ${totalAmount >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'}`}>
+            <span className={`text-2xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-block mt-1 ${totalAmount >= 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'}`}>
               {totalAmount >= 0 ? 'Net Income' : 'Net Expense'}
             </span>
           </div>
@@ -178,7 +179,7 @@ const CombineTransactionsModal: React.FC<CombineTransactionsModalProps> = ({
                   <p className="font-bold text-light-text dark:text-dark-text text-xs">{tx.description}</p>
                   <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">{tx.category} • {tx.date}</p>
                 </div>
-                <p className={`font-mono font-bold text-xs ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                <p className={`font-mono font-bold text-xs ${tx.type === 'income' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                   {formatCurrency(tx.amount, tx.currency)}
                 </p>
               </div>

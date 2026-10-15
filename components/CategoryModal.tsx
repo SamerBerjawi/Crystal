@@ -128,8 +128,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                   </h2>
                   <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
                     classification === 'income'
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                   }`}>
                     {classification}
                   </span>
@@ -161,7 +161,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                     className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                       classification === 'expense'
                         ? 'bg-white dark:bg-dark-card text-rose-500 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="trending_down" className="text-base" />
@@ -173,7 +173,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                     className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                       classification === 'income'
                         ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="trending_up" className="text-base" />
@@ -208,7 +208,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIconPickerOpen(true)}
-                    className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1"
+                    className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 flex items-center gap-1"
                   >
                     <span>Change Icon</span>
                     <Icon name="chevron_right" className="text-sm" />

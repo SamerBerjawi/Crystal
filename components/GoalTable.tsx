@@ -135,7 +135,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
                 {isCompleted && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-emerald-500/50" />
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Completed</span>
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Completed</span>
                   </>
                 )}
               </div>
@@ -167,7 +167,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
           </p>
         </td>
         <td className="py-4 px-4">
-          <p className="text-sm text-center font-bold text-primary-500">
+          <p className="text-sm text-center font-bold text-primary-700 dark:text-primary-400">
             {goal.projection?.projectedDate && goal.projection.projectedDate !== 'Beyond forecast' && goal.projection.projectedDate !== 'Goal reached'
               ? parseLocalDate(goal.projection.projectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               : goal.projection?.projectedDate || '-'}
@@ -203,13 +203,13 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
       <div className="flex items-center gap-4 bg-light-fill dark:bg-dark-fill p-2 rounded-xl border border-black/5 dark:border-white/5 self-start inline-flex">
           <button 
             onClick={() => setGroupByBucket(false)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-700 dark:text-primary-400' : 'text-light-text-secondary dark:text-neutral-300'}`}
           >
             List All
           </button>
           <button 
             onClick={() => setGroupByBucket(true)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-700 dark:text-primary-400' : 'text-light-text-secondary dark:text-neutral-300'}`}
           >
             Group by Bucket
           </button>

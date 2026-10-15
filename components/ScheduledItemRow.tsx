@@ -102,10 +102,10 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
     const showLogo = Boolean(logoUrl && !logoLoadError);
 
     const amountColor = isIncome 
-        ? 'text-emerald-600 dark:text-emerald-400' 
+        ? 'text-emerald-700 dark:text-emerald-400' 
         : isTransfer 
             ? 'text-light-text dark:text-dark-text' 
-            : 'text-rose-600 dark:text-rose-400';
+            : 'text-rose-700 dark:text-rose-400';
     
     const opacityClass = isSkipped ? 'opacity-50' : 'opacity-100';
     const strikethroughClass = isSkipped ? 'line-through decoration-gray-500' : '';
@@ -137,11 +137,11 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
             <span className={`${compact ? 'text-2xs' : 'text-xs'} font-black tracking-[0.2em] transition-colors ${
                 isOverdue 
                     ? (item.isRecurring ? 'text-indigo-500 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400') 
-                    : 'text-light-text-secondary/60 dark:text-dark-text-secondary/60'
+                    : 'text-light-text-secondary/80 dark:text-dark-text-secondary/80'
             }`}>{month}</span>
             <span className={`${compact ? 'text-lg' : 'text-2xl'} font-black leading-none tabular-nums tracking-tighter ${
                 isOverdue 
-                    ? (item.isRecurring ? 'text-indigo-600 dark:text-indigo-300' : 'text-rose-600 dark:text-rose-300') 
+                    ? (item.isRecurring ? 'text-indigo-600 dark:text-indigo-300' : 'text-rose-700 dark:text-rose-300') 
                     : 'text-light-text dark:text-dark-text'
             }`}>{day}</span>
         </div>
@@ -187,7 +187,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                         </span>
                     )}
                     {item.isOverride && !isSkipped && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 tracking-widest border border-amber-500/10">MOD</span>
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-amber-500/10 text-amber-700 dark:text-amber-400 tracking-widest border border-amber-500/10">MOD</span>
                     )}
                     {isOverdue && item.isRecurring && (
                         <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 tracking-wider border border-indigo-500/30 flex items-center gap-1 animate-pulse">
@@ -196,7 +196,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                         </span>
                     )}
                     {isOverdue && !item.isRecurring && (
-                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-rose-500/15 text-rose-600 dark:text-rose-400 tracking-wider border border-rose-500/30 flex items-center gap-1 animate-pulse">
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-2xs font-black bg-rose-500/15 text-rose-700 dark:text-rose-400 tracking-wider border border-rose-500/30 flex items-center gap-1 animate-pulse">
                             <Icon name="receipt" className="text-xs" />
                             ONE-TIME OVERDUE
                         </span>
@@ -206,7 +206,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                     )}
                 </div>
             </div>
-            <div className="flex items-center gap-3 text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/60 tracking-wider">
+            <div className="flex items-center gap-3 text-xs font-semibold text-light-text-secondary/80 dark:text-dark-text-secondary/80 tracking-wider">
                 <span>{weekday}</span>
                 <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
                 <span className="flex items-center gap-1.5 truncate">
@@ -237,7 +237,7 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({
                 {!item.isRecurring && onExpireBill && (
                     <button 
                         onClick={(e) => { e.stopPropagation(); onExpireBill(item.originalItem as BillPayment); }}
-                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white active:scale-95 transition-all" 
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500 hover:text-white active:scale-95 transition-all" 
                         title="Mark as Expired"
                     >
                         <Icon name="archive" className="text-lg" />

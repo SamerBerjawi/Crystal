@@ -12,6 +12,7 @@ import { toLocalISOString } from '../utils';
 import { fetchCredentialStatus, loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
 import EnableBankingSyncModal from './EnableBankingSyncModal';
 import Icon from './ui/Icon';
+import { toast } from 'sonner';
 
 interface EnableBankingIntegrationCardProps {
   connections: EnableBankingConnection[];
@@ -146,7 +147,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
   const loadBanks = async () => {
     if (!hasCredentials) {
-      alert('Enter Application ID and Client Certificate first.');
+      toast.error('Enter Application ID and Client Certificate first.');
       setIsCredentialsOpen(true);
       return;
     }
@@ -213,13 +214,13 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
 
   const handleCreate = () => {
     if (!hasCredentials) {
-      alert('Application ID and client certificate are required.');
+      toast.error('Application ID and client certificate are required.');
       setIsCredentialsOpen(true);
       return;
     }
 
     if (!formState.selectedBank) {
-      alert('Select a bank first.');
+      toast.error('Select a bank first.');
       return;
     }
 
@@ -242,7 +243,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
     const resolvedBankName = connection.selectedBank || bankOptions.find(option => option.id === resolvedBankId)?.name || '';
 
     if (!resolvedApplicationId || !(resolvedCertificate || hasStoredKey)) {
-      alert('Application ID and certificate are required to reauthorize.');
+      toast.error('Application ID and certificate are required to reauthorize.');
       setIsCredentialsOpen(true);
       return;
     }
@@ -372,8 +373,8 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
           <div className="flex items-center gap-2.5 min-w-0">
             <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
               hasCredentials
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
             }`}>
               <Icon name={hasCredentials ? 'lock' : 'key'} className="text-sm" />
             </div>
@@ -384,7 +385,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                   Enable Banking API
                 </span>
                 {hasCredentials ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-normal tracking-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-normal tracking-normal bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                     kid: {formState.applicationId.slice(0, 10)}...
                   </span>
                 ) : (
@@ -402,7 +403,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
           <button
             type="button"
             onClick={() => setIsCredentialsOpen(prev => !prev)}
-            className="flex items-center gap-1.5 text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 min-h-[28px] text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text px-2.5 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
           >
             <span>{isCredentialsOpen ? 'Hide Settings' : hasCredentials ? 'Edit Keys' : 'Configure'}</span>
             <Icon name={isCredentialsOpen ? 'expand_less' : 'expand_more'} className="text-base" />
@@ -448,7 +449,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                 <label className="text-[10px] font-medium uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary block">
                   Client Certificate (PEM Private Key)
                 </label>
-                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                   Encrypted and stored on the server; never kept in this browser
                 </span>
               </div>
@@ -482,13 +483,13 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
       <div className="p-3.5 sm:p-4 rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md shadow-xs space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Icon name="add_circle" className="text-sm text-primary-500" />
+            <Icon name="add_circle" className="text-sm text-primary-700 dark:text-primary-400" />
             <h4 className="text-xs font-bold text-light-text dark:text-dark-text tracking-tight uppercase">
               Connect a Bank
             </h4>
           </div>
           {bankOptions.length > 0 && (
-            <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               {bankOptions.length} banks available
             </span>
           )}
@@ -571,7 +572,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
               Active Connections
             </h3>
             {readyConnections > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                 {readyConnections} ready
               </span>
             )}
@@ -627,7 +628,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                           </span>
                         </div>
                         {connection.lastError && (
-                          <p role="alert" className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400 break-words">
+                          <p role="alert" className="mt-1 text-xs font-medium text-rose-700 dark:text-rose-400 break-words">
                             Last sync failed: {connection.lastError.length > 200 ? `${connection.lastError.slice(0, 197)}…` : connection.lastError}
                           </p>
                         )}
@@ -640,7 +641,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                         <button
                           type="button"
                           onClick={() => handleReauthorize(connection)}
-                          className="h-7 px-2.5 rounded-lg text-2xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          className="h-7 px-2.5 rounded-lg text-2xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
                         >
                           <Icon name="refresh" className="text-xs" />
                           <span>Reauth</span>
@@ -649,7 +650,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                       <button
                         type="button"
                         onClick={() => openSyncPrompt(connection)}
-                        className="h-7 px-2.5 rounded-lg text-2xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                        className="h-7 px-2.5 rounded-lg text-2xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
                         title="Sync all accounts"
                       >
                         <Icon name="sync" className="text-xs" />
@@ -718,12 +719,12 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                                   {/* Linked Badge & Toggle */}
                                   <div className="flex items-center gap-2 text-[10px] mt-0.5">
                                     {linkedAccount ? (
-                                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
                                         <Icon name="link" className="text-xs" />
                                         Linked to <strong>{linkedAccount.name}</strong>
                                       </span>
                                     ) : (
-                                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+                                      <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-medium">
                                         <Icon name="link_off" className="text-xs" />
                                         Not linked
                                       </span>
@@ -745,7 +746,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                               {/* Balance & Account Sync Button */}
                               <div className="flex items-center gap-3 shrink-0 ml-auto">
                                 <div className="text-right">
-                                  <span className="text-[9px] uppercase tracking-wider text-light-text-secondary opacity-60 block">Balance</span>
+                                  <span className="text-2xs uppercase tracking-wider text-light-text-secondary opacity-60 block">Balance</span>
                                   <span className="font-mono font-bold text-xs sm:text-sm text-light-text dark:text-dark-text">
                                     {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </span>
@@ -906,13 +907,13 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                                         onClick={() => {
                                           const syncStartDate = clampSyncDate(rowState.syncStartDate || defaultSyncStart);
                                           if (!syncStartDate) {
-                                            alert('Select a sync start date.');
+                                            toast.error('Select a sync start date.');
                                             return;
                                           }
 
                                           if ((rowState.mode || 'existing') === 'existing') {
                                             if (!rowState.accountId) {
-                                              alert('Select an existing account to link.');
+                                              toast.error('Select an existing account to link.');
                                               return;
                                             }
                                             handleLinkChange(rowKey, { syncStartDate });
@@ -923,7 +924,7 @@ export const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCard
                                           } else {
                                             const newAccountName = (rowState.newAccountName || account.name || '').trim();
                                             if (!newAccountName) {
-                                              alert('Enter a name for the new account.');
+                                              toast.error('Enter a name for the new account.');
                                               return;
                                             }
                                             handleLinkChange(rowKey, { syncStartDate, newAccountName });

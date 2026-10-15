@@ -101,11 +101,11 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
     } else {
         // Final Result
         if (prediction.status === 'won') {
-             statusColor = 'text-emerald-600 dark:text-emerald-400';
+             statusColor = 'text-emerald-700 dark:text-emerald-400';
              progressBarColor = 'bg-emerald-500';
              statusText = 'Won';
         } else {
-             statusColor = 'text-red-600 dark:text-red-400';
+             statusColor = 'text-red-700 dark:text-red-400';
              progressBarColor = 'bg-red-500';
              statusText = 'Lost';
         }

@@ -177,7 +177,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
              icon="PlusCircle"
              onClick={() => handleOpenModal()}
            >
-             Register New Tag
+             New tag
            </HeaderButton>
          }
        />
@@ -230,9 +230,9 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                      onChange={(e) => setSortBy(e.target.value as SortOption)}
                      className="bg-transparent text-xs font-bold text-light-text dark:text-dark-text px-4 py-2 focus:outline-none cursor-pointer"
                    >
-                       <option value="count">Utility Rank</option>
-                       <option value="amount">Volume Rank</option>
-                       <option value="name">Lexical Alpha</option>
+                       <option value="count">Most used</option>
+                       <option value="amount">Highest volume</option>
+                       <option value="name">Name (A–Z)</option>
                    </select>
                 </div>
                 

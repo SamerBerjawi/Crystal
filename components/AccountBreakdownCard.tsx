@@ -17,7 +17,7 @@ interface AccountBreakdownCardProps {
 
 const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, totalValue, breakdownData }) => {
     const isAsset = title === 'Assets';
-    const iconColor = isAsset ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+    const iconColor = isAsset ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400';
     const iconName = isAsset ? 'account_balance' : 'credit_card';
 
     return (

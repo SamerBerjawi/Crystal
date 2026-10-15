@@ -86,7 +86,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
           {/* Header */}
           <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-rose-500/5 to-transparent">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20 shadow-xs">
                 <Icon name="archive" className="text-2xl" />
               </div>
               <div className="min-w-0">
@@ -131,7 +131,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
                       className={`py-2.5 px-1 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-center ${
                         closureType === item.id 
                           ? 'bg-white dark:bg-dark-card shadow-sm text-rose-500' 
-                          : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                          : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                       }`}
                     >
                       {item.label}

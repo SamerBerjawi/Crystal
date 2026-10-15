@@ -17,6 +17,7 @@ import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import Icon from '../components/ui/Icon';
 import HeroMetricCard from '../components/ui/HeroMetricCard';
 import MetricCardRow from '../components/ui/MetricCardRow';
+import { toast } from 'sonner';
 
 interface DataImportExportProps {
   accounts: Account[];
@@ -310,7 +311,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
         });
 
         props.onRestoreData(mergedData);
-        alert("Restore completed successfully.");
+        toast.success("Restore completed successfully.");
     };
 
     const handleWizardClose = () => {
@@ -521,7 +522,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                     <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary">Chronological Operation Log</p>
                  </div>
               </div>
-              <div className="text-xs font-semibold text-primary-500 bg-primary-500/10 border border-primary-500/20 px-3 py-1 rounded-lg">
+              <div className="text-xs font-semibold text-primary-700 dark:text-primary-400 bg-primary-500/10 border border-primary-500/20 px-3 py-1 rounded-lg">
                   {sortedHistory.length} Registered Events
               </div>
           </div>
@@ -545,7 +546,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                                 </td>
                                 <td className="px-8 py-6">
                                     <p className="font-semibold text-light-text dark:text-dark-text tracking-tight">{item.fileName}</p>
-                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
+                                    <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary opacity-80 mt-0.5">
                                         Collection: {item.dataType}
                                         {item.details && (
                                             <span className="ml-2 text-primary-500">[{item.details}]</span>
@@ -571,7 +572,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                                         <button 
                                             onClick={() => props.onDeleteHistoryItem(item.id)}
                                             className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                                            title="Evict Log"
+                                            title="Remove from history"
                                         >
                                             <Icon name="delete_sweep" className="text-lg" />
                                         </button>
@@ -601,7 +602,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                     <Icon name="dangerous" className="text-3xl" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 tracking-tight">Factory Reset</h3>
+                    <h3 className="text-lg font-semibold text-red-700 dark:text-red-400 tracking-tight">Factory Reset</h3>
                     <p className="text-xs font-normal text-red-600/70 dark:text-red-400/70 mt-1 max-w-xl leading-relaxed">
                         Irreversible atomic wipe of all database records, configurations, and encrypted keys. This operation cannot be rolled back without a pre-existing System Snapshot.
                     </p>

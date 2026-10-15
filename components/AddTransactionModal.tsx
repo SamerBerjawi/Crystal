@@ -182,7 +182,7 @@ const AccountPicker: React.FC<AccountPickerProps> = ({
 
   return (
     <div className="relative w-full" ref={popoverRef}>
-      <span className="block text-2xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+      <span className="block text-2xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-1.5">
         {label}
       </span>
 
@@ -211,7 +211,7 @@ const AccountPicker: React.FC<AccountPickerProps> = ({
                   {selectedAccount.name}
                 </span>
                 {selectedAccount.isPrimary && (
-                  <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                     ★ Primary
                   </span>
                 )}
@@ -268,7 +268,7 @@ const AccountPicker: React.FC<AccountPickerProps> = ({
                 return (
                   <div key={type} className="space-y-1">
                     <div className="flex items-center gap-1.5 px-2 py-0.5 text-2xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      <Icon name={icon} className="text-xs text-primary-500" />
+                      <Icon name={icon} className="text-xs text-primary-700 dark:text-primary-400" />
                       <span>{type}</span>
                     </div>
 
@@ -312,7 +312,7 @@ const AccountPicker: React.FC<AccountPickerProps> = ({
                                 {formatCurrency(acc.balance, acc.currency)}
                               </p>
                               {isSelected ? (
-                                <span className="text-2xs text-primary-500 font-bold">Selected</span>
+                                <span className="text-2xs text-primary-700 dark:text-primary-400 font-bold">Selected</span>
                               ) : (
                                 <span className="text-2xs text-gray-400 dark:text-gray-500">{acc.type}</span>
                               )}
@@ -1639,9 +1639,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   </h2>
                   <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
                     type === 'expense'
-                      ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                       : type === 'income'
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                       : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
                   }`}>
                     {type}
@@ -1675,7 +1675,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   onClick={() => setType('expense')}
                   className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     type === 'expense' 
-                      ? 'bg-white dark:bg-dark-card text-rose-600 dark:text-rose-400 shadow-sm' 
+                      ? 'bg-white dark:bg-dark-card text-rose-700 dark:text-rose-400 shadow-sm' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -1688,7 +1688,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   onClick={() => setType('income')}
                   className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     type === 'income' 
-                      ? 'bg-white dark:bg-dark-card text-emerald-600 dark:text-emerald-400 shadow-sm' 
+                      ? 'bg-white dark:bg-dark-card text-emerald-700 dark:text-emerald-400 shadow-sm' 
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -1909,7 +1909,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
                 )}
                 {merchantBranches.length > 0 && !address && (
-                  <span className="text-2xs font-bold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-500">
+                  <span className="text-2xs font-bold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-700 dark:text-primary-400">
                     {merchantBranches.length}
                   </span>
                 )}
@@ -1927,7 +1927,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <Icon name="tune" className="text-sm" />
                 <span>Tags & Notes</span>
                 {tagIds.length > 0 && (
-                  <span className="text-2xs font-bold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-500">
+                  <span className="text-2xs font-bold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-700 dark:text-primary-400">
                     {tagIds.length}
                   </span>
                 )}
@@ -1946,12 +1946,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Icon name="wallet" className="text-sm text-primary-500" />
+                        <Icon name="wallet" className="text-sm text-primary-700 dark:text-primary-400" />
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           {type === 'transfer' ? 'Account Transfer Route' : (type === 'income' ? 'Holding Account' : 'Source Account')}
                         </span>
                       </div>
-                      <span className="text-2xs text-primary-500 font-semibold uppercase tracking-wider">
+                      <span className="text-2xs text-primary-700 dark:text-primary-400 font-semibold uppercase tracking-wider">
                         {type === 'transfer' ? 'Dual Liquidity Bridge' : 'Active Balance'}
                       </span>
                     </div>
@@ -2057,7 +2057,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                       <div className="flex items-center justify-between">
                         <label className={labelStyle}>Counterparty / Merchant</label>
                         {merchant && (
-                          <span className="text-2xs text-primary-500 font-semibold uppercase">Live Lookup</span>
+                          <span className="text-2xs text-primary-700 dark:text-primary-400 font-semibold uppercase">Live Lookup</span>
                         )}
                       </div>
 
@@ -2163,8 +2163,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   {merchantBranches.length > 1 && (
                     <div className="p-3 bg-primary-500/[0.04] dark:bg-primary-500/[0.06] rounded-2xl border border-primary-500/20 space-y-2 animate-fade-in">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                          <Icon name="marker_pin" className="text-xs text-primary-500" />
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <Icon name="marker_pin" className="text-xs text-primary-700 dark:text-primary-400" />
                           <span>Branches for {merchant}:</span>
                         </p>
                         {address && (
@@ -2194,7 +2194,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             >
                               <span>📍 {branch.label || branch.city || branch.placeName}</span>
                               {branch.isPrimary && (
-                                <span className={`text-2xs px-1 py-0.2 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-primary-500/10 text-primary-500'}`}>
+                                <span className={`text-2xs px-1 py-0.2 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-primary-500/10 text-primary-700 dark:text-primary-400'}`}>
                                   Primary
                                 </span>
                               )}
@@ -2237,7 +2237,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
                   {/* Description / Memo */}
                   <div className="p-4 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
-                    <label className={labelStyle}>Internal Memo / Description</label>
+                    <label className={labelStyle}>Description <span className="text-rose-600" aria-hidden="true">*</span><span className="sr-only">(required)</span></label>
                     <div className="relative group">
                       <Icon name="description" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
                       <input
@@ -2309,7 +2309,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                               step="0.01"
                               value={interestPayment}
                               onChange={handleInterestChange}
-                              className="w-full h-9 bg-white dark:bg-black/20 rounded-xl pl-8 pr-3 text-xs font-bold text-rose-600 dark:text-rose-400 tabular-nums border border-blue-500/20 focus:ring-2 focus:ring-blue-500"
+                              className="w-full h-9 bg-white dark:bg-black/20 rounded-xl pl-8 pr-3 text-xs font-bold text-rose-700 dark:text-rose-400 tabular-nums border border-blue-500/20 focus:ring-2 focus:ring-blue-500"
                               autoComplete="off"
                             />
                           </div>
@@ -2341,7 +2341,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <div className="p-4 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
                       <div className="flex items-center justify-between">
                         <label className={labelStyle}>Known Merchant Branches</label>
-                        <span className="text-2xs text-primary-500 font-semibold uppercase">{merchantBranches.length} registered</span>
+                        <span className="text-2xs text-primary-700 dark:text-primary-400 font-semibold uppercase">{merchantBranches.length} registered</span>
                       </div>
 
                       <div className="space-y-2">
@@ -2367,7 +2367,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                   <div className="flex items-center gap-2">
                                     <p className="text-xs font-bold truncate">{branch.label || branch.placeName || 'Branch'}</p>
                                     {branch.isPrimary && (
-                                      <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-500">
+                                      <span className="text-2xs font-semibold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-700 dark:text-primary-400">
                                         Primary
                                       </span>
                                     )}
@@ -2379,7 +2379,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                               {isSelected ? (
                                 <Icon name="check" className="text-primary-500 text-base shrink-0" />
                               ) : (
-                                <span className="text-2xs font-bold text-primary-500 hover:underline shrink-0">Select</span>
+                                <span className="text-2xs font-bold text-primary-700 dark:text-primary-400 hover:underline shrink-0">Select</span>
                               )}
                             </div>
                           );
@@ -2396,7 +2396,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setShowManualLocation(prev => !prev)}
-                          className="text-xs font-semibold text-primary-500 hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Icon name="tune" className="text-xs" />
                           <span>{showManualLocation ? 'Hide Coordinates' : 'Fine-Tune'}</span>
@@ -2441,7 +2441,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                     href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-xs font-semibold text-primary-500 hover:underline inline-flex items-center gap-1"
+                                    className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline inline-flex items-center gap-1"
                                   >
                                     <span>Google Maps</span>
                                     <Icon name="open_in_new" className="text-xs" />
@@ -2454,7 +2454,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                           <button
                             type="button"
                             onClick={handleClearLocation}
-                            className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 transition-colors shrink-0 cursor-pointer"
+                            className="text-xs font-semibold text-rose-500 hover:text-rose-700 dark:text-rose-400 transition-colors shrink-0 cursor-pointer"
                           >
                             Remove
                           </button>
@@ -2559,12 +2559,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Icon name="tag" className="text-sm text-primary-500" />
+                        <Icon name="tag" className="text-sm text-primary-700 dark:text-primary-400" />
                         <span className="text-xs font-bold text-gray-900 dark:text-white">
                           Categorical Tags
                         </span>
                       </div>
-                      <span className="text-2xs text-primary-500 font-semibold uppercase tracking-wider">
+                      <span className="text-2xs text-primary-700 dark:text-primary-400 font-semibold uppercase tracking-wider">
                         {tagIds.length} attached
                       </span>
                     </div>

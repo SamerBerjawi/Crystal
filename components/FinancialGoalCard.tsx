@@ -152,9 +152,9 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     : isBucket 
         ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
         : category === 'expense'
-            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+            ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
             : category === 'income'
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                 : 'bg-primary-500/10 text-primary-600 dark:text-primary-400';
             
   const iconName = isCompleted 
@@ -198,7 +198,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 </button>
               )}
 
-              <div className="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                 <Icon name="folder" className="text-sm" />
               </div>
 
@@ -240,7 +240,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                       onClick={(e) => { e.stopPropagation(); onAddSubGoal(goal.id); setIsMenuOpen(false); }}
                       className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-2.5 text-light-text dark:text-dark-text transition-colors"
                     >
-                      <Icon name="add" className="text-sm text-primary-500" />
+                      <Icon name="add" className="text-sm text-primary-700 dark:text-primary-400" />
                       Add Item
                     </button>
                     <button
@@ -260,7 +260,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                     <div className="h-px bg-black/5 dark:bg-white/5 my-1" />
                     <button
                       onClick={(e) => { e.stopPropagation(); onDelete(goal.id); setIsMenuOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 text-red-600 dark:text-red-400 transition-colors"
+                      className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 text-red-700 dark:text-red-400 transition-colors"
                     >
                       <Icon name="delete" className="text-sm" />
                       Delete
@@ -310,12 +310,12 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                               }`}
                               title="Toggle item completion"
                             >
-                              {isSubComplete && <Icon name="check" className="text-[9px] font-bold" />}
+                              {isSubComplete && <Icon name="check" className="text-2xs font-bold" />}
                             </button>
                           )}
                           <span className={`font-medium text-light-text dark:text-dark-text truncate ${isSubComplete ? 'line-through opacity-80' : ''}`}>{sg.name}</span>
                         </div>
-                        <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold shrink-0 ml-2">{formatCurrency(sg.amount, 'EUR')}</span>
+                        <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold shrink-0 ml-2">{formatCurrency(sg.amount, 'EUR')}</span>
                       </div>
                     );
                   })}
@@ -362,7 +362,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                     <div>
                         <h4 className={`font-bold text-base text-light-text dark:text-dark-text tracking-tight truncate leading-tight ${isCompleted ? 'line-through opacity-85' : ''}`} title={goal.name}>{goal.name}</h4>
                         {paymentAccountName && (
-                            <p className="text-xs font-semibold text-primary-500 tracking-wider opacity-80 leading-none">{paymentAccountName}</p>
+                            <p className="text-xs font-semibold text-primary-700 dark:text-primary-400 tracking-wider opacity-80 leading-none">{paymentAccountName}</p>
                         )}
                     </div>
                 </div>
@@ -411,7 +411,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                 <div className="h-px bg-black/5 dark:bg-white/5 my-1"></div>
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); onDelete(goal.id); setIsMenuOpen(false); }} 
-                                    className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400 transition-colors"
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-700 dark:text-red-400 transition-colors"
                                 >
                                     <Icon name="delete" className="text-lg" /> 
                                     Delete
@@ -543,7 +543,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                          <span className={`text-2xs font-bold px-1.5 py-0.5 rounded ${sgCategory === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sgCategory === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
                                             {sgCategory === 'savings' ? 'Save' : sgCategory === 'expense' ? 'Spend' : 'Earn'}
                                          </span>
-                                         {isSubComplete && <Icon name="check_circle" className="text-sm text-green-600 dark:text-green-400" />}
+                                         {isSubComplete && <Icon name="check_circle" className="text-sm text-green-700 dark:text-green-400" />}
                                      </div>
                                      <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                          <span>{formatDate(sg.date)}</span>

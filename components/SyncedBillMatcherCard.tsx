@@ -16,7 +16,7 @@ export const SyncedBillMatcherCard: React.FC<SyncedBillMatcherCardProps> = ({
   return (
     <div className="relative overflow-hidden mb-6 p-5 rounded-[2rem] glass-section border border-emerald-500/25 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] animate-fade-in-up flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div className="flex items-center gap-4 relative z-10">
-        <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+        <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
           <Icon name="CheckVerified01" className="text-2.5xl animate-pulse" />
         </div>
         <div>

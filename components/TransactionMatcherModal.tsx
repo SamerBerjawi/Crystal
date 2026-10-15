@@ -189,7 +189,7 @@ const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({
             onClick={handleToggleSelectAll}
             className="flex items-center gap-1.5 text-xs font-bold text-light-text dark:text-dark-text"
           >
-            <Icon name={isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-600 dark:text-emerald-400" />
+            <Icon name={isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-700 dark:text-emerald-400" />
             <span>
               {selectedIds.size === 0
                 ? 'Select All'

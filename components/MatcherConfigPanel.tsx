@@ -24,7 +24,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
     <div className="p-4 sm:p-5 rounded-2xl bg-white/90 dark:bg-dark-card/90 backdrop-blur-md border border-emerald-500/20 shadow-xl space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
         <div className="flex items-center gap-2">
-          <Icon name="tune" className="text-emerald-600 dark:text-emerald-400" />
+          <Icon name="tune" className="text-emerald-700 dark:text-emerald-400" />
           <div>
             <h4 className="font-bold text-sm text-light-text dark:text-dark-text">Transaction Matching Thresholds</h4>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
@@ -57,7 +57,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
         <div className="space-y-2 bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
           <div className="flex justify-between items-center text-xs font-bold">
             <span className="text-light-text dark:text-dark-text">Amount Variance Tolerance</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
+            <span className="text-emerald-700 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
               ±{config.amountVariancePercent}%
             </span>
           </div>
@@ -80,7 +80,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
         <div className="space-y-2 bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
           <div className="flex justify-between items-center text-xs font-bold">
             <span className="text-light-text dark:text-dark-text">Date Flexibility</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
+            <span className="text-emerald-700 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
               ±{config.dateVarianceDays} Days
             </span>
           </div>
@@ -103,7 +103,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
         <div className="space-y-2 bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
           <div className="flex justify-between items-center text-xs font-bold">
             <span className="text-light-text dark:text-dark-text">Transaction Lookback</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
+            <span className="text-emerald-700 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
               Last {config.lookbackDays} Days
             </span>
           </div>
@@ -126,7 +126,7 @@ export const MatcherConfigPanel: React.FC<MatcherConfigPanelProps> = ({
         <div className="space-y-2 bg-light-bg dark:bg-dark-bg p-3.5 rounded-xl border border-black/5 dark:border-white/5">
           <div className="flex justify-between items-center text-xs font-bold">
             <span className="text-light-text dark:text-dark-text">Min Confidence Score</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
+            <span className="text-emerald-700 dark:text-emerald-400 font-black px-2 py-0.5 rounded-md bg-emerald-500/10">
               ≥{config.minMatchScore}%
             </span>
           </div>

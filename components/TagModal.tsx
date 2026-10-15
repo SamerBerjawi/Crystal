@@ -141,7 +141,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen = true, onClose, onSave, tag
                   <button
                     type="button"
                     onClick={() => setIconPickerOpen(true)}
-                    className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1"
+                    className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 flex items-center gap-1"
                   >
                     <span>Change Icon</span>
                     <Icon name="chevron_right" className="text-sm" />
@@ -188,7 +188,7 @@ const TagModal: React.FC<TagModalProps> = ({ isOpen = true, onClose, onSave, tag
 
               {/* Tag Live Badge Preview */}
               <div className="p-6 rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm flex flex-col items-center justify-center gap-3">
-                <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                   Tag Badge Preview
                 </span>
                 <span 

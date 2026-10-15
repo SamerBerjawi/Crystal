@@ -147,7 +147,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
                                                     item.type === 'Recurring' 
                                                         ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' 
                                                         : item.type === 'Financial Goal' 
-                                                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
+                                                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20' 
                                                             : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
                                                 }`}>
                                                     <Icon name={item.type === 'Recurring' ? 'repeat' : item.type === 'Financial Goal' ? 'flag' : 'receipt_long'} className="text-lg" />
@@ -166,7 +166,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
                                                 <p className={`font-black text-sm tabular-nums ${item.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                     {formatCurrency(item.amount, 'EUR', { showPlusSign: true })}
                                                 </p>
-                                                <span className="text-2xs font-bold text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-2xs font-bold text-primary-700 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Configure &rarr;
                                                 </span>
                                             </div>

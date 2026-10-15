@@ -11,7 +11,7 @@ colors:
   primary-400: "#fcb045"
   primary-500: "#fa9a1d"
   primary-600: "#e78310"
-  primary-700: "#c1670e"
+  primary-700: "#b45309"
   primary-800: "#995111"
   primary-900: "#7d4312"
   semantic-red: "#EF4444"

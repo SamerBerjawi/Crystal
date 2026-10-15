@@ -67,7 +67,7 @@ export const UnifiedPendingMatcherCard: React.FC<UnifiedPendingMatcherCardProps>
                 <button
                   type="button"
                   onClick={() => onReview('bill')}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer"
                   title="Click to view bill matches"
                 >
                   <Icon name="receipt_long" className="text-xs" />

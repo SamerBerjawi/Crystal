@@ -756,7 +756,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
         {/* Header with Predefined Periods */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h2 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Configuration</h2>
+            <h2 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">Configuration</h2>
             <p className="text-base sm:text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Report parameters</p>
           </div>
 
@@ -880,7 +880,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
             <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spending Velocity</h2>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Spending Velocity</h2>
               <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Daily intensity vs previous period</p>
             </div>
             <div className="flex items-center gap-6 bg-black/5 dark:bg-white/5 p-3 rounded-2xl border border-black/5 dark:border-white/5">
@@ -923,7 +923,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
           <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -ml-32 -mt-32 pointer-events-none group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
 
           <div className="mb-4 relative z-10">
-            <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Category Allocation</h2>
+            <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Category Allocation</h2>
             <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Total spend distribution</p>
           </div>
 
@@ -978,7 +978,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
           <div className="flex items-center justify-between mb-6 relative z-10">
             <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Needs vs. wants</h2>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Needs vs. wants</h2>
               <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">50/30/20 Rule Analysis</p>
             </div>
             <div className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
@@ -1051,7 +1051,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
           <div className="flex items-center justify-between mb-6 relative z-10">
             <div>
-              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant loyalty</h2>
+              <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Merchant loyalty</h2>
               <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">Frequency vs. impact leaderboard</p>
             </div>
           </div>
@@ -1085,7 +1085,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
                   </div>
                   <div className="text-right flex flex-col items-end justify-center">
                     <div className="text-base font-bold tracking-tighter leading-none mb-1">€{m.totalEur.toFixed(0)}</div>
-                    <div className="text-xs font-semibold text-primary-500 tracking-wider px-2 py-0.5 rounded-full bg-primary-500/10">Score: {m.loyaltyScore.toFixed(0)}</div>
+                    <div className="text-xs font-semibold text-primary-700 dark:text-primary-400 tracking-wider px-2 py-0.5 rounded-full bg-primary-500/10">Score: {m.loyaltyScore.toFixed(0)}</div>
                   </div>
                 </div>
               );
@@ -1110,7 +1110,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
           <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl">
             <div className="p-8 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
               <div>
-                <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spend breakdown</h2>
+                <h2 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">Spend breakdown</h2>
                 <p className="text-base font-bold text-light-text dark:text-dark-text tracking-tight">By {groupBy}</p>
               </div>
             </div>
@@ -1118,10 +1118,10 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">{groupBy === 'merchant' ? 'Merchant' : 'Category'}</th>
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Qty</th>
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Total</th>
-                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Share</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">{groupBy === 'merchant' ? 'Merchant' : 'Category'}</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-right">Qty</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-right">Total</th>
+                    <th className="py-5 px-8 font-bold text-xs tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-right">Share</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -1206,7 +1206,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
           <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card group">
             <div className="p-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell flex items-center justify-between">
-              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Month-end forecast</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">Month-end forecast</p>
               <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse shadow-sm shadow-primary-500/50"></div>
             </div>
             <div className="p-5 relative">
@@ -1251,7 +1251,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
           <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card group">
             <div className="p-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell flex items-center justify-between">
-              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Anomalies & outliers</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">Anomalies & outliers</p>
               <div className="w-10 h-1 rounded-full bg-rose-500/20"></div>
             </div>
             <div className="p-4 space-y-2">
@@ -1281,7 +1281,7 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
 
           <Card className="!p-0 overflow-hidden border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-card group">
             <div className="p-5 border-b border-slate-200/60 dark:border-white/5 glass-subwell flex items-center justify-between">
-              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Recurring patterns</p>
+              <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80">Recurring patterns</p>
               <Icon name="autorenew" className="text-base opacity-20" />
             </div>
             <div className="p-5 space-y-4">
@@ -1312,12 +1312,12 @@ const Reports: React.FC<ReportsProps> = ({ setCurrentPage }) => {
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
             <div className="p-6 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between glass-subwell">
               <div className="relative z-10">
-                <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">Performance</p>
+                <p className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-0.5">Performance</p>
                 <h2 className="text-sm font-bold tracking-tight">Budget vs actual</h2>
               </div>
               <button
                 onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }}
-                className="relative z-10 text-xs font-semibold uppercase tracking-wider text-primary-500 hover:text-primary-600 bg-primary-500/5 px-3 py-1.5 rounded-lg transition-all hover:bg-primary-500/10 active:scale-95"
+                className="relative z-10 text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 bg-primary-500/5 px-3 py-1.5 rounded-lg transition-all hover:bg-primary-500/10 active:scale-95"
               >
                 Reset
               </button>

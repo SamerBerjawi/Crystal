@@ -14,6 +14,7 @@ import { useAccountsContext, usePreferencesSelector, useTransactionsContext } fr
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import EnableBankingSyncModal from '../components/EnableBankingSyncModal';
 import HistoricalBalanceTrend from '../components/HistoricalBalanceTrend';
+import { toast } from 'sonner';
 
 // Lazy load view components
 const PropertyAccountView = React.lazy(() => import('../components/PropertyAccountView'));
@@ -218,7 +219,7 @@ const AccountDetail: React.FC<{
         const toId = isLoan ? account.id : account.linkedAccountId;
 
         if (!fromId || !toId) {
-            alert('A linked account must be set on the loan to record a payment.');
+            toast.error('A linked account must be set on the loan to record a payment.');
             return;
         }
 

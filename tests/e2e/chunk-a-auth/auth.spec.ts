@@ -170,7 +170,7 @@ test.describe('W5 Password reset', () => {
 test.describe('W6 Change password', () => {
   async function openChange(page: Page) {
     await goTo(page, '/personal-info');
-    await page.getByRole('button', { name: /rotate credentials/i }).click();
+    await page.getByRole('button', { name: /change password/i }).click();
     await expect(page.getByLabel('Current Password')).toBeVisible();
   }
 
@@ -216,7 +216,7 @@ test.describe('W7 Edit profile', () => {
     const first = page.getByLabel('Given Name');
     await first.fill('Renamed');
     const put = page.waitForResponse(r => r.url().endsWith('/api/users/me') && r.request().method() === 'PUT');
-    await page.getByRole('button', { name: /commit changes/i }).click();
+    await page.getByRole('button', { name: /save changes/i }).click();
     expect((await put).status()).toBe(200);
     const me = await (await user.api.get('/api/auth/me')).json();
     expect(me.firstName).toBe('Renamed');
@@ -226,7 +226,7 @@ test.describe('W7 Edit profile', () => {
     await goTo(page, '/personal-info');
     await page.route('**/api/users/me', r => (r.request().method() === 'PUT' ? r.fulfill({ status: 500, body: '{"message":"db down"}' }) : r.continue()));
     await page.getByLabel('Given Name').fill('ShouldFail');
-    await page.getByRole('button', { name: /commit changes/i }).click();
+    await page.getByRole('button', { name: /save changes/i }).click();
     await expect(page.getByText(/could not save your profile/i)).toBeVisible({ timeout: 5000 });
     await expect(page.getByText('Profile updated', { exact: false })).toHaveCount(0);
   });
@@ -260,7 +260,10 @@ test.describe('W9 Onboarding', () => {
     const email = newEmail('onb');
     await openSignUp(page);
     await fillSignUp(page, { email });
+    // The completion flag is saved with the account (debounced); wait for that save before using another browser.
+    const flagSaved = page.waitForResponse(r => r.url().endsWith('/api/data') && r.request().method() === 'POST' && (r.request().postData() || '').includes('onboardingCompleted'), { timeout: 10_000 });
     await page.getByRole('button', { name: /skip for now/i }).click();
+    await flagSaved;
     const ctx = await browser.newContext();
     const p2 = await ctx.newPage();
     await signIn(p2, email, TEST_PASSWORD);
@@ -380,7 +383,7 @@ test.describe('W10 Autosave — edits during and around saves (AUD-01)', () => {
     const before = (await serverData(user)).tasks.length;
     await page.getByRole('button', { name: 'New Task' }).first().click();
     await page.getByPlaceholder('Define mission goal...').fill('QA early edit');
-    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await page.getByRole('button', { name: /create task/i }).click();
     await expect.poll(async () => (await serverData(user)).tasks.length, { timeout: 8000 }).toBe(before + 1);
   });
 
@@ -391,7 +394,7 @@ test.describe('W10 Autosave — edits during and around saves (AUD-01)', () => {
     await page.getByPlaceholder('Define mission goal...').fill('QA unload edit');
     // Block the debounced autosave so only the unload handler can persist the change.
     await page.route('**/api/data', route => (route.request().method() === 'POST' && !route.request().headers()['x-keepalive-test'] ? route.fulfill({ status: 200, body: '{}' , contentType: 'application/json' }) : route.continue()));
-    await page.getByRole('button', { name: /initialize objective/i }).click();
+    await page.getByRole('button', { name: /create task/i }).click();
     await page.unroute('**/api/data');
     await page.evaluate(() => window.dispatchEvent(new Event('beforeunload', { cancelable: true })));
     await expect.poll(async () => (await serverData(user)).tasks.length, { timeout: 8000 }).toBe(before + 1);

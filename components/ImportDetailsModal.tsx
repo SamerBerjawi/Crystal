@@ -147,7 +147,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
                                     className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
                                         activeTab === 'successful'
                                             ? 'bg-white dark:bg-dark-card text-emerald-500 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                                     }`}
                                 >
                                     <Icon name="check_circle" className="text-sm" />
@@ -158,7 +158,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
                                     className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
                                         activeTab === 'errors'
                                             ? 'bg-white dark:bg-dark-card text-rose-500 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                                     }`}
                                 >
                                     <Icon name="error" className="text-sm" />
@@ -203,7 +203,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
                                                 {errorRows.map(({ originalIndex, data, error }) => (
                                                     <tr key={originalIndex} className="bg-rose-500/5">
                                                         <td className="p-3 font-mono font-bold">{originalIndex + 2}</td>
-                                                        <td className="p-3 text-rose-600 dark:text-rose-400 font-bold">{error}</td>
+                                                        <td className="p-3 text-rose-700 dark:text-rose-400 font-bold">{error}</td>
                                                         {headers.map(h => <td key={h} className="p-3 truncate max-w-xs">{data[h]}</td>)}
                                                     </tr>
                                                 ))}
@@ -222,7 +222,7 @@ const ImportDetailsModal: React.FC<ImportDetailsModalProps> = ({ item, onClose, 
                                     <button
                                         type="button"
                                         onClick={() => setIsConfirmOpen(true)}
-                                        className="h-12 px-4 rounded-2xl text-xs font-bold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all flex items-center gap-1.5"
+                                        className="h-12 px-4 rounded-2xl text-xs font-bold uppercase tracking-wider bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all flex items-center gap-1.5"
                                     >
                                         <Icon name="delete_forever" className="text-base" />
                                         <span>Purge Import Data</span>

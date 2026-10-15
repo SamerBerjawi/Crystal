@@ -85,7 +85,7 @@ const FilterSectionCard: React.FC<{ section: FilterSection }> = ({ section }) =>
                 className={`touch-feedback flex-1 py-2.5 px-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-center relative flex items-center justify-center gap-1.5 min-h-[36px] ${
                   isActive
                     ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm'
-                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                 }`}
               >
                 {chip.icon && <Icon name={chip.icon} className="text-sm" />}

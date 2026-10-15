@@ -33,15 +33,15 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
     let accentBg = '';
 
     if (isIncome) {
-        colorClass = 'text-emerald-600 dark:text-emerald-400';
+        colorClass = 'text-emerald-700 dark:text-emerald-400';
         accentBg = 'bg-emerald-500';
         icon = 'ArrowDownLeft';
     } else if (isNet) {
-        colorClass = value >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400';
+        colorClass = value >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400';
         accentBg = value >= 0 ? 'bg-blue-500' : 'bg-orange-500';
         icon = 'wallet';
     } else {
-        colorClass = 'text-rose-600 dark:text-rose-400';
+        colorClass = 'text-rose-700 dark:text-rose-400';
         accentBg = 'bg-rose-500';
         icon = 'ArrowUpRight';
     }
@@ -98,7 +98,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
                      </div>
                      <div className="flex flex-col">
                         <div className="flex items-center gap-2">
-                            <h3 className={`text-base font-bold tracking-tight ${title === 'Overdue' ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
+                            <h3 className={`text-base font-bold tracking-tight ${title === 'Overdue' ? 'text-rose-700 dark:text-rose-400' : 'text-light-text dark:text-dark-text'}`}>
                                 {title}
                             </h3>
                             <span className="text-xs font-semibold text-light-text-secondary/90 dark:text-dark-text-secondary/90 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full tabular-nums">
@@ -121,7 +121,7 @@ const ScheduleGroup = ({ title, items, accounts, allCategories, onEdit, onDelete
             {title === 'Overdue' && isOpen && (
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4 px-3 py-2 bg-rose-500/5 dark:bg-rose-500/10 rounded-2xl border border-rose-500/10 dark:border-rose-500/20 ml-8">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                        <span className="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1">
                             <Icon name="filter_alt" className="text-sm" />
                             <span>Filter Overdue:</span>
                         </span>
@@ -973,18 +973,18 @@ const SchedulePage: React.FC = () => {
                         : (summaryMetrics.expense > 0 ? 100 : 0);
                     const reserveAmount = Math.max(0, summaryMetrics.income - summaryMetrics.expense);
 
-                    let commitmentStatusColor = 'text-emerald-600 dark:text-emerald-400';
+                    let commitmentStatusColor = 'text-emerald-700 dark:text-emerald-400';
                     let commitmentProgressColor = 'bg-emerald-500';
                     let commitmentStatusText = 'Optimal Commitment';
                     let commitmentAdvice = 'Recurring obligations consume less than 50% of monthly dynamic income.';
 
                     if (commitmentRatio >= 70) {
-                        commitmentStatusColor = 'text-rose-600 dark:text-rose-400';
+                        commitmentStatusColor = 'text-rose-700 dark:text-rose-400';
                         commitmentProgressColor = 'bg-rose-500';
                         commitmentStatusText = 'High Commitment';
                         commitmentAdvice = 'Overhead exceeds 70%. Consider renegotiating subscriptions or contracts.';
                     } else if (commitmentRatio >= 50) {
-                        commitmentStatusColor = 'text-amber-600 dark:text-amber-400';
+                        commitmentStatusColor = 'text-amber-700 dark:text-amber-400';
                         commitmentProgressColor = 'bg-amber-500';
                         commitmentStatusText = 'Moderate Commitment';
                         commitmentAdvice = 'Obligations occupy over half of incoming flow. Maintain vigilance on discretionary spend.';
@@ -1058,7 +1058,7 @@ const SchedulePage: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
-                                    <div className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-bold tabular-nums">
+                                    <div className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm font-bold tabular-nums">
                                         +{formatCurrency(reserveAmount, 'EUR')} reserve
                                     </div>
                                 </div>
@@ -1070,14 +1070,14 @@ const SchedulePage: React.FC = () => {
                                 <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
                                     <div className="flex items-center justify-between gap-1.5 mb-1">
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            <div className="w-5 h-5 rounded-md bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                                            <div className="w-5 h-5 rounded-md bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0">
                                                 <Icon name="credit_card" className="text-xs" />
                                             </div>
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 30-Day Outflow
                                             </span>
                                         </div>
-                                        <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[10px] font-bold shrink-0">
                                             {summaryMetrics.expCount} Ops
                                         </span>
                                     </div>
@@ -1093,18 +1093,18 @@ const SchedulePage: React.FC = () => {
                                 <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
                                     <div className="flex items-center justify-between gap-1.5 mb-1">
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            <div className="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                            <div className="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                                 <Icon name="download" className="text-xs" />
                                             </div>
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 Expected Income
                                             </span>
                                         </div>
-                                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold shrink-0">
                                             {summaryMetrics.incCount} Ops
                                         </span>
                                     </div>
-                                    <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-emerald-600 dark:text-emerald-400 privacy-blur leading-tight my-0.5">
+                                    <div className="text-base sm:text-lg font-bold font-mono tracking-tight text-emerald-700 dark:text-emerald-400 privacy-blur leading-tight my-0.5">
                                         {formatCurrency(summaryMetrics.income, 'EUR')}
                                     </div>
                                     <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
@@ -1127,7 +1127,7 @@ const SchedulePage: React.FC = () => {
                                             {summaryMetrics.income > 0 ? Math.round((summaryMetrics.expense / summaryMetrics.income) * 100) : 0}% Burden
                                         </span>
                                     </div>
-                                    <div className={`text-base sm:text-lg font-bold font-mono tracking-tight leading-tight my-0.5 privacy-blur ${summaryMetrics.income - summaryMetrics.expense >= 0 ? 'text-light-text dark:text-dark-text' : 'text-rose-600 dark:text-rose-400'}`}>
+                                    <div className={`text-base sm:text-lg font-bold font-mono tracking-tight leading-tight my-0.5 privacy-blur ${summaryMetrics.income - summaryMetrics.expense >= 0 ? 'text-light-text dark:text-dark-text' : 'text-rose-700 dark:text-rose-400'}`}>
                                         {summaryMetrics.income - summaryMetrics.expense >= 0 ? '+' : ''}{formatCurrency(summaryMetrics.income - summaryMetrics.expense, 'EUR')}
                                     </div>
                                     <div className="text-[10px] text-light-text-secondary/70 dark:text-dark-text-secondary/70 truncate">
@@ -1139,14 +1139,14 @@ const SchedulePage: React.FC = () => {
                                 <div className="glass-subwell rounded-xl p-2.5 sm:p-3 border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all hover:border-black/10 dark:hover:border-white/10">
                                     <div className="flex items-center justify-between gap-1.5 mb-1">
                                         <div className="flex items-center gap-1.5 min-w-0">
-                                            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                                            <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
                                                 <Icon name={(groupedItems['Overdue']?.length || 0) > 0 ? 'warning' : 'check_circle'} className="text-xs" />
                                             </div>
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary truncate">
                                                 Attention & Overdue
                                             </span>
                                         </div>
-                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${(groupedItems['Overdue']?.length || 0) > 0 ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
                                             {(groupedItems['Overdue']?.length || 0) > 0 ? `${groupedItems['Overdue']?.length} Overdue` : 'All Clear'}
                                         </span>
                                     </div>
@@ -1164,17 +1164,17 @@ const SchedulePage: React.FC = () => {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div className="flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse shrink-0" />
-                                        <h4 className="text-3xs font-bold uppercase tracking-wider text-light-text dark:text-dark-text">
+                                        <h4 className="text-2xs font-bold uppercase tracking-wider text-light-text dark:text-dark-text">
                                             12-Month Schedule Horizon
                                         </h4>
-                                        <span className="text-3xs text-light-text-secondary/60 dark:text-dark-text-secondary/60 hidden md:inline">
+                                        <span className="text-2xs text-light-text-secondary/80 dark:text-dark-text-secondary/80 hidden md:inline">
                                             • Weekly activity density
                                         </span>
                                     </div>
 
                                     <div className="flex items-center gap-3">
                                         {/* Inline Horizontal Legend */}
-                                        <div className="flex items-center gap-2 sm:gap-2.5 text-3xs font-medium text-light-text-secondary dark:text-dark-text-secondary flex-wrap">
+                                        <div className="flex items-center gap-2 sm:gap-2.5 text-2xs font-medium text-light-text-secondary dark:text-dark-text-secondary flex-wrap">
                                             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-gray-200 dark:bg-gray-700 shrink-0" /> No Activity</span>
                                             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-slate-400 shrink-0" /> Transfer</span>
                                             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-xs bg-green-500 shrink-0" /> Income</span>
@@ -1185,7 +1185,7 @@ const SchedulePage: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setIsHeatmapExpanded(!isHeatmapExpanded)}
-                                            className="flex items-center gap-1 text-3xs font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5"
+                                            className="flex items-center gap-1 text-2xs font-bold text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors cursor-pointer px-2 py-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5"
                                             title={isHeatmapExpanded ? 'Collapse Heatmap' : 'Expand Heatmap'}
                                         >
                                             <span>{isHeatmapExpanded ? 'Hide' : 'Show'}</span>
@@ -1230,7 +1230,7 @@ const SchedulePage: React.FC = () => {
                                         <Icon name={seg.icon} className="text-lg" />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <span className={`text-xs font-bold uppercase tracking-wider truncate ${isActive ? 'text-primary-500' : 'text-light-text dark:text-dark-text'}`}>
+                                        <span className={`text-xs font-bold uppercase tracking-wider truncate ${isActive ? 'text-primary-700 dark:text-primary-400' : 'text-light-text dark:text-dark-text'}`}>
                                             {seg.label}
                                         </span>
                                     </div>
@@ -1287,7 +1287,7 @@ const SchedulePage: React.FC = () => {
                              {oldUnpaidBills.length > 0 && (
                                 <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                                     <div className="flex items-center gap-4">
-                                        <Icon name="event_busy" className="text-2xl text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                        <Icon name="event_busy" className="text-2xl text-amber-700 dark:text-amber-400 flex-shrink-0" />
                                         <div>
                                             <h4 className="font-bold text-sm text-light-text dark:text-dark-text">
                                                 {oldUnpaidBills.length} One-Time Bill(s) Older Than 7 Days
@@ -1355,7 +1355,7 @@ const SchedulePage: React.FC = () => {
                                                 </div>
                                             </div>
                                             {rt.isSynthetic && (
-                                                <span className="absolute top-6 right-6 text-xs font-semibold bg-primary-500/10 text-primary-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Synthetic</span>
+                                                <span className="absolute top-6 right-6 text-xs font-semibold bg-primary-500/10 text-primary-700 dark:text-primary-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Synthetic</span>
                                             )}
                                         </div>
 
@@ -1395,7 +1395,7 @@ const SchedulePage: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={handleExpireAllOldBills}
-                                            className="px-4 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-white text-xs font-bold transition-all flex items-center gap-2 self-start sm:self-auto"
+                                            className="px-4 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500 text-amber-700 dark:text-amber-400 hover:text-white text-xs font-bold transition-all flex items-center gap-2 self-start sm:self-auto"
                                         >
                                             <Icon name="event_busy" className="text-base" />
                                             <span>Archive {oldUnpaidBills.length} Old Unpaid Bill(s)</span>
@@ -1426,13 +1426,13 @@ const SchedulePage: React.FC = () => {
                                                             Account: {bill.accountId ? accountMap[bill.accountId] : 'External'}
                                                         </div>
                                                     </div>
-                                                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                                                         EXPIRED
                                                     </span>
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
-                                                    <span className="text-xl font-black text-rose-600 dark:text-rose-400 tabular-nums">
+                                                    <span className="text-xl font-black text-rose-700 dark:text-rose-400 tabular-nums">
                                                         {formatCurrency(bill.amount, bill.currency)}
                                                     </span>
 

@@ -66,7 +66,7 @@ const SuggestionItemRow: React.FC<{
             {/* Synced Bank Transaction */}
             <div className="space-y-1 bg-white/70 dark:bg-white/5 p-3 rounded-xl border border-black/5 dark:border-white/5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
                   Synced Bank Transaction
                 </span>
                 <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary truncate">
@@ -80,7 +80,7 @@ const SuggestionItemRow: React.FC<{
                 <span className="text-light-text-secondary dark:text-dark-text-secondary">
                   {formatDate(suggestion.transaction.date)}
                 </span>
-                <span className={`font-black tabular-nums ${isExpense ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                <span className={`font-black tabular-nums ${isExpense ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
                   {formatCurrency(suggestion.transaction.amount, suggestion.transaction.currency)}
                 </span>
               </div>
@@ -117,7 +117,7 @@ const SuggestionItemRow: React.FC<{
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t border-black/5 dark:border-white/5">
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic">
-              Confirming will mark this item as <strong className="text-emerald-600 dark:text-emerald-400">Posted / Paid</strong> in Schedule & Bills.
+              Confirming will mark this item as <strong className="text-emerald-700 dark:text-emerald-400">Posted / Paid</strong> in Schedule & Bills.
             </p>
             <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
               <button
@@ -227,7 +227,7 @@ const SyncedBillMatcherModal: React.FC<SyncedBillMatcherModalProps> = ({
               onClick={handleToggleSelectAll}
               className="flex items-center gap-1.5 text-xs font-bold text-light-text dark:text-dark-text"
             >
-              <Icon name={isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-600 dark:text-emerald-400" />
+              <Icon name={isAllSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-700 dark:text-emerald-400" />
               <span>
                 {selectedIds.size === 0
                   ? 'Select All'

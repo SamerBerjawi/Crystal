@@ -243,7 +243,7 @@ const MobileAccountItem: React.FC<{
           <div>
             <p
               className={`text-sm font-bold privacy-blur tracking-tight leading-tight ${
-                isDebt ? 'text-rose-600 dark:text-rose-400' : 'text-light-text dark:text-white'
+                isDebt ? 'text-rose-700 dark:text-rose-400' : 'text-light-text dark:text-white'
               }`}
             >
               {formattedBal}
@@ -251,7 +251,7 @@ const MobileAccountItem: React.FC<{
 
             {Math.abs(trend) > 0 && (
               <div className="flex items-center justify-end gap-0.5 text-xs font-semibold mt-0.5">
-                <span className={isPositiveTrend ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                <span className={isPositiveTrend ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}>
                   {isPositiveTrend ? '▲' : '▼'}
                 </span>
                 <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono opacity-65 privacy-blur">
@@ -409,7 +409,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         sections.push({
           title: `Assets (${assets.length})`,
           totalFormatted: assetsFormatted,
-          totalClass: 'text-emerald-600 dark:text-emerald-400',
+          totalClass: 'text-emerald-700 dark:text-emerald-400',
           accounts: assets,
         });
       }
@@ -417,7 +417,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         sections.push({
           title: `Liabilities (${debt.length})`,
           totalFormatted: debtFormatted,
-          totalClass: 'text-rose-600 dark:text-rose-400',
+          totalClass: 'text-rose-700 dark:text-rose-400',
           accounts: debt,
         });
       }
@@ -439,7 +439,7 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         return {
           title: `${typeKey} (${accs.length})`,
           totalFormatted: formatCurrency(Math.abs(total), curr),
-          totalClass: isDebt ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400',
+          totalClass: isDebt ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400',
           accounts: accs,
         };
       });
@@ -631,16 +631,16 @@ export const MobileAccountsView: React.FC<MobileAccountsViewProps> = ({
         <div className="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
           <div className="bg-emerald-500/15 rounded-xl p-2.5 border border-emerald-500/30 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-300 block">Total Assets</span>
-              <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">Total Assets</span>
+              <span className="text-xs font-black font-mono text-emerald-700 dark:text-emerald-400 privacy-blur truncate block mt-0.5">{assetsFormatted}</span>
             </div>
             <Icon name="arrow_upward" className="text-emerald-500 text-sm" />
           </div>
 
           <div className="bg-rose-500/15 rounded-xl p-2.5 border border-rose-500/30 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-300 block">Liabilities</span>
-              <span className="text-xs font-black font-mono text-rose-600 dark:text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 block">Liabilities</span>
+              <span className="text-xs font-black font-mono text-rose-700 dark:text-rose-400 privacy-blur truncate block mt-0.5">{debtFormatted}</span>
             </div>
             <Icon name="arrow_downward" className="text-rose-500 text-sm" />
           </div>

@@ -73,7 +73,7 @@ const ApiKeyCard: React.FC<{
         <span
           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium leading-none shrink-0 border ${
             isConfigured
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
               : 'bg-black/5 text-neutral-500 dark:bg-white/5 dark:text-neutral-400 border-black/5 dark:border-white/10'
           }`}
         >
@@ -100,8 +100,9 @@ const ApiKeyCard: React.FC<{
           <button
             type="button"
             onClick={() => setIsVisible(!isVisible)}
-            className="absolute inset-y-0 right-0 pr-2 flex items-center text-light-text-secondary hover:text-primary-500 transition-colors cursor-pointer"
+            className="absolute inset-y-0 right-0 px-2 min-w-[28px] justify-center flex items-center text-light-text-secondary hover:text-primary-500 transition-colors cursor-pointer"
             title={isVisible ? 'Hide' : 'Reveal'}
+            aria-label={isVisible ? 'Hide key' : 'Reveal key'}
           >
             <Icon name={isVisible ? 'visibility_off' : 'visibility'} className="text-xs" />
           </button>
@@ -113,7 +114,7 @@ const ApiKeyCard: React.FC<{
               href={docsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-primary-500 hover:text-primary-600 hover:underline inline-flex items-center gap-0.5 opacity-85 hover:opacity-100 font-medium"
+              className="text-[10px] text-primary-700 dark:text-primary-400 hover:underline inline-flex items-center gap-0.5 min-h-[28px] opacity-90 hover:opacity-100 font-medium"
             >
               <span>Get API key</span>
               <Icon name="open_in_new" className="text-[10px]" />
@@ -288,7 +289,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               }
             }}
             placeholder="API Key"
-            colorClass="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20"
+            colorClass="bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20"
             docsUrl="https://carto.com/basemaps"
           />
         </div>

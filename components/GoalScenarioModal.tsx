@@ -206,11 +206,11 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                   <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
                     {modalTitle}
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                  <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/20">
                     {isBucket ? 'Bucket' : 'Goal'}
                   </span>
                   {isSubGoal && (
-                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/20">
                       Sub-Goal
                     </span>
                   )}
@@ -239,8 +239,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                     onClick={() => { setIsBucket(false); setType('one-time'); }}
                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       !isBucket && type === 'one-time'
-                        ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        ? 'bg-white dark:bg-dark-card text-teal-700 dark:text-teal-400 shadow-sm'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="event" className="text-xs" />
@@ -252,8 +252,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                     onClick={() => { setIsBucket(false); setType('recurring'); }}
                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       !isBucket && type === 'recurring'
-                        ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        ? 'bg-white dark:bg-dark-card text-teal-700 dark:text-teal-400 shadow-sm'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="sync_alt" className="text-xs" />
@@ -265,8 +265,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                     onClick={() => setIsBucket(true)}
                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       isBucket
-                        ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        ? 'bg-white dark:bg-dark-card text-teal-700 dark:text-teal-400 shadow-sm'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="folder" className="text-xs" />
@@ -302,7 +302,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
 
                 {!isBucket && (
                   <div className="flex items-center justify-between gap-3 pt-2 border-t border-black/5 dark:border-white/5">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                       {amountLabels.target}
                     </span>
 
@@ -321,7 +321,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                         required
                         autoComplete="off"
                       />
-                      <span className="text-xs font-mono font-bold text-gray-400 uppercase">
+                      <span className="text-xs font-mono font-bold text-gray-500 uppercase">
                         EUR
                       </span>
                     </div>
@@ -337,7 +337,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                 onClick={() => setActiveTab('strategy')}
                 className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'strategy'
-                    ? 'border-teal-500 text-teal-600 dark:text-teal-400 bg-teal-500/5'
+                    ? 'border-teal-500 text-teal-700 dark:text-teal-400 bg-teal-500/5'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
@@ -351,7 +351,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                   onClick={() => setActiveTab('timeline')}
                   className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                     activeTab === 'timeline'
-                      ? 'border-teal-500 text-teal-600 dark:text-teal-400 bg-teal-500/5'
+                      ? 'border-teal-500 text-teal-700 dark:text-teal-400 bg-teal-500/5'
                       : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
@@ -365,7 +365,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({
                 onClick={() => setActiveTab('linkage')}
                 className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'linkage'
-                    ? 'border-teal-500 text-teal-600 dark:text-teal-400 bg-teal-500/5'
+                    ? 'border-teal-500 text-teal-700 dark:text-teal-400 bg-teal-500/5'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >

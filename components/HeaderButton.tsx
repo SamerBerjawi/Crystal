@@ -25,21 +25,21 @@ export interface HeaderButtonProps extends React.ButtonHTMLAttributes<HTMLButton
 
 const variantStyles: Record<HeaderButtonVariant, string> = {
   primary:
-    'bg-primary-600 hover:bg-primary-500 text-white font-semibold shadow-md shadow-primary-600/20 border border-primary-500/30 dark:bg-primary-500 dark:hover:bg-primary-400',
+    'bg-primary-700 hover:bg-primary-600 text-white font-semibold shadow-md shadow-primary-700/20 border border-primary-600/30 dark:bg-primary-700 dark:hover:bg-primary-600',
   secondary:
     'bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white font-semibold border border-slate-200/80 dark:border-white/5',
   accent:
     'bg-primary-500/10 hover:bg-primary-500/20 text-primary-700 dark:text-primary-300 font-semibold border border-primary-500/20',
   emerald:
-    'bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 font-semibold border border-emerald-500/30 shadow-xs',
+    'bg-emerald-700 hover:bg-emerald-600 text-white dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 font-semibold border border-emerald-500/30 shadow-xs',
   indigo:
-    'bg-indigo-600 hover:bg-indigo-500 text-white dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 dark:text-indigo-300 font-semibold border border-indigo-500/30 shadow-xs',
+    'bg-indigo-700 hover:bg-indigo-600 text-white dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 dark:text-indigo-300 font-semibold border border-indigo-500/30 shadow-xs',
   amber:
-    'bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-300 font-semibold border border-amber-500/30 shadow-xs',
+    'bg-amber-700 hover:bg-amber-600 text-white dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-300 font-semibold border border-amber-500/30 shadow-xs',
   gold:
     'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-neutral-950 font-bold shadow-md shadow-amber-500/20 border border-amber-400/40 active:scale-[0.98]',
   danger:
-    'bg-rose-600 hover:bg-rose-500 text-white dark:bg-rose-500/20 dark:hover:bg-rose-500/30 dark:text-rose-300 font-semibold border border-rose-500/30 shadow-xs',
+    'bg-rose-700 hover:bg-rose-600 text-white dark:bg-rose-500/20 dark:hover:bg-rose-500/30 dark:text-rose-300 font-semibold border border-rose-500/30 shadow-xs',
   ghost:
     'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 font-semibold border border-transparent',
 };

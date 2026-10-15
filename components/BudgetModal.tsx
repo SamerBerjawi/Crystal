@@ -211,7 +211,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
 
                 {/* Big Currency & Amount Row */}
                 <div className="flex items-center justify-between gap-3 pt-2 border-t border-black/5 dark:border-white/5">
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                     Limit Amount
                   </span>
 
@@ -231,7 +231,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
                       autoFocus
                       autoComplete="off"
                     />
-                    <span className="text-xs font-mono font-bold text-gray-400 uppercase">
+                    <span className="text-xs font-mono font-bold text-gray-500 uppercase">
                       EUR
                     </span>
                   </div>
@@ -398,7 +398,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({
               <button
                 type="button"
                 onClick={onDelete}
-                className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 hover:text-rose-700 transition-colors cursor-pointer"
+                className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 hover:text-rose-700 transition-colors cursor-pointer"
               >
                 Delete Budget
               </button>

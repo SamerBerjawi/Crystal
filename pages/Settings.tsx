@@ -120,7 +120,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 <span className="px-2.5 py-0.5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-semibold border border-primary-500/20">
                   {user.role}
                 </span>
-                <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/20 flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/20 flex items-center gap-1">
                   <Icon name="check_circle" className="text-xs" />
                   Verified Account
                 </span>
@@ -187,9 +187,9 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Rule Engine"
                 description="Custom IF-WHEN-THEN rules for auto-categorization"
                 colorClass="bg-teal-500 text-white"
-                iconColor="text-teal-600 dark:text-teal-400"
+                iconColor="text-teal-700 dark:text-teal-400"
                 badge="Active"
-                badgeColor="bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20"
+                badgeColor="bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20"
                 onClick={handleNavigation}
               />
               <SettingCard
@@ -198,7 +198,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Merchants & Institutions"
                 description="Metadata enrichment, logos, and regex routing rules"
                 colorClass="bg-emerald-500 text-white"
-                iconColor="text-emerald-600 dark:text-emerald-400"
+                iconColor="text-emerald-700 dark:text-emerald-400"
                 onClick={handleNavigation}
               />
             </div>
@@ -222,7 +222,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Categories"
                 description="Parent & sub-node structure for expenses and income"
                 colorClass="bg-orange-500 text-white"
-                iconColor="text-orange-600 dark:text-orange-400"
+                iconColor="text-orange-700 dark:text-orange-400"
                 onClick={handleNavigation}
               />
               <SettingCard
@@ -252,7 +252,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
                 title="Data Management"
                 description="Atomic CSV/JSON imports, export ledgers, backups"
                 colorClass="bg-cyan-500 text-white"
-                iconColor="text-cyan-600 dark:text-cyan-400"
+                iconColor="text-cyan-700 dark:text-cyan-400"
                 onClick={handleNavigation}
               />
               <SettingCard

@@ -99,21 +99,21 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                     <button
                         type="button"
                         onClick={() => { setType('spending_cap'); setTargetId(''); }}
-                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'spending_cap' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'spending_cap' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'}`}
                     >
                         Spending Cap
                     </button>
                     <button
                         type="button"
                         onClick={() => { setType('net_worth_goal'); setTargetId(''); }}
-                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'net_worth_goal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'net_worth_goal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'}`}
                     >
                         Net Worth
                     </button>
                     <button
                         type="button"
                         onClick={() => { setType('price_target'); setTargetId(''); }}
-                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'price_target' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${type === 'price_target' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'}`}
                     >
                         Price Target
                     </button>

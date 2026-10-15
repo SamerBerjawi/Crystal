@@ -164,7 +164,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     setCurrentPage('Schedule & Bills');
                     setIsOpen(false);
                   }}
-                  className="text-xs font-bold text-primary-500 hover:text-primary-600 transition-colors inline-flex items-center gap-1"
+                  className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors inline-flex items-center gap-1"
                 >
                   Manage Schedule & Bills
                   <Icon name="arrow_forward" className="text-sm" />
@@ -208,7 +208,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
             </h4>
             <span
               className={`inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-semibold ${
-                isUrgent ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                isUrgent ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
               }`}
             >
               {item.statusText}

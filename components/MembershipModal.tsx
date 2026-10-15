@@ -184,7 +184,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                   <button
                     type="button"
                     onClick={() => setIconPickerOpen(true)}
-                    className="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1"
+                    className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 flex items-center gap-1"
                   >
                     <span>Change Icon</span>
                     <Icon name="chevron_right" className="text-sm" />

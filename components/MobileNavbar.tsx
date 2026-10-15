@@ -271,7 +271,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ onLogout, currentPage, setC
                   <button
                     type="button"
                     onClick={() => { setIsMoreOpen(false); onLogout(); }}
-                    className="touch-feedback w-full flex items-center gap-3 p-3 rounded-2xl text-left border border-rose-500/20 bg-rose-500/5 text-rose-600 dark:text-rose-400 min-h-[44px]"
+                    className="touch-feedback w-full flex items-center gap-3 p-3 rounded-2xl text-left border border-rose-500/20 bg-rose-500/5 text-rose-700 dark:text-rose-400 min-h-[44px]"
                   >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-rose-500/10">
                       <Icon name="logout" className="text-xl" />

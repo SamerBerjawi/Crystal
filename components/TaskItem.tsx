@@ -23,9 +23,9 @@ const getRelativeDate = (dateString: string): { text: string; color: string } =>
     const diffTime = date.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return { text: `${Math.abs(diffDays)}d overdue`, color: 'text-red-600 dark:text-red-400 font-bold' };
-    if (diffDays === 0) return { text: 'Today', color: 'text-orange-600 dark:text-orange-400 font-bold' };
-    if (diffDays === 1) return { text: 'Tomorrow', color: 'text-amber-600 dark:text-amber-400' };
+    if (diffDays < 0) return { text: `${Math.abs(diffDays)}d overdue`, color: 'text-red-700 dark:text-red-400 font-bold' };
+    if (diffDays === 0) return { text: 'Today', color: 'text-orange-700 dark:text-orange-400 font-bold' };
+    if (diffDays === 1) return { text: 'Tomorrow', color: 'text-amber-700 dark:text-amber-400' };
     if (diffDays <= 7) return { text: `In ${diffDays} days`, color: 'text-light-text-secondary dark:text-dark-text-secondary' };
     
     return { 

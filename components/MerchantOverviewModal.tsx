@@ -360,7 +360,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   {formatCurrency(totalValue, 'EUR')}
                 </span>
 
-                <span className="text-xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider font-mono">
+                <span className="text-xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider font-mono">
                   EUR Volume
                 </span>
               </div>
@@ -380,7 +380,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
             <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="marker-pin-04" className="text-sky-600 dark:text-sky-400 text-sm shrink-0" />
+              <Icon name="marker-pin-04" className="text-sky-700 dark:text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Presence</span>
                 <span className="font-bold text-slate-900 dark:text-white text-xs">
@@ -392,7 +392,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
             <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="bar_chart" className="text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
+              <Icon name="bar_chart" className="text-emerald-700 dark:text-emerald-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Average</span>
                 <span className="font-bold text-slate-900 dark:text-white text-xs font-mono">
@@ -429,10 +429,10 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
               <div className="grid grid-cols-2 gap-5">
                 {/* Metric 1: Frequency */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Total Events
                   </p>
-                  <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-amber-700 dark:text-amber-400 truncate leading-tight font-mono">
                     {count} Transactions
                   </p>
                   <p className="text-2xs text-slate-500 dark:text-gray-500 font-mono">Total Activity</p>
@@ -440,7 +440,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
                 {/* Metric 2: Lifetime Spend */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Cumulative Volume
                   </p>
                   <p className="text-sm sm:text-base font-black text-rose-600 dark:text-[#ff375f] truncate leading-tight font-mono">
@@ -451,7 +451,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
                 {/* Metric 3: Average Ticket */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Average Ticket
                   </p>
                   <p className="text-sm sm:text-base font-black text-sky-600 dark:text-[#38bdf8] truncate leading-tight font-mono">
@@ -462,7 +462,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
                 {/* Metric 4: Last Active */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Last Activity
                   </p>
                   <p className="text-sm sm:text-base font-black text-purple-600 dark:text-[#c084fc] truncate leading-tight font-mono">
@@ -474,7 +474,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
               {/* Automation Rules Card */}
               <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
-                <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                   Classification Directive
                 </p>
                 <div className="bg-white dark:bg-black/30 p-3 rounded-2xl border border-slate-200/80 dark:border-white/5 space-y-2 shadow-xs dark:shadow-none">
@@ -495,7 +495,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
 
                   {/* Matching Keyword Triggers */}
                   <div className="pt-2 border-t border-slate-200 dark:border-white/5 space-y-1.5">
-                    <div className="flex items-center justify-between text-2xs text-slate-600 dark:text-gray-400 uppercase font-bold tracking-wider">
+                    <div className="flex items-center justify-between text-2xs text-slate-600 dark:text-gray-500 uppercase font-bold tracking-wider">
                       <span>Keyword Triggers</span>
                       {onEdit && (
                         <button
@@ -533,7 +533,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
               {resolvedLocations.length > 0 && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                       Branches & Locations ({resolvedLocations.length})
                     </p>
                   </div>
@@ -581,7 +581,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
               {merchantTransactions.length > 0 && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                       Recent Activity ({merchantTransactions.length})
                     </p>
                   </div>

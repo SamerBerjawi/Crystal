@@ -387,7 +387,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(56, 189, 248, 0.35)',
       cardBg: 'bg-gradient-to-br from-sky-500/25 via-blue-600/20 to-indigo-900/30',
       accentNeon: '#38bdf8',
-      textAccent: 'text-sky-600 dark:text-sky-400',
+      textAccent: 'text-sky-700 dark:text-sky-400',
       icon: 'payments',
     },
     Savings: {
@@ -396,7 +396,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(52, 211, 153, 0.35)',
       cardBg: 'bg-gradient-to-br from-emerald-500/25 via-teal-600/20 to-emerald-950/30',
       accentNeon: '#34d399',
-      textAccent: 'text-emerald-600 dark:text-emerald-400',
+      textAccent: 'text-emerald-700 dark:text-emerald-400',
       icon: 'savings',
     },
     'Credit Card': {
@@ -405,7 +405,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(255, 55, 95, 0.35)',
       cardBg: 'bg-gradient-to-br from-rose-500/25 via-pink-600/20 to-rose-950/40',
       accentNeon: '#ff375f',
-      textAccent: 'text-rose-600 dark:text-rose-400',
+      textAccent: 'text-rose-700 dark:text-rose-400',
       icon: 'credit_card',
     },
     Investment: {
@@ -423,7 +423,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(244, 63, 94, 0.35)',
       cardBg: 'bg-gradient-to-br from-red-500/25 via-rose-700/20 to-zinc-950/40',
       accentNeon: '#f43f5e',
-      textAccent: 'text-red-600 dark:text-red-400',
+      textAccent: 'text-red-700 dark:text-red-400',
       icon: 'account_balance',
     },
     Lending: {
@@ -432,7 +432,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(20, 184, 166, 0.35)',
       cardBg: 'bg-gradient-to-br from-teal-500/25 via-emerald-600/20 to-teal-950/30',
       accentNeon: '#14b8a6',
-      textAccent: 'text-teal-600 dark:text-teal-400',
+      textAccent: 'text-teal-700 dark:text-teal-400',
       icon: 'account_balance',
     },
     Property: {
@@ -441,7 +441,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(245, 158, 11, 0.35)',
       cardBg: 'bg-gradient-to-br from-amber-500/25 via-orange-600/20 to-amber-950/30',
       accentNeon: '#f59e0b',
-      textAccent: 'text-amber-600 dark:text-amber-400',
+      textAccent: 'text-amber-700 dark:text-amber-400',
       icon: 'location_on',
     },
     Vehicle: {
@@ -459,7 +459,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
       aura: 'rgba(163, 230, 53, 0.35)',
       cardBg: 'bg-gradient-to-br from-lime-500/25 via-emerald-600/20 to-lime-950/30',
       accentNeon: '#a3e635',
-      textAccent: 'text-lime-600 dark:text-lime-400',
+      textAccent: 'text-lime-700 dark:text-lime-400',
       icon: 'category',
     },
     'Other Liabilities': {
@@ -477,7 +477,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
     aura: 'rgba(56, 189, 248, 0.35)',
     cardBg: 'bg-white/10',
     accentNeon: '#38bdf8',
-    textAccent: 'text-sky-600 dark:text-sky-400',
+    textAccent: 'text-sky-700 dark:text-sky-400',
     icon: 'wallet',
   };
 
@@ -611,8 +611,8 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
             <div className="inline-flex items-center bg-[#fdfdfd] text-[#111] rounded-md px-1.5 py-0.5 border-2 border-[#2b2b2b] shadow-md">
               {/* Blue EU Flag Band */}
               <div className="w-5 h-7 rounded-xs bg-[#003399] flex flex-col items-center justify-around py-0.5 px-0.5 mr-2">
-                <div className="text-[7px] text-amber-300 leading-none">★★</div>
-                <span className="text-[9px] font-black text-white font-mono leading-none">
+                <div className="text-2xs text-amber-300 leading-none">★★</div>
+                <span className="text-2xs font-black text-white font-mono leading-none">
                   {account.registrationCountryCode || 'EU'}
                 </span>
               </div>
@@ -1063,7 +1063,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
             <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <Icon name="account_balance" className="text-sky-600 dark:text-sky-400 text-sm shrink-0" />
+              <Icon name="account_balance" className="text-sky-700 dark:text-sky-400 text-sm shrink-0" />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Institution</span>
                 <span className="font-bold text-slate-900 dark:text-white text-xs truncate max-w-[110px]">
@@ -1077,7 +1077,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
             <div className="flex items-center gap-1.5 shrink-0">
               <Icon
                 name={isLinked ? 'sync' : 'tune'}
-                className={`text-sm shrink-0 ${isLinked ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}
+                className={`text-sm shrink-0 ${isLinked ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400'}`}
               />
               <div className="flex flex-col">
                 <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">Feed Sync</span>
@@ -1091,7 +1091,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
               <>
                 <div className="h-6 w-px bg-slate-200 dark:bg-white/10 shrink-0" />
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Icon name="trending_up" className="text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
+                  <Icon name="trending_up" className="text-emerald-700 dark:text-emerald-400 text-sm shrink-0" />
                   <div className="flex flex-col">
                     <span className="text-2xs uppercase text-slate-600 dark:text-gray-400 font-bold tracking-wider">APY Yield</span>
                     <span className="font-bold text-slate-900 dark:text-white text-xs font-mono">{account.apy}%</span>
@@ -1146,12 +1146,12 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
               <div className="grid grid-cols-2 gap-5">
                 {/* Metric 1: Position / 30-Day Activity */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     {account.type === 'Investment' && investmentHoldingMetrics
                       ? 'Held Position'
                       : '30-Day Activity'}
                   </p>
-                  <p className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 truncate leading-tight font-mono">
+                  <p className="text-sm sm:text-base font-black text-amber-700 dark:text-amber-400 truncate leading-tight font-mono">
                     {account.type === 'Investment' && investmentHoldingMetrics
                       ? investmentHoldingMetrics.netShares > 0
                         ? `${investmentHoldingMetrics.netShares.toLocaleString()} Units`
@@ -1167,7 +1167,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
 
                 {/* Metric 2: Net Cash Flow or Unrealized Gain */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     {account.type === 'Investment' && investmentHoldingMetrics
                       ? 'Unrealized P&L'
                       : '30D Net Flow'}
@@ -1212,7 +1212,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
 
                 {/* Metric 3: Average Ticket or Market Price */}
                 <div className="space-y-1.5">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     {account.type === 'Investment' && investmentHoldingMetrics
                       ? 'Market Quote'
                       : 'Average Ticket'}
@@ -1231,7 +1231,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
 
                 {/* Metric 4: Account Specific Highlights */}
                 <div className="space-y-1.5 text-right">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     {account.type === 'Investment'
                       ? 'Portfolio Class'
                       : account.type === 'Credit Card' && account.creditLimit
@@ -1281,7 +1281,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
               {metrics.recentTxs.length > 0 && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                    <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                       Recent Activity
                     </p>
                     {onNavigateToTransactions && (
@@ -1358,7 +1358,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
               {/* SPECIFIC ACCOUNT IDENTIFIERS & METADATA */}
               {(account.accountNumber || account.routingNumber || (account as any).iban) && (
                 <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-2">
-                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-400 uppercase tracking-wider">
+                  <p className="text-2xs font-bold text-slate-600 dark:text-gray-500 uppercase tracking-wider">
                     Banking Identifiers
                   </p>
                   <div className="space-y-1.5">

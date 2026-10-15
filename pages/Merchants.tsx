@@ -18,6 +18,7 @@ import Icon from '../components/ui/Icon';
 import HeroMetricCard from '../components/ui/HeroMetricCard';
 import MetricCardRow from '../components/ui/MetricCardRow';
 import FilterBar from '../components/ui/FilterBar';
+import EmptyState from '../components/EmptyState';
 import { computeSpendTrends } from '../utils/merchantTrends';
 
 interface MerchantsProps {
@@ -571,7 +572,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
                <Icon name="alert_triangle" className="text-xl" />
             </div>
-            <p className="text-xs font-bold text-amber-800/80 dark:text-amber-200/80 leading-relaxed">
+            <p className="text-xs font-bold text-amber-900 dark:text-amber-200 leading-relaxed">
               Automatic logo lookup is inactive. Add a free Brandfetch Access Key in Preferences to automatically fetch merchant logos.
             </p>
           </div>
@@ -586,7 +587,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                 <div>
                     <div className="flex items-center gap-2">
                         <h3 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text">Smart Categorization & Tools</h3>
-                        <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-semibold border border-teal-500/20">Active</span>
+                        <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 text-xs font-semibold border border-teal-500/20">Active</span>
                     </div>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 opacity-80 leading-relaxed">
                         Create automatic categorization rules for matching keywords or run logo discovery passes to enrich merchant branding.
@@ -617,7 +618,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           <Card className="glass-section border border-dashed border-teal-500/30 p-5 rounded-3xl space-y-4 shadow-card">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0">
                   <Icon name="auto_awesome" className="text-base" />
                 </div>
                 <div>
@@ -633,7 +634,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               <button
                 type="button"
                 onClick={() => setCurrentPage('Rules')}
-                className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 self-start sm:self-auto"
+                className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline flex items-center gap-1 min-h-[28px] self-start sm:self-auto"
               >
                 <span>View all in Rules</span>
                 <Icon name="chevron_right" className="text-sm" />
@@ -657,7 +658,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     </p>
                     {sug.suggestedCategory && (
                       <p className="text-2xs text-gray-400 font-mono mt-0.5 truncate">
-                        Category: <span className="text-teal-600 dark:text-teal-400 font-bold">{sug.suggestedCategory}</span>
+                        Category: <span className="text-teal-700 dark:text-teal-400 font-bold">{sug.suggestedCategory}</span>
                       </p>
                     )}
                   </div>
@@ -669,7 +670,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                     <button
                       type="button"
                       onClick={() => handleDeploySmartSuggestion(sug)}
-                      className="px-2.5 py-1 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 min-h-[28px] text-xs font-semibold bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
                     >
                       <Icon name="add" className="text-xs" />
                       <span>Accept Rule</span>
@@ -762,7 +763,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                 />
            </div>
            
-           <div className="flex items-center gap-6 w-full md:w-auto">
+           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 w-full md:w-auto">
                <label className="flex items-center gap-3 cursor-pointer group select-none">
                    <div className="relative">
                       <input 
@@ -818,14 +819,17 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       </div>
 
       {filteredEntities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 glass-subwell rounded-3xl border border-dashed border-slate-200/60 dark:border-white/10">
-              <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-6">
-                <Icon name="search_off" className="text-3xl opacity-20" />
-              </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Zero Results Found</p>
+          <div>
+              <EmptyState
+                icon="search_off"
+                title={searchTerm ? 'No merchants match your search' : 'No merchants yet'}
+                description={searchTerm ? 'Try a different name, or clear the search.' : 'Merchants appear here once you have transactions with a merchant name.'}
+                actionLabel={searchTerm ? 'Clear search' : undefined}
+                onAction={searchTerm ? () => setSearchTerm('') : undefined}
+              />
               {stats.missingCount > 0 && (
-                  <p className="text-xs font-semibold text-orange-500 mt-4">
-                    Audit required: {stats.missingCount} ambiguous records detected.
+                  <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 mt-4 text-center">
+                    {stats.missingCount} merchant records need review.
                   </p>
               )}
           </div>
@@ -879,7 +883,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${entity.type === 'Institution' ? 'bg-indigo-500 text-white' : 'bg-primary-500 text-white'}`}>{entity.type === 'Institution' ? 'Core' : 'Merch'}</span>
                             </div>
                             {entity.rule?.category && (
-                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate max-w-[100px]">
+                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80 truncate max-w-[100px]">
                                     {entity.rule.category}
                                 </span>
                             )}
@@ -890,7 +894,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                         <div>
                             <h3 className="font-semibold text-lg text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors">{entity.name}</h3>
                             <div className="flex items-center gap-2 mt-0.5">
-                                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                     {entity.count} Observed Events
                                 </p>
                                 {entity.rule?.isOnline ? (
@@ -922,7 +926,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                         </div>
                         
                         <div className="pt-4 border-t border-slate-200/60 dark:border-white/5">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-1">
                                 Cumulative
                             </p>
                             <p className={`font-mono font-black text-xl tracking-tight ${accentColor}`}>
@@ -986,7 +990,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                     className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
                                                     title={entity.rule.locations.map(l => `${l.label || 'Branch'}: ${l.address}`).join('\n')}
                                                  >
-                                                    <Icon name="marker_pin" className="text-xs text-primary-500 shrink-0" />
+                                                    <Icon name="marker_pin" className="text-xs text-primary-700 dark:text-primary-400 shrink-0" />
                                                     <span className="truncate">{entity.rule.locations.length} Branches ({entity.rule.locations.map(l => l.city || l.label).filter(Boolean).slice(0, 2).join(', ')})</span>
                                                  </p>
                                                ) : (entity.rule?.address || entity.rule?.locations?.[0]) && (
@@ -994,7 +998,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                     className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70 flex items-center gap-1 mt-0.5 truncate max-w-[240px]" 
                                                     title={entity.rule?.address || entity.rule?.locations?.[0]?.address}
                                                  >
-                                                    <Icon name="marker_pin" className="text-xs text-primary-500 shrink-0" />
+                                                    <Icon name="marker_pin" className="text-xs text-primary-700 dark:text-primary-400 shrink-0" />
                                                     <span className="truncate">{entity.rule?.address || entity.rule?.locations?.[0]?.address}</span>
                                                  </p>
                                                )}
@@ -1045,7 +1049,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                            <button 
                                                 onClick={(e) => { e.stopPropagation(); setEditingEntity(entity); setIsDetailModalOpen(true); }}
                                                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500 hover:text-white transition-all shadow-sm"
-                                                title="Protocol Configuration"
+                                                title="Merchant settings"
                                             >
                                                 <Icon name="tune" className="text-lg" />
                                             </button>

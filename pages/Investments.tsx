@@ -28,6 +28,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { SmartPriceBinding } from '../types';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 import { warnIgnored } from '../utils/logging';
+import { toast } from 'sonner';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -762,13 +763,13 @@ const Investments: React.FC<InvestmentsProps> = ({
 
             if (failed.length > 0) {
                 const failedSymbols = failed.map(item => item.symbol).join(', ');
-                window.alert(`Updated ${successCount}/${displayHoldings.length} holdings. Failed: ${failedSymbols}`);
+                toast.warning(`Updated ${successCount}/${displayHoldings.length} holdings. Failed: ${failedSymbols}`);
             } else {
-                window.alert(`Updated prices for ${successCount} holdings.`);
+                toast.success(`Updated prices for ${successCount} holdings.`);
             }
         } catch (error) {
             console.error('Failed to update holdings prices', error);
-            window.alert('Unable to update prices right now. Please try again.');
+            toast.error('Unable to update prices right now. Please try again.');
         } finally {
             setIsUpdatingAllPrices(false);
         }
@@ -1135,7 +1136,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <div className="flex items-center justify-between gap-2 mb-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center">
-                                            <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-500 text-sm" />
+                                            <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-700 dark:text-primary-400 text-sm" />
                                         </div>
                                         <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                                             {activeSegment === 'all' ? 'Portfolio Valuation' : `${segments.find(s => s.id === activeSegment)?.label} Segment`}
@@ -1146,7 +1147,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <button
                                             type="button"
                                             onClick={() => setActiveSegment('all')}
-                                            className="text-2xs font-bold uppercase tracking-wider text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+                                            className="text-2xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
                                         >
                                             View All
                                         </button>
@@ -1169,7 +1170,7 @@ const Investments: React.FC<InvestmentsProps> = ({
 
                             {/* Middle: Segment Allocation Grid */}
                             <div className="space-y-1">
-                                <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                     Allocation by Segment
                                 </div>
                                 <div className="grid grid-cols-2 gap-1.5">
@@ -1288,7 +1289,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         let iconColorClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
                                                         let headerLabel = 'Cash Balance';
                                                         let badgeLabel = 'Active';
-                                                        let badgeColorClass = 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20';
+                                                        let badgeColorClass = 'text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20';
 
                                                         if (acc.subType === 'Spare Change') {
                                                             icon = 'savings';
@@ -1397,7 +1398,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     <div className="min-w-0 flex-1">
                                                                         <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
                                                                         <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
-                                                                        {holding.priceUnavailable && <p className="text-2xs font-semibold text-amber-600 dark:text-amber-400">Price unavailable</p>}
+                                                                        {holding.priceUnavailable && <p className="text-2xs font-semibold text-amber-700 dark:text-amber-400">Price unavailable</p>}
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -1414,7 +1415,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
                                                             </td>
                                                             <td className="py-4 text-right">
-                                                                <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                                                     {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
                                                                 </div>
                                                                 <div className="text-xs text-gray-400 privacy-blur hidden sm:block">
@@ -1508,7 +1509,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
-                            <button className="text-xs font-semibold text-primary-500 uppercase tracking-wider hover:underline">Analysis</button>
+                            <button className="text-xs font-semibold text-primary-700 dark:text-primary-400 uppercase tracking-wider hover:underline">Analysis</button>
                         </div>
                         <div className="h-48 relative mb-6 flex items-center justify-center">
                             <BklitPieChart
@@ -1571,7 +1572,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 <p className="text-xs text-gray-400 font-medium">{h.name}</p>
                                             </div>
                                         </div>
-                                        <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                             {h.gain >= 0 ? '▲' : '▼'} {Math.abs(h.gain).toFixed(1)}%
                                         </div>
                                     </div>
@@ -1594,7 +1595,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.03] mb-6">
                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70">Total Realized Returns</span>
                             <div className="flex items-baseline gap-2 mt-1">
-                                <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                     {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(realizedPerformance.totalRealizedGain, 'EUR')}
                                 </h4>
                                 <span className="text-xs text-gray-400 font-medium">
@@ -1625,7 +1626,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className={`text-xs font-black ${isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                <p className={`text-xs font-black ${isWin ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                                     {isWin ? '+' : ''}{formatCurrency(sale.gain, 'EUR')}
                                                 </p>
                                                 <p className={`text-xs font-semibold ${isWin ? 'text-green-500/80' : 'text-red-500/80'}`}>

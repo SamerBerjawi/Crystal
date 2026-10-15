@@ -113,6 +113,7 @@ import { fetchAllExchangeRates } from './src/services/twelveDataService';
 import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache';
 import { threeWayMerge } from './utils/threeWayMerge';
 import { warnIgnored } from './utils/logging';
+import { startPrivacyMask } from './utils/privacyMask';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -748,6 +749,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isPrivacyMode) { document.body.classList.add('privacy-mode'); }
     else { document.body.classList.remove('privacy-mode'); }
+    // Catch amounts that are not individually marked with .privacy-blur (AUD-73).
+    return isPrivacyMode ? startPrivacyMask() : undefined;
   }, [isPrivacyMode]);
 
   useEffect(() => {
@@ -1248,7 +1251,7 @@ const App: React.FC = () => {
       id: `restore-${uuidv4()}`,
       type: 'restore',
       dataType: 'snapshot',
-      fileName: 'Cloud Snapshot',
+      fileName: 'Backup restore',
       date: new Date().toISOString(),
       status: 'Complete',
       itemCount: summaryParts.length,

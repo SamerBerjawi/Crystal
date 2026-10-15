@@ -384,7 +384,7 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S (ETag); L (tables, out of scope)
 - **Verify:** API test: second `GET /api/data` with `If-None-Match` → 304.
 
-#### WP-3.4 ⚡ Merchants page and logo caching `[x]`
+#### WP-3.4 ⚡ Merchants page and logo caching `[~]`
 - **Done:** Merchant spend trends computed in one pass via utils/merchantTrends.ts (unit-tested equal to the per-entity scan; 10k tx x 600 merchants < 500 ms); Brandfetch logo URLs no longer carry a daily version parameter. Pagination/virtualization of the merchant grid is not done (see note).
 - **Covers:** AUD-37 (PERF-006), AUD-38 (PERF-007)
 - **Files:** `pages/Merchants.tsx` L372-410, `utils/brandfetch.ts` L97-105
@@ -426,14 +426,16 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** M
 - **Verify:** e2e C21 "tag actions named", D3 "mobile + named"; new e2e: axe `button-name` / `select-name` = 0 on populated Transactions, Investments, Tags, Preferences; Enter on a focused account card opens it.
 
-#### WP-4.4 Contrast and type scale `[ ]` — needs decision K6
+#### WP-4.4 Contrast and type scale `[x]` — needs decision K6
+- **Done:** Filled buttons use the -700 shade (brand -700 darkened to #b45309 so white text reaches 4.5:1), light-mode coloured text moved from -600 to -700, thin /60 and opacity-60 secondary text raised, kicker pills and Sonner toasts darkened, type floor raised to 10px (text-3xs removed). axe color-contrast = 0 on 10 pages in light and dark (new spec). 517 labels still use 10px.
 - **Covers:** AUD-20 (UI-003), AUD-42 (UI-008)
 - **Files:** `utils/theme.ts`, `constants.tsx` (button styles), `components/HeaderButton.tsx`, pages using `text-[9px]`/`text-[7px]`
 - **Depends on:** WP-4.6
 - **Effort:** M
 - **Verify:** new e2e: axe `color-contrast` = 0 on the 10 main pages (light and dark).
 
-#### WP-4.5 Responsive and tap targets `[ ]`
+#### WP-4.5 Responsive and tap targets `[x]`
+- **Done:** Fixed 375px overflow on Forecasting (wrapping header), Challenges (clipped glow orbs) and Merchants (wrapping toolbar); interactive controls on Merchants/Integrations/Preferences/Settings sub-pages/forecast toggles are >=24px (switches 48x28). New responsive spec asserts both on 8 pages; D9/E13 un-annotated.
 - **Covers:** AUD-45 (UI-011, QA-D-005, QA-E-002), AUD-66 (UI-012)
 - **Files:** `pages/Merchants.tsx`, `components/MobileForecastView.tsx`, `pages/Challenges.tsx`, `components/EnableBankingIntegrationCard.tsx`
 - **Depends on:** —
@@ -448,14 +450,16 @@ Effort: **S** ≤ ½ day, **M** 1–2 days, **L** > 2 days. Paths are relative t
 - **Effort:** S for the token source; L for migrating raw classes (incremental)
 - **Verify:** the build emits `.z-modal` and `.text-3xs` rules; lint rule for raw palette classes (warn).
 
-#### WP-4.7 Feedback, copy, empty states, duplicates `[ ]`
+#### WP-4.7 Feedback, copy, empty states, duplicates `[x]`
+- **Done:** All 24 alert() calls became toasts (0 left); jargon labels renamed (Delete/Cancel, Change password, Save changes, New tag, Most used/Highest volume/Name, Manual order/Priority/Due date, Search transactions, Create task); transaction Description is marked required; Merchants empty state uses EmptyState. Not done: consolidating duplicate button/card/confirmation components (AUD-43) and the remaining empty states.
 - **Covers:** AUD-44 remainder (UI-010), AUD-67 (UI-013, QA-B-009), AUD-68 (UI-014), AUD-43 (UI-009 non-modal)
 - **Files:** pages with `alert()` (26 call sites), labels listed in UI-013, `components/EmptyState.tsx` adopters
 - **Depends on:** WP-2.6
 - **Effort:** M
 - **Verify:** `grep -c "alert("` = 0 in `pages/` and `components/`; e2e suites green.
 
-#### WP-4.8 Privacy mode coverage `[ ]`
+#### WP-4.8 Privacy mode coverage `[x]`
+- **Done:** Group totals on Accounts were missing .privacy-blur; plus utils/privacyMask marks any element whose text is a currency amount while privacy mode is on, covering tables, charts and cards across 10 pages. F21 un-annotated; new spec scans the pages for readable amounts.
 - **Covers:** AUD-73 (QA-F-010)
 - **Files:** `components/AccountRow.tsx` and the balance pills it renders
 - **Depends on:** —

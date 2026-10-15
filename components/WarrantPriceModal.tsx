@@ -564,7 +564,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                                         mode === 'single'
                                             ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                                     }`}
                                 >
                                     Single Entry
@@ -575,7 +575,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                                         mode === 'bulk'
                                             ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                                     }`}
                                 >
                                     Bulk Manifest (CSV)
@@ -641,7 +641,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                     <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block leading-tight">
                                                         Autonomous Retrieval
                                                     </span>
-                                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                                         Synced across all devices
                                                     </span>
                                                 </div>
@@ -678,7 +678,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                             <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200 truncate">
                                                                 Web Fetching Configured
                                                             </p>
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                                                 <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                                                                 Cloud Synced
                                                             </span>
@@ -712,7 +712,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                         )}
 
                                         {fetchError && (
-                                            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                                            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40 text-xs text-rose-700 dark:text-rose-400 flex items-center gap-2">
                                                 <Icon name="error" className="text-sm shrink-0" />
                                                 <span>{fetchError}</span>
                                             </div>
@@ -767,7 +767,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                 </div>
 
                                                 {smartFetcherError && (
-                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
                                                         <Icon name="error" className="text-sm shrink-0" />
                                                         <span>{smartFetcherError}</span>
                                                     </div>

@@ -493,7 +493,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                     {type}
                   </span>
                   {account.status === 'closed' && (
-                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                       Archived
                     </span>
                   )}
@@ -648,7 +648,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               >
                 <Icon name="tune" className="text-sm" />
                 <span>Specifications</span>
-                <span className="text-2xs font-mono font-bold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-500">
+                <span className="text-2xs font-mono font-bold px-1.5 py-0.2 rounded-full bg-primary-500/10 text-primary-700 dark:text-primary-400">
                   {type}
                 </span>
               </button>
@@ -683,10 +683,10 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                     <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-4">
                       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
                         <div className="flex items-center gap-2">
-                          <Icon name="account_balance" className="text-sm text-primary-500" />
+                          <Icon name="account_balance" className="text-sm text-primary-700 dark:text-primary-400" />
                           <span className="text-xs font-bold text-gray-900 dark:text-white">Banking & Institution Core</span>
                         </div>
-                        <span className="text-2xs text-primary-500 font-semibold uppercase">Routing Parameters</span>
+                        <span className="text-2xs text-primary-700 dark:text-primary-400 font-semibold uppercase">Routing Parameters</span>
                       </div>
 
                       {['Checking', 'Savings', 'Credit Card'].includes(type) && (
@@ -1035,7 +1035,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                       <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-3">
                         <div className="flex items-center justify-between">
                           <label className={labelStyle}>Mileage Log History</label>
-                          <span className="text-2xs text-primary-500 font-bold">{mileageLogs.length} entries</span>
+                          <span className="text-2xs text-primary-700 dark:text-primary-400 font-bold">{mileageLogs.length} entries</span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1301,8 +1301,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                         <div>
                           <label className={labelStyle}>Annual Interest Rate (APR %)</label>
                           <div className="relative">
-                            <input type="number" step="0.01" value={interestRate} onChange={e => setInterestRate(e.target.value)} className={`${INPUT_BASE_STYLE} !h-10 !text-xs font-bold text-primary-500 pr-8`} placeholder="0.00" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-500 font-bold text-xs">%</span>
+                            <input type="number" step="0.01" value={interestRate} onChange={e => setInterestRate(e.target.value)} className={`${INPUT_BASE_STYLE} !h-10 !text-xs font-bold text-primary-700 dark:text-primary-400 pr-8`} placeholder="0.00" />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-700 dark:text-primary-400 font-bold text-xs">%</span>
                           </div>
                         </div>
                         <div>
@@ -1608,8 +1608,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 onClick={handleToggleStatus}
                 className={`h-12 px-4 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors border cursor-pointer ${
                   account.status === 'closed'
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20'
                 }`}
               >
                 <Icon name={account.status === 'closed' ? 'sync' : 'archive'} className="text-base" />

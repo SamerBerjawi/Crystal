@@ -178,7 +178,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen = true, onClose, onExp
                                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                                         Data Sets ({selectedTypes.length}/{DATA_TYPES.length})
                                     </span>
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-primary-500 hover:text-primary-600">
+                                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600">
                                         <input 
                                             type="checkbox" 
                                             checked={isAllSelected} 

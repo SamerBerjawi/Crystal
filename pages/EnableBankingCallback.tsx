@@ -194,7 +194,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       <h1 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">Enable Banking</h1>
       {error ? (
         <>
-          <p className="text-rose-600 dark:text-rose-300 mb-4">{error}</p>
+          <p className="text-rose-700 dark:text-rose-300 mb-4">{error}</p>
           <button
             onClick={() => setCurrentPage('Integrations')}
             className="px-4 py-2 rounded-lg bg-primary-600 text-white font-semibold"

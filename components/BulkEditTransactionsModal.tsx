@@ -469,7 +469,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                   <p className="text-2xs text-rose-500 font-semibold mt-1 pl-1">Please select a destination category.</p>
                 )}
                 <div className="flex gap-2 items-start mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 font-semibold">
-                  <Icon name="warning" className="text-amber-600 dark:text-amber-400 text-sm mt-0.5 shrink-0" />
+                  <Icon name="warning" className="text-amber-700 dark:text-amber-400 text-sm mt-0.5 shrink-0" />
                   <p>Categorizing updates the classification (income/expense) and normalizes transaction signs accordingly.</p>
                 </div>
               </CheckboxField>

@@ -99,18 +99,18 @@ const HeroMetricCard: React.FC<HeroMetricCardProps> = ({
 
   const trendColorClass =
     trend === 'up'
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-emerald-700 dark:text-emerald-400'
       : trend === 'down'
-      ? 'text-rose-600 dark:text-rose-400'
+      ? 'text-rose-700 dark:text-rose-400'
       : 'text-light-text-secondary dark:text-dark-text-secondary';
 
   const trendIconName =
     trend === 'up' ? 'trending_up' : trend === 'down' ? 'trending_down' : 'remove';
 
   const badgeColorClass = {
-    optimal: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-    elevated: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-    low: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+    optimal: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
+    elevated: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+    low: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
     normal: 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20',
     neutral: 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border-black/5 dark:border-white/5',
   }[badgeVariant];

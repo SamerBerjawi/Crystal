@@ -547,29 +547,29 @@ const Subscriptions: React.FC = () => {
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.04] dark:bg-amber-500/[0.03]">
                                                 <Icon name="wallet" className="text-lg text-amber-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Total Cards</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Total Cards</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{memberships.length}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-orange-500/[0.04] dark:bg-orange-500/[0.03]">
                                                 <Icon name="timer" className="text-lg text-orange-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Expiring 30d</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Expiring 30d</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{expiringMemberships}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
                                                 <Icon name="category" className="text-lg text-primary-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Categories</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Categories</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{sortedMembershipCategories.length}</span>
                                                 </div>
                                             </div>
                                             <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/[0.04] dark:bg-emerald-500/[0.03]">
                                                 <Icon name="loyalty" className="text-lg text-emerald-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
-                                                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{memberships.length - expiringMemberships}</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Active</span>
+                                                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{memberships.length - expiringMemberships}</span>
                                                 </div>
                                             </div>
                                         </>
@@ -578,14 +578,14 @@ const Subscriptions: React.FC = () => {
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-rose-500/[0.04] dark:bg-rose-500/[0.03]">
                                                 <Icon name="event_upcoming" className="text-lg text-rose-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Due 7 Days</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Due 7 Days</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{dueSoonCount}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-primary-500/[0.04] dark:bg-primary-500/[0.03]">
                                                 <Icon name="subscriptions" className="text-lg text-primary-500 shrink-0" />
                                                 <div className="flex flex-col min-w-0">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Active</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Active</span>
                                                     <span className="text-lg font-bold text-light-text dark:text-dark-text tabular-nums">{totalCount}</span>
                                                 </div>
                                             </div>
@@ -596,14 +596,14 @@ const Subscriptions: React.FC = () => {
                                                         <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse border-2 border-white dark:border-dark-card" />
                                                     </div>
                                                     <div className="flex flex-col min-w-0">
-                                                        <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Detected</span>
-                                                        <span className="text-lg font-bold text-amber-600 dark:text-amber-400 tabular-nums">{detectedSubscriptions.length}</span>
+                                                        <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Detected</span>
+                                                        <span className="text-lg font-bold text-amber-700 dark:text-amber-400 tabular-nums">{detectedSubscriptions.length}</span>
                                                     </div>
                                                 </div>
                                             )}
                                             <div className="hidden sm:flex items-center gap-3 p-3 rounded-2xl">
                                                 <div className="flex flex-col gap-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60">Calendar</span>
+                                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80">Calendar</span>
                                                     <div className="flex flex-wrap gap-[3px] max-w-[140px]">
                                                         {Array.from({ length: 31 }).map((_, i) => (
                                                             <div 
@@ -655,7 +655,7 @@ const Subscriptions: React.FC = () => {
                                                 </div>
                                                 <div>
                                                     <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Smart Detection</h3>
-                                                    <p className="text-xs font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/60">
+                                                    <p className="text-xs font-medium text-light-text-secondary/80 dark:text-dark-text-secondary/80">
                                                         {detectedSubscriptions.length} potential subscription{detectedSubscriptions.length !== 1 ? 's' : ''} found
                                                     </p>
                                                 </div>
@@ -688,8 +688,8 @@ const Subscriptions: React.FC = () => {
                                                                     <div className="flex items-center gap-1.5 mt-1">
                                                                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide ${
                                                                             sub.confidence === 'high' 
-                                                                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                                                                                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                                                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' 
+                                                                                : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
                                                                         }`}>
                                                                             {sub.confidence}
                                                                         </span>
@@ -730,7 +730,7 @@ const Subscriptions: React.FC = () => {
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Active Subscriptions</h3>
-                                            <p className="text-xs font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/60">{totalCount} service{totalCount !== 1 ? 's' : ''} tracked</p>
+                                            <p className="text-xs font-medium text-light-text-secondary/80 dark:text-dark-text-secondary/80">{totalCount} service{totalCount !== 1 ? 's' : ''} tracked</p>
                                         </div>
                                     </div>
                                 </div>
@@ -796,7 +796,7 @@ const Subscriptions: React.FC = () => {
                                                                     </div>
                                                                     <div className="min-w-0">
                                                                         <h4 className="font-bold text-sm text-light-text dark:text-dark-text truncate leading-tight tracking-tight">{merchantName}</h4>
-                                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide mt-1 bg-black/[0.03] dark:bg-white/[0.04] text-light-text-secondary/60 dark:text-dark-text-secondary/60">
+                                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold tracking-wide mt-1 bg-black/[0.03] dark:bg-white/[0.04] text-light-text-secondary dark:text-dark-text-secondary">
                                                                             {sub.frequency}
                                                                         </span>
                                                                     </div>
@@ -811,7 +811,7 @@ const Subscriptions: React.FC = () => {
                                                                         className={`w-2 h-2 rounded-full ${isOverdue ? 'animate-pulse' : ''}`}
                                                                         style={statusDotStyle}
                                                                     />
-                                                                    <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/60 tracking-wide">
+                                                                    <span className="text-xs font-semibold text-light-text-secondary/80 dark:text-dark-text-secondary/80 tracking-wide">
                                                                         {statusLabel}
                                                                     </span>
                                                                 </div>
@@ -889,7 +889,7 @@ const Subscriptions: React.FC = () => {
                                         <Icon name="loyalty" className="text-4xl text-light-text-secondary/20 dark:text-dark-text-secondary/20" />
                                     </motion.div>
                                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Your wallet is empty</h3>
-                                    <p className="text-sm text-light-text-secondary/60 dark:text-dark-text-secondary/60 max-w-xs mx-auto mt-2 font-medium leading-relaxed">
+                                    <p className="text-sm text-light-text-secondary/80 dark:text-dark-text-secondary/80 max-w-xs mx-auto mt-2 font-medium leading-relaxed">
                                         Keep your membership cards and loyalty programs in one place.
                                     </p>
                                     <div className="mt-8">

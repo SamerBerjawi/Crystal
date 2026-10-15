@@ -214,7 +214,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Icon name="file_check" className="text-2xl text-emerald-600 dark:text-emerald-400" />
+              <Icon name="file_check" className="text-2xl text-emerald-700 dark:text-emerald-400" />
               <h2 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">
                 Pending Transaction Matches
               </h2>
@@ -228,7 +228,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
             onClick={() => setShowConfigPanel(prev => !prev)}
             className={`${BTN_SECONDARY_STYLE} !py-2 !px-3.5 !text-xs flex items-center gap-1.5 shrink-0`}
           >
-            <Icon name="sliders" className="text-base text-emerald-600 dark:text-emerald-400" />
+            <Icon name="sliders" className="text-base text-emerald-700 dark:text-emerald-400" />
             <span>Configure Matching Thresholds</span>
             <Icon name={showConfigPanel ? 'expand_less' : 'expand_more'} className="text-sm opacity-60" />
           </button>
@@ -246,10 +246,10 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           </div>
 
           <div className="bg-white/80 dark:bg-dark-bg/80 p-3.5 rounded-2xl border border-black/5 dark:border-white/5 space-y-1">
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
               High Confidence (≥80%)
             </span>
-            <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+            <p className="text-xl font-black text-emerald-700 dark:text-emerald-400">
               {highConfidenceCount} <span className="text-xs font-semibold text-light-text-secondary">Items</span>
             </p>
           </div>
@@ -353,7 +353,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
             onClick={handleToggleSelectAll}
             className="flex items-center gap-1.5 text-xs font-bold text-light-text dark:text-dark-text"
           >
-            <Icon name={isAllFilteredSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-600 dark:text-emerald-400 text-lg" />
+            <Icon name={isAllFilteredSelected ? 'check_box' : selectedIds.size > 0 ? 'indeterminate_check_box' : 'check_box_outline_blank'} className="text-emerald-700 dark:text-emerald-400 text-lg" />
             <span>
               {selectedIds.size === 0
                 ? 'Select All Filtered'
@@ -364,7 +364,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
           {highConfidenceCount > 0 && selectedIds.size === 0 && (
             <button
               onClick={handleSelectHighConfidence}
-              className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+              className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
             >
               Select High Confidence ({highConfidenceCount})
             </button>
@@ -431,7 +431,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                         {/* Synced Bank Transaction */}
                         <div className="space-y-1 bg-light-bg/70 dark:bg-dark-bg/70 p-3 rounded-xl border border-black/5 dark:border-white/5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-2xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                            <span className="text-2xs font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
                               Synced Bank Transaction
                             </span>
                             <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary truncate">
@@ -445,7 +445,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
                             <span className="text-light-text-secondary dark:text-dark-text-secondary">
                               {formatDate(raw.transaction.date)}
                             </span>
-                            <span className={`font-black tabular-nums ${isExpense ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            <span className={`font-black tabular-nums ${isExpense ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
                               {formatCurrency(raw.transaction.amount, raw.transaction.currency)}
                             </span>
                           </div>
@@ -482,7 +482,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
 
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-2 border-t border-black/5 dark:border-white/5">
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic">
-                          Confirming will mark this item as <strong className="text-emerald-600 dark:text-emerald-400">Posted / Paid</strong> in Schedule & Bills.
+                          Confirming will mark this item as <strong className="text-emerald-700 dark:text-emerald-400">Posted / Paid</strong> in Schedule & Bills.
                         </p>
                         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
                           <button
@@ -590,7 +590,7 @@ export const PendingMatchesView: React.FC<PendingMatchesViewProps> = ({
         </div>
       ) : (
         <div className="text-center py-16 bg-white/60 dark:bg-dark-card/60 rounded-3xl border border-black/5 dark:border-white/5 space-y-3">
-          <Icon name="verified" className="text-5xl text-emerald-600 dark:text-emerald-400" />
+          <Icon name="verified" className="text-5xl text-emerald-700 dark:text-emerald-400" />
           <div className="space-y-1">
             <h3 className="font-bold text-base text-light-text dark:text-dark-text">No Pending Matches Found</h3>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">

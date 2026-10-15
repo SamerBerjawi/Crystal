@@ -82,7 +82,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
           {/* Header */}
           <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-orange-500/5 to-transparent">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-700 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20 shadow-xs">
                 <Icon name="home_work" className="text-2xl" />
               </div>
               <div className="min-w-0">
