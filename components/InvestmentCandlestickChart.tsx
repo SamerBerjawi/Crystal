@@ -8,6 +8,7 @@ import {
   OHLCDataPoint,
 } from '../src/components/charts';
 import { formatCurrency } from '../utils';
+import { dayOf } from '../utils/portfolioHistory';
 import { PriceHistoryEntry, InvestmentTransaction, Currency } from '../types';
 import Icon from './ui/Icon';
 
@@ -36,6 +37,12 @@ interface CustomTooltipProps {
   granularity?: GranularityOption;
 }
 
+/** Calendar day -> local midnight (new Date('YYYY-MM-DD') would be UTC midnight and shift the day). */
+const parseDay = (value: string): Date => {
+  const [y, m, d] = dayOf(value).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
 const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'EUR', granularity = 'raw' }) => {
   if (!point) return null;
 
@@ -45,8 +52,10 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
   const low = Number(point.low || 0);
   const close = Number(point.close || 0);
 
-  const diff = close - open;
-  const percentChange = open !== 0 ? (diff / open) * 100 : 0;
+  // Money paid in or taken out during the period is not performance.
+  const flow = Number(point.flow || 0);
+  const diff = close - open - flow;
+  const percentChange = open + Math.max(0, flow) !== 0 ? (diff / (open + Math.max(0, flow))) * 100 : 0;
   const isPositive = diff >= 0;
 
   const formattedDate = date.toLocaleDateString('en-US', {
@@ -103,6 +112,43 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
   );
 };
 
+const resolveWindow = (
+  timeframe: TimeframeOption,
+  sortedHistory: PriceHistoryEntry[],
+  transactions: InvestmentTransaction[],
+) => {
+  let daysOffset = 90;
+  if (timeframe === '1M') daysOffset = 30;
+  else if (timeframe === '3M') daysOffset = 90;
+  else if (timeframe === '6M') daysOffset = 180;
+  else if (timeframe === '1Y') daysOffset = 365;
+  else if (timeframe === 'ALL') {
+    const dates = [
+      ...sortedHistory.map((h) => dayOf(h.date)),
+      ...(sortedHistory.length === 0 ? transactions.map((t) => dayOf(t.date)) : []),
+    ].sort();
+    if (dates.length > 0) {
+      const diffDays = Math.ceil((Date.now() - parseDay(dates[0]).getTime()) / (1000 * 3600 * 24));
+      daysOffset = Math.max(30, diffDays);
+    } else {
+      daysOffset = 365;
+    }
+  }
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - daysOffset);
+  return { daysOffset, startDate, endDate };
+};
+
+/** Net money put into (positive) or taken out of (negative) the holdings in a period: buys minus sells. */
+const netFlowBetween = (transactions: InvestmentTransaction[], from: Date, to: Date): number =>
+  transactions.reduce((sum, t) => {
+    const d = parseDay(t.date);
+    if (d <= from || d > to) return sum;
+    const value = (Number(t.quantity) || 0) * (Number(t.price) || 0);
+    return t.type?.toLowerCase() === 'buy' ? sum + value : sum - value;
+  }, 0);
+
 export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProps> = ({
   title = 'Candlestick OHLC Performance',
   subtitle = 'Open, High, Low, and Close trends for portfolio assets',
@@ -120,37 +166,13 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
   const [timeframe, setTimeframe] = useState<TimeframeOption>('3M');
   const [granularity, setGranularity] = useState<GranularityOption>(initialGranularity);
 
-  const ohlcData = useMemo<OHLCDataPoint[]>(() => {
+  const rawOhlc = useMemo<OHLCDataPoint[]>(() => {
     // Sort historical price entries chronologically
     const sortedHistory = [...priceHistory].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      (a, b) => dayOf(a.date).localeCompare(dayOf(b.date))
     );
 
-    let daysOffset = 90;
-    if (timeframe === '1M') daysOffset = 30;
-    else if (timeframe === '3M') daysOffset = 90;
-    else if (timeframe === '6M') daysOffset = 180;
-    else if (timeframe === '1Y') daysOffset = 365;
-    else if (timeframe === 'ALL') {
-      if (sortedHistory.length > 0) {
-        const earliestDate = new Date(sortedHistory[0].date);
-        const diffDays = Math.ceil((new Date().getTime() - earliestDate.getTime()) / (1000 * 3600 * 24));
-        daysOffset = Math.max(30, diffDays);
-      } else if (transactions.length > 0) {
-        const sortedTxs = [...transactions].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-        const earliestDate = new Date(sortedTxs[0].date);
-        const diffDays = Math.ceil((new Date().getTime() - earliestDate.getTime()) / (1000 * 3600 * 24));
-        daysOffset = Math.max(30, diffDays);
-      } else {
-        daysOffset = 365;
-      }
-    }
-
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - daysOffset);
+    const { daysOffset, startDate, endDate } = resolveWindow(timeframe, sortedHistory, transactions);
 
     // If completely empty history, do not fabricate synthetic upward curves
     if (sortedHistory.length === 0) {
@@ -159,7 +181,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
     // Filter history entries strictly within the selected window
     const historyInRange = sortedHistory.filter((h) => {
-      const d = new Date(h.date);
+      const d = parseDay(h.date);
       return d > startDate && d <= endDate;
     });
 
@@ -167,7 +189,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     const endValue = currentValue > 0 ? currentValue : lastHistoryPrice;
 
     // Find the opening valuation prior to or right at the start of this timeframe window
-    const pastEntries = sortedHistory.filter((h) => new Date(h.date) <= startDate);
+    const pastEntries = sortedHistory.filter((h) => parseDay(h.date) <= startDate);
     let initialOpeningValuation: number;
     if (pastEntries.length > 0) {
       initialOpeningValuation = pastEntries[pastEntries.length - 1].price;
@@ -214,7 +236,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
       for (let i = 0; i < historyInRange.length; i++) {
         const entry = historyInRange[i];
-        const entryDate = new Date(entry.date);
+        const entryDate = parseDay(entry.date);
 
         const open = previousClose;
         const close = entry.price;
@@ -235,7 +257,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
       // If latest market close differs from last logged entry and last entry is older than 12h, add close candle
       const lastEntry = historyInRange[historyInRange.length - 1];
-      const timeDiff = endDate.getTime() - new Date(lastEntry.date).getTime();
+      const timeDiff = endDate.getTime() - parseDay(lastEntry.date).getTime();
       if (timeDiff > 43200000 && endValue > 0 && Math.abs(lastEntry.price - endValue) > 0.01) {
         const open = previousClose;
         const close = endValue;
@@ -261,8 +283,9 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       const slotEnd = new Date(startDate.getTime() + stepMs * (i + 1));
 
       const matchingEntries = sortedHistory.filter((h) => {
-        const d = new Date(h.date);
-        return d >= slotStart && d <= slotEnd;
+        const d = parseDay(h.date);
+        // Half-open slots: an entry on a boundary belongs to exactly one candle (the last slot also owns the end).
+        return d >= slotStart && (d < slotEnd || (i === candleCount - 1 && d <= slotEnd));
       });
 
       let open: number;
@@ -304,6 +327,17 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     return result;
   }, [timeframe, granularity, currentValue, priceHistory, transactions]);
 
+  // Attach the net money moved into the holdings during each candle, so returns can exclude deposits and withdrawals.
+  const ohlcData = useMemo<(OHLCDataPoint & { flow: number })[]>(() => {
+    if (rawOhlc.length === 0) return [];
+    const sortedHistory = [...priceHistory].sort((a, b) => dayOf(a.date).localeCompare(dayOf(b.date)));
+    const { startDate } = resolveWindow(timeframe, sortedHistory, transactions);
+    return rawOhlc.map((point, i) => ({
+      ...point,
+      flow: netFlowBetween(transactions, i === 0 ? startDate : rawOhlc[i - 1].date, point.date),
+    }));
+  }, [rawOhlc, timeframe, priceHistory, transactions]);
+
   const stats = useMemo(() => {
     if (ohlcData.length === 0) {
       return {
@@ -322,8 +356,11 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     const highest = Math.max(...ohlcData.map((d) => d.high));
     const lowest = Math.min(...ohlcData.map((d) => d.low));
 
-    const diff = last.close - first.open;
-    const changePercent = first.open !== 0 ? (diff / first.open) * 100 : 0;
+    // Performance excludes money paid in or out during the period (buying shares is not a gain).
+    const flow = ohlcData.reduce((sum, d) => sum + d.flow, 0);
+    const diff = last.close - first.open - flow;
+    const base = first.open + Math.max(0, flow);
+    const changePercent = base !== 0 ? (diff / base) * 100 : 0;
 
     return {
       startDate: first.date,
