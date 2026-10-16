@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface ForecastItem {
     id: string;
@@ -25,6 +26,7 @@ interface ForecastDayModalProps {
 }
 
 const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, date, items, onEditItem, onAddTransaction }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -39,7 +41,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
     // Handle ESC key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
                 handleClose();
             }
         };
@@ -66,7 +68,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
     const dayTotal = items.reduce((sum, item) => sum + item.amount, 0);
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -145,7 +147,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
                                                     item.type === 'Recurring' 
                                                         ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' 
                                                         : item.type === 'Financial Goal' 
-                                                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
+                                                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20' 
                                                             : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
                                                 }`}>
                                                     <Icon name={item.type === 'Recurring' ? 'repeat' : item.type === 'Financial Goal' ? 'flag' : 'receipt_long'} className="text-lg" />
@@ -164,7 +166,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
                                                 <p className={`font-black text-sm tabular-nums ${item.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                     {formatCurrency(item.amount, 'EUR', { showPlusSign: true })}
                                                 </p>
-                                                <span className="text-2xs font-bold text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-2xs font-bold text-primary-700 dark:text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Configure &rarr;
                                                 </span>
                                             </div>

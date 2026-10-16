@@ -54,15 +54,15 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
   if (isOverBudget) {
     barGradient = 'from-rose-500 via-red-500 to-rose-600';
     barGlow = 'shadow-[0_0_16px_rgba(244,63,94,0.6)]';
-    textColor = 'text-rose-600 dark:text-rose-400';
-    badgeBg = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse';
+    textColor = 'text-rose-700 dark:text-rose-400';
+    badgeBg = 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 animate-pulse';
     statusText = `Over Limit by ${formatCurrency(Math.abs(remaining), currency)}`;
     statusIcon = 'warning';
   } else if (isNearingLimit) {
     barGradient = 'from-amber-400 via-amber-500 to-orange-500';
     barGlow = 'shadow-[0_0_14px_rgba(245,158,11,0.5)]';
-    textColor = 'text-amber-600 dark:text-amber-400';
-    badgeBg = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+    textColor = 'text-amber-700 dark:text-amber-400';
+    badgeBg = 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30';
     statusText = `Nearing Limit (${percentage.toFixed(0)}%)`;
     statusIcon = 'error';
   }
@@ -96,12 +96,12 @@ export const BudgetProgressBar: React.FC<BudgetProgressBarProps> = ({
                 </span>
               )}
               {isNearingLimit && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                   Nearing Limit
                 </span>
               )}
               {isOverBudget && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/20">
                   Over Limit
                 </span>
               )}

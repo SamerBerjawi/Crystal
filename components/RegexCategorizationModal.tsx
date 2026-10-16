@@ -384,7 +384,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                 onClick={() => handleApplyPreset(preset)}
                 className="p-2.5 rounded-2xl bg-light-fill dark:bg-dark-fill/50 hover:bg-teal-500/10 border border-black/5 dark:border-white/5 hover:border-teal-500/30 text-left transition-all group flex items-center gap-2 cursor-pointer"
               >
-                <div className="w-7 h-7 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-7 h-7 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                   <Icon name={preset.icon} className="text-sm" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -408,7 +408,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
         >
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-              <Icon name={editingRuleId ? "edit" : "add_circle"} className="text-sm text-teal-600 dark:text-teal-400" />
+              <Icon name={editingRuleId ? "edit" : "add_circle"} className="text-sm text-teal-700 dark:text-teal-400" />
               <span>{editingRuleId ? 'Edit Categorization Rule' : 'Create New Rule'}</span>
             </h4>
             {editingRuleId && (
@@ -518,7 +518,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                   <button
                     type="button"
                     onClick={() => setShowSamplePeek(!showSamplePeek)}
-                    className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline cursor-pointer flex items-center gap-0.5"
+                    className="text-xs font-bold text-teal-700 dark:text-teal-400 hover:underline cursor-pointer flex items-center gap-0.5"
                   >
                     <span>{showSamplePeek ? 'Hide Preview' : 'Peek Matches'}</span>
                     <Icon name={showSamplePeek ? "expand_less" : "expand_more"} className="text-sm" />
@@ -594,7 +594,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
               <button
                 type="button"
                 onClick={() => setShowConfirmApply(true)}
-                className="px-3 py-1.5 text-xs font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-1.5 text-xs font-bold text-teal-700 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Apply all active rules to re-categorize past transactions"
               >
                 <Icon name="history" className="text-sm" />
@@ -607,7 +607,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
           {showConfirmApply && (
             <div className="p-4 bg-teal-500/10 border border-teal-500/30 rounded-2xl space-y-3 animate-fade-in">
               <div className="flex items-start gap-2.5">
-                <Icon name="info" className="text-teal-600 dark:text-teal-400 text-lg shrink-0 mt-0.5" />
+                <Icon name="info" className="text-teal-700 dark:text-teal-400 text-lg shrink-0 mt-0.5" />
                 <div>
                   <h5 className="text-xs font-bold text-teal-800 dark:text-teal-300">
                     Apply Rules to Past Transactions?
@@ -615,7 +615,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 leading-relaxed">
                     {pastTransactionsToReclassifyCount > 0 ? (
                       <>
-                        We found <strong className="text-teal-600 dark:text-teal-400 font-bold">{pastTransactionsToReclassifyCount} past transactions</strong> that match active rules and will be re-categorized.
+                        We found <strong className="text-teal-700 dark:text-teal-400 font-bold">{pastTransactionsToReclassifyCount} past transactions</strong> that match active rules and will be re-categorized.
                       </>
                     ) : (
                       'All your past transactions are already categorized according to your active rules.'
@@ -648,7 +648,7 @@ export const RegexCategorizationModal: React.FC<RegexCategorizationModalProps> =
 
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 bg-black/[0.01] dark:bg-white/[0.01] rounded-3xl border border-dashed border-black/5 dark:border-white/5 space-y-2">
-              <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center">
                 <Icon name="auto_awesome" className="text-xl" />
               </div>
               <p className="text-xs font-bold text-light-text dark:text-dark-text">

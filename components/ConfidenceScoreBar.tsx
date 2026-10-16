@@ -15,17 +15,17 @@ export const ConfidenceScoreBar: React.FC<ConfidenceScoreBarProps> = ({
 }) => {
   const normalizedScore = Math.min(100, Math.max(0, Math.round(score)));
 
-  let colorClass = 'bg-emerald-500 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
-  let badgeBg = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  let colorClass = 'bg-emerald-500 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
+  let badgeBg = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20';
   let levelText = 'High Match';
 
   if (normalizedScore < 50) {
-    colorClass = 'bg-rose-500 text-rose-600 dark:text-rose-400 border-rose-500/30';
-    badgeBg = 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+    colorClass = 'bg-rose-500 text-rose-700 dark:text-rose-400 border-rose-500/30';
+    badgeBg = 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20';
     levelText = 'Low Confidence';
   } else if (normalizedScore < 80) {
-    colorClass = 'bg-amber-500 text-amber-600 dark:text-amber-400 border-amber-500/30';
-    badgeBg = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+    colorClass = 'bg-amber-500 text-amber-700 dark:text-amber-400 border-amber-500/30';
+    badgeBg = 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
     levelText = 'Review Needed';
   }
 

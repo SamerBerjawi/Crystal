@@ -125,8 +125,8 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     }
 
     const averageCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
-    const gainLoss = holding.currentValue - holding.totalCost;
-    const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
+    const gainLoss = holding.priceUnavailable ? 0 : holding.currentValue - holding.totalCost;
+    const gainLossPercent = !holding.priceUnavailable && holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
     const isPositive = gainLoss >= 0;
     
     // Style logic
@@ -297,7 +297,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     <div className="relative z-10 p-6 flex flex-col h-full justify-between">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Return</p>
-                            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tight privacy-blur ${isPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                             </p>
                         </div>
@@ -319,7 +319,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                             <p className="text-xl sm:text-2xl font-black font-mono tracking-tight text-light-text dark:text-dark-text privacy-blur">{formatCurrency(averageCost, 'EUR')}</p>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Per Unit</p>
                         </div>
-                        <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 flex items-center justify-center shrink-0">
                              <Icon name="history" className="text-2xl" />
                         </div>
                     </div>
@@ -471,7 +471,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                              <Icon name="history" className="text-purple-500" />
                              Price Log
                         </h3>
-                         <button onClick={handleAddPrice} className="text-xs font-bold text-primary-500 hover:text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg transition-colors">
+                         <button onClick={handleAddPrice} className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg transition-colors">
                             + Add Entry
                         </button>
                     </div>

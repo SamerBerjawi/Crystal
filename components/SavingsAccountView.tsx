@@ -479,7 +479,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                                     <p className="text-sm font-semibold text-light-text dark:text-dark-text tracking-tight">{goal.name}</p>
                                                     <p className="text-xs font-medium text-light-text-secondary/60 dark:text-dark-text-secondary/70 leading-none mt-1">{progress.toFixed(0)}% Achieved</p>
                                                 </div>
-                                                <span className="text-xs font-black text-amber-600 dark:text-amber-400 tabular-nums">{formatCurrency(goal.amount, goal.currency)}</span>
+                                                <span className="text-xs font-black text-amber-700 dark:text-amber-400 tabular-nums">{formatCurrency(goal.amount, goal.currency)}</span>
                                             </div>
                                             <div className="w-full bg-black/5 dark:bg-white/10 rounded-full h-3 overflow-hidden shadow-inner">
                                                 <motion.div

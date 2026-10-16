@@ -19,10 +19,10 @@ import FilterBar from '../components/ui/FilterBar';
 const STATUS_COLORS: Record<InvoiceStatus, { bg: string, text: string, icon: string }> = {
     draft: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: 'Edit02' },
     sent: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400', icon: 'send' },
-    paid: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-600 dark:text-green-400', icon: 'check_circle' },
-    overdue: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400', icon: 'alert_triangle' },
-    accepted: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400', icon: 'check_circle' },
-    rejected: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-600 dark:text-rose-400', icon: 'x_circle' },
+    paid: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', icon: 'check_circle' },
+    overdue: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', icon: 'alert_triangle' },
+    accepted: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', icon: 'check_circle' },
+    rejected: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-400', icon: 'x_circle' },
 };
 
 const InvoicesPage: React.FC = () => {
@@ -39,6 +39,8 @@ const InvoicesPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
     const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
+    const PAGE_SIZE = 10;
+    const [pageIndex, setPageIndex] = useState(0);
 
     // Derived Lists
     const displayedDocs = useMemo(() => {
@@ -53,6 +55,15 @@ const InvoicesPage: React.FC = () => {
             )
             .sort((a,b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [invoices, activeTab, statusFilter, searchTerm]);
+
+    const pageCount = Math.max(1, Math.ceil(displayedDocs.length / PAGE_SIZE));
+    const currentPage = Math.min(pageIndex, pageCount - 1);
+    const pagedDocs = useMemo(
+        () => displayedDocs.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
+        [displayedDocs, currentPage]
+    );
+    // Back to the first page whenever the list being paged changes.
+    React.useEffect(() => { setPageIndex(0); }, [activeTab, statusFilter, searchTerm]);
 
     // Metrics
     const metrics = useMemo(() => {
@@ -84,8 +95,10 @@ const InvoicesPage: React.FC = () => {
     };
     
     const handleConvertToInvoice = (quote: Invoice) => {
+        // Drop the quote's id: keeping it would make saveInvoice overwrite the quote instead of creating an invoice.
+        const { id: _quoteId, ...quoteFields } = quote;
         const newInvoice: Omit<Invoice, 'id'> = {
-            ...quote,
+            ...quoteFields,
             type: 'invoice',
             status: 'draft',
             number: `INV-${new Date().getTime().toString().slice(-6)}`,
@@ -242,8 +255,8 @@ const InvoicesPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-                            {displayedDocs.length > 0 ? (
-                                displayedDocs.map(doc => {
+                            {pagedDocs.length > 0 ? (
+                                pagedDocs.map(doc => {
                                     const statusStyle = STATUS_COLORS[doc.status];
                                     const logoUrl = getMerchantLogoUrl(doc.entityName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
                                     const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
@@ -306,17 +319,20 @@ const InvoicesPage: React.FC = () => {
                                                  </span>
                                              </td>
                                              <td className="px-6 sm:px-10 py-6">
-                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                                      {doc.type === 'quote' && (
                                                          <button 
                                                              onClick={(e) => { e.stopPropagation(); handleConvertToInvoice(doc); }}
                                                              className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 rounded-2xl transition-all active:scale-90"
                                                              title="Convert to Invoice"
+                                                             aria-label="Convert to invoice"
+
                                                          >
                                                              <Icon name="transform" className="text-xl sm:text-2xl" />
                                                          </button>
                                                      )}
                                                      <button 
+                                                         aria-label={`Delete ${doc.type} ${doc.number}`}
                                                          onClick={(e) => { e.stopPropagation(); setDeletingId(doc.id); }}
                                                          className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
                                                      >
@@ -346,13 +362,14 @@ const InvoicesPage: React.FC = () => {
 
                  <div className="p-6 sm:p-8 bg-transparent border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between">
                      <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                         Displaying {displayedDocs.length} of {invoices.length} Records
+                         Showing {displayedDocs.length === 0 ? 0 : currentPage * PAGE_SIZE + 1}–{currentPage * PAGE_SIZE + pagedDocs.length} of {displayedDocs.length} Records
+                         {pageCount > 1 && <span className="ml-2 opacity-70">Page {currentPage + 1} of {pageCount}</span>}
                      </p>
                     <div className="flex gap-2">
-                         <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
+                         <button type="button" aria-label="Previous page" onClick={() => setPageIndex(Math.max(0, currentPage - 1))} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled={currentPage === 0}>
                             <Icon name="chevron_left" className="text-2xl" />
                          </button>
-                         <button className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled>
+                         <button type="button" aria-label="Next page" onClick={() => setPageIndex(Math.min(pageCount - 1, currentPage + 1))} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-2xl glass-tile text-gray-400 hover:text-primary-500 transition-colors disabled:opacity-30" disabled={currentPage >= pageCount - 1}>
                             <Icon name="chevron_right" className="text-2xl" />
                          </button>
                     </div>

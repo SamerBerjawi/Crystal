@@ -11,6 +11,7 @@ import Icon from './ui/Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 import { AddressData } from '../hooks/useAddressSearch';
 import { usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface MerchantDetailModalProps {
     isOpen: boolean;
@@ -55,6 +56,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     transactions,
     brandfetchClientId
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [isVisible, setIsVisible] = useState(false);
     const [activeTab, setActiveTab] = useState<ActiveTabType>('rules');
 
@@ -226,7 +228,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
                 handleCloseDrawer();
             }
         };
@@ -484,7 +486,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
     if (!isOpen && !isVisible) return null;
 
     const drawerContent = (
-        <div className="fixed inset-0 z-[9999] overflow-hidden">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
             {/* Backdrop Blur Overlay */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -511,7 +513,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     Merchant Profile
                                 </span>
                                 {isHidden && (
-                                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                                         <Icon name="eye_off" className="text-xs" />
                                         Hidden
                                     </span>
@@ -569,13 +571,13 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 href={website} 
                                                 target="_blank" 
                                                 rel="noreferrer" 
-                                                className="text-xs font-bold text-primary-500 hover:underline flex items-center gap-1"
+                                                className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:underline flex items-center gap-1"
                                             >
                                                 <span>{website.replace(/^https?:\/\/(www\.)?/, '')}</span>
                                                 <Icon name="open_in_new" className="text-xs" />
                                             </a>
                                         ) : (
-                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                                 No website linked
                                             </span>
                                         )}
@@ -591,7 +593,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                             {/* Stat Highlights Cards */}
                             <div className="grid grid-cols-3 gap-2.5">
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-0.5">
                                         Volume
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
@@ -599,7 +601,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-0.5">
                                         Avg Ticket
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
@@ -607,7 +609,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     </p>
                                 </div>
                                 <div className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-2xs">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 mb-0.5">
                                         Activity
                                     </p>
                                     <p className="font-mono font-black text-sm text-light-text dark:text-dark-text truncate">
@@ -648,7 +650,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         🌐 Online
                                     </span>
                                 ) : locations.length > 0 && (
-                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-500">
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-700 dark:text-primary-400">
                                         {locations.length}
                                     </span>
                                 )}
@@ -692,7 +694,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     <div className="p-4.5 rounded-3xl bg-gray-50/70 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 space-y-2">
                                         <div className="flex items-center justify-between">
                                             <label className={labelStyle}>Default Category Classification</label>
-                                            <span className="text-xs text-primary-500 font-semibold uppercase tracking-wider">Auto-Classification</span>
+                                            <span className="text-xs text-primary-700 dark:text-primary-400 font-semibold uppercase tracking-wider">Auto-Classification</span>
                                         </div>
                                         <div className={SELECT_WRAPPER_STYLE}>
                                             <select
@@ -775,7 +777,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                             <button
                                                 type="button"
                                                 onClick={() => setIsAddingKeywordRule(!isAddingKeywordRule)}
-                                                className="px-2.5 py-1 text-xs font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 hover:bg-teal-500/20 rounded-xl transition-all flex items-center gap-1"
+                                                className="px-2.5 py-1 text-xs font-bold bg-teal-500/10 text-teal-700 dark:text-teal-400 hover:bg-teal-500/20 rounded-xl transition-all flex items-center gap-1"
                                             >
                                                 <Icon name={isAddingKeywordRule ? "close" : "add"} className="text-sm" />
                                                 <span>{isAddingKeywordRule ? 'Cancel' : 'Add Trigger'}</span>
@@ -786,7 +788,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         {isAddingKeywordRule && (
                                             <div className="p-3 bg-white dark:bg-dark-card border border-teal-500/30 rounded-2xl space-y-3 mt-2">
                                                 <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-teal-600 dark:text-teal-400 tracking-wider">
+                                                    <label className="text-xs font-bold text-teal-700 dark:text-teal-400 tracking-wider">
                                                         Keyword / Text to Match in Description
                                                     </label>
                                                     <input
@@ -802,7 +804,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                 {newKeyword.trim() && (
                                                     <div className="flex items-center justify-between text-xs font-medium px-1">
                                                         <span className="text-gray-500">Live ledger check:</span>
-                                                        <span className={previewKeywordMatches > 0 ? "text-teal-600 dark:text-teal-400 font-bold" : "text-gray-400"}>
+                                                        <span className={previewKeywordMatches > 0 ? "text-teal-700 dark:text-teal-400 font-bold" : "text-gray-400"}>
                                                             Matches {previewKeywordMatches} transaction(s) in your history
                                                         </span>
                                                     </div>
@@ -867,7 +869,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                         type="button"
                                                                         onClick={() => handleApplyRuleToPastTxs(rule)}
                                                                         title="Apply this rule to all matching past transactions"
-                                                                        className="px-2 py-1 text-xs font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 rounded-lg transition-all"
+                                                                        className="px-2 py-1 text-xs font-bold text-teal-700 dark:text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 rounded-lg transition-all"
                                                                     >
                                                                         Apply to {matchCount} past
                                                                     </button>
@@ -953,7 +955,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                     <div className="flex justify-between items-center pt-1">
                                         <div>
                                             <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-                                                <Icon name="marker_pin" className="text-sm text-primary-500" />
+                                                <Icon name="marker_pin" className="text-sm text-primary-700 dark:text-primary-400" />
                                                 <span>{isOnline ? 'Optional Fulfillment Centers & Pickups' : 'Configured Branches & Locations'}</span>
                                             </h4>
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
@@ -1024,7 +1026,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                             {loc.label || `Branch #${idx + 1}`}
                                                                         </p>
                                                                         {loc.isPrimary ? (
-                                                                            <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                                                                            <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                                                                                 ★ Primary Branch
                                                                             </span>
                                                                         ) : (
@@ -1046,7 +1048,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                                 📍 {loc.latitude.toFixed(4)}°, {loc.longitude.toFixed(4)}°
                                                                             </span>
                                                                             {loc.country && (
-                                                                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                                                                     {loc.country}
                                                                                 </span>
                                                                             )}
@@ -1162,7 +1164,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setEditingLocationId(null)}
-                                                                        className="text-xs font-bold text-primary-500 hover:underline"
+                                                                        className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:underline"
                                                                     >
                                                                         Done Editing
                                                                     </button>
@@ -1188,7 +1190,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         <div className="p-5 rounded-3xl bg-primary-500/[0.03] dark:bg-primary-500/[0.05] border border-dashed border-primary-500/30 space-y-3.5 animate-fade-in-up">
                                             <div className="flex items-center justify-between">
                                                 <h5 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-                                                    <Icon name="add" className="text-xs text-primary-500" />
+                                                    <Icon name="add" className="text-xs text-primary-700 dark:text-primary-400" />
                                                     <span>{locations.length === 0 ? 'Add Primary Branch' : 'Add New Branch'}</span>
                                                 </h5>
                                                 {locations.length > 0 && (
@@ -1237,7 +1239,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                         <p className="font-bold text-light-text dark:text-dark-text truncate">{newBranchData.title}</p>
                                                         <p className="text-xs text-light-text-secondary truncate">{newBranchData.formattedAddress}</p>
                                                     </div>
-                                                    <span className="text-xs font-mono text-primary-500 ml-2 shrink-0">
+                                                    <span className="text-xs font-mono text-primary-700 dark:text-primary-400 ml-2 shrink-0">
                                                         📍 {newBranchData.lat.toFixed(4)}°, {newBranchData.lon.toFixed(4)}°
                                                     </span>
                                                 </div>
@@ -1384,7 +1386,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <h4 className="text-xs font-bold tracking-tight text-light-text dark:text-dark-text flex items-center gap-1.5">
-                                                    <Icon name="coins_stacked" className="text-sm text-primary-500" />
+                                                    <Icon name="coins_stacked" className="text-sm text-primary-700 dark:text-primary-400" />
                                                     <span>6-Month Spending Trajectory</span>
                                                 </h4>
                                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
@@ -1464,7 +1466,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-0.5">
+                                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80 mt-0.5">
                                                                 {parseLocalDate(tx.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                                                                 {tx.address && ` • 📍 ${tx.address}`}
                                                             </p>

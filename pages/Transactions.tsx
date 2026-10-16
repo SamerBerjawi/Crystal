@@ -1098,7 +1098,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
 
   const handleExport = () => {
     if (filteredTransactions.length === 0) {
-      alert("No transactions to export.");
+      toast.info("No transactions to export.");
       return;
     }
     const dataForExport = filteredTransactions.map(tx => {
@@ -1797,7 +1797,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                 handleClearLocation(contextMenu.transaction);
                 setContextMenu(null);
               }}
-              className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             >
               <Icon name="location_off" className="text-lg" />
               <span>Remove Location</span>
@@ -1986,7 +1986,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
             {/* Main Row */}
             <FilterBar.Row>
               <div className="flex-1 min-w-0">
-                <FilterBar.Field label="Search registry" htmlFor="search">
+                <FilterBar.Field label="Search transactions" htmlFor="search">
                   <FilterBar.Search
                     ref={searchInputRef}
                     id="search"
@@ -2121,7 +2121,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors cursor-pointer"
+                    className="text-xs font-semibold tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors cursor-pointer"
                   >
                     Reset all parameters
                   </button>
@@ -2351,7 +2351,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                                 <span className="text-xs font-medium uppercase tracking-wider text-quaternary">Daily Net</span>
                                 <span className={cx(
                                   "text-xs font-semibold tracking-tight",
-                                  item.totalEur > 0 ? "text-green-600 dark:text-green-400" : item.totalEur < 0 ? "text-primary" : "text-tertiary"
+                                  item.totalEur > 0 ? "text-green-700 dark:text-green-400" : item.totalEur < 0 ? "text-primary" : "text-tertiary"
                                 )}>
                                   {item.totalEur > 0 ? `+${formatCurrency(item.totalEur, 'EUR')}` : formatCurrency(item.totalEur, 'EUR')}
                                 </span>
@@ -2362,7 +2362,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                         );
                       } else {
                         const tx = (item as { isGroupHeader: false; id: string; tx: DisplayTransaction }).tx;
-                        let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                        let amountColor = tx.type === 'income' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400';
 
                         const fromAcc = accountMapByName[tx.fromAccountName!];
                         const toAcc = accountMapByName[tx.toAccountName!];
@@ -2370,8 +2370,8 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                         if (tx.isTransfer) {
                           amountColor = 'text-primary';
                           if (selectedAccountIds.length > 0) {
-                            if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-red-600 dark:text-red-400'; }
-                            else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-green-600 dark:text-green-400'; }
+                            if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-red-700 dark:text-red-400'; }
+                            else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-green-700 dark:text-green-400'; }
                           }
                         }
 
@@ -2457,7 +2457,7 @@ const Transactions: React.FC<TransactionsProps> = ({ user, initialAccountFilter,
                                     {tx.isCombinedParent && (
                                       <Badge color="indigo" size="sm">Combined ({tx.subItemCount || 0})</Badge>
                                     )}
-                                    {tx.recurringSourceId && <Icon name="repeat" className="text-xs text-primary-500 shrink-0" />}
+                                    {tx.recurringSourceId && <Icon name="repeat" className="text-xs text-primary-700 dark:text-primary-400 shrink-0" />}
                                     {tx.notes && <Icon name="notes" className="text-xs text-primary-500/50 shrink-0" />}
                                   </div>
                                   <div className="flex items-center gap-1.5 text-sm text-tertiary truncate">

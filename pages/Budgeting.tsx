@@ -19,6 +19,7 @@ import Icon from '../components/ui/Icon';
 import { BentoGrid, BentoCard } from '../components/ui/bento-grid';
 import { MobileBudgetView } from '../components/MobileBudgetView';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { toast } from 'sonner';
 
 interface BudgetingProps {
   budgets?: Budget[];
@@ -107,7 +108,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
     })).filter(item => item.averageMonthlySpending > 0);
 
     if (averageSpending.length === 0) {
-        alert(`No spending data found for the last ${periodInMonths} month(s) to create budgets.`);
+        toast.info(`No spending data found for the last ${periodInMonths} month(s) to create budgets.`);
         return;
     }
 
@@ -123,7 +124,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
         saveBudget(budgetData);
     });
 
-    alert(`${averageSpending.length} budget(s) have been created or updated based on your spending history.`);
+    toast.success(`${averageSpending.length} budget(s) have been created or updated based on your spending history.`);
   };
 
     const defaultQuickCreateOption = useMemo(() => {
@@ -211,6 +212,21 @@ const Budgeting: React.FC<BudgetingProps> = ({
     setIsModalOpen(true);
   };
 
+  const handleDeleteBudget = async (id: string) => {
+    const budget = budgets.find(b => b.id === id);
+    const confirmed = await confirm({
+      title: 'Delete budget?',
+      message: `The ${budget?.categoryName ? `"${budget.categoryName}" ` : ''}budget will be removed. Your transactions are not affected.`,
+      confirmLabel: 'Delete Budget',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    deleteBudget(id);
+    setIsModalOpen(false);
+    setEditingBudget(null);
+    setCategoryNameToCreate(undefined);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingBudget(null);
@@ -225,6 +241,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onClose={handleCloseModal}
           onSave={saveBudget}
           budgetToEdit={editingBudget}
+          onDelete={editingBudget ? () => handleDeleteBudget(editingBudget.id) : undefined}
           categoryNameToCreate={categoryNameToCreate}
           existingBudgets={budgets}
           expenseCategories={expenseCategories.filter(c => !c.parentId)}
@@ -250,7 +267,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
           onMonthChange={handleMonthChange}
           onAddBudget={(catName) => handleOpenModal(undefined, catName)}
           onEditBudget={(b) => handleOpenModal(b)}
-          onDeleteBudget={(id) => deleteBudget(id)}
+          onDeleteBudget={(id) => { void handleDeleteBudget(id); }}
           onApplyQuickBudget={handleApplyQuickBudget}
           onQuickCreateDefault={handleQuickCreateDefault}
           preferredCurrency={preferences.currency || 'EUR'}
@@ -523,7 +540,7 @@ const Budgeting: React.FC<BudgetingProps> = ({
                                 return (
                                     <div key={b.id} className="flex justify-between items-center p-3 glass-tile rounded-xl transition-all duration-200 hover:shadow-xs">
                                         <span className="text-xs font-semibold tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
-                                        <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'}`}>
+                                        <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'}`}>
                                             <span className="text-xs font-bold font-mono tracking-tight leading-none">{pct.toFixed(0)}</span>
                                             <span className="text-xs font-normal opacity-50">%</span>
                                         </div>

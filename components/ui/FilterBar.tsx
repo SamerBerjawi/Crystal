@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { createContext, forwardRef, useContext, useId } from 'react';
 import Icon from './Icon';
 import { cn } from '../../lib/utils';
 
@@ -59,19 +59,26 @@ export interface FilterFieldProps {
   children: React.ReactNode;
 }
 
+// The id of the control a <FilterField> labels, so FilterSelect / FilterInput can pick it up automatically.
+const FieldControlContext = createContext<string | undefined>(undefined);
+
 export const FilterField: React.FC<FilterFieldProps> = ({ label, htmlFor, className, children }) => {
+  const generatedId = useId();
+  const controlId = htmlFor ?? generatedId;
   return (
+    <FieldControlContext.Provider value={label ? controlId : undefined}>
     <div className={cn('flex flex-col min-w-0', className)}>
       {label && (
         <label
-          htmlFor={htmlFor}
-          className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 mb-1.5 truncate select-none"
+          htmlFor={controlId}
+          className="text-2xs sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70 mb-1.5 truncate select-none"
         >
           {label}
         </label>
       )}
       {children}
     </div>
+    </FieldControlContext.Provider>
   );
 };
 
@@ -132,6 +139,7 @@ export interface FilterSelectProps extends React.SelectHTMLAttributes<HTMLSelect
 
 export const FilterSelect = forwardRef<HTMLSelectElement, FilterSelectProps>(
   ({ children, containerClassName, className, icon, ...props }, ref) => {
+    const fieldControlId = useContext(FieldControlContext);
     return (
       <div className={cn('relative min-w-[140px] flex-1', containerClassName)}>
         {icon && (
@@ -142,6 +150,7 @@ export const FilterSelect = forwardRef<HTMLSelectElement, FilterSelectProps>(
         )}
         <select
           ref={ref}
+          id={props.id ?? fieldControlId}
           className={cn(
             'w-full min-h-[44px] h-11 py-2 rounded-xl appearance-none cursor-pointer',
             icon ? 'pl-10 pr-9' : 'pl-3.5 pr-9',
@@ -155,7 +164,7 @@ export const FilterSelect = forwardRef<HTMLSelectElement, FilterSelectProps>(
         >
           {children}
         </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-light-text-secondary dark:text-dark-text-secondary opacity-80">
           <Icon name="expand_more" className="text-sm" />
         </div>
       </div>
@@ -171,10 +180,12 @@ export interface FilterInputProps extends React.InputHTMLAttributes<HTMLInputEle
 
 export const FilterInput = forwardRef<HTMLInputElement, FilterInputProps>(
   ({ containerClassName, className, ...props }, ref) => {
+    const fieldControlId = useContext(FieldControlContext);
     return (
       <div className={cn('relative flex-1 min-w-[120px]', containerClassName)}>
         <input
           ref={ref}
+          id={props.id ?? fieldControlId}
           className={cn(
             'w-full min-h-[44px] h-11 px-3.5 rounded-xl',
             'bg-white/80 dark:bg-dark-card/60 border border-slate-200/80 dark:border-white/10',
@@ -221,7 +232,7 @@ export const FilterAdvancedToggle: React.FC<FilterAdvancedToggleProps> = ({
       <Icon name={isExpanded ? 'keyboard_double_arrow_up' : 'tune'} className="text-base" />
       <span>{isExpanded ? 'Collapse filters' : 'Advanced filters'}</span>
       {activeCount > 0 && !isExpanded && (
-        <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary-500 text-white leading-none">
+        <span className="px-1.5 py-0.5 rounded-md text-2xs font-bold bg-primary-500 text-white leading-none">
           {activeCount}
         </span>
       )}
@@ -317,7 +328,7 @@ export const FilterSavedViews: React.FC<FilterSavedViewsProps> = ({
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary opacity-60 mr-1">
+      <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary opacity-60 mr-1">
         Saved Views:
       </span>
       {views.map((view) => {

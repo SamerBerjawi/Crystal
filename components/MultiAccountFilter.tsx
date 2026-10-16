@@ -125,7 +125,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
         onClick={() => setIsOpen(!isOpen)}
         className="touch-feedback inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/90 dark:bg-dark-card/90 border border-black/10 dark:border-white/10 shadow-xs text-xs font-semibold text-light-text dark:text-white min-h-[38px] transition-all hover:bg-white dark:hover:bg-dark-card active:scale-95"
       >
-        <Icon name="account_balance_wallet" className="text-sm text-primary-500" />
+        <Icon name="account_balance_wallet" className="text-sm text-primary-700 dark:text-primary-400" />
         <span className="truncate max-w-[140px]">{buttonText()}</span>
         <Icon name="expand_more" className={`text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -163,7 +163,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
               if (!groupAccounts || groupAccounts.length === 0) return null;
               return (
                 <div key={type} className="space-y-1">
-                  <h4 className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 opacity-80">
+                  <h4 className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80 opacity-80">
                     {type}
                   </h4>
                   <div className="space-y-0.5">
@@ -175,7 +175,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
             
             {closedAccounts.length > 0 && (
               <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1">
-                <h4 className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/60 opacity-80">
+                <h4 className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-light-text-secondary/80 dark:text-dark-text-secondary/80 opacity-80">
                   Closed Accounts
                 </h4>
                 <div className="space-y-0.5">

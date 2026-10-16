@@ -4,6 +4,7 @@ import { Account, PriceHistoryEntry } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString, parseLocalDate } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface PropertyValuationModalProps {
   isOpen?: boolean;
@@ -20,6 +21,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
   onDeleteEntry,
   account
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [newValue, setNewValue] = useState(String(account.balance));
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [isVisible, setIsVisible] = useState(false);
@@ -35,7 +37,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };
@@ -61,7 +63,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
   const deltaPercent = account.balance > 0 ? (delta / account.balance) * 100 : 0;
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -80,7 +82,7 @@ const PropertyValuationModal: React.FC<PropertyValuationModalProps> = ({
           {/* Header */}
           <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-orange-500/5 to-transparent">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-700 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20 shadow-xs">
                 <Icon name="home_work" className="text-2xl" />
               </div>
               <div className="min-w-0">

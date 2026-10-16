@@ -7,3 +7,8 @@ server/dist
 .env.local
 .env.*.local
 *.log
+
+# test artifacts
+tests/e2e/results
+tests/e2e/.stack
+test-results

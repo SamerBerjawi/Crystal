@@ -26,6 +26,7 @@ import { useConfirm } from './ConfirmationModal';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 export interface InvestmentModalProps {
   onClose: () => void;
@@ -66,6 +67,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
   holdings = [],
   initialMode = 'trade',
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const { confirm, ConfirmDialog } = useConfirm();
   const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
@@ -141,7 +143,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
   // Handle ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleCloseDrawer();
       }
     };
@@ -455,7 +457,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
   const labelStyle = "block text-xs font-bold text-slate-700 dark:text-slate-300 tracking-wider mb-1.5";
 
   const drawerContent = (
-    <div className="fixed inset-0 z-[9999] overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Backdrop Blur Overlay */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -492,7 +494,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                   <span className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
                     mode === 'trade'
                       ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
-                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                      : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
                   }`}>
                     {mode === 'trade' ? (tradeType === 'buy' ? 'Buy' : 'Sell') : 'Grant'}
                   </span>
@@ -521,7 +523,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       mode === 'trade'
                         ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="show_chart" className="text-xs" />
@@ -533,8 +535,8 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                     onClick={() => setMode('grant')}
                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       mode === 'grant'
-                        ? 'bg-white dark:bg-dark-card text-amber-600 dark:text-amber-400 shadow-sm'
-                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                        ? 'bg-white dark:bg-dark-card text-amber-700 dark:text-amber-400 shadow-sm'
+                        : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                     }`}
                   >
                     <Icon name="verified" className="text-xs" />
@@ -706,7 +708,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                       </div>
                     </div>
 
-                    <span className="text-2xs font-mono font-bold px-2 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <span className="text-2xs font-mono font-bold px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400">
                       Equity Instrument
                     </span>
                   </div>
@@ -817,7 +819,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                     onClick={() => setActiveGrantTab('grant')}
                     className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                       activeGrantTab === 'grant'
-                        ? 'border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/5'
+                        ? 'border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-500/5'
                         : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -830,7 +832,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                     onClick={() => setActiveGrantTab('tax')}
                     className={`py-3 px-3.5 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                       activeGrantTab === 'tax'
-                        ? 'border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/5'
+                        ? 'border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-500/5'
                         : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
@@ -1075,7 +1077,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({
                         <button
                           type="button"
                           onClick={handleAddPayment}
-                          className="px-2.5 py-1 text-2xs font-bold rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 text-2xs font-bold rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
                         >
                           <Icon name="add" className="text-xs" />
                           <span>Add Installment</span>

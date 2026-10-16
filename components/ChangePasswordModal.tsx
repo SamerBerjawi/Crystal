@@ -30,6 +30,10 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
         setError('Password must be at least 8 characters long.');
         return;
     }
+    if (new TextEncoder().encode(newPassword).length > 72) {
+        setError('Password must be at most 72 bytes long.');
+        return;
+    }
 
     const wasSuccessful = await onChangePassword(currentPassword, newPassword);
 

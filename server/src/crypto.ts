@@ -1,10 +1,11 @@
 import crypto from 'crypto';
+import { JWT_SECRET } from './authConfig';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // Standard for AES-GCM
 
 const getEncryptionKey = (): Buffer => {
-    const secret = (process.env.ENCRYPTION_SECRET || process.env.JWT_SECRET || 'crystal-default-encryption-secret-key-32b').trim();
+    const secret = (process.env.ENCRYPTION_SECRET || process.env.JWT_SECRET || JWT_SECRET).trim();
     return crypto.createHash('sha256').update(secret).digest();
 };
 

@@ -226,11 +226,11 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
           <Modal onClose={() => setConfirmingDelete(null)} title="Confirm Deletion">
               <div className="space-y-6">
                   <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm font-normal leading-relaxed">
-                      Irreversible Operation Detected. Primary and secondary category nodes will be excised. Proceed?
+                      This will permanently delete the category and its subcategories. This can't be undone.
                   </p>
                   <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
-                      <button type="button" onClick={() => setConfirmingDelete(null)} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-light-text dark:text-dark-text bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">Abort</button>
-                      <button type="button" onClick={executeDelete} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-colors">Execute Deletion</button>
+                      <button type="button" onClick={() => setConfirmingDelete(null)} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-light-text dark:text-dark-text bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">Cancel</button>
+                      <button type="button" onClick={executeDelete} className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-colors">Delete</button>
                   </div>
               </div>
           </Modal>
@@ -334,10 +334,10 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
               <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
                 <Icon name="folder" className="text-4xl opacity-20" />
               </div>
-              <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Schema Nullified</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">Schema Nullified</p>
               {!searchTerm && (
                   <button onClick={() => openModal('add', activeTab)} className="mt-6 px-6 py-3 bg-primary-500 text-white rounded-2xl text-xs font-semibold tracking-wide shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
-                      Initialize Root Category
+                      Add category
                   </button>
               )}
           </div>

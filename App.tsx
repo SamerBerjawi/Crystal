@@ -9,7 +9,6 @@ import { useScrollMemory } from './hooks/useScrollMemory';
 import PageSkeleton from './components/PageSkeleton';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import AddTransactionModal from './components/AddTransactionModal';
 import { useIsMobile } from './hooks/useIsMobile';
 import { applyAppFont } from './hooks/useFont';
 function lazyWithRetry<T extends React.ComponentType<any>>(
@@ -91,7 +90,7 @@ const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
-import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
+import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
@@ -103,6 +102,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBillNotifications } from './hooks/useBillNotifications';
 import NotificationCenter from './components/NotificationCenter';
 const OnboardingModal = lazyWithRetry(() => import('./components/OnboardingModal'));
+const AddTransactionModal = lazyWithRetry(() => import('./components/AddTransactionModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
@@ -111,6 +111,9 @@ import { applyPageAccentTheme } from './utils/theme';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
 import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache';
+import { threeWayMerge } from './utils/threeWayMerge';
+import { warnIgnored } from './utils/logging';
+import { startPrivacyMask } from './utils/privacyMask';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -241,6 +244,21 @@ const MATERIAL_DATA_OBJECT_KEYS: (keyof FinancialData)[] = [
   'priceHistory',
 ];
 
+/**
+ * Slices of FinancialData the app persists. A slice is "dirty" when its current value is no longer the
+ * same object as the one last loaded from / confirmed saved to the server (see savedSlicesRef).
+ */
+const PERSISTED_SLICE_KEYS = [
+  'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
+  'loanPaymentOverrides', 'financialGoals', 'goalOrder', 'budgets', 'tasks', 'warrants', 'memberships',
+  'importExportHistory', 'incomeCategories', 'expenseCategories', 'preferences', 'billsAndPayments',
+  'accountOrder', 'taskOrder', 'tags', 'manualWarrantPrices', 'priceHistory', 'invoices', 'userStats',
+  'predictions', 'enableBankingConnections',
+] as const satisfies readonly (keyof FinancialData)[];
+
+/** Largest body a browser will send in a `keepalive` request (64 KiB), minus headroom. */
+const KEEPALIVE_MAX_BYTES = 60_000;
+
 const hasMaterialData = (data: Partial<FinancialData> | null | undefined) => {
   if (!data) return false;
 
@@ -300,6 +318,8 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
 
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
+  /** When this value changes the boundary clears its error, so navigating away from a crashed page recovers. */
+  resetKey?: string;
 }
 
 interface ErrorBoundaryState {
@@ -323,21 +343,35 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error('Uncaught error in Crystal UI', error, errorInfo);
   }
 
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, message: undefined });
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] px-6">
+        <div role="alert" className="flex items-center justify-center min-h-[50vh] px-6">
           <div className="bg-white dark:bg-dark-card shadow-2xl rounded-2xl p-6 max-w-lg w-full border border-black/5 dark:border-white/10">
             <h1 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Something went wrong</h1>
             <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-4">
               {this.state.message || 'An unexpected error occurred while rendering this page.'}
             </p>
-            <button
-              className="px-4 py-2 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition"
-              onClick={() => window.location.reload()}
-            >
-              Reload
-            </button>
+            <div className="flex gap-3">
+              <button
+                className="px-4 py-2 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition"
+                onClick={() => this.setState({ hasError: false, message: undefined })}
+              >
+                Try again
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-black/5 dark:bg-white/10 text-light-text dark:text-dark-text font-medium hover:bg-black/10 dark:hover:bg-white/15 transition"
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -382,7 +416,7 @@ const App: React.FC = () => {
             const parsed = JSON.parse(cached);
             if (parsed?.userProfile) return parsed.userProfile;
           }
-        } catch {}
+        } catch (error) { warnIgnored('reading the cached dev profile', error); }
         return createDemoUser();
       }
     }
@@ -424,7 +458,7 @@ const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
-  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(initialFinancialData.enableBankingConnections || []);
+  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>([]);
   const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isQuickAddTxModalOpen, setIsQuickAddTxModalOpen] = useState(false);
@@ -515,12 +549,24 @@ const App: React.FC = () => {
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
   const lastUpdatedAtRef = useRef<string | null>(null);
-  const lastSavedSignatureRef = useRef<string | null>(null);
-  const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
   const allowEmptySaveRef = useRef(false);
-  const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
+  // The value of each slice as last loaded from, or confirmed saved to, the server. Anything that differs
+  // by reference is unsaved. This replaces the old "just loaded" timer and skip-next-save flag, which
+  // silently discarded real edits made shortly after a load (QA-A-001) or during a save (REL-003).
+  const savedSlicesRef = useRef<Partial<Record<keyof FinancialData, unknown>>>({});
+  const baselinePendingRef = useRef(true);   // true until the freshly loaded data has been captured as the baseline
+  const saveInFlightRef = useRef(false);
+  const saveAgainRef = useRef(false);
+  const syncingConnectionIdsRef = useRef<Set<string>>(new Set());
+  const lastSaveFailureRef = useRef<{ ok: boolean; status?: number } | null>(null);
+  const retryDelayRef = useRef(5000);
+  const [loadGeneration, setLoadGeneration] = useState(0);
   const [dirtySignal, setDirtySignal] = useState(0);
+  const getDirtyKeys = useCallback(
+    (data: FinancialData) => PERSISTED_SLICE_KEYS.filter(key => data[key] !== savedSlicesRef.current[key]),
+    [],
+  );
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
   const [goalOrder, setGoalOrderState] = useState<string[]>(emptyFinancialData.goalOrder || []);
@@ -530,6 +576,7 @@ const App: React.FC = () => {
   const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(emptyFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Still used by the order-sync effects below to avoid reacting to the load itself.
   const isJustLoadedRef = useRef(true);
   useEffect(() => {
     if (isDataLoaded) {
@@ -539,14 +586,11 @@ const App: React.FC = () => {
     }
   }, [isDataLoaded]);
 
-  const markSliceDirty = useCallback((slice: keyof FinancialData) => {
-    if (isJustLoadedRef.current || restoreInProgressRef.current) return;
-    const pending = new Set(dirtySlicesRef.current);
-    if (!pending.has(slice)) {
-      pending.add(slice);
-      dirtySlicesRef.current = pending;
-      setDirtySignal(signal => signal + 1);
-    }
+  // Asks for a (debounced) save pass. Which slices actually need saving is decided by comparing them
+  // with savedSlicesRef, so it is always safe to call this.
+  const markSliceDirty = useCallback((_slice?: keyof FinancialData) => {
+    if (restoreInProgressRef.current) return;
+    setDirtySignal(signal => signal + 1);
   }, []);
 
   useEffect(() => {
@@ -652,9 +696,11 @@ const App: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Preload primary route chunks when browser is idle for instant tab switching
+  // Preload primary route chunks when browser is idle for instant tab switching. Only once the user is signed in
+  // and their data is loaded: the sign-in screen used to pull ~3 MB of pages nobody had asked for (AUD-39).
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!isAuthenticated || !isDataLoaded) return;
     const preloadRoutes = async () => {
       const primaryLoaders = [
         pageRegistry.Accounts.loader,
@@ -679,19 +725,32 @@ const App: React.FC = () => {
     } else {
       setTimeout(preloadRoutes, 1500);
     }
-  }, []);
+  }, [isAuthenticated, isDataLoaded]);
+
+  const notFoundNoticeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isDataLoaded || !notFoundNoticeRef.current) return;
+    toast.error(`Page not found: ${notFoundNoticeRef.current}`);
+    notFoundNoticeRef.current = null;
+  }, [isDataLoaded]);
 
   useEffect(() => {
     const route = parseRoute(currentPath);
     setCurrentPageState(route.page);
     setViewingAccountId(route.accountId ?? null);
     setViewingHoldingSymbol(route.holdingSymbol ?? null);
-    if (!route.matched && currentPath !== '/') { navigateToPath('/', true); }
+    if (!route.matched && currentPath !== '/') {
+      // The Toaster is not mounted until the app has loaded; show the notice after that.
+      notFoundNoticeRef.current = currentPath;
+      navigateToPath('/', true);
+    }
   }, [currentPath, navigateToPath]);
 
   useEffect(() => {
     if (isPrivacyMode) { document.body.classList.add('privacy-mode'); }
     else { document.body.classList.remove('privacy-mode'); }
+    // Catch amounts that are not individually marked with .privacy-blur (AUD-73).
+    return isPrivacyMode ? startPrivacyMask() : undefined;
   }, [isPrivacyMode]);
 
   useEffect(() => {
@@ -760,7 +819,7 @@ const App: React.FC = () => {
     applyAppFont(activeFont);
     try {
       localStorage.setItem('crystal_font', activeFont);
-    } catch (e) {}
+    } catch (error) { warnIgnored('remembering the font preference', error); }
   }, [preferences.appFont]);
 
   const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
@@ -797,16 +856,17 @@ const App: React.FC = () => {
     });
   }, [assetPrices, warrantHoldingsBySymbol]);
 
-  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
-    const dataToLoad = data ?? (options?.useDemoDefaults ? initialFinancialData : emptyFinancialData);
+  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
+    const dataToLoad = data ?? emptyFinancialData;
     const loadedPrefs = {
-      ...initialFinancialData.preferences,
+      ...defaultPreferences,
       ...(dataToLoad.preferences || {}),
     };
-    const dataSignature = JSON.stringify(dataToLoad);
     lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
 
-    if (options?.skipNextSave) { skipNextSaveRef.current = true; }
+    // Whatever ends up on screen after this load is, by definition, what the server has: it becomes the
+    // baseline for change detection. (`options.skipNextSave` is accepted for compatibility but no longer needed.)
+    baselinePendingRef.current = true;
 
     startTransition(() => {
       // Migration: grant-created accounts used to be hardcoded as 'ETF'. Reclassify accounts that
@@ -843,10 +903,8 @@ const App: React.FC = () => {
       if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); }
       else { setUserStats(emptyFinancialData.userStats!); }
       streakUpdatedRef.current = false;
-      const resolvedConnections = (dataToLoad.enableBankingConnections && dataToLoad.enableBankingConnections.length > 0)
-        ? dataToLoad.enableBankingConnections
-        : (initialFinancialData.enableBankingConnections || []);
-      setEnableBankingConnections(resolvedConnections);
+      // Never fall back to the demo connections for a real account: an empty list is a valid state.
+      setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
       setPreferences(loadedPrefs);
       if (loadedPrefs.conversionRates) {
         updateConversionRates(loadedPrefs.conversionRates);
@@ -854,9 +912,7 @@ const App: React.FC = () => {
       setAccountOrder(dataToLoad.accountOrder || []);
       setTaskOrder(dataToLoad.taskOrder || []);
       setGoalOrderState(dataToLoad.goalOrder || []);
-      dirtySlicesRef.current.clear();
-      setDirtySignal(0);
-      lastSavedSignatureRef.current = dataSignature;
+      setLoadGeneration(generation => generation + 1);
       setIsDataLoaded(true);
     });
     latestDataRef.current = dataToLoad;
@@ -891,9 +947,9 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty]);
 
-  const handleSetUser = useCallback((updates: Partial<User>) => {
-    if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); }
-    else { setUser(updates); }
+  const handleSetUser = useCallback((updates: Partial<User>): Promise<boolean> => {
+    if (isDemoMode) { setDemoUser(prev => prev ? { ...prev, ...updates } as User : null); return Promise.resolve(true); }
+    return setUser(updates);
   }, [isDemoMode, setUser]);
 
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
@@ -911,15 +967,16 @@ const App: React.FC = () => {
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
 
-  const isDevEnvironment = typeof window !== 'undefined' && (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    Boolean((import.meta as any)?.env?.DEV)
-  );
+  // Dev-only behaviours (IndexedDB data cache, auto demo mode) belong to the Vite dev build only.
+  // They must never key off the hostname: a production install opened on localhost is not "dev".
+  const isDevEnvironment = Boolean((import.meta as any)?.env?.DEV);
+
+  type SaveOutcome = { ok: boolean; status?: number; currentUpdatedAt?: string; isConflict?: boolean };
+  const mergedFromOtherDeviceRef = useRef(false);
 
   const postData = useCallback(
-    async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      if (!isAuthenticated || isDemoMode) return false;
+    async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<SaveOutcome> => {
+      if (!isAuthenticated || isDemoMode) return { ok: false };
       try {
         const response = await authorizedFetch('/api/data', {
           method: 'POST',
@@ -927,10 +984,92 @@ const App: React.FC = () => {
           body: JSON.stringify(payload),
           keepalive: options?.keepalive,
         });
-        if (!response.ok) { return false; }
-        return true;
-      } catch (error) { return false; }
+        if (response.ok) return { ok: true, status: response.status };
+        const body = await response.json().catch(() => ({} as any));
+        return {
+          ok: false,
+          status: response.status,
+          currentUpdatedAt: typeof body?.currentUpdatedAt === 'string' ? body.currentUpdatedAt : undefined,
+          isConflict: response.status === 409 && /data conflict/i.test(String(body?.message || '')),
+        };
+      } catch (error) {
+        return { ok: false };
+      }
     }, [authorizedFetch, isAuthenticated, isDemoMode]
+  );
+
+  // Tell the user when a save did not go through (it used to fail silently), and clear the notice on success.
+  const reportSaveSuccess = useCallback(() => { toast.dismiss('save-status'); }, []);
+  const reportSaveFailure = useCallback((outcome: SaveOutcome, suppress?: boolean) => {
+    if (suppress) return;
+    if (outcome.status === 401 || outcome.status === 403) {
+      toast.error('Your session has expired', {
+        id: 'save-status', duration: Infinity,
+        description: 'Your latest changes are not saved. Sign in again and repeat them.',
+      });
+    } else if (outcome.status === 409) {
+      toast.error("Your changes couldn't be saved", {
+        id: 'save-status', duration: Infinity,
+        description: 'Newer data exists on the server. Reload the page to continue with the latest version.',
+      });
+    } else {
+      toast.error('Changes not saved', {
+        id: 'save-status', duration: Infinity,
+        description: (typeof navigator !== 'undefined' && navigator.onLine === false)
+          ? "You're offline. Your changes will be saved when you reconnect."
+          : "The server couldn't be reached. Retrying…",
+      });
+    }
+  }, []);
+
+  /**
+   * Sends a payload. If another device saved first (409 conflict) the slices being sent are three-way merged
+   * with the server's current copy (see utils/threeWayMerge.ts) and sent again, so neither side's edits are lost.
+   */
+  const sendWithConflictRetry = useCallback(
+    async (
+      mode: 'partial' | 'full',
+      data: Partial<FinancialData>,
+      options?: { keepalive?: boolean; suppressErrors?: boolean; allowEmpty?: boolean },
+    ): Promise<boolean> => {
+      const build = (slices: Partial<FinancialData>, previousUpdatedAt: string | null) => {
+        const now = toLocalDateTimeString(new Date());
+        const payload = mode === 'partial'
+          ? { partial: true, data: slices, lastUpdatedAt: now, previousUpdatedAt }
+          : { ...slices, lastUpdatedAt: now, previousUpdatedAt, ...(options?.allowEmpty ? { allowEmpty: true } : {}) };
+        return { now, payload: payload as Record<string, unknown> };
+      };
+
+      let { now, payload } = build(data, lastUpdatedAtRef.current);
+      let outcome = await postData(payload, options);
+
+      if (!outcome.ok && outcome.isConflict && outcome.currentUpdatedAt) {
+        let merged: Partial<FinancialData> = data;
+        try {
+          const response = await authorizedFetch('/api/data');
+          if (response.ok) {
+            const serverCopy = await response.json() as Record<string, unknown>;
+            merged = { ...data };
+            for (const key of PERSISTED_SLICE_KEYS) {
+              if (!(key in data)) continue;
+              (merged as any)[key] = threeWayMerge(savedSlicesRef.current[key], (data as any)[key], serverCopy[key]);
+            }
+          }
+        } catch { /* fall back to sending this device's slices unchanged */ }
+        ({ now, payload } = build(merged, outcome.currentUpdatedAt));
+        outcome = await postData(payload, options);
+        if (outcome.ok) mergedFromOtherDeviceRef.current = true;
+      }
+
+      if (outcome.ok) {
+        lastUpdatedAtRef.current = now;
+        reportSaveSuccess();
+      } else {
+        lastSaveFailureRef.current = outcome;
+        reportSaveFailure(outcome, options?.suppressErrors);
+      }
+      return outcome.ok;
+    }, [postData, authorizedFetch, reportSaveSuccess, reportSaveFailure]
   );
 
   const saveData = useCallback(
@@ -939,29 +1078,22 @@ const App: React.FC = () => {
         console.warn('Skipping auto-save of empty data payload to prevent potential data loss.');
         return false;
       }
-      const now = toLocalDateTimeString(new Date());
-      const payload = { ...data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, ...(options?.allowEmpty ? { allowEmpty: true } : {}), };
-      const succeeded = await postData(payload, options);
-      if (succeeded) { lastUpdatedAtRef.current = now; }
-      return succeeded;
-    }, [postData]
+      return sendWithConflictRetry('full', data, options);
+    }, [sendWithConflictRetry]
   );
 
   const savePartialData = useCallback(
     async (data: Partial<FinancialData>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      const now = toLocalDateTimeString(new Date());
-      const payload = { partial: true, data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, };
-      const succeeded = await postData(payload, options);
-      if (succeeded) { lastUpdatedAtRef.current = now; }
-      return succeeded;
-    }, [postData]
+      return sendWithConflictRetry('partial', data, options);
+    }, [sendWithConflictRetry]
   );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
-    if (isDevEnvironment && isDataLoaded && hasMaterialData(dataToSave)) {
-      void saveDevCache(dataToSave);
-    }
+    if (!(isDevEnvironment && isDataLoaded && hasMaterialData(dataToSave))) return;
+    // Debounced: serializing the whole dataset on every state change is expensive.
+    const timer = setTimeout(() => { void saveDevCache(dataToSave); }, 1500);
+    return () => clearTimeout(timer);
   }, [dataToSave, isDevEnvironment, isDataLoaded]);
 
   const handleEnterDemoMode = async () => {
@@ -979,7 +1111,8 @@ const App: React.FC = () => {
         console.warn('[Dev Cache] Failed loading cache on enter demo mode:', e);
       }
     }
-    loadAllFinancialData(null, { useDemoDefaults: true });
+    const { initialFinancialData: demoSeed } = await import('./demoSeed');
+    loadAllFinancialData(demoSeed);
     setDemoUser(createDemoUser());
     setIsDemoMode(true);
     if (isDevEnvironment) {
@@ -1000,8 +1133,9 @@ const App: React.FC = () => {
         if (isDevEnvironment) {
           void saveDevCache(data);
         }
+        // loadAllFinancialData flips isDataLoaded inside the same transition as the data itself;
+        // setting it again here would let isDataLoaded commit before accounts do (QA-B-006).
         loadAllFinancialData(data, { skipNextSave: true });
-        setIsDataLoaded(true);
       } else {
         if (isDevEnvironment) {
           try {
@@ -1013,7 +1147,6 @@ const App: React.FC = () => {
               setIsDemoMode(true);
               safeLocalStorage.setItem('crystal_dev_mode_active', 'true');
               loadAllFinancialData(cached, { skipNextSave: true });
-              setIsDataLoaded(true);
               return;
             }
           } catch (e) {
@@ -1026,7 +1159,8 @@ const App: React.FC = () => {
           if (isDevEnvironment && safeLocalStorage.getItem('crystal_dev_mode_active') === 'true') {
             setDemoUser(createDemoUser());
             setIsDemoMode(true);
-            loadAllFinancialData(null, { useDemoDefaults: true });
+            const { initialFinancialData: demoSeed } = await import('./demoSeed');
+            loadAllFinancialData(demoSeed);
           }
           setIsDataLoaded(true);
         }
@@ -1036,14 +1170,15 @@ const App: React.FC = () => {
   }, [isDevEnvironment, loadAllFinancialData, checkAuthStatus]);
 
   useEffect(() => {
-    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
+    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding && !preferences.onboardingCompleted) {
       const timer = setTimeout(() => { setIsOnboardingOpen(true); }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding]);
+  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding, preferences.onboardingCompleted]);
 
   const handleOnboardingFinish = () => {
     setHasCompletedOnboarding(true);
+    setPreferences(prev => (prev.onboardingCompleted ? prev : { ...prev, onboardingCompleted: true }));
     setIsOnboardingOpen(false);
   };
 
@@ -1099,7 +1234,6 @@ const App: React.FC = () => {
 
   const handleRestoreData = useCallback((data: FinancialData) => {
     restoreInProgressRef.current = true;
-    skipNextSaveRef.current = true;
 
     // Create restoration summary
     const summaryParts: string[] = [];
@@ -1117,7 +1251,7 @@ const App: React.FC = () => {
       id: `restore-${uuidv4()}`,
       type: 'restore',
       dataType: 'snapshot',
-      fileName: 'Cloud Snapshot',
+      fileName: 'Backup restore',
       date: new Date().toISOString(),
       status: 'Complete',
       itemCount: summaryParts.length,
@@ -1143,69 +1277,137 @@ const App: React.FC = () => {
 
     if (!isDemoMode && isAuthenticated) {
       saveData(dataWithHistory, { suppressErrors: true })
+        .then(saved => {
+          if (!saved) {
+            // The restored state is on screen but not on the server: make every slice count as unsaved.
+            savedSlicesRef.current = {};
+            toast.error('The restored data could not be saved to the server yet. It will be retried.');
+          }
+        })
         .catch(console.error)
-        .finally(() => { restoreInProgressRef.current = false; skipNextSaveRef.current = false; });
+        .finally(() => { restoreInProgressRef.current = false; setDirtySignal(signal => signal + 1); });
     } else {
       restoreInProgressRef.current = false;
-      skipNextSaveRef.current = false;
     }
   }, [isAuthenticated, isDemoMode, loadAllFinancialData, saveData, handleSetUser]);
 
+  // After a conflict merge the server holds this device's edits plus another device's. Adopt that copy so
+  // the screen matches the account again, unless there are newer local edits waiting to be saved.
+  const refreshFromServer = useCallback(async () => {
+    if (getDirtyKeys(latestDataRef.current).length > 0) return;
+    try {
+      const response = await authorizedFetch('/api/data');
+      if (!response.ok) return;
+      const serverData = await response.json() as FinancialData;
+      if (getDirtyKeys(latestDataRef.current).length > 0) return;
+      loadAllFinancialData(serverData);
+      toast.info('Synced with changes from another device');
+    } catch { /* the next successful save will reconcile */ }
+  }, [authorizedFetch, getDirtyKeys, loadAllFinancialData]);
+
+  // Come back online: retry right away instead of waiting for the next edit.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOnline = () => setDirtySignal(signal => signal + 1);
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, []);
+
+  // Capture the baseline on the first commit after every load, then watch for real changes.
+  useEffect(() => {
+    if (!isDataLoaded) return;
+    if (baselinePendingRef.current) {
+      const baseline: Partial<Record<keyof FinancialData, unknown>> = {};
+      for (const key of PERSISTED_SLICE_KEYS) baseline[key] = dataToSave[key];
+      savedSlicesRef.current = baseline;
+      baselinePendingRef.current = false;
+      return;
+    }
+    if (getDirtyKeys(dataToSave).length > 0) setDirtySignal(signal => signal + 1);
+  }, [dataToSave, loadGeneration, isDataLoaded, getDirtyKeys]);
+
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) return;
-    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; dirtySlicesRef.current.clear(); return; }
-    if (dirtySlicesRef.current.size === 0) return;
-    const persistDirtySlices = async () => {
-      const currentData = latestDataRef.current;
-      const dirtyKeys = Array.from(dirtySlicesRef.current);
-      if (dirtyKeys.length === 0) return;
+    if (baselinePendingRef.current) return;
 
-      const payloadSignature = JSON.stringify(currentData);
-      if (payloadSignature === lastSavedSignatureRef.current) { dirtySlicesRef.current.clear(); return; }
+    const persistDirtySlices = async () => {
+      if (saveInFlightRef.current) { saveAgainRef.current = true; return; }
+
+      const currentData = latestDataRef.current;
+      const dirtyKeys = getDirtyKeys(currentData);
+      if (dirtyKeys.length === 0) return;
 
       const allowEmpty = allowEmptySaveRef.current;
       if (!allowEmpty && !hasMaterialData(currentData)) {
-        dirtySlicesRef.current.clear();
-        lastSavedSignatureRef.current = payloadSignature;
+        // Never overwrite server data with an empty state; treat it as already saved.
+        for (const key of dirtyKeys) savedSlicesRef.current[key] = currentData[key];
         return;
       }
 
-      // Build partial payload with only modified slices
-      const partialPayload: Partial<FinancialData> = {};
-      for (const key of dirtyKeys) {
-        if (key in currentData) {
-          (partialPayload as any)[key] = (currentData as any)[key];
-        }
-      }
-
+      saveInFlightRef.current = true;
       let succeeded = false;
-      if (allowEmpty || dirtyKeys.length >= Object.keys(currentData).length) {
-        succeeded = await saveData(currentData, { allowEmpty });
-      } else {
-        succeeded = await savePartialData(partialPayload);
+      try {
+        if (allowEmpty || dirtyKeys.length >= PERSISTED_SLICE_KEYS.length) {
+          succeeded = await saveData(currentData, { allowEmpty });
+        } else {
+          const partialPayload: Partial<FinancialData> = {};
+          for (const key of dirtyKeys) (partialPayload as any)[key] = currentData[key];
+          succeeded = await savePartialData(partialPayload);
+        }
+      } finally {
+        saveInFlightRef.current = false;
       }
 
       if (succeeded) {
-        dirtySlicesRef.current.clear();
-        lastSavedSignatureRef.current = payloadSignature;
+        // Only what was actually sent becomes "saved"; edits made while the request was in flight stay dirty.
+        for (const key of dirtyKeys) savedSlicesRef.current[key] = currentData[key];
         if (allowEmpty) allowEmptySaveRef.current = false;
+        retryDelayRef.current = 5000;
+        if (mergedFromOtherDeviceRef.current) {
+          mergedFromOtherDeviceRef.current = false;
+          await refreshFromServer();
+        }
+      } else {
+        // Keep the slices dirty and try again with a growing delay. Expired sessions and permanent
+        // conflicts need the user, so those are not retried blindly.
+        const status = lastSaveFailureRef.current?.status;
+        if (status !== 401 && status !== 403 && status !== 409) {
+          const delay = retryDelayRef.current;
+          retryDelayRef.current = Math.min(delay * 2, 30_000);
+          setTimeout(() => setDirtySignal(signal => signal + 1), delay);
+        }
+      }
+      if (succeeded && (saveAgainRef.current || getDirtyKeys(latestDataRef.current).length > 0)) {
+        saveAgainRef.current = false;
+        setDirtySignal(signal => signal + 1);
       }
     };
-    persistDirtySlices();
-  }, [debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData, savePartialData]);
+    void persistDirtySlices();
+  }, [debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData, savePartialData, getDirtyKeys, refreshFromServer]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') return;
-    const handleBeforeUnload = () => {
-      if (!isDataLoaded || dirtySlicesRef.current.size === 0) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDataLoaded || baselinePendingRef.current || restoreInProgressRef.current) return;
       const currentData = latestDataRef.current;
-      const payloadSignature = JSON.stringify(currentData);
-      if (payloadSignature === lastSavedSignatureRef.current) return;
-      saveData(currentData, { keepalive: true, suppressErrors: true }).catch(() => { });
+      const dirtyKeys = getDirtyKeys(currentData);
+      if (dirtyKeys.length === 0) return;
+      if (!allowEmptySaveRef.current && !hasMaterialData(currentData)) return;
+
+      // Send only what changed: a full snapshot easily exceeds the 64 KiB keepalive limit (REL-004).
+      const partialPayload: Partial<FinancialData> = {};
+      for (const key of dirtyKeys) (partialPayload as any)[key] = currentData[key];
+      if (JSON.stringify(partialPayload).length <= KEEPALIVE_MAX_BYTES) {
+        void savePartialData(partialPayload, { keepalive: true, suppressErrors: true });
+      } else {
+        // Too large to send while the page is closing: let the browser ask before throwing the edits away.
+        event.preventDefault();
+        event.returnValue = '';
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [isAuthenticated, isDataLoaded, isDemoMode, savePartialData, getDirtyKeys]);
 
   useEffect(() => {
     if (!isDataLoaded || isJustLoadedRef.current) return;
@@ -1268,31 +1470,40 @@ const App: React.FC = () => {
     }
   }, [signOut, loadAllFinancialData, setHasCompletedOnboarding, setAuthPage, setIsDemoMode, setDemoUser, isDevEnvironment]);
 
-  const handleLogout = useCallback(() => {
-    if (!isDemoMode && isAuthenticated && isDataLoaded) {
-      saveData(latestDataRef.current).catch(err => { }).finally(finalizeLogout);
-      return;
+  const forceLogoutRef = useRef(false);
+  const handleLogout = useCallback(async () => {
+    if (!isDemoMode && isAuthenticated && isDataLoaded && !baselinePendingRef.current) {
+      const currentData = latestDataRef.current;
+      const dirtyKeys = getDirtyKeys(currentData);
+      if (dirtyKeys.length > 0 && hasMaterialData(currentData)) {
+        const partialPayload: Partial<FinancialData> = {};
+        for (const key of dirtyKeys) (partialPayload as any)[key] = currentData[key];
+        const saved = await savePartialData(partialPayload);
+        if (!saved && !forceLogoutRef.current) {
+          forceLogoutRef.current = true;
+          toast.error("Your latest changes couldn't be saved", {
+            description: 'Check your connection and try again, or sign out again to leave without saving.',
+          });
+          return;
+        }
+      }
     }
+    forceLogoutRef.current = false;
     finalizeLogout();
-  }, [finalizeLogout, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [finalizeLogout, isAuthenticated, isDataLoaded, isDemoMode, savePartialData, getDirtyKeys]);
 
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
 
-    let finalAccountId: string;
-    let isNew = false;
-
-    if (accountData.id) {
-      finalAccountId = accountData.id;
-    } else {
-      finalAccountId = `acc-${uuidv4()}`;
-      isNew = true;
-    }
-
+    // A caller may pre-assign an id to a brand-new account (bank linking, CSV import);
+    // whether it is new is decided by whether the id already exists, not by having an id.
+    const finalAccountId = accountData.id || `acc-${uuidv4()}`;
     const savedAccount = { ...accountWithDefaults, id: finalAccountId } as Account;
-    if (isNew) savedAccount.status = 'open';
 
     setAccounts(prev => {
+      const isNew = !prev.some(acc => acc.id === finalAccountId);
+      if (isNew) savedAccount.status = 'open';
+
       // 1. Update/Add the primary account
       let nextAccounts: Account[];
       if (isNew) {
@@ -1928,7 +2139,6 @@ const App: React.FC = () => {
       id: connectionId,
       applicationId: (payload.applicationId || '').trim(),
       countryCode: (payload.countryCode || '').trim().toUpperCase(),
-      clientCertificate: (payload.clientCertificate || '').trim(),
       status: 'pending',
       selectedBank: selectedBankName,
       selectedBankId: selectedBankId,
@@ -1946,7 +2156,7 @@ const App: React.FC = () => {
     });
     if (!isDemoMode && isDataLoaded) { void savePartialDataWithRetry({ enableBankingConnections: nextConnections }); }
     try {
-      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: baseConnection.clientCertificate, countryCode: baseConnection.countryCode, aspspName: baseConnection.selectedBank, aspspId: baseConnection.selectedBankId, state: connectionId, }), });
+      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: (payload.clientCertificate || '').trim() || undefined, countryCode: baseConnection.countryCode, aspspName: baseConnection.selectedBank, aspspId: baseConnection.selectedBankId, state: connectionId, }), });
       const data = await response.json();
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, authorizationId: data.authorizationId, lastError: undefined, } : conn));
       if (data.authorizationUrl) { window.location.href = data.authorizationUrl; }
@@ -2059,7 +2269,7 @@ const App: React.FC = () => {
             if (!isNaN(parsed.getTime())) {
               return toLocalISOString(parsed);
             }
-          } catch (e) {}
+          } catch (e) { /* not a parseable date: try the next candidate */ }
           const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
           if (match) return match[1];
         }
@@ -2150,7 +2360,7 @@ const App: React.FC = () => {
               if (diffDays >= 0 && diffDays <= 90) {
                 return extractedStr;
               }
-            } catch (e) {}
+            } catch (e) { /* not a parseable date: try the next candidate */ }
           }
         }
 
@@ -2166,7 +2376,7 @@ const App: React.FC = () => {
               if (diffDays >= 0 && diffDays <= 90) {
                 return extractedStr;
               }
-            } catch (e) {}
+            } catch (e) { /* not a parseable date: try the next candidate */ }
           }
         }
 
@@ -2185,7 +2395,7 @@ const App: React.FC = () => {
               if (diffDays >= 0 && diffDays <= 90) {
                 return extractedStr;
               }
-            } catch (e) {}
+            } catch (e) { /* not a parseable date: try the next candidate */ }
           }
         }
       }
@@ -2457,9 +2667,17 @@ const App: React.FC = () => {
     if (!isAuthenticated) return;
     const connection = connectionOverride || enableBankingConnections.find(c => c.id === connectionId);
     if (!connection?.sessionId) return;
+    // One sync per connection at a time: overlapping runs both dedupe against the same snapshot and import twice.
+    if (syncingConnectionIdsRef.current.has(connectionId)) return;
+    syncingConnectionIdsRef.current.add(connectionId);
+    let newTransactionCount = 0;
+    let updatedTransactionCount = 0;
+    const truncatedAccountNames: string[] = [];
     try {
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
-      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, }), }).then(res => res.json());
+      // The status is deliberately not set to 'pending' here: 'pending' is persisted, so a tab closed
+      // mid-sync used to leave the connection stuck and excluded from "Sync all" forever.
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, lastError: undefined } : conn));
+      const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
       const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
       const updatedAccounts: EnableBankingAccount[] = [];
@@ -2475,8 +2693,8 @@ const App: React.FC = () => {
         }
         const existingAccount = existingAccountsById.get(providerAccountId);
         const [details, balances] = await Promise.all([
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
-          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, sessionId: connection.sessionId, }), }).then(res => res.json()),
         ]);
         const resolvedBalance = resolveBalanceAmount(balances);
         const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
@@ -2502,12 +2720,12 @@ const App: React.FC = () => {
 
         let continuationKey: string | undefined;
         const seenPageKeys = new Set<string>();
+        let pageCapReached = true;
         for (let page = 0; page < 100; page += 1) {
           const txResponse = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
             method: 'POST',
             body: JSON.stringify({
               applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
               sessionId: connection.sessionId,
               dateFrom,
               continuationKey,
@@ -2529,15 +2747,24 @@ const App: React.FC = () => {
           });
 
           const nextContinuationKey = txResponse?.continuation_key || txResponse?.continuationKey;
-          if (!nextContinuationKey || seenPageKeys.has(nextContinuationKey)) break;
+          if (!nextContinuationKey || seenPageKeys.has(nextContinuationKey)) { pageCapReached = false; break; }
           seenPageKeys.add(nextContinuationKey);
           continuationKey = nextContinuationKey;
         }
 
-        updatedAccounts[updatedAccounts.length - 1] = {
-          ...updatedAccounts[updatedAccounts.length - 1],
-          lastSyncedAt: toLocalDateTimeString(new Date()),
-        };
+        if (pageCapReached) {
+          // Not everything was fetched: keep the old checkpoint so the next sync resumes from there.
+          truncatedAccountNames.push(updatedAccounts[updatedAccounts.length - 1].name);
+          updatedAccounts[updatedAccounts.length - 1] = {
+            ...updatedAccounts[updatedAccounts.length - 1],
+            lastSyncedAt: existingLinkedAccount?.lastSyncedAt,
+          };
+        } else {
+          updatedAccounts[updatedAccounts.length - 1] = {
+            ...updatedAccounts[updatedAccounts.length - 1],
+            lastSyncedAt: toLocalDateTimeString(new Date()),
+          };
+        }
       }
 
       if (importedTransactions.length > 0) {
@@ -2545,35 +2772,54 @@ const App: React.FC = () => {
         const existingTxMapSureId = new Map<string, Transaction>(
           transactions.filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`) && tx.sureId).map(tx => [tx.sureId as string, tx])
         );
-        const existingFingerprints = new Map<string, Transaction>(
-          transactions
-            .filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`))
-            .map(tx => [`${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`, tx])
-        );
+        // Only used for transactions the bank gave no identifier for. Each stored transaction can be
+        // matched at most once, so two genuine identical purchases are not collapsed into one.
+        const fingerprintOf = (tx: Transaction) => `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`;
+        const existingByFingerprint = new Map<string, Transaction[]>();
+        for (const tx of transactions) {
+          if (!tx.importId?.startsWith(`enable-banking-${connectionId}-`)) continue;
+          const key = fingerprintOf(tx);
+          const list = existingByFingerprint.get(key);
+          if (list) list.push(tx); else existingByFingerprint.set(key, [tx]);
+        }
 
         const deduped: Transaction[] = [];
         const toUpdate: Transaction[] = [];
+        const occurrencesOfFallbackId = new Map<string, number>();
 
-        for (const tx of importedTransactions) {
-          const fingerprint = `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`;
-          const existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined) || existingFingerprints.get(fingerprint);
+        for (let candidate of importedTransactions) {
+          const hasBankIdentifier = !!candidate.sureId && !candidate.sureId.startsWith('fallback-');
+          if (!hasBankIdentifier) {
+            // No bank id: the id is a hash of the fields, so identical rows collide. Number repeats within
+            // the batch so each genuine row keeps its own stable id.
+            const seen = occurrencesOfFallbackId.get(candidate.id) || 0;
+            occurrencesOfFallbackId.set(candidate.id, seen + 1);
+            if (seen > 0) candidate = { ...candidate, id: `${candidate.id}-${seen}`, sureId: candidate.sureId ? `${candidate.sureId}-${seen}` : candidate.sureId };
+          }
+          const tx = candidate;
+
+          let existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined);
+          if (!existing && !hasBankIdentifier) {
+            const matches = existingByFingerprint.get(fingerprintOf(tx));
+            existing = matches?.shift();
+          }
 
           if (existing) {
             if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
-              const updatedTx = {
+              toUpdate.push({
                 ...existing,
                 merchant: existing.merchant || tx.merchant,
                 description: existing.description || tx.description
-              };
-              toUpdate.push(updatedTx);
+              });
             }
           } else {
             deduped.push(tx);
             existingTxMapCountId.set(tx.id, tx);
             if (tx.sureId) existingTxMapSureId.set(tx.sureId, tx);
-            existingFingerprints.set(fingerprint, tx);
           }
         }
+        newTransactionCount = deduped.length;
+        updatedTransactionCount = toUpdate.length;
 
         const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
 
@@ -2599,20 +2845,36 @@ const App: React.FC = () => {
       }
 
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts, lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
+      const bankName = connection.selectedBank || 'your bank';
+      if (truncatedAccountNames.length > 0) {
+        toast.warning(`${bankName}: sync incomplete`, { description: `Very long history for ${truncatedAccountNames.join(', ')}. Sync again to fetch the rest.` });
+      } else if (!syncOptions?.silent) {
+        toast.success(`${bankName} synced`, {
+          description: `${newTransactionCount} new transaction${newTransactionCount === 1 ? '' : 's'}${updatedTransactionCount ? `, ${updatedTransactionCount} updated` : ''}.`,
+        });
+      }
     } catch (error: any) {
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
+      const message = error?.message || 'Sync failed';
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: message } : conn));
+      toast.error(`${connection.selectedBank || 'Bank'} sync failed`, { description: message.length > 160 ? message.slice(0, 157) + '…' : message });
+    } finally {
+      syncingConnectionIdsRef.current.delete(connectionId);
     }
   }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser, incomeCategories, expenseCategories]);
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
-    if (activeConnections.length === 0) return;
+    if (activeConnections.length === 0) {
+      toast.info('No connected banks to sync yet', { description: 'Add a bank under Settings → Integrations.' });
+      return;
+    }
 
     setIsSyncingBanks(true);
     try {
       for (const connection of activeConnections) {
-        await handleSyncEnableBankingConnection(connection.id, connection, { transactionMode: 'incremental' });
+        await handleSyncEnableBankingConnection(connection.id, connection, { transactionMode: 'incremental', silent: true });
       }
+      toast.success(`Synced ${activeConnections.length} bank connection${activeConnections.length === 1 ? '' : 's'}`);
     } finally {
       setIsSyncingBanks(false);
     }
@@ -2679,14 +2941,27 @@ const App: React.FC = () => {
 
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
   const handleDeleteImportedTransactions = (importId: string) => { const idsToDelete = transactions.filter(t => t.importId === importId).map(t => t.id); if (idsToDelete.length > 0) handleDeleteTransactions(idsToDelete); };
-  const handleResetAccount = () => {
-    if (user || isDemoMode) {
-      allowEmptySaveRef.current = true;
-      if (isDevEnvironment) {
-        void clearDevCache();
-      }
-      loadAllFinancialData(emptyFinancialData);
-      alert("Client-side data reset.");
+  const handleResetAccount = async () => {
+    if (!(user || isDemoMode)) return;
+    allowEmptySaveRef.current = true;
+    if (isDevEnvironment) {
+      void clearDevCache();
+    }
+    loadAllFinancialData(emptyFinancialData);
+    if (isDemoMode || !isAuthenticated) {
+      toast.success('Data reset');
+      return;
+    }
+    // loadAllFinancialData marks the new state as already saved, so persist it explicitly.
+    const saved = await saveData(emptyFinancialData, { allowEmpty: true });
+    if (saved) {
+      allowEmptySaveRef.current = false;
+      toast.success('All data has been reset');
+    } else {
+      // Keep allowEmpty armed and count everything as unsaved so the reset is retried.
+      savedSlicesRef.current = {};
+      setDirtySignal(signal => signal + 1);
+      toast.error('Your data was cleared here but could not be reset on the server. It will be retried.');
     }
   };
 
@@ -2747,8 +3022,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isDataLoaded) {
-      if (viewingAccountId && !viewingAccount) { setViewingAccountId(null); setCurrentPage('Dashboard'); }
-      if (viewingHoldingSymbol && !viewingHolding) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
+      if (viewingAccountId && !viewingAccount) { toast.error('Account not found'); setViewingAccountId(null); setCurrentPage('Accounts'); }
+      if (viewingHoldingSymbol && !viewingHolding) { toast.error('Holding not found'); setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
     }
   }, [isDataLoaded, viewingAccount, viewingAccountId, viewingHolding, viewingHoldingSymbol, setCurrentPage]);
 
@@ -2869,7 +3144,7 @@ const App: React.FC = () => {
               }}
             >
               <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pt-5 md:pt-7 lg:pt-8 relative scroll-smooth focus:outline-none pb-28 md:pb-8 scroll-touch safe-top" id="main-content">
-                <ErrorBoundary>
+                <ErrorBoundary resetKey={`${currentPage}|${viewingAccountId || ''}|${viewingHoldingSymbol || ''}`}>
                   <Suspense fallback={<PageSkeleton variant={currentPage === 'Dashboard' ? 'dashboard' : ['Accounts', 'Investments', 'Budget', 'Categories'].includes(currentPage) ? 'grid' : (viewingAccountId || viewingHoldingSymbol) ? 'detail' : 'list'} />}>
                     <AnimatePresence mode="wait">
                       <motion.div
@@ -2888,7 +3163,7 @@ const App: React.FC = () => {
               </main>
             </HeaderProvider>
           </div>
-          <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          <MobileNavbar currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} />
           {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
           <CommandCenter
             isOpen={isCommandCenterOpen}
@@ -2907,15 +3182,17 @@ const App: React.FC = () => {
             onClose={() => setIsShortcutsModalOpen(false)}
           />
           {isQuickAddTxModalOpen && (
-            <AddTransactionModal
-              onClose={() => setIsQuickAddTxModalOpen(false)}
-              onSave={(txs) => { handleSaveTransaction(txs); setIsQuickAddTxModalOpen(false); }}
-              accounts={accounts}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
-              tags={tags}
-              userProfile={currentUser!}
-            />
+            <Suspense fallback={null}>
+              <AddTransactionModal
+                onClose={() => setIsQuickAddTxModalOpen(false)}
+                onSave={(txs) => { handleSaveTransaction(txs); setIsQuickAddTxModalOpen(false); }}
+                accounts={accounts}
+                incomeCategories={incomeCategories}
+                expenseCategories={expenseCategories}
+                tags={tags}
+                userProfile={currentUser!}
+              />
+            </Suspense>
           )}
         </div>
       </InsightsViewProvider>

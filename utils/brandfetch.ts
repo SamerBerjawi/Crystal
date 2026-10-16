@@ -94,15 +94,16 @@ export const getMerchantLogoUrl = (
   const type = options?.type ?? 'icon';
   const fallback = options?.fallback ?? 'lettermark';
 
-  const version = options?.refreshTimestamp ? String(options.refreshTimestamp) : new Date().toISOString().split('T')[0];
+  // The URL must be stable so the browser (and the CDN) can cache the logo. A version parameter is only
+  // added when the user explicitly refreshes a logo; a date-based value re-downloaded every logo daily.
   const params = new URLSearchParams({
     c: clientId,
     type,
     fallback,
     h: String(height),
     w: String(width),
-    v: version,
   });
+  if (options?.refreshTimestamp) params.set('v', String(options.refreshTimestamp));
 
   return `https://cdn.brandfetch.io/${encodeURIComponent(identifier)}?${params.toString()}`;
 };

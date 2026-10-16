@@ -24,7 +24,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
             <h3 className="text-xs font-bold tracking-tight text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
             <Icon 
                 name={title === 'Expenses' ? 'arrow_upward' : 'arrow_downward'} 
-                className={`text-xl shrink-0 ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`} 
+                className={`text-xl shrink-0 ${isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`} 
             />
         </div>
         

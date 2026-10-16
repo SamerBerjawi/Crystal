@@ -32,7 +32,7 @@ const SettingsSubpageHeader: React.FC<SettingsSubpageHeaderProps> = ({
           <button
             type="button"
             onClick={() => setCurrentPage('Settings')}
-            className="group flex items-center gap-1.5 font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            className="group flex items-center gap-1.5 min-h-[28px] font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
           >
             <div className="w-5 h-5 rounded-md bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
               <Icon name="arrow_back" className="text-sm leading-none" />

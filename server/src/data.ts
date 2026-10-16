@@ -1,16 +1,28 @@
 
 import express from 'express';
 import { db } from './database';
-import { authenticateToken, AuthRequest } from './middleware';
+import { validateFinancialDataPayload } from './schemas';
+import { loadCredentials, saveCredentials, scrubStoredKeys, stripKeysFromBlob } from './ebCredentials';
+import { AuthRequest } from './middleware';
 
 const router = express.Router();
 
 // Get all financial data for a user
-router.get('/', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/', async (req: AuthRequest, res) => {
     const userId = req.user?.id;
     const sql = `SELECT data FROM financial_data WHERE user_id = $1`;
 
     try {
+        // Cheap revalidation: the version marker is read from the JSONB without loading the whole blob, so an
+        // unchanged copy answers 304 without serialising it again.
+        const meta = await db.query(`SELECT data->>'lastUpdatedAt' AS version FROM financial_data WHERE user_id = $1`, [userId]);
+        const version = meta.rows[0]?.version as string | undefined;
+        if (version) {
+            const etag = `"u${userId}-${Buffer.from(version).toString('base64url')}"`;
+            res.setHeader('ETag', etag);
+            if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        }
+
         const result = await db.query(sql, [userId]);
         let row = result.rows[0];
 
@@ -22,7 +34,18 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
             return res.json({});
         }
         // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-        res.json(row.data || {});
+        let data = row.data || {};
+        // Blobs written by older versions carry the Enable Banking private key. Move it to the encrypted credential
+        // store and scrub it from the blob before it is sent to the browser.
+        if (JSON.stringify(data).includes('"clientCertificate"')) {
+            const { data: scrubbed, found } = stripKeysFromBlob(data);
+            if (found && !(await loadCredentials(userId!))) {
+                await saveCredentials(userId!, found.applicationId, found.clientCertificate);
+            }
+            await scrubStoredKeys(userId!);
+            data = scrubbed;
+        }
+        res.json(data);
     } catch (err) {
         console.error(err);
         // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
@@ -30,29 +53,75 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     }
 });
 
-// Save all financial data for a user
-router.post('/', authenticateToken, async (req: AuthRequest, res) => {
+// Top-level keys that make a payload "real data" (an empty payload must never wipe an existing account).
+const MATERIAL_ARRAY_KEYS = [
+    'accounts', 'transactions', 'investmentTransactions', 'recurringTransactions', 'recurringTransactionOverrides',
+    'financialGoals', 'budgets', 'tasks', 'warrants', 'memberships', 'importExportHistory', 'billsAndPayments',
+    'invoices', 'tags', 'predictions', 'enableBankingConnections', 'incomeCategories', 'expenseCategories',
+    'accountOrder', 'taskOrder',
+];
+const MATERIAL_OBJECT_KEYS = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats'];
+
+const payloadHasMaterialData = (data: Record<string, any>) =>
+    MATERIAL_ARRAY_KEYS.some(key => Array.isArray(data[key]) && data[key].length > 0) ||
+    MATERIAL_OBJECT_KEYS.some(key => {
+        const value = data[key];
+        return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+    });
+
+// The same check, evaluated inside PostgreSQL so the stored blob never has to be read into Node.
+// Keys are the constants above, never user input.
+const STORED_HAS_MATERIAL_DATA_SQL = '(' + [
+    ...MATERIAL_ARRAY_KEYS.map(k => `(CASE WHEN jsonb_typeof(data->'${k}') = 'array' THEN jsonb_array_length(data->'${k}') > 0 ELSE false END)`),
+    ...MATERIAL_OBJECT_KEYS.map(k => `(CASE WHEN jsonb_typeof(data->'${k}') = 'object' THEN data->'${k}' <> '{}'::jsonb ELSE false END)`),
+].join(' OR ') + ')';
+
+// Save financial data for a user.
+//
+// The row is locked with SELECT ... FOR UPDATE for the duration of the transaction, and the write is a single
+// atomic jsonb merge (`data || incoming`): top-level keys present in the payload replace the stored ones, all
+// other keys are left untouched. The stored blob is never loaded into Node, so a one-task edit no longer
+// costs a parse + re-serialisation of the user's whole history.
+router.post('/', async (req: AuthRequest, res) => {
     const userId = req.user?.id;
     const body = req.body || {}; // Data is already a JSON object from body-parser
     const allowEmpty = Boolean(body.allowEmpty);
-    
-    const client = await db.connect();
+
+    let client: any;
     try {
+        client = await db.connect();
         await client.query('BEGIN');
 
-        // Use SELECT ... FOR UPDATE to lock the row and avoid concurrency races
-        const selectSql = `SELECT data FROM financial_data WHERE user_id = $1 FOR UPDATE`;
-        const existing = await client.query(selectSql, [userId]);
-        const currentData = existing.rows?.[0]?.data || {};
+        const existing = await client.query(
+            `SELECT data->>'lastUpdatedAt' AS updated_at FROM financial_data WHERE user_id = $1 FOR UPDATE`,
+            [userId]
+        );
+        const currentUpdatedAt = (existing.rows?.[0]?.updated_at as string | null) || undefined;
+
         const isPartial = Boolean(body.partial);
-        const incomingData = isPartial ? (body.data || {}) : { ...body };
+        const incomingData = isPartial ? { ...(body.data || {}) } : { ...body };
         delete incomingData.partial;
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;
         delete incomingData.allowEmpty;
 
+        // The signing key never lives in the blob: move it to the encrypted credential store.
+        if (incomingData.enableBankingConnections || incomingData.enableBankingPendingConnections) {
+            const { data: scrubbed, found } = stripKeysFromBlob(incomingData);
+            Object.assign(incomingData, scrubbed);
+            if (found && !(await loadCredentials(userId!))) {
+                await saveCredentials(userId!, found.applicationId, found.clientCertificate);
+            }
+        }
+
+        // Reject malformed payloads (wrong container types, bad dates) before they reach the user's blob.
+        const validation = validateFinancialDataPayload(incomingData);
+        if (!validation.success) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: validation.error || 'Invalid payload.' });
+        }
+
         const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
-        const currentUpdatedAt = currentData.lastUpdatedAt as string | undefined;
         if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {
             await client.query('ROLLBACK');
             return res.status(409).json({
@@ -61,69 +130,39 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
             });
         }
 
-        const hasMaterialData = (data: Record<string, any>) => {
-            const arrayKeys = [
-                'accounts',
-                'transactions',
-                'investmentTransactions',
-                'recurringTransactions',
-                'recurringTransactionOverrides',
-                'financialGoals',
-                'budgets',
-                'tasks',
-                'warrants',
-                'memberships',
-                'importExportHistory',
-                'billsAndPayments',
-                'invoices',
-                'tags',
-                'predictions',
-                'enableBankingConnections',
-                'incomeCategories',
-                'expenseCategories',
-                'accountOrder',
-                'taskOrder',
-            ];
-
-            const objectKeys = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats'];
-
-            if (arrayKeys.some(key => Array.isArray(data[key]) && data[key].length > 0)) {
-                return true;
+        if (!isPartial && !allowEmpty && !payloadHasMaterialData(incomingData)) {
+            const stored = await client.query(
+                `SELECT ${STORED_HAS_MATERIAL_DATA_SQL} AS has_material FROM financial_data WHERE user_id = $1`,
+                [userId]
+            );
+            if (stored.rows?.[0]?.has_material) {
+                await client.query('ROLLBACK');
+                return res.status(409).json({
+                    message: 'Refusing to overwrite existing data with an empty payload.',
+                    currentUpdatedAt,
+                });
             }
-
-            return objectKeys.some(key => {
-                const value = data[key];
-                return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
-            });
-        };
-
-        if (!isPartial && !allowEmpty && hasMaterialData(currentData) && !hasMaterialData(incomingData)) {
-            await client.query('ROLLBACK');
-            return res.status(409).json({
-                message: 'Refusing to overwrite existing data with an empty payload.',
-                currentUpdatedAt,
-            });
         }
 
         const nextUpdatedAt = (body.lastUpdatedAt as string | undefined) || new Date().toISOString();
-        const mergedData = { ...currentData, ...incomingData, lastUpdatedAt: nextUpdatedAt };
-        
-        const upsertSql = `
-            INSERT INTO financial_data (user_id, data) 
-            VALUES ($1, $2)
-            ON CONFLICT (user_id) 
-            DO UPDATE SET data = EXCLUDED.data;
-        `;
-        await client.query(upsertSql, [userId, mergedData]);
+        incomingData.lastUpdatedAt = nextUpdatedAt;
+
+        await client.query(
+            `INSERT INTO financial_data (user_id, data)
+             VALUES ($1, $2::jsonb)
+             ON CONFLICT (user_id)
+             DO UPDATE SET data = COALESCE(financial_data.data, '{}'::jsonb) || EXCLUDED.data`,
+            [userId, JSON.stringify(incomingData)]
+        );
         await client.query('COMMIT');
-        
+
         res.json({ message: 'Data saved successfully', lastUpdatedAt: nextUpdatedAt });
     } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client?.query('ROLLBACK').catch((rollbackError: unknown) => console.error('Rollback failed:', rollbackError));
         console.error(err);
         res.status(500).json({ message: 'Failed to save data' });
     } finally {
-        client.release();
+        client?.release();
     }
 });
 

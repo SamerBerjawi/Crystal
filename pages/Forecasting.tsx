@@ -1322,17 +1322,17 @@ const Forecasting: React.FC = () => {
                         {/* Monthly Target Schedule Summary */}
                         <Card className="flex flex-col border border-slate-200/60 dark:border-white/5 shadow-card rounded-2xl overflow-hidden !p-0">
                             <div className="p-4 glass-subwell border-b border-slate-200/60 dark:border-white/5 flex justify-between items-center">
-                                <h2 className="text-xs font-semibold uppercase tracking-wider text-primary-500">Monthly Target Schedule</h2>
+                                <h2 className="text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-400">Monthly Target Schedule</h2>
                                 <div className="flex glass-tile p-0.5 rounded-lg">
                                     <button 
                                         onClick={() => setScheduleMode('account')}
-                                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+                                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-700 dark:text-primary-400' : 'text-light-text-secondary dark:text-neutral-300'}`}
                                     >
                                         Account
                                     </button>
                                     <button 
                                         onClick={() => setScheduleMode('date')}
-                                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+                                        className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-700 dark:text-primary-400' : 'text-light-text-secondary dark:text-neutral-300'}`}
                                     >
                                         Date
                                     </button>
@@ -1372,7 +1372,7 @@ const Forecasting: React.FC = () => {
                                                                         {breakdown.savings > 0 && (
                                                                             <div className="flex flex-col items-end">
                                                                                 <span className="text-xs font-semibold uppercase tracking-wider text-primary-500/70 leading-none mb-0.5">Savings</span>
-                                                                                <span className="text-xs font-mono font-bold text-primary-500 tracking-tight tabular-nums">{formatCurrency(breakdown.savings, account.currency)}</span>
+                                                                                <span className="text-xs font-mono font-bold text-primary-700 dark:text-primary-400 tracking-tight tabular-nums">{formatCurrency(breakdown.savings, account.currency)}</span>
                                                                             </div>
                                                                         )}
                                                                         {breakdown.expense > 0 && (
@@ -1411,7 +1411,7 @@ const Forecasting: React.FC = () => {
                                                                 {account.savings > 0 && (
                                                                     <div className="flex flex-col items-end">
                                                                         <span className="text-xs font-semibold uppercase tracking-wider text-primary-500/70 leading-none mb-0.5">Savings</span>
-                                                                        <span className="text-xs font-mono font-bold text-primary-500 tracking-tight tabular-nums">{formatCurrency(account.savings, account.currency)}</span>
+                                                                        <span className="text-xs font-mono font-bold text-primary-700 dark:text-primary-400 tracking-tight tabular-nums">{formatCurrency(account.savings, account.currency)}</span>
                                                                     </div>
                                                                 )}
                                                                 {account.expense > 0 && (
@@ -1446,7 +1446,7 @@ const Forecasting: React.FC = () => {
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
                                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Total Income Target</span>
-                                            <p className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                            <p className="text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-400 tabular-nums">
                                                 {formatCurrency(globalIncomeGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
@@ -1490,7 +1490,7 @@ const Forecasting: React.FC = () => {
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
                                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Total Expense Target</span>
-                                            <p className="text-3xl font-bold tracking-tight text-rose-600 dark:text-rose-400 tabular-nums">
+                                            <p className="text-3xl font-bold tracking-tight text-rose-700 dark:text-rose-400 tabular-nums">
                                                 {formatCurrency(globalExpenseGoalCurrent, 'EUR')}
                                             </p>
                                         </div>
@@ -1511,7 +1511,7 @@ const Forecasting: React.FC = () => {
                                 <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
                                         <p className="text-xs font-semibold uppercase tracking-wider text-light-text dark:text-dark-text">Account Breakdown</p>
-                                        <p className="text-xs font-semibold text-primary-500">Global</p>
+                                        <p className="text-xs font-semibold text-primary-700 dark:text-primary-400">Global</p>
                                     </div>
                                     <div className="space-y-6">
                                         {globalAccountBreakdown.map((accGroup, index) => {
@@ -1659,11 +1659,11 @@ const Forecasting: React.FC = () => {
                         </div>
                     </div>
                      <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-                         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-full border border-red-100 dark:border-red-900/30">
+                         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 px-4 py-2 rounded-full border border-red-100 dark:border-red-900/30">
                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                             Global Lowest
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-4 py-2 rounded-full border border-amber-100 dark:border-amber-900/30">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-full border border-amber-100 dark:border-amber-900/30">
                             <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                             Monthly Lowest
                         </div>
@@ -1708,7 +1708,7 @@ const Forecasting: React.FC = () => {
                                             else if (isMonthlyLowest) rowClass += ' bg-amber-500/[0.02]';
 
                                             const amountClass = row.amount >= 0 
-                                                ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                                                ? 'text-emerald-700 dark:text-emerald-400 font-bold' 
                                                 : 'text-light-text dark:text-dark-text font-medium opacity-80';
 
                                             const getIcon = (type: string) => {
@@ -1750,7 +1750,7 @@ const Forecasting: React.FC = () => {
                                                     <td className={`px-6 py-2 text-right font-mono text-xs ${amountClass}`}>
                                                         {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
                                                     </td>
-                                                    <td className={`px-6 py-2 text-right font-mono text-xs ${isLowest ? 'text-red-600 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-semibold text-light-text dark:text-dark-text'}`}>
+                                                    <td className={`px-6 py-2 text-right font-mono text-xs ${isLowest ? 'text-red-700 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-700 dark:text-amber-400 font-bold' : 'font-semibold text-light-text dark:text-dark-text'}`}>
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             {isMonthlyLowest && !isLowest && (
                                                                 <Icon name="arrow_downward" className="text-sm text-amber-500 font-bold" title="Monthly Lowest Balance" />

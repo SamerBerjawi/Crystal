@@ -326,7 +326,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                 Activity
               </h1>
               {isSyncingBanks && (
-                <Icon name="sync" className="text-primary-500 animate-spin text-sm" />
+                <Icon name="sync" className="text-primary-700 dark:text-primary-400 animate-spin text-sm" />
               )}
             </div>
             <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">
@@ -355,34 +355,34 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
           <div className="grid grid-cols-3 divide-x divide-black/5 dark:divide-white/10 text-center">
             {/* Income */}
             <div className="pr-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                 Income
               </p>
-              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 privacy-blur mt-0.5">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 privacy-blur mt-0.5">
                 +{formatCurrency(totalIncome, curr)}
               </p>
             </div>
 
             {/* Expenses */}
             <div className="px-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                 Spent
               </p>
-              <p className="text-sm font-bold text-rose-600 dark:text-rose-400 privacy-blur mt-0.5">
+              <p className="text-sm font-bold text-rose-700 dark:text-rose-400 privacy-blur mt-0.5">
                 -{formatCurrency(totalExpense, curr)}
               </p>
             </div>
 
             {/* Net Flow */}
             <div className="pl-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                 Net Cash
               </p>
               <p
                 className={`text-sm font-bold privacy-blur mt-0.5 ${
                   netFlow >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-rose-700 dark:text-rose-400'
                 }`}
               >
                 {formatCurrency(netFlow, curr, { showPlusSign: true })}
@@ -530,7 +530,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                                 </p>
 
                                 {tx.isSplitParent && (
-                                  <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-2xs font-semibold uppercase tracking-wider shrink-0 border border-amber-500/20">
+                                  <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 text-2xs font-semibold uppercase tracking-wider shrink-0 border border-amber-500/20">
                                     Split ({tx.subItemCount})
                                   </span>
                                 )}
@@ -563,7 +563,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                                     ? 'text-blue-600 dark:text-blue-400 font-semibold'
                                     : isExpense
                                     ? 'text-light-text dark:text-white font-semibold'
-                                    : 'text-emerald-600 dark:text-emerald-400 font-bold'
+                                    : 'text-emerald-700 dark:text-emerald-400 font-bold'
                                 }`}
                               >
                                 {tx.isTransfer ? '' : isExpense ? '-' : isIncome ? '+' : ''}
@@ -571,14 +571,14 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                               </p>
 
                               {tx.spareChangeAmount ? (
-                                <span className="mt-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5">
+                                <span className="mt-0.5 text-2xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5">
                                   <Icon name="savings" className="text-xs" />
                                   +{formatCurrency(Math.abs(tx.spareChangeAmount), curr)}
                                 </span>
                               ) : tx.subItemCount ? (
                                 <button
                                   onClick={(e) => toggleExpandParent(tx.id, e)}
-                                  className="mt-0.5 text-xs font-semibold text-primary-500 inline-flex items-center gap-0.5 hover:underline"
+                                  className="mt-0.5 text-xs font-semibold text-primary-700 dark:text-primary-400 inline-flex items-center gap-0.5 hover:underline"
                                 >
                                   <span>{isExpanded ? 'Hide' : 'Show'} items</span>
                                   <Icon
@@ -997,7 +997,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                       setSelectedDetailTx(null);
                       onSplitTransaction(tx);
                     }}
-                    className="w-full py-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold flex items-center justify-center gap-2 touch-feedback"
+                    className="w-full py-3 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center justify-center gap-2 touch-feedback"
                   >
                     <Icon name="call_split" className="text-base" />
                     <span>Split</span>
@@ -1010,7 +1010,7 @@ export const MobileTransactionsView: React.FC<MobileTransactionsViewProps> = ({
                     setSelectedDetailTx(null);
                     onDeleteTransaction(txId);
                   }}
-                  className="col-span-2 w-full py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-center gap-2 touch-feedback"
+                  className="col-span-2 w-full py-3 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400 text-xs font-bold flex items-center justify-center gap-2 touch-feedback"
                 >
                   <Icon name="delete" className="text-base" />
                   <span>Delete Transaction</span>

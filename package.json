@@ -1,7 +1,7 @@
 {
   "name": "crystal",
   "private": true,
-  "version": "2.261004.4",
+  "version": "2.261015.1",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -9,7 +9,8 @@
     "build": "node scripts/bump-version.cjs && vite build",
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build --mode production",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit && tsc -p tsconfig.strict.json",
+    "test": "tsx --test tests/unit/*.test.ts && tsx utils.test.ts && tsx server/src/crypto.test.ts && tsx server/src/schemas.test.ts && tsx server/src/rateLimit.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -55,7 +56,6 @@
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.3.0",
-    "shadcn": "^4.14.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tsx": "^4.21.0",
@@ -72,6 +72,7 @@
     "@types/node": "^25.6.0",
     "@types/pg": "^8.20.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "shadcn": "^4.14.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",

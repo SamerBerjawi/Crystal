@@ -1,0 +1,1903 @@
+{
+ "accounts": [
+  {
+   "id": "acc-checking",
+   "name": "Everyday Checking",
+   "type": "Checking",
+   "balance": 3450.75,
+   "currency": "EUR",
+   "financialInstitution": "Crystal Bank",
+   "accountNumber": "BE68 5390 0754 7034",
+   "routingNumber": "KREDBEBB",
+   "openingDate": "2020-03-12",
+   "icon": "account_balance",
+   "isPrimary": true
+  },
+  {
+   "id": "acc-savings",
+   "name": "Rainy Day Savings",
+   "type": "Savings",
+   "balance": 14800,
+   "currency": "EUR",
+   "financialInstitution": "Crystal Bank",
+   "apy": 2.5,
+   "openingDate": "2021-06-01",
+   "linkedAccountId": "acc-checking",
+   "icon": "savings"
+  },
+  {
+   "id": "acc-high-yield",
+   "name": "High Yield Reserve",
+   "type": "Savings",
+   "balance": 28500,
+   "currency": "EUR",
+   "financialInstitution": "Alpine Direct Bank",
+   "apy": 3.8,
+   "openingDate": "2023-01-15",
+   "linkedAccountId": "acc-checking",
+   "icon": "savings"
+  },
+  {
+   "id": "acc-credit",
+   "name": "Aurora Rewards Card",
+   "type": "Credit Card",
+   "balance": -840.25,
+   "currency": "EUR",
+   "financialInstitution": "Aurora Bank",
+   "last4": "4242",
+   "expirationDate": "12/26",
+   "cardNetwork": "Visa",
+   "cardholderName": "Demo User",
+   "paymentDate": 25,
+   "settlementAccountId": "acc-checking",
+   "creditLimit": 7500,
+   "icon": "credit_card"
+  },
+  {
+   "id": "acc-credit-gold",
+   "name": "Sapphire Executive Card",
+   "type": "Credit Card",
+   "balance": -1450,
+   "currency": "EUR",
+   "financialInstitution": "Sapphire Trust",
+   "last4": "9821",
+   "expirationDate": "08/28",
+   "cardNetwork": "Mastercard",
+   "cardholderName": "Demo User",
+   "paymentDate": 28,
+   "settlementAccountId": "acc-checking",
+   "creditLimit": 12000,
+   "icon": "credit_card"
+  },
+  {
+   "id": "acc-brokerage",
+   "name": "Tech Growth Equities",
+   "type": "Investment",
+   "subType": "Stock",
+   "balance": 34250,
+   "currency": "EUR",
+   "financialInstitution": "Crystal Invest",
+   "symbol": "AAPL",
+   "icon": "show_chart"
+  },
+  {
+   "id": "acc-etf",
+   "name": "Vanguard World ETF",
+   "type": "Investment",
+   "subType": "ETF",
+   "balance": 22100,
+   "currency": "EUR",
+   "financialInstitution": "Crystal Invest",
+   "symbol": "VWCE",
+   "icon": "account_tree"
+  },
+  {
+   "id": "acc-crypto",
+   "name": "Cold Vault Crypto",
+   "type": "Investment",
+   "subType": "Crypto",
+   "balance": 8450,
+   "currency": "EUR",
+   "financialInstitution": "Ledger Wallet",
+   "icon": "currency_bitcoin"
+  },
+  {
+   "id": "acc-pension",
+   "name": "Horizon Pension Plan",
+   "type": "Investment",
+   "subType": "Pension Fund",
+   "balance": 42000,
+   "currency": "EUR",
+   "financialInstitution": "Horizon Life",
+   "icon": "assured_workload"
+  },
+  {
+   "id": "acc-spare-change",
+   "name": "Round-Up Micro Vault",
+   "type": "Investment",
+   "subType": "Spare Change",
+   "balance": 680.5,
+   "currency": "EUR",
+   "financialInstitution": "Crystal Micro",
+   "icon": "savings"
+  },
+  {
+   "id": "acc-mortgage",
+   "name": "Canal View Home Loan",
+   "type": "Loan",
+   "balance": -185000,
+   "currency": "EUR",
+   "financialInstitution": "National Housing Bank",
+   "apy": 3.2,
+   "openingDate": "2021-09-01",
+   "icon": "request_quote"
+  },
+  {
+   "id": "acc-car-loan",
+   "name": "EV Auto Finance",
+   "type": "Loan",
+   "balance": -14200,
+   "currency": "EUR",
+   "financialInstitution": "Tesla Financial",
+   "apy": 4.5,
+   "openingDate": "2023-04-10",
+   "icon": "directions_car"
+  },
+  {
+   "id": "acc-property",
+   "name": "Canal View Apartment",
+   "type": "Property",
+   "balance": 320000,
+   "currency": "EUR",
+   "openingDate": "2021-09-01",
+   "icon": "home"
+  },
+  {
+   "id": "acc-vehicle",
+   "name": "Tesla Model 3 LR",
+   "type": "Vehicle",
+   "balance": 28500,
+   "currency": "EUR",
+   "openingDate": "2023-04-10",
+   "icon": "directions_car"
+  },
+  {
+   "id": "acc-gold",
+   "name": "Precious Metals Vault",
+   "type": "Other Assets",
+   "otherSubType": "Precious Metals",
+   "balance": 6500,
+   "currency": "EUR",
+   "icon": "diamond"
+  }
+ ],
+ "transactions": [
+  {
+   "id": "tx-salary-may",
+   "accountId": "acc-checking",
+   "date": "2024-05-28",
+   "description": "Monthly Salary - Crystal Analytics",
+   "merchant": "Crystal Analytics",
+   "amount": 3850,
+   "category": "Salary",
+   "type": "income",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "tagIds": [
+    "tag-work"
+   ]
+  },
+  {
+   "id": "tx-salary-jun",
+   "accountId": "acc-checking",
+   "date": "2024-06-28",
+   "description": "Monthly Salary - Crystal Analytics",
+   "merchant": "Crystal Analytics",
+   "amount": 3850,
+   "category": "Salary",
+   "type": "income",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "tagIds": [
+    "tag-work"
+   ]
+  },
+  {
+   "id": "tx-freelance-design",
+   "accountId": "acc-checking",
+   "date": "2024-06-15",
+   "description": "Design Consulting Retainer",
+   "merchant": "Acme Corp",
+   "amount": 1200,
+   "category": "Freelance",
+   "type": "income",
+   "currency": "EUR",
+   "city": "Paris",
+   "country": "France",
+   "tagIds": [
+    "tag-work",
+    "tag-tax"
+   ]
+  },
+  {
+   "id": "tx-dividend-vwce",
+   "accountId": "acc-etf",
+   "date": "2024-06-20",
+   "description": "Vanguard Quarterly Distribution",
+   "merchant": "Vanguard",
+   "amount": 142.5,
+   "category": "Investments & Dividends",
+   "type": "income",
+   "currency": "EUR",
+   "city": "Dublin",
+   "country": "Ireland"
+  },
+  {
+   "id": "tx-rent-jun",
+   "accountId": "acc-checking",
+   "date": "2024-06-01",
+   "description": "Apartment Mortgage Payment",
+   "merchant": "National Housing Bank",
+   "amount": -1250,
+   "category": "Rent",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-groceries-1",
+   "accountId": "acc-checking",
+   "date": "2024-06-03",
+   "description": "GreenMart Organic Market",
+   "merchant": "GreenMart",
+   "amount": -94.2,
+   "category": "Supermarket",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "tagIds": [
+    "tag-personal"
+   ]
+  },
+  {
+   "id": "tx-groceries-2",
+   "accountId": "acc-credit",
+   "date": "2024-06-12",
+   "description": "Whole Foods Market",
+   "merchant": "Whole Foods",
+   "amount": -132.8,
+   "category": "Supermarket",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "London",
+   "country": "United Kingdom",
+   "tagIds": [
+    "tag-personal"
+   ]
+  },
+  {
+   "id": "tx-dining-1",
+   "accountId": "acc-credit",
+   "date": "2024-06-14",
+   "description": "Bistro Regent Dinner",
+   "merchant": "Bistro Regent",
+   "amount": -78.5,
+   "category": "Restaurants",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Paris",
+   "country": "France"
+  },
+  {
+   "id": "tx-coffee-starbrew",
+   "accountId": "acc-checking",
+   "date": "2024-06-18",
+   "description": "StarBrew Espresso & Bakery",
+   "merchant": "StarBrew Coffee",
+   "amount": -12.4,
+   "category": "Coffee Shops",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-commute",
+   "accountId": "acc-checking",
+   "date": "2024-06-04",
+   "description": "Metro Monthly Pass",
+   "merchant": "Brussels Metro",
+   "amount": -49,
+   "category": "Public Transport",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-ev-charging",
+   "accountId": "acc-credit",
+   "date": "2024-06-10",
+   "description": "FastCharge Network",
+   "merchant": "FastCharge",
+   "amount": -28.6,
+   "category": "Fuel & EV Charging",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Antwerp",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-streaming-netflix",
+   "accountId": "acc-credit",
+   "date": "2024-06-15",
+   "description": "Netflix 4K Ultra HD",
+   "merchant": "Netflix",
+   "amount": -19.99,
+   "category": "Streaming Services",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Los Gatos",
+   "country": "United States"
+  },
+  {
+   "id": "tx-music-spotify",
+   "accountId": "acc-credit",
+   "date": "2024-06-10",
+   "description": "Spotify Family Plan",
+   "merchant": "Spotify",
+   "amount": -14.99,
+   "category": "Apps & Software",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Stockholm",
+   "country": "Sweden"
+  },
+  {
+   "id": "tx-chatgpt",
+   "accountId": "acc-credit-gold",
+   "date": "2024-06-08",
+   "description": "OpenAI ChatGPT Plus",
+   "merchant": "OpenAI",
+   "amount": -20,
+   "category": "Apps & Software",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "San Francisco",
+   "country": "United States",
+   "tagIds": [
+    "tag-work"
+   ]
+  },
+  {
+   "id": "tx-copilot",
+   "accountId": "acc-credit-gold",
+   "date": "2024-06-09",
+   "description": "GitHub Copilot Pro",
+   "merchant": "GitHub",
+   "amount": -10,
+   "category": "Apps & Software",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "San Francisco",
+   "country": "United States",
+   "tagIds": [
+    "tag-work"
+   ]
+  },
+  {
+   "id": "tx-gym",
+   "accountId": "acc-checking",
+   "date": "2024-06-05",
+   "description": "FitLife Gym Monthly Membership",
+   "merchant": "FitLife Gym",
+   "amount": -45,
+   "category": "Fitness / Gym",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-internet",
+   "accountId": "acc-checking",
+   "date": "2024-06-02",
+   "description": "Proximus Fiber Internet 1Gbps",
+   "merchant": "Proximus",
+   "amount": -49,
+   "category": "Internet / WiFi",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-power-bill",
+   "accountId": "acc-checking",
+   "date": "2024-06-05",
+   "description": "Luminus Green Energy Bill",
+   "merchant": "Luminus",
+   "amount": -120,
+   "category": "Electricity / Power",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium"
+  },
+  {
+   "id": "tx-flight-tokyo",
+   "accountId": "acc-credit-gold",
+   "date": "2024-05-18",
+   "description": "EuroAir Flights to Tokyo",
+   "merchant": "EuroAir",
+   "amount": -890,
+   "category": "Flights",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Tokyo",
+   "country": "Japan",
+   "tagIds": [
+    "tag-personal",
+    "tag-urgent"
+   ]
+  },
+  {
+   "id": "tx-tech-gadgets",
+   "accountId": "acc-credit-gold",
+   "date": "2024-06-01",
+   "description": "Apple Store 4K Monitor",
+   "merchant": "Apple",
+   "amount": -649,
+   "category": "Electronics & Tech",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Cupertino",
+   "country": "United States",
+   "tagIds": [
+    "tag-work",
+    "tag-tax"
+   ]
+  },
+  {
+   "id": "tx-transfer-savings",
+   "accountId": "acc-checking",
+   "date": "2024-06-02",
+   "description": "Monthly Savings Reserve",
+   "merchant": "Internal Transfer",
+   "amount": -500,
+   "category": "Investments",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "transferId": "tr-savings-06"
+  },
+  {
+   "id": "tx-transfer-savings-in",
+   "accountId": "acc-savings",
+   "date": "2024-06-02",
+   "description": "Monthly Savings Reserve",
+   "merchant": "Internal Transfer",
+   "amount": 500,
+   "category": "Investments",
+   "type": "income",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "transferId": "tr-savings-06"
+  },
+  {
+   "id": "tx-transfer-etf",
+   "accountId": "acc-checking",
+   "date": "2024-06-03",
+   "description": "DCA Investment Deposit",
+   "merchant": "Internal Transfer",
+   "amount": -400,
+   "category": "Investments",
+   "type": "expense",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "transferId": "tr-etf-06"
+  },
+  {
+   "id": "tx-transfer-etf-in",
+   "accountId": "acc-etf",
+   "date": "2024-06-03",
+   "description": "DCA Investment Deposit",
+   "merchant": "Internal Transfer",
+   "amount": 400,
+   "category": "Investments",
+   "type": "income",
+   "currency": "EUR",
+   "city": "Brussels",
+   "country": "Belgium",
+   "transferId": "tr-etf-06"
+  }
+ ],
+ "investmentTransactions": [
+  {
+   "id": "inv-buy-vwce-1",
+   "symbol": "VWCE",
+   "name": "Vanguard FTSE All-World UCITS ETF",
+   "quantity": 15,
+   "price": 108.5,
+   "date": "2024-04-10",
+   "type": "buy"
+  },
+  {
+   "id": "inv-buy-vwce-2",
+   "symbol": "VWCE",
+   "name": "Vanguard FTSE All-World UCITS ETF",
+   "quantity": 10,
+   "price": 112.2,
+   "date": "2024-06-03",
+   "type": "buy"
+  },
+  {
+   "id": "inv-buy-aapl",
+   "symbol": "AAPL",
+   "name": "Apple Inc.",
+   "quantity": 12,
+   "price": 175.4,
+   "date": "2024-03-15",
+   "type": "buy"
+  },
+  {
+   "id": "inv-buy-msft",
+   "symbol": "MSFT",
+   "name": "Microsoft Corporation",
+   "quantity": 8,
+   "price": 415,
+   "date": "2024-04-20",
+   "type": "buy"
+  },
+  {
+   "id": "inv-buy-nvda",
+   "symbol": "NVDA",
+   "name": "NVIDIA Corporation",
+   "quantity": 20,
+   "price": 118.5,
+   "date": "2024-05-10",
+   "type": "buy"
+  },
+  {
+   "id": "inv-sell-aapl",
+   "symbol": "AAPL",
+   "name": "Apple Inc.",
+   "quantity": 4,
+   "price": 195,
+   "date": "2024-06-01",
+   "type": "sell"
+  },
+  {
+   "id": "inv-buy-btc",
+   "symbol": "BTC",
+   "name": "Bitcoin Cold Vault",
+   "quantity": 0.12,
+   "price": 62500,
+   "date": "2024-02-15",
+   "type": "buy"
+  },
+  {
+   "id": "inv-buy-eth",
+   "symbol": "ETH",
+   "name": "Ethereum Staking Pool",
+   "quantity": 1.5,
+   "price": 3450,
+   "date": "2024-03-28",
+   "type": "buy"
+  }
+ ],
+ "recurringTransactions": [
+  {
+   "id": "sub-netflix",
+   "accountId": "acc-credit",
+   "description": "Netflix 4K Ultra HD",
+   "amount": 19.99,
+   "category": "Streaming Services",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2023-03-15",
+   "nextDueDate": "2024-07-15",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 15
+  },
+  {
+   "id": "sub-spotify",
+   "accountId": "acc-credit",
+   "description": "Spotify Family Plan",
+   "amount": 14.99,
+   "category": "Apps & Software",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2023-02-10",
+   "nextDueDate": "2024-07-10",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 10
+  },
+  {
+   "id": "sub-chatgpt",
+   "accountId": "acc-credit-gold",
+   "description": "OpenAI ChatGPT Plus",
+   "amount": 20,
+   "category": "Apps & Software",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2023-05-08",
+   "nextDueDate": "2024-07-08",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 8
+  },
+  {
+   "id": "sub-copilot",
+   "accountId": "acc-credit-gold",
+   "description": "GitHub Copilot Pro",
+   "amount": 10,
+   "category": "Apps & Software",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2023-06-09",
+   "nextDueDate": "2024-07-09",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 9
+  },
+  {
+   "id": "sub-clouddrive",
+   "accountId": "acc-credit",
+   "description": "CloudDrive 2TB Storage",
+   "amount": 9.99,
+   "category": "Cloud Storage",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2023-01-25",
+   "nextDueDate": "2024-07-25",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 25
+  },
+  {
+   "id": "sub-fitlife",
+   "accountId": "acc-checking",
+   "description": "FitLife Gym Membership",
+   "amount": 45,
+   "category": "Fitness / Gym",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2023-11-05",
+   "nextDueDate": "2024-07-05",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 5
+  },
+  {
+   "id": "sub-internet",
+   "accountId": "acc-checking",
+   "description": "Proximus Fiber Internet",
+   "amount": 49,
+   "category": "Internet / WiFi",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2022-10-02",
+   "nextDueDate": "2024-07-02",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 2
+  },
+  {
+   "id": "sub-luminus",
+   "accountId": "acc-checking",
+   "description": "Luminus Green Power",
+   "amount": 120,
+   "category": "Electricity / Power",
+   "type": "expense",
+   "currency": "EUR",
+   "frequency": "monthly",
+   "startDate": "2022-09-05",
+   "nextDueDate": "2024-07-05",
+   "weekendAdjustment": "after",
+   "dueDateOfMonth": 5
+  }
+ ],
+ "recurringTransactionOverrides": [],
+ "loanPaymentOverrides": {},
+ "financialGoals": [
+  {
+   "id": "goal-emergency",
+   "name": "6-Month Emergency Reserve",
+   "type": "one-time",
+   "goalCategory": "savings",
+   "transactionType": "income",
+   "amount": 20000,
+   "currentAmount": 14800,
+   "currency": "EUR",
+   "paymentAccountId": "acc-savings",
+   "date": "2026-12-31"
+  },
+  {
+   "id": "goal-solar",
+   "name": "Solar Panel System & Battery",
+   "type": "one-time",
+   "goalCategory": "savings",
+   "transactionType": "income",
+   "amount": 12000,
+   "currentAmount": 6500,
+   "currency": "EUR",
+   "paymentAccountId": "acc-high-yield",
+   "date": "2027-06-30"
+  },
+  {
+   "id": "goal-japan",
+   "name": "Japan Autumn Expedition",
+   "type": "one-time",
+   "goalCategory": "savings",
+   "transactionType": "income",
+   "amount": 5000,
+   "currentAmount": 3200,
+   "currency": "EUR",
+   "paymentAccountId": "acc-savings",
+   "date": "2027-04-15"
+  },
+  {
+   "id": "goal-etf-builder",
+   "name": "ETFs & Dividend Portfolio 2026",
+   "type": "recurring",
+   "goalCategory": "savings",
+   "transactionType": "income",
+   "amount": 50000,
+   "currentAmount": 34250,
+   "currency": "EUR",
+   "monthlyContribution": 500,
+   "paymentAccountId": "acc-etf",
+   "frequency": "monthly",
+   "startDate": "2024-01-01",
+   "endDate": "2027-12-31"
+  }
+ ],
+ "budgets": [
+  {
+   "id": "bgt-groceries",
+   "categoryName": "Food & Groceries",
+   "amount": 450,
+   "period": "monthly",
+   "currency": "EUR"
+  },
+  {
+   "id": "bgt-dining",
+   "categoryName": "Dining & Entertainment",
+   "amount": 300,
+   "period": "monthly",
+   "currency": "EUR"
+  },
+  {
+   "id": "bgt-transport",
+   "categoryName": "Transportation & Mobility",
+   "amount": 200,
+   "period": "monthly",
+   "currency": "EUR"
+  },
+  {
+   "id": "bgt-shopping",
+   "categoryName": "Personal Shopping",
+   "amount": 250,
+   "period": "monthly",
+   "currency": "EUR"
+  },
+  {
+   "id": "bgt-housing",
+   "categoryName": "Housing & Utilities",
+   "amount": 1500,
+   "period": "monthly",
+   "currency": "EUR"
+  }
+ ],
+ "tasks": [
+  {
+   "id": "task-portfolio-rebalance",
+   "title": "Review Q3 portfolio rebalancing & ETF allocations",
+   "description": "Evaluate index weights between VWCE and tech stock holdings.",
+   "dueDate": "2026-08-15",
+   "status": "To Do",
+   "priority": "High",
+   "reminderDate": "2026-08-10"
+  },
+  {
+   "id": "task-tax-receipts",
+   "title": "Submit tax-deductible receipts to accountant",
+   "description": "Compile work hardware, home office equipment, and training expenses.",
+   "dueDate": "2026-08-05",
+   "status": "Done",
+   "priority": "High"
+  },
+  {
+   "id": "task-subscription-audit",
+   "title": "Audit active app subscriptions and cancel unused plans",
+   "description": "Review monthly cloud storage, streaming, and SaaS tools.",
+   "dueDate": "2026-08-20",
+   "status": "In Progress",
+   "priority": "Medium"
+  },
+  {
+   "id": "task-auto-transfer",
+   "title": "Set up automated monthly transfer to High Yield Reserve",
+   "description": "Configure bank recurring order for €500 post-salary payment.",
+   "dueDate": "2026-08-01",
+   "status": "Done",
+   "priority": "Medium"
+  },
+  {
+   "id": "task-car-insurance",
+   "title": "Check annual EV car insurance renewal rates",
+   "description": "Compare competitive quotes before automatic policy extension.",
+   "dueDate": "2026-09-01",
+   "status": "To Do",
+   "priority": "Low"
+  },
+  {
+   "id": "task-property-valuation",
+   "title": "Update home valuation & property tax records",
+   "description": "Record updated assessment value for net worth accuracy.",
+   "dueDate": "2026-09-15",
+   "status": "To Do",
+   "priority": "Medium"
+  }
+ ],
+ "warrants": [
+  {
+   "id": "warrant-apple-macbook",
+   "isin": "US0378331005",
+   "name": "AppleCare+ MacBook Pro Warranty",
+   "grantDate": "2023-11-10",
+   "quantity": 1,
+   "grantPrice": 299
+  },
+  {
+   "id": "warrant-heat-pump",
+   "isin": "EU8849302194",
+   "name": "Daikin Heat Pump Extended Guarantee",
+   "grantDate": "2022-05-20",
+   "quantity": 1,
+   "grantPrice": 450
+  }
+ ],
+ "memberships": [
+  {
+   "id": "mem-starbrew",
+   "provider": "StarBrew Coffee",
+   "memberId": "SB-239984",
+   "tier": "Gold",
+   "holderName": "Demo User",
+   "memberSince": "2021-04-12",
+   "points": "1,240 pts",
+   "expiryDate": "2025-04-30",
+   "color": "#8B5CF6",
+   "icon": "local_cafe",
+   "notes": "Free specialty drink coupon every 10 stamps",
+   "website": "https://starbrew.example.com",
+   "category": "Food & Drink"
+  },
+  {
+   "id": "mem-euroair",
+   "provider": "EuroAir Miles",
+   "memberId": "EA-55421",
+   "tier": "Silver",
+   "holderName": "Demo User",
+   "memberSince": "2020-08-01",
+   "points": "18,500 miles",
+   "expiryDate": "2024-12-31",
+   "color": "#0EA5E9",
+   "icon": "flight",
+   "notes": "Priority lounge access & fast-track security",
+   "website": "https://euroair.example.com",
+   "category": "Travel"
+  },
+  {
+   "id": "mem-greenmart",
+   "provider": "GreenMart Club",
+   "memberId": "GM-7745",
+   "tier": "VIP Gold",
+   "holderName": "Demo User",
+   "memberSince": "2022-02-20",
+   "points": "€34.50 credit",
+   "expiryDate": "2025-11-15",
+   "color": "#22C55E",
+   "icon": "shopping_bag",
+   "notes": "3% cashback on organic produce purchases",
+   "website": "https://greenmart.example.com",
+   "category": "Retail"
+  },
+  {
+   "id": "mem-techhub",
+   "provider": "TechHub Co-working Pass",
+   "memberId": "TH-9901",
+   "tier": "Pro Flex",
+   "holderName": "Demo User",
+   "memberSince": "2023-01-10",
+   "points": "5 passes remaining",
+   "expiryDate": "2025-01-31",
+   "color": "#F59E0B",
+   "icon": "work",
+   "notes": "24/7 access to regional tech hubs",
+   "website": "https://techhub.example.com",
+   "category": "Business"
+  }
+ ],
+ "importExportHistory": [],
+ "tags": [
+  {
+   "id": "tag-work",
+   "name": "Work",
+   "color": "#3B82F6",
+   "icon": "work"
+  },
+  {
+   "id": "tag-personal",
+   "name": "Personal",
+   "color": "#10B981",
+   "icon": "person"
+  },
+  {
+   "id": "tag-urgent",
+   "name": "Urgent",
+   "color": "#EF4444",
+   "icon": "priority_high"
+  },
+  {
+   "id": "tag-tax",
+   "name": "Tax Deductible",
+   "color": "#F59E0B",
+   "icon": "receipt_long"
+  }
+ ],
+ "incomeCategories": [
+  {
+   "id": "inc-1",
+   "name": "Salary",
+   "color": "#10B981",
+   "icon": "work",
+   "classification": "income",
+   "subCategories": [
+    {
+     "id": "inc-1a",
+     "name": "Fixed Salary",
+     "color": "#10B981",
+     "icon": "work",
+     "classification": "income",
+     "subCategories": [],
+     "parentId": "inc-1"
+    },
+    {
+     "id": "inc-1b",
+     "name": "Bonus Salary",
+     "color": "#10B981",
+     "icon": "work",
+     "classification": "income",
+     "subCategories": [],
+     "parentId": "inc-1"
+    }
+   ]
+  },
+  {
+   "id": "inc-6",
+   "name": "Side Hustle / Freelance",
+   "color": "#14B8A6",
+   "icon": "engineering",
+   "classification": "income",
+   "subCategories": []
+  },
+  {
+   "id": "inc-7",
+   "name": "Rental Income",
+   "color": "#8B5CF6",
+   "icon": "real_estate_agent",
+   "classification": "income",
+   "subCategories": []
+  },
+  {
+   "id": "inc-5",
+   "name": "Investments & Dividends",
+   "color": "#6366F1",
+   "icon": "trending_up",
+   "classification": "income",
+   "subCategories": []
+  },
+  {
+   "id": "inc-2",
+   "name": "Refunds & Payback",
+   "color": "#F59E0B",
+   "icon": "assignment_return",
+   "classification": "income",
+   "subCategories": []
+  },
+  {
+   "id": "inc-3",
+   "name": "Government & Benefits",
+   "color": "#3B82F6",
+   "icon": "account_balance",
+   "classification": "income",
+   "subCategories": []
+  },
+  {
+   "id": "inc-8",
+   "name": "Gifts Received",
+   "color": "#EC4899",
+   "icon": "card_giftcard",
+   "classification": "income",
+   "subCategories": []
+  },
+  {
+   "id": "inc-4",
+   "name": "Other Income",
+   "color": "#64748B",
+   "icon": "attach_money",
+   "classification": "income",
+   "subCategories": []
+  }
+ ],
+ "expenseCategories": [
+  {
+   "id": "exp-1",
+   "name": "Housing",
+   "color": "#EF4444",
+   "icon": "house",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-1a",
+     "name": "Mortgage",
+     "color": "#EF4444",
+     "icon": "account_balance",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-1"
+    },
+    {
+     "id": "exp-1d",
+     "name": "Rent",
+     "color": "#EF4444",
+     "icon": "apartment",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-1"
+    },
+    {
+     "id": "exp-1b",
+     "name": "Maintenance & Repairs",
+     "color": "#EF4444",
+     "icon": "home_repair_service",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-1"
+    },
+    {
+     "id": "exp-1e",
+     "name": "Home Insurance",
+     "color": "#EF4444",
+     "icon": "shield",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-1"
+    },
+    {
+     "id": "exp-1f",
+     "name": "HOA / Body Corp",
+     "color": "#EF4444",
+     "icon": "groups",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-1"
+    }
+   ]
+  },
+  {
+   "id": "exp-2",
+   "name": "Food & Groceries",
+   "color": "#F97316",
+   "icon": "restaurant",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-2a",
+     "name": "Supermarket",
+     "color": "#F97316",
+     "icon": "shopping_cart",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-2"
+    },
+    {
+     "id": "exp-2b",
+     "name": "Dining Out",
+     "color": "#F97316",
+     "icon": "restaurant_menu",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-2"
+    },
+    {
+     "id": "exp-2c",
+     "name": "Cafes & Snacks",
+     "color": "#F97316",
+     "icon": "local_cafe",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-2"
+    },
+    {
+     "id": "exp-2d",
+     "name": "Delivery & Takeaway",
+     "color": "#F97316",
+     "icon": "delivery_dining",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-2"
+    }
+   ]
+  },
+  {
+   "id": "exp-3",
+   "name": "Transportation",
+   "color": "#3B82F6",
+   "icon": "commute",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-3a",
+     "name": "Public Transport",
+     "color": "#3B82F6",
+     "icon": "train",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    },
+    {
+     "id": "exp-3c",
+     "name": "Fuel / Charging",
+     "color": "#3B82F6",
+     "icon": "local_gas_station",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    },
+    {
+     "id": "exp-3f",
+     "name": "Vehicle Insurance",
+     "color": "#3B82F6",
+     "icon": "car_crash",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    },
+    {
+     "id": "exp-3g",
+     "name": "Service & Maintenance",
+     "color": "#3B82F6",
+     "icon": "car_repair",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    },
+    {
+     "id": "exp-3b",
+     "name": "Ride-Hailing",
+     "color": "#3B82F6",
+     "icon": "local_taxi",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    },
+    {
+     "id": "exp-3d",
+     "name": "Parking & Tolls",
+     "color": "#3B82F6",
+     "icon": "local_parking",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    },
+    {
+     "id": "exp-3h",
+     "name": "Fines (Parking, Speeding & Traffic)",
+     "color": "#3B82F6",
+     "icon": "local_police",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-3"
+    }
+   ]
+  },
+  {
+   "id": "exp-4",
+   "name": "Shopping & Lifestyle",
+   "color": "#8B5CF6",
+   "icon": "shopping_bag",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-4b",
+     "name": "Clothing & Apparel",
+     "color": "#8B5CF6",
+     "icon": "checkroom",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-4"
+    },
+    {
+     "id": "exp-4a",
+     "name": "Electronics & Gadgets",
+     "color": "#8B5CF6",
+     "icon": "devices",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-4"
+    },
+    {
+     "id": "exp-4c",
+     "name": "Home & Garden",
+     "color": "#8B5CF6",
+     "icon": "chair",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-4"
+    },
+    {
+     "id": "exp-4d",
+     "name": "Beauty & Personal Care",
+     "color": "#8B5CF6",
+     "icon": "face",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-4"
+    }
+   ]
+  },
+  {
+   "id": "exp-5",
+   "name": "Bills & Utilities",
+   "color": "#0EA5E9",
+   "icon": "receipt_long",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-5b",
+     "name": "Utilities (Gas, Water, Elec)",
+     "color": "#0EA5E9",
+     "icon": "bolt",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-5"
+    },
+    {
+     "id": "exp-5a",
+     "name": "Internet & TV",
+     "color": "#0EA5E9",
+     "icon": "router",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-5"
+    },
+    {
+     "id": "exp-5d",
+     "name": "Mobile Phone",
+     "color": "#0EA5E9",
+     "icon": "smartphone",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-5"
+    },
+    {
+     "id": "exp-5c",
+     "name": "Services",
+     "color": "#0EA5E9",
+     "icon": "cleaning_services",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-5"
+    }
+   ]
+  },
+  {
+   "id": "exp-12",
+   "name": "Software & Subscriptions",
+   "color": "#6366F1",
+   "icon": "cloud_download",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-12a",
+     "name": "Streaming Services",
+     "color": "#6366F1",
+     "icon": "movie",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-12"
+    },
+    {
+     "id": "exp-12b",
+     "name": "Apps & Software",
+     "color": "#6366F1",
+     "icon": "apps",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-12"
+    },
+    {
+     "id": "exp-12c",
+     "name": "Cloud Storage",
+     "color": "#6366F1",
+     "icon": "cloud",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-12"
+    }
+   ]
+  },
+  {
+   "id": "exp-6",
+   "name": "Entertainment",
+   "color": "#EC4899",
+   "icon": "theaters",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-6b",
+     "name": "Concerts & Events",
+     "color": "#EC4899",
+     "icon": "confirmation_number",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-6"
+    },
+    {
+     "id": "exp-6c",
+     "name": "Hobbies",
+     "color": "#EC4899",
+     "icon": "palette",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-6"
+    },
+    {
+     "id": "exp-6d",
+     "name": "Sports & Recreation",
+     "color": "#EC4899",
+     "icon": "sports_soccer",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-6"
+    }
+   ]
+  },
+  {
+   "id": "exp-13",
+   "name": "Family & Kids",
+   "color": "#F59E0B",
+   "icon": "family_restroom",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-13a",
+     "name": "Childcare",
+     "color": "#F59E0B",
+     "icon": "child_care",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13b",
+     "name": "School Fees & Supplies",
+     "color": "#F59E0B",
+     "icon": "school",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13c",
+     "name": "Toys & Activities",
+     "color": "#F59E0B",
+     "icon": "toys",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13d",
+     "name": "Baby Essentials & Diapers",
+     "color": "#F59E0B",
+     "icon": "baby_changing_station",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13e",
+     "name": "Kids Clothing & Footwear",
+     "color": "#F59E0B",
+     "icon": "stroller",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13f",
+     "name": "Extracurriculars & Sports Clubs",
+     "color": "#F59E0B",
+     "icon": "sports_soccer",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13g",
+     "name": "Pocket Money & Allowance",
+     "color": "#F59E0B",
+     "icon": "savings",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13h",
+     "name": "Babysitting & Nannying",
+     "color": "#F59E0B",
+     "icon": "face_3",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    },
+    {
+     "id": "exp-13i",
+     "name": "Pediatric & Child Health",
+     "color": "#F59E0B",
+     "icon": "vaccines",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-13"
+    }
+   ]
+  },
+  {
+   "id": "exp-14",
+   "name": "Education & Self-Improvement",
+   "color": "#14B8A6",
+   "icon": "school",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-14a",
+     "name": "Tuition",
+     "color": "#14B8A6",
+     "icon": "account_balance",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-14"
+    },
+    {
+     "id": "exp-14b",
+     "name": "Courses & Training",
+     "color": "#14B8A6",
+     "icon": "cast_for_education",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-14"
+    },
+    {
+     "id": "exp-14c",
+     "name": "Books & Materials",
+     "color": "#14B8A6",
+     "icon": "menu_book",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-14"
+    }
+   ]
+  },
+  {
+   "id": "exp-7",
+   "name": "Health & Wellness",
+   "color": "#10B981",
+   "icon": "monitor_heart",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-7a",
+     "name": "Fitness / Gym",
+     "color": "#10B981",
+     "icon": "fitness_center",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-7"
+    },
+    {
+     "id": "exp-7b",
+     "name": "Medical & Dental",
+     "color": "#10B981",
+     "icon": "medical_services",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-7"
+    },
+    {
+     "id": "exp-7c",
+     "name": "Pharmacy",
+     "color": "#10B981",
+     "icon": "medication",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-7"
+    }
+   ]
+  },
+  {
+   "id": "exp-8",
+   "name": "Travel",
+   "color": "#F59E0B",
+   "icon": "flight",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-8a",
+     "name": "Flights",
+     "color": "#F59E0B",
+     "icon": "flight_takeoff",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-8"
+    },
+    {
+     "id": "exp-8b",
+     "name": "Accommodation",
+     "color": "#F59E0B",
+     "icon": "hotel",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-8"
+    },
+    {
+     "id": "exp-8c",
+     "name": "Activities & Tours",
+     "color": "#F59E0B",
+     "icon": "tour",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-8"
+    },
+    {
+     "id": "exp-8d",
+     "name": "Visa & Passport",
+     "color": "#F59E0B",
+     "icon": "badge",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-8"
+    }
+   ]
+  },
+  {
+   "id": "exp-9",
+   "name": "Personal",
+   "color": "#64748B",
+   "icon": "person",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-9b",
+     "name": "Gifts & Donations",
+     "color": "#64748B",
+     "icon": "volunteer_activism",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-9"
+    },
+    {
+     "id": "exp-9c",
+     "name": "Pet Care",
+     "color": "#64748B",
+     "icon": "pets",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-9"
+    }
+   ]
+  },
+  {
+   "id": "exp-10",
+   "name": "Finances",
+   "color": "#A855F7",
+   "icon": "account_balance",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-10a",
+     "name": "Bank Fees",
+     "color": "#A855F7",
+     "icon": "price_check",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-10"
+    },
+    {
+     "id": "exp-10d",
+     "name": "Taxes",
+     "color": "#A855F7",
+     "icon": "gavel",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-10"
+    },
+    {
+     "id": "exp-10e",
+     "name": "Life Insurance",
+     "color": "#A855F7",
+     "icon": "security",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-10"
+    },
+    {
+     "id": "exp-10c",
+     "name": "Investments",
+     "color": "#A855F7",
+     "icon": "trending_up",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-10"
+    },
+    {
+     "id": "exp-10f",
+     "name": "Fines & Legal Penalties",
+     "color": "#A855F7",
+     "icon": "gavel",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-10"
+    }
+   ]
+  },
+  {
+   "id": "exp-11",
+   "name": "Miscellaneous",
+   "color": "#78716C",
+   "icon": "category",
+   "classification": "expense",
+   "subCategories": [
+    {
+     "id": "exp-11a",
+     "name": "Uncategorized",
+     "color": "#78716C",
+     "icon": "help_outline",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11b",
+     "name": "Cash Withdrawals & ATM",
+     "color": "#78716C",
+     "icon": "atm",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11c",
+     "name": "Fines & Penalties",
+     "color": "#78716C",
+     "icon": "gavel",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11d",
+     "name": "Lost & Stolen Adjustments",
+     "color": "#78716C",
+     "icon": "sentiment_very_dissatisfied",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11e",
+     "name": "One-off Contingencies",
+     "color": "#78716C",
+     "icon": "extension",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11f",
+     "name": "Government & Admin Fees",
+     "color": "#78716C",
+     "icon": "policy",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11g",
+     "name": "Tips & Gratuities",
+     "color": "#78716C",
+     "icon": "volunteer_activism",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    },
+    {
+     "id": "exp-11h",
+     "name": "Currency Conversion & FX Fees",
+     "color": "#78716C",
+     "icon": "currency_exchange",
+     "classification": "expense",
+     "subCategories": [],
+     "parentId": "exp-11"
+    }
+   ]
+  }
+ ],
+ "billsAndPayments": [
+  {
+   "id": "bill-internet-jul",
+   "description": "Proximus Fiber Internet 1Gbps",
+   "amount": -49,
+   "type": "payment",
+   "currency": "EUR",
+   "dueDate": "2024-07-02",
+   "status": "unpaid",
+   "accountId": "acc-checking"
+  },
+  {
+   "id": "bill-luminus-jul",
+   "description": "Luminus Green Energy Monthly Bill",
+   "amount": -120,
+   "type": "payment",
+   "currency": "EUR",
+   "dueDate": "2024-07-05",
+   "status": "unpaid",
+   "accountId": "acc-checking"
+  },
+  {
+   "id": "bill-city-tax",
+   "description": "Quarterly Municipal Resident Tax",
+   "amount": -185,
+   "type": "payment",
+   "currency": "EUR",
+   "dueDate": "2024-06-15",
+   "status": "paid",
+   "accountId": "acc-checking"
+  }
+ ],
+ "invoices": [
+  {
+   "id": "inv-acme-2024-01",
+   "type": "invoice",
+   "direction": "sent",
+   "number": "INV-2024-001",
+   "date": "2024-06-01",
+   "dueDate": "2024-06-30",
+   "entityName": "Acme International Corp",
+   "entityEmail": "billing@acme-corp.com",
+   "entityAddress": "Avenue Louise 120, 1050 Brussels",
+   "currency": "EUR",
+   "status": "paid",
+   "items": [
+    {
+     "id": "item-1",
+     "description": "Senior Frontend Architecture Consulting",
+     "quantity": 40,
+     "unitPrice": 85,
+     "total": 3400
+    },
+    {
+     "id": "item-2",
+     "description": "Performance & Bundle Audit Report",
+     "quantity": 1,
+     "unitPrice": 450,
+     "total": 450
+    }
+   ],
+   "subtotal": 3850,
+   "taxRate": 21,
+   "taxAmount": 808.5,
+   "total": 4658.5,
+   "notes": "Payment terms: 30 days net. SWIFT: KREDBEBB"
+  },
+  {
+   "id": "quote-nexus-2024-02",
+   "type": "quote",
+   "direction": "sent",
+   "number": "QT-2024-002",
+   "date": "2024-06-10",
+   "dueDate": "2024-07-15",
+   "entityName": "Nexus Digital Systems",
+   "entityEmail": "contact@nexus-digital.io",
+   "entityAddress": "Tech Corridor 4, Ghent",
+   "currency": "EUR",
+   "status": "sent",
+   "items": [
+    {
+     "id": "item-q1",
+     "description": "Design System & Component Library Creation",
+     "quantity": 1,
+     "unitPrice": 3500,
+     "total": 3500
+    },
+    {
+     "id": "item-q2",
+     "description": "Dark Mode & Glassmorphism Theme Integration",
+     "quantity": 1,
+     "unitPrice": 1200,
+     "total": 1200
+    }
+   ],
+   "subtotal": 4700,
+   "taxRate": 21,
+   "taxAmount": 987,
+   "total": 5687,
+   "notes": "Quote valid for 30 days."
+  }
+ ],
+ "accountOrder": [
+  "acc-checking",
+  "acc-savings",
+  "acc-high-yield",
+  "acc-credit",
+  "acc-credit-gold",
+  "acc-brokerage",
+  "acc-etf",
+  "acc-crypto",
+  "acc-pension",
+  "acc-spare-change",
+  "acc-mortgage",
+  "acc-car-loan",
+  "acc-property",
+  "acc-vehicle",
+  "acc-gold"
+ ],
+ "taskOrder": [
+  "task-portfolio-rebalance",
+  "task-tax-receipts",
+  "task-subscription-audit",
+  "task-auto-transfer",
+  "task-car-insurance",
+  "task-property-valuation"
+ ],
+ "manualWarrantPrices": {},
+ "priceHistory": {},
+ "userStats": {
+  "currentStreak": 5,
+  "longestStreak": 14,
+  "lastLogDate": "2024-06-28",
+  "predictionWins": 3,
+  "predictionTotal": 4
+ },
+ "predictions": [],
+ "enableBankingConnections": [],
+ "preferences": {
+  "currency": "EUR (€)",
+  "language": "English (en)",
+  "timezone": "Europe/Brussels",
+  "dateFormat": "DD/MM/YYYY",
+  "defaultPeriod": "MTD",
+  "defaultAccountOrder": "name",
+  "country": "Belgium",
+  "appFont": "plus-jakarta-sans",
+  "defaultForecastPeriod": "1Y",
+  "brandfetchClientId": "",
+  "twelveDataApiKey": "",
+  "merchantLogoOverrides": {},
+  "merchantRules": {},
+  "excludeTransfersFromAnalytics": false
+ }
+}

@@ -5,6 +5,8 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../con
 import { toLocalISOString } from '../utils';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 const normalizeDecimalString = (str: string): string => {
     const cleaned = str
@@ -44,6 +46,7 @@ interface WarrantPriceModalProps {
 }
 
 const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
     const [newPrice, setNewPrice] = useState(
         initialEntry 
@@ -77,7 +80,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     // Handle ESC key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
                 handleClose();
             }
         };
@@ -143,7 +146,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         if (cookies) {
             params.set('cookies', cookies);
         }
-        const response = await fetch(`/api/smart-fetch?${params.toString()}`);
+        const response = await fetchWithTimeout(`/api/smart-fetch?${params.toString()}`);
         if (!response.ok) {
             throw new Error(`Smart fetch failed with status ${response.status}`);
         }
@@ -434,7 +437,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         setFetchError(null);
 
         const fetchPrice = async (query: string) => {
-            const response = await fetch(query);
+            const response = await fetchWithTimeout(query);
             const data = await response.json();
 
             if (data.status === 'error' || data.code) {
@@ -506,7 +509,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const title = initialEntry ? `Edit Valuation Entry` : `Log Valuation`;
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -561,7 +564,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                                         mode === 'single'
                                             ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                                     }`}
                                 >
                                     Single Entry
@@ -572,7 +575,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                                         mode === 'bulk'
                                             ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'
+                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
                                     }`}
                                 >
                                     Bulk Manifest (CSV)
@@ -638,7 +641,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                     <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block leading-tight">
                                                         Autonomous Retrieval
                                                     </span>
-                                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                                         Synced across all devices
                                                     </span>
                                                 </div>
@@ -675,7 +678,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                             <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200 truncate">
                                                                 Web Fetching Configured
                                                             </p>
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                                                 <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                                                                 Cloud Synced
                                                             </span>
@@ -709,7 +712,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                         )}
 
                                         {fetchError && (
-                                            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                                            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40 text-xs text-rose-700 dark:text-rose-400 flex items-center gap-2">
                                                 <Icon name="error" className="text-sm shrink-0" />
                                                 <span>{fetchError}</span>
                                             </div>
@@ -764,7 +767,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                                 </div>
 
                                                 {smartFetcherError && (
-                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
                                                         <Icon name="error" className="text-sm shrink-0" />
                                                         <span>{smartFetcherError}</span>
                                                     </div>

@@ -6,6 +6,8 @@ import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, 
 import Card from './Card';
 import { toLocalISOString } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
+import { toast } from 'sonner';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -34,6 +36,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
   incomeCategories,
   expenseCategories
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [step, setStep] = useState(1);
   const totalSteps = 6;
 
@@ -81,7 +84,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
     }
     if (step === 3) {
       if (!accountName || !balance) {
-        alert('Please fill in all account details.');
+        toast.error('Please fill in all account details.');
         return;
       }
       const newAccount: Omit<Account, 'id'> = {
@@ -302,7 +305,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[100] flex flex-col p-6 transition-opacity duration-300">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[100] flex flex-col p-6 transition-opacity duration-300">
         <header className="flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
                 {/* FIX: The `CrystalLogo` component does not accept a `theme` prop. Replaced it with `showText={false}` to show the small logo icon. */}

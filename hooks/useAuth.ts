@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { User, FinancialData } from '../types';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
 
 interface AuthResponse {
   user?: any;
@@ -59,7 +60,7 @@ export const useAuth = () => {
   }, []);
 
   const authorizedFetch = useCallback(async (input: RequestInfo | URL, init: RequestInit = {}) => {
-    return fetch(input, {
+    return fetchWithTimeout(input, {
       ...init,
       credentials: 'include',
     });
@@ -169,11 +170,17 @@ export const useAuth = () => {
       }
 
       const data = await dataRes.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('The server returned data in an unexpected format.');
+      }
       return data as FinancialData;
     } catch (err) {
       console.error('Auth status check failed:', err);
-      signOut();
-      setError(err instanceof Error ? err.message : 'Failed to authenticate.');
+      // A server hiccup is not a sign-out: do not call /api/auth/logout (it would revoke a perfectly good
+      // session). Just show the sign-in screen locally; a reload restores the session once the API is back.
+      setUserState(null);
+      setIsAuthenticated(false);
+      setError('Unable to reach the server. Please check your connection and try again.');
       return null;
     } finally {
       setIsLoading(false);
@@ -181,26 +188,31 @@ export const useAuth = () => {
   }, [signOut]);
 
   const setUser = useCallback(
-    (updates: Partial<User>) => {
+    async (updates: Partial<User>): Promise<boolean> => {
       setUserState(prev => (prev ? { ...prev, ...updates } : prev));
 
-      (async () => {
-        try {
-          const response = await authorizedFetch('/api/users/me', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates),
-          });
+      try {
+        const response = await authorizedFetch('/api/users/me', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
 
-          if (!response.ok) {
-            const body = await response.json().catch(() => ({}));
-            throw new Error(body.message || 'Failed to update profile.');
-          }
-        } catch (err) {
-          console.error('Failed to update user profile:', err);
-          setError(err instanceof Error ? err.message : 'Failed to update user profile.');
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || 'Failed to update profile.');
         }
-      })();
+        return true;
+      } catch (err) {
+        console.error('Failed to update user profile:', err);
+        setError(err instanceof Error ? err.message : 'Failed to update user profile.');
+        // Roll back the optimistic update to what the server actually has.
+        try {
+          const me = await authorizedFetch('/api/auth/me');
+          if (me.ok) setUserState(mapApiUserToUser(await me.json()));
+        } catch { /* keep the optimistic value if the server is unreachable */ }
+        return false;
+      }
     },
     [authorizedFetch]
   );

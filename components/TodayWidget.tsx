@@ -142,21 +142,21 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     const renderDueBadge = (daysUntil: number) => {
         if (daysUntil < 0) {
             return (
-                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 shrink-0">
                     Overdue ({Math.abs(daysUntil)}d)
                 </span>
             );
         }
         if (daysUntil === 0) {
             return (
-                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 shrink-0">
                     Due Today
                 </span>
             );
         }
         if (daysUntil === 1) {
             return (
-                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
                     Due Tomorrow
                 </span>
             );
@@ -216,7 +216,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         
                         return (
                             <div key={`${item.type}-${data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] hover:border-black/10 dark:hover:border-white/10 group transition-all">
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${isBill ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-primary-500/10 border-primary-500/20 text-primary-600 dark:text-primary-400'}`}>
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${isBill ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-primary-500/10 border-primary-500/20 text-primary-600 dark:text-primary-400'}`}>
                                     <Icon 
                                         name={isBill ? 'receipt' : 'sync'} 
                                         className="text-base" 
@@ -248,7 +248,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                     if (item.type === 'goal') {
                         return (
                             <div key={`goal-${item.data.id}`} className="flex items-center gap-3 p-3 rounded-2xl bg-amber-500/[0.03] dark:bg-amber-500/[0.05] border border-amber-500/20">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
                                     <Icon name="target" className="text-base" />
                                 </div>
                                 <div className="flex-1 min-w-0">

@@ -257,6 +257,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
         subText={`${account.year || ''} ${account.make || ''} ${account.model || ''}`}
         valuationAction={!isClosed ? { label: 'Value Update', icon: 'PlusCircle', onClick: () => { if (onUpdateValuation) onUpdateValuation(); else if (onAddTransaction) onAddTransaction(); } } : undefined}
         secondaryAction={{ label: 'Add Log', icon: 'Activity', onClick: () => onAddLog() }}
+        closeAction={!isClosed && onCloseAsset ? { label: 'Retire Vehicle', icon: 'event_busy', onClick: () => onCloseAsset() } : undefined}
+        reopenAction={isClosed && onRevertClosure ? { label: 'Reopen', icon: 'history', onClick: () => onRevertClosure() } : undefined}
       />
 
       {/* Dynamic Desktop Header */}
@@ -270,7 +272,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className="text-xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Vehicle asset</span>
+                       <span className="text-xs font-semibold text-primary-700 dark:text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Vehicle asset</span>
                        <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.licensePlate || 'Fleet Member'}</span>
                   </div>

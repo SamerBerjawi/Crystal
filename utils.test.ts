@@ -15,7 +15,7 @@ try {
   assert(formatted.includes('1,234.56') || formatted.includes('1.234,56') || formatted.includes('1234'), 'formatCurrency formatting EUR');
   console.log('✓ Test 1 Passed: formatCurrency');
 } catch (e: any) {
-  console.error('✕ Test 1 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 1 Failed:', e.message);
 }
 
 // Test 2: convertToEur
@@ -24,7 +24,7 @@ try {
   assert(convertedEur === 100, 'convertToEur for EUR should be 1:1');
   console.log('✓ Test 2 Passed: convertToEur');
 } catch (e: any) {
-  console.error('✕ Test 2 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 2 Failed:', e.message);
 }
 
 // Test 3: parseLocalDate & toLocalISOString
@@ -36,7 +36,7 @@ try {
   assert(parsed.getDate() === 29, 'Date matches 29');
   console.log('✓ Test 3 Passed: parseLocalDate');
 } catch (e: any) {
-  console.error('✕ Test 3 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 3 Failed:', e.message);
 }
 
 // Test 4: upsertEntity (Create & Update & Restore)
@@ -53,7 +53,7 @@ try {
 
   console.log('✓ Test 4 Passed: upsertEntity');
 } catch (e: any) {
-  console.error('✕ Test 4 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 4 Failed:', e.message);
 }
 
 // Test 5: removeEntityById
@@ -63,7 +63,7 @@ try {
   assert(removed.length === 1 && removed[0].id === 'b', 'removeEntityById removes item');
   console.log('✓ Test 5 Passed: removeEntityById');
 } catch (e: any) {
-  console.error('✕ Test 5 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 5 Failed:', e.message);
 }
 
 // Test 6: escapeHtml & sanitizeInput
@@ -81,7 +81,7 @@ try {
 
   console.log('✓ Test 6 Passed: escapeHtml & sanitizeInput');
 } catch (e: any) {
-  console.error('✕ Test 6 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 6 Failed:', e.message);
 }
 
 // Test 7: Floating-Point Math & Arbitrary Precision Safety
@@ -111,7 +111,7 @@ try {
 
   console.log('✓ Test 7 Passed: Floating-Point Math & Arbitrary Precision Safety');
 } catch (e: any) {
-  console.error('✕ Test 7 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 7 Failed:', e.message);
 }
 
 // Test 8: formatDate with various user preferences
@@ -135,7 +135,7 @@ try {
 
   console.log('✓ Test 8 Passed: formatDate with user preference formats');
 } catch (e: any) {
-  console.error('✕ Test 8 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 8 Failed:', e.message);
 }
 
 // Test 9: 2-Decimal Precision & Credit Card Payment Calculation Safety
@@ -191,7 +191,7 @@ try {
 
   console.log('✓ Test 9 Passed: 2-Decimal Precision & Credit Card Payment Calculation Safety');
 } catch (e: any) {
-  console.error('✕ Test 9 Failed:', e.message);
+  process.exitCode = 1; console.error('✕ Test 9 Failed:', e.message);
 }
 
 console.log('--- All Unit Tests Executed Successfully ---');

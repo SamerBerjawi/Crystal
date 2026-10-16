@@ -1,5 +1,5 @@
 import React from 'react';
-import { RecurringTransaction, Currency } from '../types';
+import { RecurringTransaction, Currency, Membership } from '../types';
 import { formatCurrency } from '../utils';
 import Icon from './ui/Icon';
 import SwipeableRow from './SwipeableRow';
@@ -13,6 +13,11 @@ interface MobileSubscriptionsViewProps {
   onAddSubscription: () => void;
   onEditSubscription: (sub: RecurringTransaction) => void;
   onDeleteSubscription: (id: string) => void;
+  /** Wallet (loyalty / membership cards). Rendered only when the handlers are provided. */
+  memberships?: Membership[];
+  onAddMembership?: () => void;
+  onEditMembership?: (membership: Membership) => void;
+  onDeleteMembership?: (id: string) => void;
   preferredCurrency?: string;
   onRefreshData?: () => Promise<void>;
 }
@@ -24,6 +29,10 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
   onAddSubscription,
   onEditSubscription,
   onDeleteSubscription,
+  memberships = [],
+  onAddMembership,
+  onEditMembership,
+  onDeleteMembership,
   preferredCurrency = 'EUR',
   onRefreshData,
 }) => {
@@ -133,7 +142,7 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400 privacy-blur">
+                    <p className="text-xs font-bold text-rose-700 dark:text-rose-400 privacy-blur">
                       {formatCurrency(sub.amount, subCurrency)}
                     </p>
                     <span className="text-2xs font-semibold text-gray-400 block mt-0.5 uppercase tracking-wider">
@@ -161,6 +170,61 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
             </div>
           )}
         </div>
+
+        {onAddMembership && (
+          <section aria-labelledby="mobile-wallet-heading" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 id="mobile-wallet-heading" className="text-lg font-bold text-light-text dark:text-white tracking-tight">
+                Wallet <span className="text-xs font-semibold text-gray-400">({memberships.length})</span>
+              </h2>
+              <button
+                type="button"
+                onClick={onAddMembership}
+                className="min-h-[44px] px-4 rounded-2xl bg-primary-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 touch-feedback"
+              >
+                <Icon name="add" className="text-base" />
+                Add Card
+              </button>
+            </div>
+
+            {memberships.length === 0 ? (
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary bg-white/60 dark:bg-dark-card/60 rounded-2xl border border-black/5 dark:border-white/5 p-4">
+                Keep your membership cards and loyalty programs in one place.
+              </p>
+            ) : (
+              memberships.map(card => (
+                <div key={card.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => onEditMembership?.(card)}
+                    className="flex-1 min-w-0 flex items-center gap-3 text-left min-h-[44px]"
+                    aria-label={`Edit ${card.provider} card`}
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white" style={{ backgroundColor: card.color || '#fa9a1d' }}>
+                      <Icon name={card.icon || 'wallet'} className="text-lg" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-light-text dark:text-white truncate">{card.provider}</p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
+                        {[card.tier, card.points].filter(Boolean).join(' • ') || card.memberId}
+                      </p>
+                    </div>
+                  </button>
+                  {onDeleteMembership && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMembership(card.id)}
+                      className="w-11 h-11 rounded-xl text-rose-500 flex items-center justify-center"
+                      aria-label={`Delete ${card.provider} card`}
+                    >
+                      <Icon name="delete" className="text-lg" />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </section>
+        )}
 
         <FloatingActionButton onClick={onAddSubscription} label="Add Subscription" />
       </div>

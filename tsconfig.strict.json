@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true
+  },
+  "include": [
+    "utils/threeWayMerge.ts",
+    "utils/safeImageUrl.ts",
+    "utils/merchantTrends.ts",
+    "utils/parseAmount.ts",
+    "utils/validateBackup.ts",
+    "utils/fetchWithTimeout.ts",
+    "utils/logging.ts",
+    "utils/enableBankingStorage.ts",
+    "utils/brandfetch.ts",
+    "utils/investments.ts"
+  ]
+}

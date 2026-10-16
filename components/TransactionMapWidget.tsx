@@ -297,7 +297,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                       <span>{locationLabel}</span>
                     </p>
                     <p className="text-xs text-tertiary">{loc.count} transactions</p>
-                    <p className="font-mono font-semibold text-xs text-green-600 dark:text-green-400">
+                    <p className="font-mono font-semibold text-xs text-green-700 dark:text-green-400">
                       {formatCurrency(Math.abs(loc.amountTotal), loc.currency as Currency)}
                     </p>
                   </div>
@@ -309,7 +309,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
         {/* Floating provider status pill */}
         <div className="absolute bottom-2.5 left-2.5 z-[400] pointer-events-none">
-          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg backdrop-blur-md text-[10px] font-mono shadow-md ${
+          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg backdrop-blur-md text-2xs font-mono shadow-md ${
             isDarkMode
               ? 'bg-black/60 text-slate-300'
               : 'bg-white/80 text-slate-600'
@@ -354,7 +354,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
           </div>
           <div className="flex justify-between items-center text-xs">
             <span className="text-tertiary">Total Spend</span>
-            <span className="font-bold font-mono text-green-600 dark:text-green-400">
+            <span className="font-bold font-mono text-green-700 dark:text-green-400">
               {formatCurrency(Math.abs(activeHoveredLocation.amountTotal), activeHoveredLocation.currency as Currency)}
             </span>
           </div>

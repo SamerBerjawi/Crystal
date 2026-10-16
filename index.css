@@ -1,14 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Crete+Round&family=Crimson+Pro&family=DM+Serif+Display&family=Delius&family=Inter&family=Montserrat&family=Neuton&family=Noto+Serif&family=Open+Sans&family=Plus+Jakarta+Sans&family=Ubuntu&display=swap');
 @import "@fontsource/plus-jakarta-sans/400.css";
 @import "@fontsource/plus-jakarta-sans/500.css";
 @import "@fontsource/plus-jakarta-sans/600.css";
 @import "@fontsource/plus-jakarta-sans/700.css";
 @import "@fontsource/plus-jakarta-sans/800.css";
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
-@import "@fontsource/inter/800.css";
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
@@ -119,11 +113,23 @@
   --app-font: var(--app-font-family);
 }
 
+/* Stacking order (DESIGN.md "Layer & Stacking Order"). These names are referenced through Z_INDEX in constants.tsx;
+   without definitions the classes did nothing, which left modals underneath the mobile navigation (AUD-23). */
+@utility z-dropdown { z-index: 50; }
+@utility z-sticky { z-index: 100; }
+@utility z-popover { z-index: 200; }
+@utility z-modal { z-index: 500; }
+@utility z-toast { z-index: 1000; }
+@utility z-max { z-index: 9999; }
+
 @theme {
   --font-sans: var(--app-font-family), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-serif: var(--app-font-family), Georgia, serif;
-  --text-2xs: 0.625rem;
-  --text-2xs--line-height: 0.875rem;
+  --text-3xs: 0.5625rem;
+  --text-3xs--line-height: 0.75rem;
+  --text-3xs--letter-spacing: 0.01em;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 0.9375rem;
   --text-2xs--letter-spacing: 0.01em;
 
   --color-primary-50: var(--primary-50, #fef8f0);
@@ -133,7 +139,7 @@
   --color-primary-400: var(--primary-400, #fcb045);
   --color-primary-500: var(--primary-500, #fa9a1d);
   --color-primary-600: var(--primary-600, #e78310);
-  --color-primary-700: var(--primary-700, #c1670e);
+  --color-primary-700: var(--primary-700, #b45309);
   --color-primary-800: var(--primary-800, #995111);
   --color-primary-900: var(--primary-900, #7d4312);
 
@@ -893,3 +899,18 @@ img {
 .leaflet-control-attribution {
   display: none !important;
 }
+
+/* Pinch-zoom is allowed (accessibility). iOS Safari zooms the page when a focused control has a font
+   size under 16px, so keep form controls at least that large on iOS only. */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Sonner's rich "info"/"success"/"warning"/"error" toasts ship with text colours under 4.5:1 on their light tints;
+   use darker text on the same tints in light mode so the toast copy is readable (AUD-20). */
+:root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='info'] { color: #0b4f8a; }
+:root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='success'] { color: #0b5d2e; }
+:root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='warning'] { color: #7a4a00; }
+:root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='error'] { color: #a4121a; }

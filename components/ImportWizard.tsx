@@ -1,11 +1,13 @@
 
 // This is a new file: components/ImportWizard.tsx
+import { parseAmount } from '../utils/parseAmount';
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Currency, AccountType } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { flattenCategories, toLocalISOString, safeRound } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 
 // --- Helper Functions ---
@@ -48,7 +50,8 @@ const calculateMatchScore = (header: string, keywords: string[]): number => {
             currentScore = 100;
         } 
         // 2. Contains match = 70-90
-        else if (normalizedHeader.includes(normalizedKeyword)) {
+        // (very short keywords such as "cr" or "in" only count on an exact match, otherwise "Description" matches "cr")
+        else if (normalizedKeyword.length > 3 && normalizedHeader.includes(normalizedKeyword)) {
             const lengthRatio = normalizedKeyword.length / normalizedHeader.length;
             currentScore = 70 + (20 * lengthRatio);
         }
@@ -191,6 +194,7 @@ interface ImportWizardProps {
 
 // --- Main Wizard Component ---
 const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPublish, existingAccounts, allCategories }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [currentStep, setCurrentStep] = useState(1);
     const [fileName, setFileName] = useState('');
     const [rawCSV, setRawCSV] = useState('');
@@ -241,7 +245,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         };
     
         const fieldPriority = importType === 'transactions' 
-            ? ['date', 'amount', 'amountIn', 'amountOut', 'name', 'account', 'category', 'currency']
+            ? ['date', 'amount', 'name', 'amountIn', 'amountOut', 'account', 'category', 'currency']
             : ['name', 'type', 'currency', 'balance'];
     
         for (const field of fieldPriority) {
@@ -322,8 +326,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
 
                 if (amountConfig === 'single_signed') {
                     const amountVal = row[columnMap.amount];
-                    if (columnMap.amount && amountVal && !isNaN(parseFloat(amountVal))) {
-                        newRow.amount = safeRound(parseFloat(amountVal), 2);
+                    if (columnMap.amount && amountVal && !isNaN(parseAmount(amountVal))) {
+                        newRow.amount = safeRound(parseAmount(amountVal), 2);
                     } else {
                         errorDetails.amount = `Invalid amount: ${amountVal || 'missing'}`;
                         rowHasErrors = true;
@@ -331,8 +335,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 } else { // double_entry
                     const inVal = row[columnMap.amountIn] || 0;
                     const outVal = row[columnMap.amountOut] || 0;
-                    const inNum = parseFloat(String(inVal).replace(/,/g, ''));
-                    const outNum = parseFloat(String(outVal).replace(/,/g, ''));
+                    const inNum = parseAmount(inVal);
+                    const outNum = parseAmount(outVal);
                     
                     if (isNaN(inNum) || isNaN(outNum)) {
                         errorDetails.amount = `Invalid amounts: In=${inVal}, Out=${outVal}`;
@@ -384,8 +388,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 newRow.currency = row[columnMap.currency] || 'EUR';
                 
                 const balanceVal = row[columnMap.balance];
-                if (columnMap.balance && balanceVal !== undefined && !isNaN(parseFloat(balanceVal))) {
-                    newRow.balance = parseFloat(balanceVal);
+                if (columnMap.balance && balanceVal !== undefined && !isNaN(parseAmount(balanceVal))) {
+                    newRow.balance = parseAmount(balanceVal);
                 } else {
                     errorDetails.balance = `Invalid balance: ${balanceVal || 'missing'}`;
                     rowHasErrors = true;
@@ -602,7 +606,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     };
     
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
             <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
                 <button onClick={() => currentStep > 1 ? goToStep(currentStep - 1) : onClose()} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><Icon name="arrow_back" /></button>
                 <nav aria-label="Import Steps" className="flex-grow">
@@ -863,8 +867,8 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                     }
                 } catch { return false; }
             } else if (header === 'amount' || header === 'balance') {
-                const rowAmount = parseFloat(rowValue);
-                const filterAmount = parseFloat(filter.value);
+                const rowAmount = parseAmount(rowValue);
+                const filterAmount = parseAmount(filter.value);
                 if (isNaN(rowAmount) || isNaN(filterAmount)) return true;
                 switch (filter.type) {
                     case 'gt': return rowAmount > filterAmount;

@@ -4,6 +4,7 @@ import { MileageLog } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { toLocalISOString, parseLocalDate } from '../utils';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface AddMileageLogModalProps {
   isOpen?: boolean;
@@ -31,12 +32,14 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
   logToEdit,
   existingLogs = []
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const isEditing = !!logToEdit;
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
   
   // Single entry state
   const [date, setDate] = useState(toLocalISOString(new Date()));
   const [reading, setReading] = useState('');
+  const [readingError, setReadingError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   // Bulk entry state
@@ -59,7 +62,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };
@@ -77,6 +80,19 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
     if (date && reading !== '') {
       const parsedReading = parseInt(reading.replace(/[^0-9]/g, ''), 10);
       if (!isNaN(parsedReading)) {
+        // An odometer never goes backwards: compare with the nearest earlier and later readings.
+        const others = existingLogs.filter(l => l.id !== logToEdit?.id);
+        const previous = others.filter(l => l.date <= date).sort((a, b) => b.date.localeCompare(a.date) || b.reading - a.reading)[0];
+        const next = others.filter(l => l.date > date).sort((a, b) => a.date.localeCompare(b.date))[0];
+        if (previous && parsedReading < previous.reading) {
+          setReadingError(`Reading can't be lower than the previous reading of ${previous.reading.toLocaleString()} km (${previous.date}).`);
+          return;
+        }
+        if (next && parsedReading > next.reading) {
+          setReadingError(`Reading can't be higher than the later reading of ${next.reading.toLocaleString()} km (${next.date}).`);
+          return;
+        }
+        setReadingError(null);
         onSave({ id: logToEdit?.id, date, reading: parsedReading });
         handleClose();
       }
@@ -210,7 +226,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
   };
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
@@ -229,7 +245,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
           {/* Header */}
           <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-teal-500/5 to-transparent">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20 shadow-xs">
                 <Icon name="speed" className="text-2xl" />
               </div>
               <div className="min-w-0">
@@ -259,7 +275,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                   onClick={() => setMode('single')}
                   className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                     mode === 'single'
-                      ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
+                      ? 'bg-white dark:bg-dark-card text-teal-700 dark:text-teal-400 shadow-sm'
                       : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -271,7 +287,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                   onClick={() => setMode('bulk')}
                   className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                     mode === 'bulk'
-                      ? 'bg-white dark:bg-dark-card text-teal-600 dark:text-teal-400 shadow-sm'
+                      ? 'bg-white dark:bg-dark-card text-teal-700 dark:text-teal-400 shadow-sm'
                       : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
@@ -300,18 +316,22 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                           id="reading"
                           type="number"
                           value={reading}
-                          onChange={(e) => setReading(e.target.value)}
+                          onChange={(e) => { setReading(e.target.value); setReadingError(null); }}
+                          aria-invalid={readingError ? true : undefined}
+                          aria-describedby={readingError ? 'reading-error' : undefined}
                           className={`${INPUT_BASE_STYLE} pr-14 h-14 !text-2xl font-bold tabular-nums`}
                           placeholder="e.g. 45000"
                           required
                           autoFocus
                           min="0"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                           KM
                         </span>
                       </div>
                     </div>
+
+ {readingError && <p id="reading-error" role="alert" className="text-xs font-semibold text-rose-700 dark:text-rose-400">{readingError}</p>}
 
                     <div className="space-y-2">
                       <label htmlFor="date" className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -338,7 +358,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                         <Icon name="description" className="text-teal-500 text-base" />
                         <span>CSV / TSV Batch Input</span>
                       </h4>
-                      <span className="text-2xs font-bold text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full bg-teal-500/10 uppercase tracking-wider">
+                      <span className="text-2xs font-bold text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full bg-teal-500/10 uppercase tracking-wider">
                         YYYY-MM-DD READING
                       </span>
                     </div>
@@ -361,7 +381,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                       <div className="p-4 bg-teal-500/10 rounded-2xl border border-teal-500/20 flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-teal-500/20 flex items-center justify-center">
-                            <Icon name="task_alt" className="text-teal-600 dark:text-teal-400 text-sm" />
+                            <Icon name="task_alt" className="text-teal-700 dark:text-teal-400 text-sm" />
                           </div>
                           <span className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300">
                             {validBulkEntries.length} Records Validated
@@ -379,7 +399,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                             key={idx}
                             className={`p-3 rounded-xl flex items-center justify-between text-xs border ${
                               entry.error
-                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400'
                                 : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5'
                             }`}
                           >
@@ -396,14 +416,14 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                                     {parseLocalDate(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                   </span>
                                   {entry.warning && (
-                                    <span className="text-2xs text-amber-600 dark:text-amber-400" title={entry.warning}>
+                                    <span className="text-2xs text-amber-700 dark:text-amber-400" title={entry.warning}>
                                       ⚠️
                                     </span>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {entry.diff !== undefined && entry.diff > 0 && (
-                                    <span className="text-2xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                    <span className="text-2xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
                                       +{entry.diff.toLocaleString()} km
                                     </span>
                                   )}
@@ -420,7 +440,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({
                   )}
 
                   {hasBulkErrors && (
-                    <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                    <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-700 dark:text-rose-400 flex items-center gap-2">
                       <Icon name="error" className="text-base shrink-0" />
                       <span>Please fix any invalid lines before importing.</span>
                     </div>

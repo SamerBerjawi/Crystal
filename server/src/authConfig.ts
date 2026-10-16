@@ -1,7 +1,28 @@
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { Response } from 'express';
 
-const configuredSecret = process.env.JWT_SECRET?.trim() || 'crystal_default_jwt_secret_dev_key';
+const PLACEHOLDER_SECRETS = new Set([
+    'your_jwt_secret_key_here',
+    'a-very-secret-and-secure-key-that-you-should-change',
+    'crystal_default_jwt_secret_dev_key',
+    'changeme',
+]);
+
+const resolveJwtSecret = (): string => {
+    const configured = process.env.JWT_SECRET?.trim();
+    if (process.env.NODE_ENV === 'production') {
+        if (!configured || configured.length < 16 || PLACEHOLDER_SECRETS.has(configured)) {
+            throw new Error('JWT_SECRET must be set to a unique random value of at least 16 characters in production (e.g. `openssl rand -hex 32`).');
+        }
+        return configured;
+    }
+    if (configured) return configured;
+    // Development without JWT_SECRET: a random per-process secret (sessions end on restart) rather than a published default.
+    console.warn('JWT_SECRET is not set; using a random secret for this process. Sessions will not survive a restart.');
+    return randomBytes(32).toString('hex');
+};
+
+const configuredSecret = resolveJwtSecret();
 
 export const JWT_SECRET = configuredSecret;
 export const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'crystal_session';
@@ -35,3 +56,7 @@ export const clearAuthCookie = (res: Response) => {
         path: '/',
     });
 };
+
+/** ALLOW_REGISTRATION=false turns self-registration off (default: on). */
+export const isRegistrationEnabled = (): boolean =>
+    String(process.env.ALLOW_REGISTRATION ?? 'true').trim().toLowerCase() !== 'false';

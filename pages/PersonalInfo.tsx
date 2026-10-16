@@ -1,4 +1,5 @@
 
+import { toast } from 'sonner';
 import React, { useState, useRef } from 'react';
 import { User, Page } from '../types';
 import Card from '../components/Card';
@@ -12,7 +13,7 @@ import LocationAutocomplete from '../components/LocationAutocomplete';
 
 interface PersonalInfoProps {
   user: User;
-  setUser: (updates: Partial<User>) => void;
+  setUser: (updates: Partial<User>) => Promise<boolean> | void;
   onChangePassword: (current: string, newPass: string) => Promise<boolean>;
   setCurrentPage: (page: Page) => void;
 }
@@ -42,10 +43,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
     fileInputRef.current?.click();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUser(formData);
-    alert('Profile updated successfully!');
+    const ok = await setUser(formData);
+    if (ok === false) toast.error('Could not save your profile. Please try again.');
+    else toast.success('Profile updated');
   };
 
   const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary  tracking-wider mb-1.5";
@@ -111,7 +113,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                             </span>
                             <span className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${
                                 formData.status === 'Active' 
-                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' 
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' 
                                 : 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 border-gray-100 dark:border-gray-800'
                             }`}>
                                 {formData.status}
@@ -242,7 +244,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                     <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Updated 45 days ago</p>
                                 </div>
                             </div>
-                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 rounded-xl glass-tile border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-light-text dark:text-dark-text hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-card">Rotate Credentials</button>
+                            <button type="button" onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 rounded-xl glass-tile border border-slate-200/80 dark:border-white/10 text-xs font-semibold text-light-text dark:text-dark-text hover:bg-primary-500 hover:text-white hover:border-primary-500 transition-all shadow-card">Change password</button>
                          </div>
                          
                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-dashed border-black/20 dark:border-white/20 opacity-60 grayscale">
@@ -255,7 +257,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                                     <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">Biometric / TOTP Required</p>
                                 </div>
                             </div>
-                            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold border border-amber-500/20">
+                            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-semibold border border-amber-500/20">
                                 Engineering Lock
                             </div>
                          </div>
@@ -267,7 +269,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                        Changes are synced across your devices immediately. Audit logs will reflect this administrative action.
                     </p>
                     <button type="submit" className="px-8 py-3.5 rounded-2xl bg-primary-500 text-white text-sm font-semibold tracking-wide shadow-xl shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all">
-                       Commit Changes
+                       Save changes
                     </button>
                 </div>
              </form>

@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { FinancialData } from '../types';
 import Icon from './ui/Icon';
+import { validateBackup } from '../utils/validateBackup';
 
 interface SmartRestoreModalProps {
   onClose: () => void;
@@ -87,6 +88,12 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                     const json = JSON.parse(event.target?.result as string);
                     // Basic validation
                     if (!json || typeof json !== 'object') throw new Error("Invalid JSON format");
+                    const problems = validateBackup(json);
+                    if (problems.length > 0) {
+                        setParsedData(null);
+                        setError(`This backup can't be restored because it contains invalid data:\n• ${problems.join('\n• ')}`);
+                        return;
+                    }
                     
                     setParsedData(json);
                     
@@ -170,7 +177,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                         <label htmlFor="backup-upload" className={`${BTN_PRIMARY_STYLE} inline-flex items-center cursor-pointer`}>
                             Browse Files
                         </label>
-                        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+                        {error && <p className="text-red-500 text-sm mt-4 whitespace-pre-line text-left">{error}</p>}
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -182,7 +189,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                  </div>
                                  <button 
                                     onClick={() => { setParsedData(null); setFile(null); }} 
-                                    className="text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                                    className="text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                                  >
                                     Change File
                                  </button>
@@ -243,14 +250,14 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                             <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
                                                 <button 
                                                     onClick={() => setStrategies(prev => ({...prev, [section.key]: 'merge'}))}
-                                                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${strategies[section.key] === 'merge' ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-xs' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
+                                                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${strategies[section.key] === 'merge' ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-xs' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'}`}
                                                     title="Keep existing data and add new items"
                                                 >
                                                     Merge
                                                 </button>
                                                 <button 
                                                     onClick={() => setStrategies(prev => ({...prev, [section.key]: 'replace'}))}
-                                                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${strategies[section.key] === 'replace' ? 'bg-white dark:bg-dark-card text-rose-500 shadow-xs' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-60 hover:opacity-100'}`}
+                                                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${strategies[section.key] === 'replace' ? 'bg-white dark:bg-dark-card text-rose-500 shadow-xs' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'}`}
                                                     title="Delete existing data in this section and replace with backup"
                                                 >
                                                     Replace

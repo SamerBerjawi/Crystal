@@ -71,7 +71,7 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
 
       <div className="bg-primary-500/5 dark:bg-primary-400/5 p-3 rounded-xl border border-primary-500/10 dark:border-primary-400/10">
         <div className="flex items-center gap-2 mb-1">
-          <Icon name="info" className="text-primary-500 text-sm" />
+          <Icon name="info" className="text-primary-700 dark:text-primary-400 text-sm" />
           <span className="text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-300">Pareto insight</span>
         </div>
         <p className="text-xs text-primary-900 dark:text-primary-100 leading-relaxed">

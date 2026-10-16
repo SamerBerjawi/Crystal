@@ -13,6 +13,9 @@ interface MobileAccountHeaderProps {
   secondaryAction?: { label: string; icon: string; onClick: () => void };
   syncAction?: { label: string; icon: string; onClick: () => void };
   valuationAction?: { label: string; icon: string; onClick: () => void };
+  /** Closing (sale / retirement) or reopening an asset; shown as labelled buttons under the balance card. */
+  closeAction?: { label: string; icon: string; onClick: () => void };
+  reopenAction?: { label: string; icon: string; onClick: () => void };
 }
 
 export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
@@ -25,6 +28,8 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
   secondaryAction,
   syncAction,
   valuationAction,
+  closeAction,
+  reopenAction,
 }) => {
   const typeConfig = ACCOUNT_TYPE_STYLES[account.type] || {
     icon: 'wallet',
@@ -142,6 +147,31 @@ export const MobileAccountHeader: React.FC<MobileAccountHeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {(closeAction || reopenAction) && (
+        <div className="flex gap-2">
+          {reopenAction && (
+            <button
+              type="button"
+              onClick={reopenAction.onClick}
+              className="flex-1 min-h-[44px] px-4 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 text-light-text dark:text-white text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <Icon name={reopenAction.icon} className="text-base" />
+              <span>{reopenAction.label}</span>
+            </button>
+          )}
+          {closeAction && (
+            <button
+              type="button"
+              onClick={closeAction.onClick}
+              className="flex-1 min-h-[44px] px-4 rounded-2xl bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <Icon name={closeAction.icon} className="text-base" />
+              <span>{closeAction.label}</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

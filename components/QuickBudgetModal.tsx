@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { BTN_SECONDARY_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface QuickBudgetModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface QuickBudgetModalProps {
 }
 
 const QuickBudgetModal: React.FC<QuickBudgetModalProps> = ({ isOpen, onClose, onApply }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
   const [isVisible, setIsVisible] = useState(false);
 
   const options = [
@@ -31,7 +33,7 @@ const QuickBudgetModal: React.FC<QuickBudgetModalProps> = ({ isOpen, onClose, on
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current) && isOpen) {
         handleClose();
       }
     };
@@ -52,7 +54,7 @@ const QuickBudgetModal: React.FC<QuickBudgetModalProps> = ({ isOpen, onClose, on
   if (!isOpen && !isVisible) return null;
 
   const content = (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+    <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
       {/* Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

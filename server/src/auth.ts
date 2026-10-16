@@ -3,22 +3,48 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
-import { AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig';
+import { buildInitialsAvatar } from './avatar';
+import { validateEmail, validateName, validatePassword } from './validation';
+import { isRegistrationEnabled, AUTH_COOKIE_NAME, clearAuthCookie, buildSessionExpiry, issueSessionId, JWT_SECRET, PASSWORD_HASH_ROUNDS, setAuthCookie } from './authConfig';
 import { createRateLimiter } from './rateLimit';
 
 const router = express.Router();
 
-const loginRateLimiter = createRateLimiter({
+const normalizedEmailOf = (req: { body?: any }) =>
+    typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : 'unknown';
+
+// 1) The same client guessing at the same account.
+const loginAttemptLimiter = createRateLimiter({
     namespace: 'login',
     windowMs: 15 * 60 * 1000,
     maxAttempts: 5,
     blockMs: 15 * 60 * 1000,
     message: 'Too many sign-in attempts. Please wait 15 minutes and try again.',
-    key: req => {
-        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : 'unknown';
-        return `${req.ip}:${email}`;
-    },
+    key: req => `${req.ip}:${normalizedEmailOf(req)}`,
 });
+
+// 2) Any number of clients (or spoofed addresses) guessing at one account. Independent of the client IP,
+//    so rotating X-Forwarded-For does not help. Trade-off: someone can briefly lock a known email out.
+const loginAccountLimiter = createRateLimiter({
+    namespace: 'login-account',
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 10,
+    blockMs: 15 * 60 * 1000,
+    message: 'Too many sign-in attempts for this account. Please wait 15 minutes and try again.',
+    key: req => normalizedEmailOf(req),
+});
+
+// 3) One client spraying many accounts.
+const loginClientLimiter = createRateLimiter({
+    namespace: 'login-client',
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 100,
+    blockMs: 15 * 60 * 1000,
+    message: 'Too many sign-in attempts. Please wait 15 minutes and try again.',
+    key: req => `${req.ip}`,
+});
+
+const loginRateLimiters = [loginClientLimiter, loginAccountLimiter, loginAttemptLimiter];
 
 async function performLogin(userId: number, email: string) {
     const dataSql = `SELECT data FROM financial_data WHERE user_id = $1`;
@@ -57,27 +83,36 @@ async function performLogin(userId: number, email: string) {
     return { token, sessionExpiresAt, user: mappedUser, financialData };
 }
 
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('crystal-timing-equaliser', PASSWORD_HASH_ROUNDS);
+
 router.post('/register', async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
+    if (!isRegistrationEnabled()) {
+        return res.status(403).json({ message: 'Registration is disabled on this server. Ask the administrator for an account.' });
+    }
+    const { firstName, lastName, email, password } = req.body || {};
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ message: 'All fields are required' });
     }
+    const invalid = validateName('First name', firstName) || validateName('Last name', lastName)
+        || validateEmail(email) || validatePassword(password);
+    if (invalid) return res.status(400).json({ message: invalid });
 
-    const client = await db.connect();
+    let client: any;
     try {
+        client = await db.connect();
         await client.query('BEGIN');
 
-        const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+        const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
         if (userExistsResult.rows.length > 0) {
             await client.query('ROLLBACK');
             return res.status(409).json({ message: 'Email already in use.' });
         }
 
         const hashedPassword = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
-        const profilePic = `https://i.pravatar.cc/150?u=${email}`;
+        const profilePic = buildInitialsAvatar(firstName, lastName, email.trim().toLowerCase());
 
         const userSql = `INSERT INTO users (first_name, last_name, email, password, profile_picture_url, last_login) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, email`;
-        const userResult = await client.query(userSql, [firstName, lastName, email.toLowerCase(), hashedPassword, profilePic]);
+        const userResult = await client.query(userSql, [firstName.trim(), lastName.trim(), email.trim().toLowerCase(), hashedPassword, profilePic]);
         const newUser = userResult.rows[0];
 
         const dataSql = `INSERT INTO financial_data (user_id, data) VALUES ($1, $2)`;
@@ -90,20 +125,20 @@ router.post('/register', async (req, res) => {
         res.status(201).json({ user: loginData.user, financialData: loginData.financialData });
     } catch (err) {
         try {
-            await client.query('ROLLBACK');
+            await client?.query('ROLLBACK');
         } catch (rollbackErr) {
             console.error('Error during rollback:', rollbackErr);
         }
         console.error('Error during registration:', err);
         res.status(500).json({ message: 'Failed to register user.' });
     } finally {
-        client.release();
+        client?.release();
     }
 });
 
-router.post('/login', loginRateLimiter, async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
+router.post('/login', ...loginRateLimiters, async (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
         return res.status(400).json({ message: 'Email and password are required' });
     }
 
@@ -112,7 +147,8 @@ router.post('/login', loginRateLimiter, async (req, res) => {
         const userResult = await db.query(userSql, [email.toLowerCase()]);
         const user = userResult.rows[0];
 
-        const passwordMatches = user ? await bcrypt.compare(password, user.password) : false;
+        // Always run one bcrypt comparison so an unknown email costs the same as a wrong password (no timing oracle).
+        const passwordMatches = await bcrypt.compare(password, user ? user.password : DUMMY_PASSWORD_HASH);
         if (!user || !passwordMatches) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }

@@ -11,6 +11,7 @@ import {
 import NetWorthChart from './NetWorthChart';
 import Icon from './ui/Icon';
 import PullToRefresh from './PullToRefresh';
+import { useHeaderControls } from '../contexts/HeaderContext';
 import MobileFilterSheet from './MobileFilterSheet';
 import SwipeableRow from './SwipeableRow';
 
@@ -391,6 +392,8 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
 
   const activeFilterCount = selectedAccountIds.length;
 
+  const { notificationCenter } = useHeaderControls();
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="space-y-3.5 pb-20 animate-fade-in md:hidden relative font-sans px-0.5">
@@ -402,11 +405,12 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             </p>
             <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight flex items-center gap-1.5">
               <span>{greeting}</span>
-              {isSyncingBanks && <Icon name="sync" className="text-primary-500 animate-spin text-sm" />}
+              {isSyncingBanks && <Icon name="sync" className="text-primary-700 dark:text-primary-400 animate-spin text-sm" />}
             </h1>
           </div>
 
           <div className="flex items-center gap-2">
+            {notificationCenter}
             <button
               onClick={() => setIsPrivacyMode(!isPrivacyMode)}
               className="w-9 h-9 rounded-2xl bg-white/80 dark:bg-dark-card/80 border border-black/5 dark:border-white/10 shadow-xs flex items-center justify-center text-light-text dark:text-white active:scale-95 touch-feedback transition-transform"
@@ -535,8 +539,8 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               <span
                 className={`text-xs font-bold privacy-blur inline-flex items-center gap-0.5 ${
                   change30DVal >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-rose-700 dark:text-rose-400'
                 }`}
               >
                 <Icon
@@ -578,7 +582,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
           </div>
 
           <div className="text-right shrink-0">
-            <span className="text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+            <span className="text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
               {budgetSpentPercent}% Spent
             </span>
           </div>
@@ -591,7 +595,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
               <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
                 Category Spending (Last 30D)
               </span>
-              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+              <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                 Selected Accounts
               </span>
             </div>
@@ -656,7 +660,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
               Accounts ({accounts.length})
             </span>
-            <span className="text-xs font-bold text-primary-500">Swipe →</span>
+            <span className="text-xs font-bold text-primary-700 dark:text-primary-400">Swipe →</span>
           </div>
 
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar snap-scroll-x scroll-touch py-0.5">
@@ -764,7 +768,7 @@ export const MobileDashboardView: React.FC<MobileDashboardViewProps> = ({
                           className={`text-xs font-bold privacy-blur ${
                             isExpense
                               ? 'text-light-text dark:text-white'
-                              : 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-emerald-700 dark:text-emerald-400'
                           }`}
                         >
                           {isExpense ? '-' : isIncome ? '+' : ''}

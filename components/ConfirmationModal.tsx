@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import HeaderButton from './HeaderButton';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 export interface ConfirmOptions {
   title: string;
@@ -60,6 +61,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   icon,
   cancelButtonText = 'Cancel',
 }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>(isOpen);
   // Focus trap: focus the cancel button on mount
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
@@ -74,7 +76,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -108,6 +110,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            ref={dialogRef}
+            role="alertdialog"
+            aria-modal="true"
             className="bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text w-full max-w-sm overflow-hidden relative"
             onClick={(e) => e.stopPropagation()}
           >

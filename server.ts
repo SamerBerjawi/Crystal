@@ -1,20 +1,25 @@
 import express from 'express';
-import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import { randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
+import * as urlGuardNs from './server/src/urlGuard';
+
+// server/ is a CommonJS package; under tsx its exports arrive on `default`.
+const urlGuard: typeof urlGuardNs = (urlGuardNs as any).default ?? urlGuardNs;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
+  // Local development only: listen on loopback unless the operator opts in to something else.
+  const HOST = process.env.HOST || '127.0.0.1';
+  // The in-memory mock API is for UI work without a backend. It must be asked for explicitly.
+  const MOCK_API_ENABLED = process.env.CRYSTAL_MOCK_API === '1';
 
-  app.use(cors({
-    origin: true,
-    credentials: true,
-  }));
+  // The page and the API are served from the same origin, so no CORS headers are needed.
   app.use(express.json({ limit: '50mb' }));
 
   // Deactivate and self-unregister any stale service worker lingering in browser
@@ -30,30 +35,6 @@ async function startServer() {
         );
       });
     `);
-  });
-
-  // AI Proxy Endpoint
-  app.post('/api/ai/proxy', async (req, res) => {
-    const { endpoint, method, headers, body } = req.body;
-
-    try {
-      console.log(`Proxying ${method} request to ${endpoint}`);
-      const response = await fetch(endpoint, {
-        method,
-        headers,
-        body: JSON.stringify(body)
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('AI Provider Error:', data);
-        return res.status(response.status).json(data);
-      }
-      res.json(data);
-    } catch (error: any) {
-      console.error('Proxy Error:', error.message);
-      res.status(500).json({ error: { message: error.message } });
-    }
   });
 
   const BACKEND_TARGET = process.env.VITE_BACKEND_URL;
@@ -104,10 +85,6 @@ async function startServer() {
         if (entry.user.id === uid) return entry.user;
       }
     }
-    // If only 1 user exists or in dev fallback, return that user
-    if (mockUsers.size === 1) {
-      return Array.from(mockUsers.values())[0].user;
-    }
     return null;
   }
 
@@ -128,25 +105,13 @@ async function startServer() {
 
     if (subpath === '/auth/login' && req.method === 'POST') {
       const { email, password } = req.body || {};
-      const normalizedEmail = (email || 'demo@crystal.app').toLowerCase().trim();
-      let record = mockUsers.get(normalizedEmail);
-      if (!record) {
-        const newUser: MockUser = {
-          id: mockUsers.size + 1,
-          firstName: normalizedEmail.split('@')[0] || 'User',
-          lastName: '',
-          email: normalizedEmail,
-          profilePictureUrl: `https://i.pravatar.cc/150?u=${normalizedEmail}`,
-          role: 'Member',
-          is2FAEnabled: false,
-          status: 'Active',
-          lastLogin: new Date().toISOString(),
-        };
-        record = { user: newUser, password: password || 'password' };
-        mockUsers.set(normalizedEmail, record);
+      const normalizedEmail = String(email || '').toLowerCase().trim();
+      const record = mockUsers.get(normalizedEmail);
+      if (!record || typeof password !== 'string' || record.password !== password) {
+        return res.status(401).json({ message: 'Invalid credentials' });
       }
       record.user.lastLogin = new Date().toISOString();
-      const sessionId = 'sess_' + Math.random().toString(36).substring(2);
+      const sessionId = 'sess_' + randomBytes(24).toString('hex');
       activeSessions.set(sessionId, record.user.id);
       res.setHeader('Set-Cookie', `crystal_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
       const financialData = mockFinancialData.get(record.user.id) || {};
@@ -155,20 +120,24 @@ async function startServer() {
 
     if (subpath === '/auth/register' && req.method === 'POST') {
       const { firstName, lastName, email, password } = req.body || {};
-      const normalizedEmail = (email || `user_${Date.now()}@crystal.app`).toLowerCase().trim();
+      const normalizedEmail = String(email || '').toLowerCase().trim();
+      if (!normalizedEmail || typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ message: 'A valid email and a password of at least 8 characters are required.' });
+      }
+      if (mockUsers.has(normalizedEmail)) return res.status(409).json({ message: 'Email already in use.' });
       const newUser: MockUser = {
-        id: mockUsers.size + 1,
+        id: Math.max(0, ...Array.from(mockUsers.values()).map(r => r.user.id)) + 1,
         firstName: firstName || 'New',
         lastName: lastName || 'User',
         email: normalizedEmail,
-        profilePictureUrl: `https://i.pravatar.cc/150?u=${normalizedEmail}`,
+        profilePictureUrl: '',
         role: 'Member',
         is2FAEnabled: false,
         status: 'Active',
         lastLogin: new Date().toISOString(),
       };
-      mockUsers.set(normalizedEmail, { user: newUser, password: password || 'password' });
-      const sessionId = 'sess_' + Math.random().toString(36).substring(2);
+      mockUsers.set(normalizedEmail, { user: newUser, password });
+      const sessionId = 'sess_' + randomBytes(24).toString('hex');
       activeSessions.set(sessionId, newUser.id);
       res.setHeader('Set-Cookie', `crystal_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
       return res.status(201).json({ user: newUser, financialData: {} });
@@ -181,7 +150,8 @@ async function startServer() {
 
     if (subpath === '/data') {
       const user = getSessionUser(req);
-      const uid = user ? user.id : 1;
+      if (!user) return res.status(401).json({ message: 'Authentication required.' });
+      const uid = user.id;
       if (req.method === 'GET') {
         const data = mockFinancialData.get(uid) || {};
         return res.json(data);
@@ -207,27 +177,32 @@ async function startServer() {
       return res.json(user);
     }
 
-    if (subpath === '/users/me/change-password') {
-      return res.json({ status: 'ok', message: 'Password updated successfully' });
+    if (subpath === '/users/me/change-password' && req.method === 'POST') {
+      const user = getSessionUser(req);
+      if (!user) return res.status(401).json({ message: 'Authentication required.' });
+      const { currentPassword, newPassword } = req.body || {};
+      const record = mockUsers.get(user.email);
+      if (!record || record.password !== currentPassword) return res.status(401).json({ message: 'Incorrect current password' });
+      if (typeof newPassword !== 'string' || newPassword.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+      record.password = newPassword;
+      return res.json({ message: 'Password updated successfully. Please sign in again.' });
     }
 
     if (subpath === '/smart-fetch') {
-      const targetUrl = req.query.url as string;
-      if (!targetUrl) return res.status(400).json({ error: 'URL query param required' });
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
+      const targetUrl = req.query.url;
+      if (typeof targetUrl !== 'string' || !targetUrl) return res.status(400).json({ error: 'URL query param required' });
       try {
-        const response = await fetch(targetUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36',
-          },
-        });
-        const html = await response.text();
-        return res.type('text/html').send(html);
+        const result = await urlGuard.safeFetchText(targetUrl);
+        return res.type('text/html').send(result.body);
       } catch (err: any) {
-        return res.status(500).json({ error: 'Failed to fetch page', message: err.message });
+        if (err instanceof urlGuard.UrlBlockedError) return res.status(400).json({ error: err.message });
+        return res.status(502).json({ error: 'Failed to fetch page' });
       }
     }
 
     if (subpath.startsWith('/enable-banking')) {
+      if (!getSessionUser(req)) return res.status(401).json({ message: 'Authentication required.' });
       return res.json({ status: 'ok', aspsps: [], sessions: [] });
     }
 
@@ -237,7 +212,10 @@ async function startServer() {
   // Handle /api requests (proxy if configured, fallback to in-memory mock)
   app.use('/api', async (req, res, next) => {
     if (!BACKEND_TARGET) {
-      return handleMockApi(req, res);
+      if (MOCK_API_ENABLED) return handleMockApi(req, res);
+      return res.status(503).json({
+        message: 'No API backend is configured. Set VITE_BACKEND_URL to a running Crystal backend, or CRYSTAL_MOCK_API=1 for the in-memory mock.',
+      });
     }
 
     const targetUrl = `${BACKEND_TARGET}${req.originalUrl}`;
@@ -274,8 +252,9 @@ async function startServer() {
       const arrayBuffer = await backendRes.arrayBuffer();
       res.send(Buffer.from(arrayBuffer));
     } catch (err: any) {
-      console.warn(`[Proxy] Backend unreachable at ${targetUrl}, using in-memory mock handler`);
-      return handleMockApi(req, res);
+      console.warn(`[Proxy] Backend unreachable at ${targetUrl}`);
+      if (MOCK_API_ENABLED) return handleMockApi(req, res);
+      return res.status(502).json({ message: 'The API backend is unreachable.' });
     }
   });
 
@@ -294,8 +273,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST === '127.0.0.1' ? 'localhost' : HOST}:${PORT}${MOCK_API_ENABLED && !BACKEND_TARGET ? ' (in-memory mock API)' : ''}`);
   });
 }
 

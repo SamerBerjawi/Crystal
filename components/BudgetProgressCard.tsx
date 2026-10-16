@@ -64,7 +64,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
             </div>
             <button 
                 onClick={onEdit}
-                className="mt-3 text-xs font-bold tracking-wide text-primary-500 hover:text-primary-600 transition-colors"
+                className="mt-3 text-xs font-bold tracking-wide text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors"
             >
                 + Set Budget Guide
             </button>

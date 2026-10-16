@@ -21,6 +21,11 @@ try {
         end: async () => {}
     };
 }
+// An idle client can fail (DB restart, network blip). Without a listener that 'error' event is fatal.
+if (typeof db.on === 'function') {
+    db.on('error', (err: Error) => console.error('Unexpected PostgreSQL pool error:', err.message));
+}
+
 export { db };
 
 export const initializeDatabase = async () => {
@@ -60,6 +65,17 @@ export const initializeDatabase = async () => {
             )
         `);
 
+        // Enable Banking signing key, encrypted at rest and never returned to the client (AUD-13).
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS enable_banking_credentials (
+                user_id INTEGER PRIMARY KEY,
+                application_id TEXT NOT NULL,
+                encrypted_key TEXT NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
         await db.query(`
             CREATE TABLE IF NOT EXISTS user_sessions (
                 id TEXT PRIMARY KEY,
@@ -71,8 +87,22 @@ export const initializeDatabase = async () => {
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`);
+        await db.query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)`);
         console.log('Database tables are ready.');
     } catch (err) {
         console.warn('Error connecting to database tables — running with fallback mock:', err);
+    }
+};
+
+/** Deletes sessions that expired or were revoked more than a week ago so the table does not grow without bound. */
+export const purgeStaleSessions = async () => {
+    try {
+        await db.query(
+            `DELETE FROM user_sessions
+             WHERE expires_at < NOW() - INTERVAL '7 days' OR revoked_at < NOW() - INTERVAL '7 days'`
+        );
+    } catch (err) {
+        console.warn('Failed to purge stale sessions:', err);
     }
 };

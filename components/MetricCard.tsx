@@ -19,10 +19,10 @@ interface MetricCardProps {
 }
 
 const STATUS_BADGE_CLASSES: Record<'optimal' | 'elevated' | 'low' | 'normal', string> = {
-  optimal: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30',
-  elevated: 'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30',
-  low: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30',
-  normal: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border-cyan-500/30',
+  optimal: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+  elevated: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30',
+  low: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+  normal: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30',
 };
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -64,7 +64,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
           {statusLabel && (
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_BADGE_CLASSES[statusVariant]}`}
+              className={`px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider border ${STATUS_BADGE_CLASSES[statusVariant]}`}
             >
               {statusLabel}
             </span>
@@ -109,7 +109,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* ROW 4: Subtle Footer Divider, Min/Max Bounds & Mini Sparkline */}
       <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2 overflow-hidden">
-        <div className="min-w-0 flex-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate">
+        <div className="min-w-0 flex-1 text-2xs font-medium text-slate-400 dark:text-slate-500 truncate">
           {min !== undefined && max !== undefined ? (
             <span>
               Min:{' '}

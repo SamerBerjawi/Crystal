@@ -13,6 +13,7 @@ const DurationFilter: React.FC<DurationFilterProps> = ({ selectedDuration, onDur
   return (
     <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
       <select
+        aria-label="Time period"
         value={selectedDuration}
         onChange={(e) => onDurationChange(e.target.value as Duration)}
         className={`${SELECT_STYLE} !w-auto min-w-[8rem] cursor-pointer`}

@@ -211,7 +211,8 @@ export interface EnableBankingConnection {
   id: string;
   applicationId: string;
   countryCode: string;
-  clientCertificate: string;
+  /** Never populated from the server; the private key is held server-side only (AUD-13). */
+  clientCertificate?: string;
   status: EnableBankingConnectionStatus;
   selectedBank?: string;
   selectedBankId?: string;
@@ -228,6 +229,8 @@ export interface EnableBankingSyncOptions {
   updateBalance?: boolean;
   syncStartDate?: string;
   targetAccountIds?: string[];
+  /** Suppress the per-connection success toast (used by "sync all", which reports once). */
+  silent?: boolean;
 }
 
 export type EnableBankingLinkPayload =
@@ -338,6 +341,8 @@ export interface HoldingSummary {
   totalCost: number;
   currentValue: number;
   currentPrice: number;
+  /** True when no live or manual price exists, so currentValue falls back to the last trade price or cost basis. */
+  priceUnavailable?: boolean;
   type: 'Standard' | 'Warrant';
   subType?: InvestmentSubType;
   warrantId?: string;
@@ -355,6 +360,9 @@ export interface HoldingsOverview {
   holdings: HoldingSummary[];
   totalValue: number;
   totalCostBasis: number;
+  /** Cost basis of holdings without a price; excluded from gain/loss percentages. */
+  unpricedCostBasis?: number;
+  unpricedValue?: number;
   investedCapital: number;
   grantedCapital: number;
   distributionData: HoldingDistribution[];
@@ -635,6 +643,12 @@ export interface AppPreferences {
   isPrivacyMode?: boolean;
   excludeTransfersFromAnalytics?: boolean;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
+  /** Widget ids the user removed, per layout key; they are not re-added automatically. */
+  dashboardHiddenWidgets?: Record<string, string[]>;
+  /** Account-level flag (kept with the data, not the browser) so onboarding does not reappear on a new device. */
+  onboardingCompleted?: boolean;
+  /** Savings sprints the user started; synced across devices. */
+  activeSprints?: { id: string; startDate: string }[];
   showBalanceAdjustments?: boolean;
   regexCategorizationRules?: RegexCategorizationRule[];
   transactionRules?: TransactionRule[];

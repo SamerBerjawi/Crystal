@@ -8,6 +8,7 @@ import {
   OHLCDataPoint,
 } from '../src/components/charts';
 import { formatCurrency } from '../utils';
+import { dayOf } from '../utils/portfolioHistory';
 import { PriceHistoryEntry, InvestmentTransaction, Currency } from '../types';
 import Icon from './ui/Icon';
 
@@ -36,6 +37,12 @@ interface CustomTooltipProps {
   granularity?: GranularityOption;
 }
 
+/** Calendar day -> local midnight (new Date('YYYY-MM-DD') would be UTC midnight and shift the day). */
+const parseDay = (value: string): Date => {
+  const [y, m, d] = dayOf(value).split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
 const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'EUR', granularity = 'raw' }) => {
   if (!point) return null;
 
@@ -45,8 +52,10 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
   const low = Number(point.low || 0);
   const close = Number(point.close || 0);
 
-  const diff = close - open;
-  const percentChange = open !== 0 ? (diff / open) * 100 : 0;
+  // Money paid in or taken out during the period is not performance.
+  const flow = Number(point.flow || 0);
+  const diff = close - open - flow;
+  const percentChange = open + Math.max(0, flow) !== 0 ? (diff / (open + Math.max(0, flow))) * 100 : 0;
   const isPositive = diff >= 0;
 
   const formattedDate = date.toLocaleDateString('en-US', {
@@ -59,14 +68,14 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
   return (
     <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 text-xs space-y-2.5 min-w-[220px] select-none">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/10 pb-2">
-        <span className="font-semibold text-gray-500 dark:text-gray-400 text-xs tracking-wider uppercase">
+        <span className="font-semibold text-gray-600 dark:text-gray-400 text-xs tracking-wider uppercase">
           {formattedDate} {granularity === 'weekly' ? '(Week End)' : '(Logged Entry)'}
         </span>
         <span
           className={`px-2.5 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider ${
             isPositive
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+              : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
           }`}
         >
           {isPositive ? '+' : ''}
@@ -81,15 +90,15 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-400 font-sans text-xs font-medium">High</span>
-          <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(high, currency)}</span>
+          <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(high, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-400 font-sans text-xs font-medium">Low</span>
-          <span className="font-bold text-rose-600 dark:text-rose-400">{formatCurrency(low, currency)}</span>
+          <span className="font-bold text-rose-700 dark:text-rose-400">{formatCurrency(low, currency)}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-400 font-sans text-xs font-medium">Close</span>
-          <span className="font-black text-primary-500">{formatCurrency(close, currency)}</span>
+          <span className="font-black text-primary-700 dark:text-primary-400">{formatCurrency(close, currency)}</span>
         </div>
       </div>
 
@@ -102,6 +111,43 @@ const OHLCTooltipContent: React.FC<CustomTooltipProps> = ({ point, currency = 'E
     </div>
   );
 };
+
+const resolveWindow = (
+  timeframe: TimeframeOption,
+  sortedHistory: PriceHistoryEntry[],
+  transactions: InvestmentTransaction[],
+) => {
+  let daysOffset = 90;
+  if (timeframe === '1M') daysOffset = 30;
+  else if (timeframe === '3M') daysOffset = 90;
+  else if (timeframe === '6M') daysOffset = 180;
+  else if (timeframe === '1Y') daysOffset = 365;
+  else if (timeframe === 'ALL') {
+    const dates = [
+      ...sortedHistory.map((h) => dayOf(h.date)),
+      ...(sortedHistory.length === 0 ? transactions.map((t) => dayOf(t.date)) : []),
+    ].sort();
+    if (dates.length > 0) {
+      const diffDays = Math.ceil((Date.now() - parseDay(dates[0]).getTime()) / (1000 * 3600 * 24));
+      daysOffset = Math.max(30, diffDays);
+    } else {
+      daysOffset = 365;
+    }
+  }
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - daysOffset);
+  return { daysOffset, startDate, endDate };
+};
+
+/** Net money put into (positive) or taken out of (negative) the holdings in a period: buys minus sells. */
+const netFlowBetween = (transactions: InvestmentTransaction[], from: Date, to: Date): number =>
+  transactions.reduce((sum, t) => {
+    const d = parseDay(t.date);
+    if (d <= from || d > to) return sum;
+    const value = (Number(t.quantity) || 0) * (Number(t.price) || 0);
+    return t.type?.toLowerCase() === 'buy' ? sum + value : sum - value;
+  }, 0);
 
 export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProps> = ({
   title = 'Candlestick OHLC Performance',
@@ -120,37 +166,13 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
   const [timeframe, setTimeframe] = useState<TimeframeOption>('3M');
   const [granularity, setGranularity] = useState<GranularityOption>(initialGranularity);
 
-  const ohlcData = useMemo<OHLCDataPoint[]>(() => {
+  const rawOhlc = useMemo<OHLCDataPoint[]>(() => {
     // Sort historical price entries chronologically
     const sortedHistory = [...priceHistory].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      (a, b) => dayOf(a.date).localeCompare(dayOf(b.date))
     );
 
-    let daysOffset = 90;
-    if (timeframe === '1M') daysOffset = 30;
-    else if (timeframe === '3M') daysOffset = 90;
-    else if (timeframe === '6M') daysOffset = 180;
-    else if (timeframe === '1Y') daysOffset = 365;
-    else if (timeframe === 'ALL') {
-      if (sortedHistory.length > 0) {
-        const earliestDate = new Date(sortedHistory[0].date);
-        const diffDays = Math.ceil((new Date().getTime() - earliestDate.getTime()) / (1000 * 3600 * 24));
-        daysOffset = Math.max(30, diffDays);
-      } else if (transactions.length > 0) {
-        const sortedTxs = [...transactions].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-        const earliestDate = new Date(sortedTxs[0].date);
-        const diffDays = Math.ceil((new Date().getTime() - earliestDate.getTime()) / (1000 * 3600 * 24));
-        daysOffset = Math.max(30, diffDays);
-      } else {
-        daysOffset = 365;
-      }
-    }
-
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - daysOffset);
+    const { daysOffset, startDate, endDate } = resolveWindow(timeframe, sortedHistory, transactions);
 
     // If completely empty history, do not fabricate synthetic upward curves
     if (sortedHistory.length === 0) {
@@ -159,7 +181,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
     // Filter history entries strictly within the selected window
     const historyInRange = sortedHistory.filter((h) => {
-      const d = new Date(h.date);
+      const d = parseDay(h.date);
       return d > startDate && d <= endDate;
     });
 
@@ -167,7 +189,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     const endValue = currentValue > 0 ? currentValue : lastHistoryPrice;
 
     // Find the opening valuation prior to or right at the start of this timeframe window
-    const pastEntries = sortedHistory.filter((h) => new Date(h.date) <= startDate);
+    const pastEntries = sortedHistory.filter((h) => parseDay(h.date) <= startDate);
     let initialOpeningValuation: number;
     if (pastEntries.length > 0) {
       initialOpeningValuation = pastEntries[pastEntries.length - 1].price;
@@ -214,7 +236,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
       for (let i = 0; i < historyInRange.length; i++) {
         const entry = historyInRange[i];
-        const entryDate = new Date(entry.date);
+        const entryDate = parseDay(entry.date);
 
         const open = previousClose;
         const close = entry.price;
@@ -235,7 +257,7 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
 
       // If latest market close differs from last logged entry and last entry is older than 12h, add close candle
       const lastEntry = historyInRange[historyInRange.length - 1];
-      const timeDiff = endDate.getTime() - new Date(lastEntry.date).getTime();
+      const timeDiff = endDate.getTime() - parseDay(lastEntry.date).getTime();
       if (timeDiff > 43200000 && endValue > 0 && Math.abs(lastEntry.price - endValue) > 0.01) {
         const open = previousClose;
         const close = endValue;
@@ -261,8 +283,9 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       const slotEnd = new Date(startDate.getTime() + stepMs * (i + 1));
 
       const matchingEntries = sortedHistory.filter((h) => {
-        const d = new Date(h.date);
-        return d >= slotStart && d <= slotEnd;
+        const d = parseDay(h.date);
+        // Half-open slots: an entry on a boundary belongs to exactly one candle (the last slot also owns the end).
+        return d >= slotStart && (d < slotEnd || (i === candleCount - 1 && d <= slotEnd));
       });
 
       let open: number;
@@ -304,6 +327,17 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     return result;
   }, [timeframe, granularity, currentValue, priceHistory, transactions]);
 
+  // Attach the net money moved into the holdings during each candle, so returns can exclude deposits and withdrawals.
+  const ohlcData = useMemo<(OHLCDataPoint & { flow: number })[]>(() => {
+    if (rawOhlc.length === 0) return [];
+    const sortedHistory = [...priceHistory].sort((a, b) => dayOf(a.date).localeCompare(dayOf(b.date)));
+    const { startDate } = resolveWindow(timeframe, sortedHistory, transactions);
+    return rawOhlc.map((point, i) => ({
+      ...point,
+      flow: netFlowBetween(transactions, i === 0 ? startDate : rawOhlc[i - 1].date, point.date),
+    }));
+  }, [rawOhlc, timeframe, priceHistory, transactions]);
+
   const stats = useMemo(() => {
     if (ohlcData.length === 0) {
       return {
@@ -322,8 +356,11 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
     const highest = Math.max(...ohlcData.map((d) => d.high));
     const lowest = Math.min(...ohlcData.map((d) => d.low));
 
-    const diff = last.close - first.open;
-    const changePercent = first.open !== 0 ? (diff / first.open) * 100 : 0;
+    // Performance excludes money paid in or out during the period (buying shares is not a gain).
+    const flow = ohlcData.reduce((sum, d) => sum + d.flow, 0);
+    const diff = last.close - first.open - flow;
+    const base = first.open + Math.max(0, flow);
+    const changePercent = base !== 0 ? (diff / base) * 100 : 0;
 
     return {
       startDate: first.date,
@@ -348,14 +385,14 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0">
-            <Icon name="candlestick_chart" className="text-primary-500 text-sm" />
+            <Icon name="candlestick_chart" className="text-primary-700 dark:text-primary-400 text-sm" />
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
               <span>{title}</span>
             </h3>
             {subtitle && (
-              <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-70 truncate max-w-md">
+              <p className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-90 truncate max-w-md">
                 {subtitle}
               </p>
             )}
@@ -371,8 +408,8 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
               onClick={() => setGranularity('raw')}
               className={`px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'raw'
-                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  ? 'bg-white dark:bg-dark-card text-primary-700 dark:text-primary-400 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               Raw Logs
@@ -382,8 +419,8 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
               onClick={() => setGranularity('weekly')}
               className={`px-2 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                 granularity === 'weekly'
-                  ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  ? 'bg-white dark:bg-dark-card text-primary-700 dark:text-primary-400 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               Weekly
@@ -399,8 +436,8 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
                 onClick={() => setTimeframe(tf)}
                 className={`px-1.5 py-0.5 rounded-md font-semibold tracking-wider uppercase transition-all cursor-pointer ${
                   timeframe === tf
-                    ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-xs'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                    ? 'bg-white dark:bg-dark-card text-primary-700 dark:text-primary-400 shadow-xs'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
                 {tf === 'ALL' ? 'All Time' : tf}
@@ -413,13 +450,13 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
       {/* Summary OHLC Metric Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-gray-50/80 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 rounded-xl mb-2 text-xs">
         <div className="flex flex-col px-2">
-          <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Period Start</span>
+          <span className="text-2xs font-semibold tracking-wider text-gray-600 dark:text-gray-400 uppercase">Period Start</span>
           <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text mt-0.5">
             {startDateFormatted}
           </span>
         </div>
         <div className="flex flex-col px-2">
-          <span className="text-2xs font-semibold tracking-wider text-gray-400 uppercase">Open</span>
+          <span className="text-2xs font-semibold tracking-wider text-gray-600 dark:text-gray-400 uppercase">Open</span>
           <span className="text-xs font-bold font-mono text-light-text dark:text-dark-text privacy-blur mt-0.5">
             {formatCurrency(stats.open, currency)}
           </span>
@@ -427,36 +464,36 @@ export const InvestmentCandlestickChart: React.FC<InvestmentCandlestickChartProp
         <div className="flex flex-col px-2">
           <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-2xs font-semibold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">High</span>
+            <span className="text-2xs font-semibold tracking-wider text-emerald-700 dark:text-emerald-400 uppercase">High</span>
           </div>
-          <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 privacy-blur mt-0.5">
+          <span className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-400 privacy-blur mt-0.5">
             {formatCurrency(stats.high, currency)}
           </span>
         </div>
         <div className="flex flex-col px-2">
           <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            <span className="text-2xs font-semibold tracking-wider text-rose-600 dark:text-rose-400 uppercase">Low</span>
+            <span className="text-2xs font-semibold tracking-wider text-rose-700 dark:text-rose-400 uppercase">Low</span>
           </div>
-          <span className="text-xs font-bold font-mono text-rose-600 dark:text-rose-400 privacy-blur mt-0.5">
+          <span className="text-xs font-bold font-mono text-rose-700 dark:text-rose-400 privacy-blur mt-0.5">
             {formatCurrency(stats.low, currency)}
           </span>
         </div>
         <div className="col-span-2 sm:col-span-1 flex flex-col px-2 justify-center">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold tracking-wider text-primary-500 uppercase">Return</span>
+            <span className="text-2xs font-semibold tracking-wider text-primary-700 dark:text-primary-400 uppercase">Return</span>
             <span
               className={`text-2xs font-bold font-mono px-1.5 py-0.5 rounded-md ${
                 stats.change >= 0
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
               }`}
             >
               {stats.change >= 0 ? '+' : ''}
               {stats.changePercent.toFixed(1)}%
             </span>
           </div>
-          <span className="text-xs font-black font-mono text-primary-500 privacy-blur mt-0.5">
+          <span className="text-xs font-black font-mono text-primary-700 dark:text-primary-400 privacy-blur mt-0.5">
             {formatCurrency(stats.close, currency)}
           </span>
         </div>

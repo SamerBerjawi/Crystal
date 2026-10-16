@@ -1313,7 +1313,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
     const requiredWidgets = WIDGET_TABS[activeTab];
     const currentIds = new Set(widgets.map(w => w.id));
-    const missing = requiredWidgets.filter(id => !currentIds.has(id));
+    const hiddenIds = new Set(preferences.dashboardHiddenWidgets?.[layoutKey] || []);
+    // Widgets the user removed on purpose stay removed (AUD-50).
+    const missing = requiredWidgets.filter(id => !currentIds.has(id) && !hiddenIds.has(id));
 
     let newWidgets = widgets.filter(w => requiredWidgets.includes(w.id));
     let changed = false;
@@ -1344,7 +1346,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     if (changed) {
       saveLayouts(newWidgets);
     }
-  }, [activeTab, allWidgets, widgets, saveLayouts]);
+  }, [activeTab, allWidgets, widgets, saveLayouts, preferences.dashboardHiddenWidgets, layoutKey]);
 
 
   const [currentBreakpoint, setCurrentBreakpoint] = useState<string>('lg');
@@ -1387,7 +1389,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     };
   }, [getBreakpointLayout, widgets, activeTab]);
 
+  const setWidgetHidden = (widgetId: string, hidden: boolean) => {
+    setPreferences(prev => {
+      const current = prev.dashboardHiddenWidgets?.[layoutKey] || [];
+      const next = hidden ? Array.from(new Set([...current, widgetId])) : current.filter(id => id !== widgetId);
+      return { ...prev, dashboardHiddenWidgets: { ...(prev.dashboardHiddenWidgets || {}), [layoutKey]: next } };
+    });
+  };
+
   const removeWidget = (widgetId: string) => {
+    setWidgetHidden(widgetId, true);
     saveLayouts(widgets.filter(w => w.id !== widgetId));
   };
 
@@ -1400,6 +1411,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     if (widgetToAdd) {
       const yOffset = Math.max(0, ...widgets.map(w => w.y + w.h));
       const newWidget = { id: widgetToAdd.id, title: widgetToAdd.name, x: 0, y: yOffset, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH };
+      setWidgetHidden(widgetId, false);
       saveLayouts([...widgets, newWidget]);
     }
     setIsAddWidgetModalOpen(false);
@@ -1817,6 +1829,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   <>
                     <div className="relative flex-1 sm:flex-initial h-10">
                       <select
+                        aria-label="Forecast horizon"
                         value={forecastDuration}
                         onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)}
                         className="appearance-none bg-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white h-10 pl-3.5 pr-8 rounded-xl sm:rounded-[1.25rem] text-xs font-bold tracking-wide transition-all cursor-pointer border-0 outline-none focus:ring-2 focus:ring-primary-500/30"
@@ -1992,12 +2005,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   </div>
                   <div className="w-full mt-10 grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">Assets</p>
-                      <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1">Assets</p>
+                      <p className="text-lg font-semibold text-emerald-700 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">Liabilities</p>
-                      <p className="text-lg font-semibold text-rose-600 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1">Liabilities</p>
+                      <p className="text-lg font-semibold text-rose-700 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                     </div>
                   </div>
                 </div>

@@ -99,18 +99,18 @@ const HeroMetricCard: React.FC<HeroMetricCardProps> = ({
 
   const trendColorClass =
     trend === 'up'
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-emerald-700 dark:text-emerald-400'
       : trend === 'down'
-      ? 'text-rose-600 dark:text-rose-400'
+      ? 'text-rose-700 dark:text-rose-400'
       : 'text-light-text-secondary dark:text-dark-text-secondary';
 
   const trendIconName =
     trend === 'up' ? 'trending_up' : trend === 'down' ? 'trending_down' : 'remove';
 
   const badgeColorClass = {
-    optimal: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-    elevated: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-    low: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+    optimal: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
+    elevated: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+    low: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
     normal: 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20',
     neutral: 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary border-black/5 dark:border-white/5',
   }[badgeVariant];
@@ -167,11 +167,11 @@ const HeroMetricCard: React.FC<HeroMetricCardProps> = ({
         {/* Right side: Badge or Kicker label */}
         <div className="flex items-center gap-1.5 min-w-0 justify-end">
           {badgeText && (
-            <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0', badgeColorClass)}>
+            <span className={cn('px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider border shrink-0', badgeColorClass)}>
               {badgeText}
             </span>
           )}
-          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 text-right leading-tight min-w-0 truncate">
+          <p className="text-2xs sm:text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-75 text-right leading-tight min-w-0 truncate">
             {label}
           </p>
         </div>
@@ -197,10 +197,10 @@ const HeroMetricCard: React.FC<HeroMetricCardProps> = ({
           {trend && trendValue ? (
             <div className={cn('flex items-center gap-1', trendColorClass)}>
               <Icon name={trendIconName} className="text-xs shrink-0" />
-              <span className="text-[10px] font-semibold truncate">{trendValue}</span>
+              <span className="text-2xs font-semibold truncate">{trendValue}</span>
             </div>
           ) : (
-            <p className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 leading-normal truncate">
+            <p className="text-2xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70 leading-normal truncate">
               {subtext}
             </p>
           )}

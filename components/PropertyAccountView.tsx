@@ -132,6 +132,8 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
         subText={account.address || 'Global Portfolio'}
         valuationAction={{ label: 'Valuation', icon: 'Edit02', onClick: onUpdateValuation }}
         syncAction={isLinkedToEnableBanking && onSyncLinkedAccount ? { label: 'Sync', icon: 'sync', onClick: onSyncLinkedAccount } : undefined}
+        closeAction={!isClosed && onCloseAsset ? { label: 'Record Sale', icon: 'sell', onClick: onCloseAsset } : undefined}
+        reopenAction={isClosed && onRevertClosure ? { label: 'Reopen', icon: 'history', onClick: onRevertClosure } : undefined}
       />
 
       {/* Dynamic Desktop Header */}
@@ -145,7 +147,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
               </button>
               <div>
                   <div className="flex items-center gap-2 mb-1">
-                       <span className="text-xs font-semibold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Real estate asset</span>
+                       <span className="text-xs font-semibold text-primary-700 dark:text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">Real estate asset</span>
                        <span className="text-xs font-semibold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-xs font-semibold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.address || 'Global Portfolio'}</span>
                   </div>
@@ -420,7 +422,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                          <div className="flex justify-between items-start mb-8">
                              <div>
                                  <h3 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight">Active mortgage</h3>
-                                 <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-xs font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
+                                 <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-xs font-semibold tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors mt-2 flex items-center gap-2">
                                      Loan profile <Icon name="arrow_forward" className="text-xs" />
                                  </button>
                              </div>

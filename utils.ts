@@ -4,6 +4,7 @@ import { Currency, Account, Transaction, Duration, Category, FinancialGoal, Recu
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import Big from 'big.js';
+import { warnIgnored } from './utils/logging';
 
 // Setup to avoid scientific notation for typical business figures
 Big.NE = -10;
@@ -137,9 +138,17 @@ export const updateConversionRates = (rates: Record<string, number>) => {
     dynamicRates = { ...dynamicRates, ...rates };
 };
 
+// A currency without a rate is converted 1:1 so totals still render, but that is a guess: say so once per currency.
+const rateFor = (activeRates: Record<string, number>, currency: string): number => {
+    const rate = activeRates[currency];
+    if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0) return rate;
+    if (currency !== 'EUR') warnIgnored(`exchange rate for ${currency} (treated as 1:1)`, new Error('missing rate'));
+    return 1;
+};
+
 export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    return safeMultiply(balance, activeRates[currency] || 1);
+    return safeMultiply(balance, rateFor(activeRates, currency));
 }
 
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
@@ -147,10 +156,10 @@ export const convertCurrency = (amount: number, from: Currency, to: Currency, ra
     if (from === to) return amount;
 
     // Convert from 'from' to EUR
-    const amountInEur = safeMultiply(amount, activeRates[from] || 1);
+    const amountInEur = safeMultiply(amount, rateFor(activeRates, from));
 
     // Convert from EUR to 'to'
-    const rateTo = activeRates[to] || 1;
+    const rateTo = rateFor(activeRates, to);
     return safeDivide(amountInEur, rateTo);
 }
 
@@ -192,6 +201,24 @@ export const toLocalISOYearMonth = (date: Date): string => {
  * This ensures that the date component remains stable regardless of the user's timezone
  * when displayed using local formatting functions.
  */
+/**
+ * Strict counterpart of parseLocalDate: returns null for anything that is not a calendar-valid date
+ * ("2026-13-45", "2026-02-30", "abc", non-strings) instead of rolling over or falling back to today.
+ * Use it where bad input must be reported (imports, restores, validation).
+ */
+export const parseLocalDateStrict = (value: unknown): Date | null => {
+    if (typeof value !== 'string') return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(value.trim());
+    if (!m) {
+        const d = new Date(value);
+        return value.trim() && !isNaN(d.getTime()) && /\d{4}/.test(value) ? d : null;
+    }
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    if (mo < 1 || mo > 12 || d < 1 || d > new Date(y, mo, 0).getDate()) return null;
+    return new Date(y, mo - 1, d);
+};
+
+/** Never throws; empty input means "today" and unparseable input falls back to today. Use parseLocalDateStrict to detect bad input. */
 export const parseLocalDate = (dateString: string): Date => {
     if (!dateString) return new Date();
 
@@ -1308,7 +1335,7 @@ export function generateBalanceForecast(
                         runningTotalBalance = safeRound(runningTotalBalance + amountInEur, 2);
                     }
 
-                    tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: safeRound(runningTotalBalance, 2) });
+                    tableData.push({ id: uuidv4(), ...event, amount: amountInEur, balance: safeRound(runningTotalBalance, 2) });
                     dailySummary.push({
                         description: event.description,
                         amount: amountInEur,

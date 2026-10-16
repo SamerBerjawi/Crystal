@@ -12,6 +12,7 @@ import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
 import { PieChart as BklitPieChart, PieSlice, PieCenter } from '../src/components/charts';
 import { buildHoldingsOverview } from '../utils/investments';
+import { buildPortfolioHistory } from '../utils/portfolioHistory';
 import InvestmentCandlestickChart from '../components/InvestmentCandlestickChart';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
@@ -26,6 +27,9 @@ import Icon from '../components/ui/Icon';
 import { MobileInvestmentsView } from '../components/MobileInvestmentsView';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { SmartPriceBinding } from '../types';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { warnIgnored } from '../utils/logging';
+import { toast } from 'sonner';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -285,10 +289,6 @@ const Investments: React.FC<InvestmentsProps> = ({
     const currentCostBasis = segmentCostBases[activeSegment] ?? segmentCostBases.all;
 
     const segmentPriceHistory = useMemo(() => {
-        const matchingHoldings = activeOverview.holdings;
-        const matchingSymbols = new Set(matchingHoldings.map(h => h.symbol));
-        const matchingWarrants = (activeSegment === 'all' || activeSegment === 'Warrant') ? warrants : [];
-
         // Combine dictionary priceHistory with account.priceHistory logs
         const getSymbolHistory = (symbol: string) => {
             const fromDict = priceHistory[symbol] || [];
@@ -301,156 +301,32 @@ const Investments: React.FC<InvestmentsProps> = ({
             });
             return Array.from(map.entries())
                 .map(([date, price]) => ({ date, price }))
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                .sort((a, b) => a.date.slice(0, 10).localeCompare(b.date.slice(0, 10)));
         };
 
-        const relevantNonSymbolAccounts = activeInvestmentAccounts.filter(acc =>
-            !acc.symbol && (activeSegment === 'all' || (acc.subType || 'Other') === activeSegment)
-        );
-
-        // Collect all distinct historical dates across relevant holdings, warrants, transactions, and non-symbol accounts
-        const dateSet = new Set<string>();
-
-        matchingHoldings.forEach(h => {
-            const symHist = getSymbolHistory(h.symbol);
-            symHist.forEach(entry => dateSet.add(entry.date));
+        return buildPortfolioHistory({
+            holdings: activeOverview.holdings,
+            warrants: (activeSegment === 'all' || activeSegment === 'Warrant') ? warrants : [],
+            investmentTransactions,
+            allSegments: activeSegment === 'all',
+            priceHistoryFor: getSymbolHistory,
+            prices,
+            nonSymbolAccounts: activeInvestmentAccounts.filter(acc =>
+                !acc.symbol && (activeSegment === 'all' || (acc.subType || 'Other') === activeSegment)
+            ),
+            transactionsByAccount,
+            toEur: (amount, currency) => convertToEur(amount, currency, conversionRates),
+            currentValuation,
+            today: toLocalISOString(new Date()),
         });
-
-        matchingWarrants.forEach(w => {
-            const wHist = getSymbolHistory(w.isin);
-            wHist.forEach(entry => dateSet.add(entry.date));
-        });
-
-        investmentTransactions.forEach(tx => {
-            if (activeSegment === 'all' || matchingSymbols.has(tx.symbol)) {
-                dateSet.add(tx.date);
-            }
-        });
-
-        relevantNonSymbolAccounts.forEach(acc => {
-            if (acc.priceHistory && acc.priceHistory.length > 0) {
-                acc.priceHistory.forEach(entry => {
-                    if (entry && entry.date) dateSet.add(entry.date);
-                });
-            }
-            const accTxs = transactionsByAccount[acc.id] || [];
-            accTxs.forEach(tx => {
-                if (tx && tx.date) dateSet.add(tx.date);
-            });
-        });
-
-        const todayStr = toLocalISOString(new Date());
-
-        if (dateSet.size === 0) {
-            if (currentValuation > 0) {
-                return [{
-                    date: todayStr,
-                    price: Number(currentValuation.toFixed(2))
-                }];
-            }
-            return [];
-        }
-
-        const allDates = Array.from(dateSet).sort(
-            (a, b) => new Date(a).getTime() - new Date(b).getTime()
-        );
-
-        // Calculate valuation on each date based on holdings, warrants, and relevant non-symbol accounts
-        const historyData = allDates.map(date => {
-            let totalOnDate = 0;
-
-            matchingHoldings.forEach(h => {
-                if (h.type === 'Warrant') return;
-
-                const symHist = getSymbolHistory(h.symbol);
-                const past = symHist.filter(e => e.date <= date);
-                let priceOnDate = h.currentPrice;
-
-                if (past.length > 0) {
-                    priceOnDate = past[past.length - 1].price;
-                } else if (symHist.length > 0) {
-                    priceOnDate = symHist[0].price;
-                }
-
-                const txsForSymbol = investmentTransactions
-                    .filter(t => t.symbol === h.symbol && t.date <= date)
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-                if (past.length === 0 && txsForSymbol.length > 0) {
-                    priceOnDate = txsForSymbol[txsForSymbol.length - 1].price;
-                }
-
-                const allTxsForSymbol = investmentTransactions.filter(t => t.symbol === h.symbol);
-                let qtyOnDate = h.quantity;
-                if (allTxsForSymbol.length > 0) {
-                    qtyOnDate = txsForSymbol.reduce((q, tx) => {
-                        const amount = Number(tx.quantity) || 0;
-                        return tx.type?.toLowerCase() === 'buy' ? q + amount : Math.max(0, q - amount);
-                    }, 0);
-                }
-
-                if (qtyOnDate <= 0.000001) return;
-
-                totalOnDate += qtyOnDate * priceOnDate;
-            });
-
-            matchingWarrants.forEach(w => {
-                const wHist = getSymbolHistory(w.isin);
-                const currWPrice = (prices[w.isin] && prices[w.isin]! > 0)
-                    ? prices[w.isin]!
-                    : (wHist.length > 0 ? wHist[wHist.length - 1].price : w.grantPrice);
-                const past = wHist.filter(e => e.date <= date);
-                const priceOnDate = past.length > 0 ? past[past.length - 1].price : currWPrice;
-                totalOnDate += (w.quantity || 0) * priceOnDate;
-            });
-
-            // Add non-symbol accounts valuation on date
-            relevantNonSymbolAccounts.forEach(acc => {
-                if (acc.priceHistory && acc.priceHistory.length > 0) {
-                    const past = acc.priceHistory
-                        .filter(e => e.date <= date)
-                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                    let p = acc.balance;
-                    if (past.length > 0) {
-                        p = past[past.length - 1].price;
-                    } else {
-                        const sortedPh = [...acc.priceHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                        p = sortedPh[0].price;
-                    }
-                    totalOnDate += convertToEur(p, acc.currency, conversionRates);
-                } else {
-                    const accTxs = transactionsByAccount[acc.id] || [];
-                    if (accTxs.length > 0) {
-                        const futureTxs = accTxs.filter(t => t.date > date);
-                        const futureNetChange = futureTxs.reduce((sum, t) => {
-                            return sum + (t.type === 'income' ? t.amount : -t.amount);
-                        }, 0);
-                        const histBal = Math.max(0, acc.balance - futureNetChange);
-                        totalOnDate += convertToEur(histBal, acc.currency, conversionRates);
-                    } else {
-                        totalOnDate += convertToEur(acc.balance, acc.currency, conversionRates);
-                    }
-                }
-            });
-
-            return {
-                date,
-                price: Number(totalOnDate.toFixed(2))
-            };
-        });
-
-        // Current valuation anchor for today based directly on currentValuation
-        if (historyData.length > 0 && historyData[historyData.length - 1].date !== todayStr) {
-            historyData.push({
-                date: todayStr,
-                price: Number(currentValuation.toFixed(2))
-            });
-        } else if (historyData.length > 0 && historyData[historyData.length - 1].date === todayStr) {
-            historyData[historyData.length - 1].price = Number(currentValuation.toFixed(2));
-        }
-
-        return historyData;
     }, [activeOverview, activeSegment, warrants, priceHistory, investmentTransactions, prices, currentValuation, accountBySymbol, activeInvestmentAccounts, transactionsByAccount, conversionRates]);
+
+    // Only this segment's trades count as money moved in or out of the chart's holdings.
+    const chartTransactions = useMemo(() => {
+        if (activeSegment === 'all') return investmentTransactions;
+        const symbols = new Set(activeOverview.holdings.map(h => h.symbol));
+        return investmentTransactions.filter(t => symbols.has(t.symbol));
+    }, [activeSegment, investmentTransactions, activeOverview]);
 
     const safeCurrentVal = currentValuation > 0 ? currentValuation : 0;
     const formatPercent = (value: number, digits = 1) => (
@@ -495,8 +371,10 @@ const Investments: React.FC<InvestmentsProps> = ({
         setIsPriceModalOpen(true);
     }, []);
 
-    const totalGainLoss = totalValue - totalCostBasis;
-    const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
+    // Holdings without a price are left out of gain/loss so a missing quote never reads as a loss.
+    const pricedCostBasis = totalCostBasis - (activeOverview.unpricedCostBasis || 0);
+    const totalGainLoss = (totalValue - (activeOverview.unpricedValue || 0)) - pricedCostBasis;
+    const totalGainLossPercent = pricedCostBasis > 0 ? (totalGainLoss / pricedCostBasis) * 100 : 0;
     
     const recentActivity = useMemo(() => {
         const txs = investmentTransactions.map(tx => ({
@@ -661,7 +539,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         }
 
         const fetchPrice = async (query: string) => {
-            const response = await fetch(query);
+            const response = await fetchWithTimeout(query);
             const data = await response.json();
             if (data.status === 'error' || data.code) {
                 throw new Error(data.message || 'Unable to fetch price');
@@ -699,7 +577,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const fetchFromSmartBinding = useCallback(async (symbol: string, binding: { url: string; selector: string; cookies?: string }) => {
         const encodedUrl = encodeURIComponent(binding.url);
         const cookieParam = binding.cookies ? `&cookies=${encodeURIComponent(binding.cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        const response = await fetchWithTimeout(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
         if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
         }
@@ -730,7 +608,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             try {
                 const raw = localStorage.getItem('smartPriceBindings');
                 if (raw) localFallbackBindings = JSON.parse(raw) as Record<string, SmartPriceBinding>;
-            } catch {}
+            } catch (error) { warnIgnored('reading local price bindings', error); }
 
             const settled = await Promise.allSettled(displayHoldings.map(async (holding) => {
                 const binding = syncedSmartBindings[holding.symbol] || syncedPriceConfigs[holding.symbol]?.binding || localFallbackBindings[holding.symbol];
@@ -758,13 +636,13 @@ const Investments: React.FC<InvestmentsProps> = ({
 
             if (failed.length > 0) {
                 const failedSymbols = failed.map(item => item.symbol).join(', ');
-                window.alert(`Updated ${successCount}/${displayHoldings.length} holdings. Failed: ${failedSymbols}`);
+                toast.warning(`Updated ${successCount}/${displayHoldings.length} holdings. Failed: ${failedSymbols}`);
             } else {
-                window.alert(`Updated prices for ${successCount} holdings.`);
+                toast.success(`Updated prices for ${successCount} holdings.`);
             }
         } catch (error) {
             console.error('Failed to update holdings prices', error);
-            window.alert('Unable to update prices right now. Please try again.');
+            toast.error('Unable to update prices right now. Please try again.');
         } finally {
             setIsUpdatingAllPrices(false);
         }
@@ -1131,7 +1009,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <div className="flex items-center justify-between gap-2 mb-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center">
-                                            <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-500 text-sm" />
+                                            <Icon name={activeSegment === 'all' ? "candlestick_chart" : (segments.find(s => s.id === activeSegment)?.icon || "candlestick_chart")} className="text-primary-700 dark:text-primary-400 text-sm" />
                                         </div>
                                         <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
                                             {activeSegment === 'all' ? 'Portfolio Valuation' : `${segments.find(s => s.id === activeSegment)?.label} Segment`}
@@ -1142,7 +1020,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <button
                                             type="button"
                                             onClick={() => setActiveSegment('all')}
-                                            className="text-2xs font-bold uppercase tracking-wider text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+                                            className="text-2xs font-bold uppercase tracking-wider text-primary-700 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
                                         >
                                             View All
                                         </button>
@@ -1165,7 +1043,7 @@ const Investments: React.FC<InvestmentsProps> = ({
 
                             {/* Middle: Segment Allocation Grid */}
                             <div className="space-y-1">
-                                <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                <div className="text-2xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80">
                                     Allocation by Segment
                                 </div>
                                 <div className="grid grid-cols-2 gap-1.5">
@@ -1233,7 +1111,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             costBasis={currentCostBasis}
                             isNegativeTrend={currentValuation < (currentCostBasis || 0)}
                             priceHistory={segmentPriceHistory}
-                            transactions={investmentTransactions}
+                            transactions={chartTransactions}
                             currency="EUR"
                         />
                     </div>
@@ -1284,7 +1162,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         let iconColorClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
                                                         let headerLabel = 'Cash Balance';
                                                         let badgeLabel = 'Active';
-                                                        let badgeColorClass = 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20';
+                                                        let badgeColorClass = 'text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20';
 
                                                         if (acc.subType === 'Spare Change') {
                                                             icon = 'savings';
@@ -1373,8 +1251,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         );
                                                     }
 
-                                                    const gainLoss = holding.currentValue - holding.totalCost;
-                                                    const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
+                                                    const gainLoss = holding.priceUnavailable ? 0 : holding.currentValue - holding.totalCost;
+                                                    const gainLossPercent = !holding.priceUnavailable && holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
                                                     const isPositive = gainLoss >= 0;
                                                     const holdingAccount = accountBySymbol.get(holding.symbol);
                                                     const isClosed = holdingAccount?.status === 'closed';
@@ -1393,6 +1271,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     <div className="min-w-0 flex-1">
                                                                         <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
                                                                         <p className="text-xs text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                        {holding.priceUnavailable && <p className="text-2xs font-semibold text-amber-700 dark:text-amber-400">Price unavailable</p>}
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -1409,7 +1288,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
                                                             </td>
                                                             <td className="py-4 text-right">
-                                                                <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                                                     {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
                                                                 </div>
                                                                 <div className="text-xs text-gray-400 privacy-blur hidden sm:block">
@@ -1481,8 +1360,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <div className="min-w-[100px]">
                                             <p className="text-sm font-bold font-mono text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
                                         </div>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                             <button 
+                                                aria-label={`Delete ${item.symbol || 'holding'}`}
                                                 onClick={(e) => { e.stopPropagation(); setItemToDelete({ id: item.id, isWarrant: item.isWarrant }); }}
                                                 className="p-1 text-gray-400 hover:text-red-500"
                                             >
@@ -1502,7 +1382,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card className="border border-slate-200/60 dark:border-white/5 shadow-card">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xs font-bold tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
-                            <button className="text-xs font-semibold text-primary-500 uppercase tracking-wider hover:underline">Analysis</button>
+                            <button className="text-xs font-semibold text-primary-700 dark:text-primary-400 uppercase tracking-wider hover:underline">Analysis</button>
                         </div>
                         <div className="h-48 relative mb-6 flex items-center justify-center">
                             <BklitPieChart
@@ -1553,7 +1433,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
                         <div className="space-y-4">
                             {displayHoldings
-                                .map(h => ({ ...h, gain: h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
+                                .map(h => ({ ...h, gain: !h.priceUnavailable && h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
                                 .sort((a, b) => b.gain - a.gain)
                                 .slice(0, 5)
                                 .map((h, i) => (
@@ -1565,7 +1445,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 <p className="text-xs text-gray-400 font-medium">{h.name}</p>
                                             </div>
                                         </div>
-                                        <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                             {h.gain >= 0 ? '▲' : '▼'} {Math.abs(h.gain).toFixed(1)}%
                                         </div>
                                     </div>
@@ -1588,7 +1468,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                         <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.02] border border-black/[0.03] dark:border-white/[0.03] mb-6">
                             <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary/70">Total Realized Returns</span>
                             <div className="flex items-baseline gap-2 mt-1">
-                                <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                <h4 className={`text-2xl font-black tracking-tight privacy-blur ${realizedPerformance.totalRealizedGain >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                     {realizedPerformance.totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(realizedPerformance.totalRealizedGain, 'EUR')}
                                 </h4>
                                 <span className="text-xs text-gray-400 font-medium">
@@ -1619,7 +1499,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className={`text-xs font-black ${isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                <p className={`text-xs font-black ${isWin ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                                                     {isWin ? '+' : ''}{formatCurrency(sale.gain, 'EUR')}
                                                 </p>
                                                 <p className={`text-xs font-semibold ${isWin ? 'text-green-500/80' : 'text-red-500/80'}`}>

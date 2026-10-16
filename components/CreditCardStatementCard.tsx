@@ -110,7 +110,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                         <div className="flex items-center gap-1.5 text-xs min-w-0">
                             <span className="text-slate-500 dark:text-slate-400 truncate">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
                             {isPaid && (
-                                <span className="flex items-center gap-0.5 font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full text-2xs uppercase tracking-wider shrink-0">
+                                <span className="flex items-center gap-0.5 font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.2 rounded-full text-2xs uppercase tracking-wider shrink-0">
                                     <Icon name="check" className="text-xs" /> Paid
                                 </span>
                             )}

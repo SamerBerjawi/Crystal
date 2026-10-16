@@ -237,7 +237,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
         {/* ================================================================= */}
         <div className="pt-2 px-1 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
               Monthly Guardrails
             </p>
             <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                 Budgeting
               </h1>
               {overCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                   {overCount} Over Limit
                 </span>
@@ -267,6 +267,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
             {/* Quick Action Button */}
             <button
               type="button"
+              aria-label="Add budget"
               onClick={() => onAddBudget()}
               className="h-9 w-9 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/25 active:scale-95 transition-all"
             >
@@ -281,6 +282,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
         <div className="p-1 rounded-2xl bg-black/5 dark:bg-white/[0.06] border border-black/[0.04] dark:border-white/[0.04] flex items-center justify-between">
           <button
             type="button"
+            aria-label="Previous month"
             onClick={() => onMonthChange(-1)}
             className="h-8 w-8 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all"
           >
@@ -296,6 +298,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
 
           <button
             type="button"
+            aria-label="Next month"
             onClick={() => onMonthChange(1)}
             className="h-8 w-8 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all"
           >
@@ -543,10 +546,10 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
                               isOver
-                                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400'
                                 : isWarning
-                                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+                                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
                             }`}
                           >
                             {isOver ? 'Over Limit' : isWarning ? 'Near Limit' : 'On Track'}
@@ -811,7 +814,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         <span className="text-light-text dark:text-white privacy-blur">
                           {formatCurrency(item.value, curr)}
                         </span>
-                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-xs w-10 text-right font-medium">
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-80 text-xs w-10 text-right font-medium">
                           {pct.toFixed(1)}%
                         </span>
                       </div>

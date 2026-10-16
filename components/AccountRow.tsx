@@ -212,13 +212,13 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
     const colorConfig: Record<string, { bg: string, text: string, border: string, icon: string }> = {
         Checking: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', icon: 'payments' },
-        'Credit Card': { bg: 'bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', icon: 'credit_card' },
+        'Credit Card': { bg: 'bg-rose-500/10', text: 'text-rose-700 dark:text-rose-400', border: 'border-rose-500/20', icon: 'credit_card' },
         Investment: { bg: 'bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-500/20', icon: 'trending_up' },
-        Lending: { bg: 'bg-teal-500/10', text: 'text-teal-600 dark:text-teal-400', border: 'border-teal-500/20', icon: 'account_balance' },
-        Loan: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20', icon: 'account_balance' },
-        'Other Assets': { bg: 'bg-lime-500/10', text: 'text-lime-600 dark:text-lime-400', border: 'border-lime-500/20', icon: 'category' },
-        Property: { bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20', icon: 'location_on' },
-        Savings: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', icon: 'savings' },
+        Lending: { bg: 'bg-teal-500/10', text: 'text-teal-700 dark:text-teal-400', border: 'border-teal-500/20', icon: 'account_balance' },
+        Loan: { bg: 'bg-red-500/10', text: 'text-red-700 dark:text-red-400', border: 'border-red-500/20', icon: 'account_balance' },
+        'Other Assets': { bg: 'bg-lime-500/10', text: 'text-lime-700 dark:text-lime-400', border: 'border-lime-500/20', icon: 'category' },
+        Property: { bg: 'bg-sky-500/10', text: 'text-sky-700 dark:text-sky-400', border: 'border-sky-500/20', icon: 'location_on' },
+        Savings: { bg: 'bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-500/20', icon: 'savings' },
         Vehicle: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20', icon: 'directions_car' },
         'Other Liabilities': { bg: 'bg-pink-500/10', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-500/20', icon: 'warning' },
     };
@@ -275,6 +275,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                     currentConfig.text.includes('red') ? '#ef4444' : '#3b82f6'
                 }}
             >
+                {/* Keyboard / screen-reader entry point: the card itself is a mouse target only. */}
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onClick(); }}
+                    className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-2 focus-visible:top-2 focus-visible:z-40 focus-visible:px-3 focus-visible:py-1.5 focus-visible:rounded-lg focus-visible:bg-primary-500 focus-visible:text-white focus-visible:text-xs focus-visible:font-bold"
+                >
+                    Open {account.name}
+                </button>
                 {/* Left Section: Icon and Account Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="relative shrink-0">
@@ -292,7 +300,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 className="absolute -top-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
                                 title="Main Account"
                             >
-                                <Icon name="cryptocurrency-01" className="text-[10px] sm:text-xs" strokeWidth={2.5} />
+                                <Icon name="cryptocurrency-01" className="text-2xs sm:text-xs" strokeWidth={2.5} />
                             </div>
                         )}
 
@@ -302,7 +310,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-dark-card z-10"
                                 title="Connected / Linked Account"
                             >
-                                <Icon name="link-04" className="text-[10px] sm:text-xs" strokeWidth={2.5} />
+                                <Icon name="link-04" className="text-2xs sm:text-xs" strokeWidth={2.5} />
                             </div>
                         )}
                     </div>
@@ -311,7 +319,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             {account.name}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60 truncate">
+                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-80 truncate">
                                 {account.financialInstitution || account.type}
                             </p>
                             {account.last4 && (
@@ -351,7 +359,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             )}
                             {transactions.length > 0 && Math.abs(trend) > 0 && (
                                 <div className="flex items-center gap-0.5 text-xs font-semibold shrink-0">
-                                    <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                    <span className={isPositiveTrend ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
                                         {isPositiveTrend ? '▲' : '▼'}
                                     </span>
                                     <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono opacity-60">
@@ -418,6 +426,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 boxShadow: `0 10px 40px -10px ${glowColor}`
             }}
         >
+            {/* Keyboard / screen-reader entry point: the card itself is a mouse target only. */}
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onClick(); }}
+                    className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-2 focus-visible:top-2 focus-visible:z-40 focus-visible:px-3 focus-visible:py-1.5 focus-visible:rounded-lg focus-visible:bg-primary-500 focus-visible:text-white focus-visible:text-xs focus-visible:font-bold"
+                >
+                    Open {account.name}
+                </button>
             {/* Inner Glow Effect */}
             <div 
                 className="absolute inset-0 pointer-events-none rounded-[2rem] overflow-hidden"
@@ -506,13 +522,13 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         {/* Trend Badge - Now part of the flow instead of absolute */}
                         {transactions.length > 0 && Math.abs(trend) > 0 && (
                             <div className="flex items-center gap-1 text-xs font-semibold">
-                                <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                <span className={isPositiveTrend ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
                                     {isPositiveTrend ? '▲' : '▼'}
                                 </span>
                                 <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono">
                                     {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}
                                 </span>
-                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 ">
+                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-80 ">
                                     90d
                                 </span>
                             </div>

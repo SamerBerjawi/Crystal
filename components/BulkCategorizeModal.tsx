@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Category } from '../types';
 import { SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import Icon from './ui/Icon';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface BulkCategorizeModalProps {
     isOpen?: boolean;
@@ -42,6 +43,7 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
 );
 
 const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true, onClose, onSave, incomeCategories, expenseCategories }) => {
+  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [selectedCategory, setSelectedCategory] = useState('');
     const [isVisible, setIsVisible] = useState(false);
 
@@ -53,7 +55,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true
     // Handle ESC key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
                 handleClose();
             }
         };
@@ -75,7 +77,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ isOpen = true
     };
 
     const content = (
-        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
             {/* Backdrop */}
             <div 
                 className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${

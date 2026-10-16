@@ -33,14 +33,14 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
   const isPositiveNet = netBalance >= 0;
   
   // Color Logic
-  let savingsColorClass = 'text-green-600 dark:text-green-400';
+  let savingsColorClass = 'text-green-700 dark:text-green-400';
   let savingsBgClass = 'bg-green-100 dark:bg-green-900/30';
   
   if (savingsRate < 0) {
-      savingsColorClass = 'text-red-600 dark:text-red-400';
+      savingsColorClass = 'text-red-700 dark:text-red-400';
       savingsBgClass = 'bg-red-100 dark:bg-red-900/30';
   } else if (savingsRate < 20) {
-      savingsColorClass = 'text-yellow-600 dark:text-yellow-400';
+      savingsColorClass = 'text-yellow-700 dark:text-yellow-400';
       savingsBgClass = 'bg-yellow-100 dark:bg-yellow-900/30';
   }
 
@@ -58,7 +58,7 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
     color: string 
   }) => {
       const isGreen = color === 'green';
-      const textColor = isGreen ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+      const textColor = isGreen ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400';
       const strokeColor = isGreen ? '#10B981' : '#F43F5E';
 
       return (

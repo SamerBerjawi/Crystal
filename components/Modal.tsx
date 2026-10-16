@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import Icon from './ui/Icon';
 import { CLOSE_BTN_STYLE, Z_INDEX } from '../constants';
+import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -17,6 +18,8 @@ interface ModalProps {
 const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z_INDEX.MODAL, size = 'lg' }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [mounted, setMounted] = useState(true);
+  const titleId = useId();
+  const dialogRef = useDialogA11y<HTMLDivElement>();
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -25,10 +28,10 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
     };
   }, []);
 
-  // Handle ESC key
+  // Handle ESC key: with stacked dialogs only the topmost one closes.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
         handleClose();
       }
     };
@@ -66,7 +69,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
       {/* Modal Container */}
       <div 
         className={`
-          bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 shadow-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text w-full overflow-hidden
+          bg-white dark:bg-dark-card border border-black/10 dark:border-white/10 shadow-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text w-full overflow-hidden focus:outline-none
           transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] relative
           
           /* Mobile: slide-up sheet | Desktop: rounded floating glass card */
@@ -80,6 +83,11 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
           }
         `}
         onClick={handleContentClick}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
       >
         {/* Mobile drag handle */}
         <div className="flex justify-center pt-3 pb-1 md:hidden" aria-hidden="true">
@@ -92,7 +100,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = Z
         {/* Header */}
         <header className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-primary-500/5 to-transparent shrink-0">
           <div className="flex items-center gap-3 min-w-0 pr-3">
-            <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
+            <h2 id={titleId} className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
               {title}
             </h2>
           </div>

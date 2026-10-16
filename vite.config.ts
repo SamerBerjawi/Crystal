@@ -25,6 +25,23 @@ const createBundleAnalyzerPlugin = (): PluginOption => ({
   },
 });
 
+/**
+ * Phosphor ships every icon with six weight variants and the app only ever renders "duotone" (Icon.tsx never passes
+ * another weight). Dropping the other four from each icon definition
+ * removes roughly two thirds of the icon payload from the entry chunk (AUD-16).
+ */
+const phosphorKeepWeights = (keep: string[]): PluginOption => ({
+  name: 'phosphor-keep-weights',
+  apply: 'build',
+  enforce: 'pre',
+  transform(code, id) {
+    if (!/@phosphor-icons\/react\/dist\/defs\/[^/]+\.es\.js$/.test(id)) return null;
+    const entry = /\n  \[\n    "(thin|light|regular|bold|fill|duotone)",[\s\S]*?\n  \],?/g;
+    const next = code.replace(entry, (match, weight: string) => (keep.includes(weight) ? match : ''));
+    return next === code ? null : { code: next, map: null };
+  },
+});
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const backendTarget = env.VITE_BACKEND_URL || 'http://localhost:3001';
@@ -44,6 +61,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     plugins: [
+      phosphorKeepWeights(['duotone']),
       tailwindcss(),
       react(),
       shouldAnalyze && createBundleAnalyzerPlugin(),
@@ -54,9 +72,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         treeshake: true,
         output: {
+          // Only the data layer is split out. Recharts and Leaflet are deliberately left to Rollup so they stay in the
+          // lazy page chunks that use them instead of being preloaded from the entry (AUD-17).
           manualChunks: {
-            leaflet: ['leaflet', 'react-leaflet'],
-            recharts: ['recharts'],
             reactQuery: ['@tanstack/react-query'],
           },
         },

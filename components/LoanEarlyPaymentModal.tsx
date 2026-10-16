@@ -132,7 +132,7 @@ const LoanEarlyPaymentModal: React.FC<LoanEarlyPaymentModalProps> = ({
       <div className="space-y-6">
         {/* Banner */}
         <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3 text-xs text-emerald-900 dark:text-emerald-300">
-          <Icon name="savings" className="text-lg shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+          <Icon name="savings" className="text-lg shrink-0 mt-0.5 text-emerald-700 dark:text-emerald-400" />
           <div className="space-y-1 leading-relaxed">
             <p className="font-semibold text-emerald-950 dark:text-emerald-200">Accelerate Debt Freedom</p>
             <p>
@@ -216,7 +216,7 @@ const LoanEarlyPaymentModal: React.FC<LoanEarlyPaymentModalProps> = ({
               Financial Impact Preview
             </span>
             {simulation.monthsSaved > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                 <Icon name="trending_down" className="text-xs" />
                 {simulation.monthsSaved} Months Faster
               </span>
@@ -228,7 +228,7 @@ const LoanEarlyPaymentModal: React.FC<LoanEarlyPaymentModalProps> = ({
               <span className="text-2xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary block mb-1">
                 Total Interest Saved
               </span>
-              <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+              <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">
                 {formatCurrency(simulation.interestSaved, account.currency)}
               </p>
             </div>
