@@ -1,0 +1,211 @@
+/*
+ * Design tokens for the New pages (UI_UX_DESIGN_REFERENCE.md §1, decisions Q1–Q4, D1–D16, R1–R8).
+ * Surfaces (R2): a white page (canvas), grey tiles (tile) with no shadow, white sub-cards (surface) inside
+ * tiles, and inset for tracks and fields. Dark mode steps each layer one shade lighter.
+ * Scoped to .crystal-new so the classic pages are unaffected. Tailwind's `nv-*` utilities read these
+ * (index.css). Dark mode follows the app's `dark` class on <html>.
+ *
+ * Light values are sampled from the desktop reference. *-text variants are the AA-safe shades for small
+ * text on surfaces. The violet fill and its text differ only in dark mode.
+ */
+@import '@fontsource-variable/outfit';
+
+.crystal-new {
+  --nv-canvas: #ffffff;
+  --nv-tile: #f4f4f6;
+  --nv-surface: #ffffff;
+  --nv-inset: #e9e9ee;
+  --nv-line: #e3e3ea;
+  --nv-ink: #1c1c28;
+  /* Text on an ink fill: primary buttons and selected pills (R7). */
+  --nv-on-ink: #ffffff;
+  --nv-muted: #6b7080;
+  /* Large figures' units and decimals only (3.3:1): never body text. */
+  --nv-faint: #8a8fa3;
+  --nv-violet: #6d3af2;
+  --nv-violet-strong: #5b2be8;
+  --nv-violet-soft: #efeafe;
+  --nv-violet-text: #5b2be8;
+  --nv-on-violet: #ffffff;
+  /* Accents (D1): violet brand / selected / cash, green income / on track, orange spending / attention,
+     sky transfers / planned / forecast. Red is status only. Each has a fill, a small-text shade (*-text),
+     a tint for tinted surfaces (*-soft) and the text colour that sits on its fill (on-*). */
+  --nv-orange: #f2994a;
+  --nv-orange-text: #b45309;
+  --nv-orange-soft: #fdf0e4;
+  --nv-on-orange: #1c1c28;
+  --nv-green: #22c55e;
+  --nv-green-text: #15803d;
+  --nv-green-soft: #e6f8ee;
+  --nv-on-green: #1c1c28;
+  --nv-sky: #38bdf8;
+  --nv-sky-text: #0369a1;
+  --nv-sky-soft: #e3f4fd;
+  --nv-on-sky: #1c1c28;
+  --nv-red: #ef4444;
+  --nv-red-text: #c62828;
+  --nv-red-soft: #fdeaea;
+  --nv-peach: #fbf1e6;
+
+  /* Elevation (R2): tiles have no shadow and no outline; tone steps separate them. Floating layers (dock,
+     popovers, sheets) use a shadow and never a hairline (D10). */
+  --nv-shadow-card: none;
+  --nv-shadow-chrome: 0 1px 2px rgb(20 20 40 / 0.04), 0 8px 24px rgb(20 20 40 / 0.06);
+  --nv-shadow-float: 0 12px 40px rgb(20 20 40 / 0.14);
+  --nv-shadow-thumb: 0 1px 3px rgb(20 20 40 / 0.10);
+  --nv-shadow-violet: 0 14px 32px -8px rgb(109 58 242 / 0.55);
+
+  /* bklit charts (components/bklit) read these. */
+  --chart-1: var(--nv-violet);
+  --chart-2: var(--nv-orange);
+  --chart-3: var(--nv-green);
+  --chart-4: var(--nv-sky);
+  --chart-5: var(--nv-red);
+  --chart-line-primary: var(--nv-violet);
+  --chart-line-secondary: var(--nv-orange);
+  --chart-background: var(--nv-surface);
+  --chart-foreground: var(--nv-ink);
+  --chart-foreground-muted: var(--nv-muted);
+  --chart-label: var(--nv-muted);
+  --chart-grid: var(--nv-line);
+  --chart-crosshair: var(--nv-violet);
+  --chart-tooltip-background: #141420;
+  --chart-tooltip-foreground: #ffffff;
+  --chart-tooltip-muted: #b4b2c6;
+  --chart-tooltip-border: rgb(255 255 255 / 0.08);
+  --chart-marker-background: var(--nv-surface);
+  --chart-marker-border: var(--nv-violet);
+  --chart-marker-foreground: var(--nv-ink);
+
+}
+
+/* Layered so Tailwind utilities (bg-nv-surface on a portalled popup, etc.) win over these defaults. */
+@layer base {
+  .crystal-new {
+    font-family: var(--font-nv);
+    background: var(--nv-canvas);
+    color: var(--nv-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+:root.dark .crystal-new {
+  --nv-canvas: #0e0d14;
+  --nv-tile: #17161f;
+  --nv-surface: #211f2b;
+  --nv-inset: #2b2a36;
+  --nv-line: #353441;
+  --nv-ink: #f1f0f7;
+  --nv-on-ink: #141420;
+  --nv-muted: #a09eb0;
+  --nv-faint: #7a788a;
+  --nv-violet: #7c4dff;
+  --nv-violet-strong: #6a3cf5;
+  --nv-violet-soft: #251f42;
+  --nv-violet-text: #b39dff;
+  --nv-on-violet: #ffffff;
+  --nv-orange: #f5a55f;
+  --nv-orange-text: #f5a55f;
+  --nv-orange-soft: #33230f;
+  --nv-on-orange: #141420;
+  --nv-green: #34d399;
+  --nv-green-text: #4ade80;
+  --nv-green-soft: #11301f;
+  --nv-on-green: #141420;
+  --nv-sky: #7dd3fc;
+  --nv-sky-text: #7dd3fc;
+  --nv-sky-soft: #0f2a38;
+  --nv-on-sky: #141420;
+  --nv-red: #f87171;
+  --nv-red-text: #fca5a5;
+  --nv-red-soft: #3a1717;
+  --nv-peach: #2a2118;
+
+  --nv-shadow-card: none;
+  --nv-shadow-chrome: 0 10px 30px rgb(0 0 0 / 0.45);
+  --nv-shadow-float: 0 16px 48px rgb(0 0 0 / 0.6);
+  --nv-shadow-thumb: 0 1px 3px rgb(0 0 0 / 0.5);
+  --nv-shadow-violet: 0 14px 32px -10px rgb(124 77 255 / 0.6);
+
+  --chart-tooltip-background: #f1f0f7;
+  --chart-tooltip-foreground: #141420;
+  --chart-tooltip-muted: #5d5b6e;
+  --chart-tooltip-border: rgb(0 0 0 / 0.08);
+}
+
+@layer components {
+  /* Amounts: tabular figures so columns align (§1.2 rule 2). */
+  .nv-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hero gradient (§1.1): only on hero surfaces, never on body cards. */
+  .nv-hero-gradient {
+    background:
+      radial-gradient(120% 80% at 85% 0%, rgb(255 255 255 / 0.18), transparent 55%),
+      radial-gradient(90% 70% at 0% 100%, rgb(255 255 255 / 0.10), transparent 60%),
+      linear-gradient(160deg, #7b4bff 0%, #5b2be8 100%);
+    color: #ffffff;
+  }
+
+  /* Frosted glass, used only on the hero gradient (decision Q3). */
+  .nv-glass {
+    background: rgb(255 255 255 / 0.16);
+    border: 1px solid rgb(255 255 255 / 0.25);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  /* Diagonal stripes on progress fills (§2.2). */
+  .nv-stripes {
+    background-image: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.18) 0 6px, transparent 6px 12px);
+  }
+}
+
+.crystal-new :focus-visible {
+  outline: 2px solid var(--nv-violet);
+  outline-offset: 2px;
+}
+
+.crystal-new ::selection {
+  background: color-mix(in srgb, var(--nv-violet) 25%, transparent);
+}
+
+/* Bottom safe area for the floating dock on phones. */
+.nv-safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crystal-new *,
+  .crystal-new *::before,
+  .crystal-new *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Quiet scrollbars inside the shell (the classic UI styles ::-webkit-scrollbar globally). */
+.crystal-new .nv-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nv-line) transparent;
+}
+.crystal-new .nv-scroll::-webkit-scrollbar { width: 6px; background: transparent; }
+.crystal-new .nv-scroll::-webkit-scrollbar-track { background: transparent; }
+.crystal-new .nv-scroll::-webkit-scrollbar-thumb { background: var(--nv-line); border-radius: 999px; }
+
+/* Sileo toasts (D4): on the named toast layer, in the New font, sentence case (Sileo capitalises every word),
+   and descriptions readable at small sizes (Sileo's 50% white is under 4.5:1). Sileo injects its own CSS. */
+:root [data-sileo-viewport] {
+  z-index: 1000;
+  font-family: var(--font-nv);
+}
+:root [data-sileo-viewport] [data-sileo-title] {
+  text-transform: none;
+}
+:root [data-sileo-viewport][data-theme='light'] [data-sileo-description] {
+  color: rgb(255 255 255 / 0.78);
+}
+:root [data-sileo-viewport][data-theme='dark'] [data-sileo-description] {
+  color: rgb(0 0 0 / 0.7);
+}

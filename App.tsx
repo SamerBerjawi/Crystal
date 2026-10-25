@@ -1,6 +1,7 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
-import { Toaster, toast } from 'sonner';
+import { Toaster, toast as sonnerToast } from 'sonner';
+import { getToastSink, type AppToastKind, type AppToastOptions } from './utils/toastBridge';
 import Sidebar from './components/Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
 import MobileNavbar from './components/MobileNavbar';
@@ -30,7 +31,29 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
   });
 }
 
+/**
+ * App-level toasts (saves, sync, undo). While the New shell is mounted its Sileo host receives them through the
+ * toast bridge (UI_UX_DESIGN_REFERENCE.md D4); otherwise they go to Sonner as before.
+ */
+const routeToast = (kind: AppToastKind) => (message: string, options?: AppToastOptions) => {
+  const sink = getToastSink();
+  if (sink) sink.show(kind, message, options);
+  else sonnerToast[kind](message, options);
+};
+const toast = {
+  success: routeToast('success'),
+  error: routeToast('error'),
+  info: routeToast('info'),
+  warning: routeToast('warning'),
+  dismiss: (id: string) => { getToastSink()?.dismiss(id); sonnerToast.dismiss(id); },
+};
+
 const SignIn = lazyWithRetry(() => import('./pages/SignIn'));
+// New pages (UI_UX_DESIGN_REFERENCE.md §5.0): each lives at its own `-new` URL inside ShellNew, beside the classic page.
+const ShellNew = lazyWithRetry(() => import('./components/new/ShellNew').then(m => ({ default: m.ShellNew })));
+const PlaceholderNew = lazyWithRetry(() => import('./pages/new/PlaceholderNew').then(m => ({ default: m.PlaceholderNew })));
+const NotFoundNew = lazyWithRetry(() => import('./pages/new/NotFoundNew').then(m => ({ default: m.NotFoundNew })));
+const GalleryNew = lazyWithRetry(() => import('./pages/new/GalleryNew').then(m => ({ default: m.GalleryNew })));
 const SignUp = lazyWithRetry(() => import('./pages/SignUp'));
 const pageRegistry = {
   Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
@@ -114,6 +137,7 @@ import { saveDevCache, loadDevCache, clearDevCache } from './utils/browserCache'
 import { threeWayMerge } from './utils/threeWayMerge';
 import { warnIgnored } from './utils/logging';
 import { startPrivacyMask } from './utils/privacyMask';
+import { parseNewRoute, newPathFor, NEW_PAGE_TITLES } from './utils/newRoutes';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -180,6 +204,17 @@ const routePathMap = Object.entries(pageRegistry).reduce((acc, [page, config]) =
 type RouteInfo = { page: Page; matched: boolean; accountId?: string | null; holdingSymbol?: string | null };
 
 const parseRoute = (pathname: string): RouteInfo => {
+  const newRoute = parseNewRoute(pathname);
+  if (newRoute) {
+    // The New UI handles its own unknown paths (NotFoundNew), so every `-new` path counts as matched.
+    if (newRoute.kind !== 'page') return { page: 'Dashboard', matched: true, accountId: null };
+    return {
+      page: newRoute.page,
+      matched: true,
+      accountId: newRoute.page === 'AccountDetail' ? newRoute.id ?? null : null,
+      holdingSymbol: newRoute.page === 'HoldingDetail' ? newRoute.id ?? null : null,
+    };
+  }
   const rawPath = pathname.split('?')[0] || '/';
   const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
   const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
@@ -771,13 +806,18 @@ const App: React.FC = () => {
     }
   }, [currentPageColor]);
 
+  const newRoute = useMemo(() => parseNewRoute(currentPath), [currentPath]);
+  const isNewUi = newRoute !== null;
+
   const setCurrentPage = useCallback((page: Page) => {
-    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
+    const id = page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null;
+    // Keyboard shortcuts and other app-level navigation stay in whichever UI is showing.
+    const targetPath = isNewUi ? newPathFor(page, id) : pageToPath(page, id);
     navigateToPath(targetPath);
     setCurrentPageState(page);
     if (page !== 'AccountDetail') { setViewingAccountId(null); }
     if (page !== 'HoldingDetail') { setViewingHoldingSymbol(null); }
-  }, [navigateToPath, viewingAccountId, viewingHoldingSymbol]);
+  }, [isNewUi, navigateToPath, viewingAccountId, viewingHoldingSymbol]);
 
   const handleOpenAccountDetail = useCallback((accountId: string) => {
     setViewingAccountId(accountId);
@@ -3102,6 +3142,36 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) return <PageLoader label="Loading user profile..." />;
+
+  if (newRoute) {
+    const classicPath = pageToPath(currentPage, currentPage === 'AccountDetail' ? viewingAccountId : currentPage === 'HoldingDetail' ? viewingHoldingSymbol : null);
+    const newPage = newRoute.kind === 'page' ? newRoute.page : null;
+    return (
+      <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
+        <Suspense fallback={null}>
+          <ShellNew
+            page={newPage}
+            title={newRoute.kind === 'gallery' ? 'Design' : newRoute.kind === 'notFound' ? 'Not found' : undefined}
+            navigate={navigateToPath}
+            user={currentUser}
+            theme={theme}
+            setTheme={setTheme}
+            isPrivacyMode={isPrivacyMode}
+            togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
+            onLogout={handleLogout}
+            classicPath={newRoute.kind === 'page' ? classicPath : '/'}
+            isDemoMode={isDemoMode}
+            notificationCount={notificationCount}
+            routeKey={currentPath}
+          >
+            {newRoute.kind === 'gallery' && import.meta.env.DEV ? <GalleryNew />
+              : newRoute.kind !== 'page' ? <NotFoundNew path={currentPath} />
+              : <PlaceholderNew title={NEW_PAGE_TITLES[newRoute.page]} classicPath={classicPath} />}
+          </ShellNew>
+        </Suspense>
+      </FinancialDataProvider>
+    );
+  }
 
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
