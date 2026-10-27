@@ -739,3 +739,46 @@ export function Gauge({
 }
 
 Gauge.displayName = "Gauge";
+
+export const CRYSTAL_LINEAR_GAUGE_GRADIENTS = {
+  active: ["#6d3af2", "#38bdf8"] as const,
+  over: ["#ef4444", "#dc2626"] as const,
+  inactiveDark: ["#2a2d3d", "#38bdf8"] as const,
+  inactiveLight: ["#e4e4eb", "#38bdf8"] as const,
+};
+
+export function getCrystalLinearGaugeGradients(options?: {
+  color?: string;
+  over?: boolean;
+  isDark?: boolean;
+}): {
+  activeGradient: readonly [string, string];
+  inactiveGradient: readonly [string, string];
+} {
+  const isDark = options?.isDark ?? true;
+  const over = options?.over ?? false;
+  const color = options?.color;
+
+  const inactiveGradient: readonly [string, string] = isDark
+    ? CRYSTAL_LINEAR_GAUGE_GRADIENTS.inactiveDark
+    : CRYSTAL_LINEAR_GAUGE_GRADIENTS.inactiveLight;
+
+  if (over) {
+    return {
+      activeGradient: CRYSTAL_LINEAR_GAUGE_GRADIENTS.over,
+      inactiveGradient,
+    };
+  }
+
+  if (color && /^#[0-9a-fA-F]{6}$/.test(color)) {
+    return {
+      activeGradient: [color, "#38bdf8"],
+      inactiveGradient,
+    };
+  }
+
+  return {
+    activeGradient: CRYSTAL_LINEAR_GAUGE_GRADIENTS.active,
+    inactiveGradient,
+  };
+}

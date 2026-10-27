@@ -3,9 +3,10 @@ import { cn } from '../../../lib/utils';
 import type { Currency } from '../../../types';
 import { formatCurrency } from '../../../utils';
 import type { BudgetLine, BudgetStatus, GoalView, Pace, Slice } from '../../../utils/budgetModel';
-import { Gauge, PieCenter, PieChart, PieSlice, type PieData } from '../../bklit/charts';
+import { Gauge, PieCenter, PieChart, PieSlice, type PieData, getCrystalLinearGaugeGradients } from '../../bklit/charts';
 import { EntityGlyph } from '../EntityIcon';
 import { NvIcon, type NvIconName } from '../NvIcon';
+import { useShellNew } from '../shellContext';
 import { Badge, IconButton, Money, type Accent } from '../ui';
 
 /*
@@ -134,23 +135,48 @@ export const DayDots: React.FC<{ pace: Pace; className?: string }> = ({ pace, cl
 /* ── Pace bar ───────────────────────────────────────────────────────────── */
 
 /**
- * Spent as a gradient bar (R10: gradient on data marks only), with a marker where an even pace would be today.
- * Past the limit the bar turns red.
+ * Spent as a linear dual gradient notched gauge (bklit/gauge-chart) matching the app's accent colors,
+ * with a marker where an even pace would be today. Over budget turns red.
  */
-export const PaceBar: React.FC<{ pct: number; elapsedPct?: number; className?: string; thin?: boolean; color?: string }> = ({ pct, elapsedPct, className, thin, color }) => {
-  const entered = useEntered();
+export const PaceBar: React.FC<{ pct: number; elapsedPct?: number; className?: string; thin?: boolean; color?: string }> = ({
+  pct,
+  elapsedPct,
+  className,
+  thin,
+  color,
+}) => {
+  const { isDark } = useShellNew();
   const over = pct > 100;
+  const val = Math.min(100, Math.max(0, Math.round(pct)));
+  const { activeGradient, inactiveGradient } = getCrystalLinearGaugeGradients({
+    color,
+    over,
+    isDark,
+  });
+
   return (
-    <div className={cn('relative', className)}>
-      <div className={cn('overflow-hidden rounded-full bg-nv-inset', thin ? 'h-2' : 'h-3.5')}>
-        <div
-          className={cn('h-full rounded-full', !color && (over ? 'bg-nv-red' : 'nv-grad-h'))}
-          style={{ width: entered ? `${Math.min(100, Math.max(pct > 0 ? 2 : 0, pct))}%` : '0%', transition: `width 1000ms ${EASE}`, background: color && !over ? color : color && over ? 'var(--nv-red)' : undefined }}
-        />
-      </div>
+    <div className={cn('relative w-full', className)}>
+      <Gauge
+        orientation="linear"
+        value={val}
+        totalNotches={72}
+        spacing={0}
+        notchCornerRadius={3}
+        notchLengthPercent={38}
+        inactiveFillOpacity={0.4}
+        activeGradient={activeGradient}
+        inactiveGradient={inactiveGradient}
+        useGradient
+        linearHeight={thin ? 20 : 26}
+        minWidth={0}
+        className="w-full"
+      />
       {elapsedPct !== undefined && elapsedPct > 0 && elapsedPct < 100 && (
         <span
-          className={cn('absolute top-1/2 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-nv-ink', thin ? 'h-3.5' : 'h-6')}
+          className={cn(
+            'pointer-events-none absolute top-1/2 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-nv-ink',
+            thin ? 'h-3' : 'h-4'
+          )}
           style={{ left: `${elapsedPct}%` }}
           aria-hidden
         />
