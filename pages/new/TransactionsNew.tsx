@@ -19,7 +19,7 @@ import { TransactionSheet } from '../../components/new/transactions/sheets';
 import { BulkEditSheet, CombineSheet, RecurringSheet, SplitSheet } from '../../components/new/transactions/actions';
 import { PickerField, TextField, TransactionRowItem } from '../../components/new/transactions/parts';
 import { FilterList, accountFilterOptions, accountQuickFilters, categoryFilterOptions, merchantFilterOptions, tagFilterOptions, type FilterOption } from '../../components/new/transactions/filters';
-import { TransactionTable, type ColumnFilters } from '../../components/new/transactions/table';
+import { TransactionTable, type ColumnFilters, type CellFilter, type RowMenuEntry } from '../../components/new/transactions/table';
 import { useMediaQuery } from '../../components/new/Drawer';
 import { BalanceCard, SpendingHero } from '../../components/new/transactions/overview';
 import MetricCard from '../../components/kokonutui/metric-card';
@@ -205,8 +205,21 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
   };
 
   const selectedRows = shown.filter(r => selected.has(r.id));
-  const toggleMany = (ids: string[], on: boolean) => setSelected(s => { const next = new Set(s); ids.forEach(id => (on ? next.add(id) : next.delete(id))); return next; });
-  const toggle = (id: string) => setSelected(s => { const next = new Set(s); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const toggleMany = (ids: string[], on: boolean) =>
+    setSelected(s => {
+      const next = new Set(s);
+      ids.forEach(id => (on ? next.add(id) : next.delete(id)));
+      setSelecting(next.size > 0);
+      return next;
+    });
+  const toggle = (id: string) =>
+    setSelected(s => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      setSelecting(next.size > 0);
+      return next;
+    });
   const endSelect = () => { setSelecting(false); setSelected(new Set()); };
 
   const exportCsv = () => {
@@ -237,6 +250,143 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
     toast.undo(`Set ${category} on ${selectedRows.length} transaction${selectedRows.length === 1 ? '' : 's'}`, result.undo);
     endSelect();
   };
+
+  const isFilteredTo = useCallback(
+    (f: CellFilter): boolean => {
+      switch (f.kind) {
+        case 'account':
+          return accountIds.length === 1 && accountIds[0] === f.value;
+        case 'category':
+          return categories.length === 1 && categories[0] === f.value;
+        case 'merchant':
+          return merchants.length === 1 && merchants[0] === f.value;
+        case 'location':
+          return places.length === 1 && places[0] === f.value;
+        case 'tag':
+          return tagIds.length === 1 && tagIds[0] === f.value;
+        default:
+          return false;
+      }
+    },
+    [accountIds, categories, merchants, places, tagIds]
+  );
+
+  const onFilterTo = useCallback(
+    (f: CellFilter) => {
+      const active = isFilteredTo(f);
+      switch (f.kind) {
+        case 'account':
+          setAccountIds(active ? [] : [f.value]);
+          break;
+        case 'category':
+          setCategories(active ? [] : [f.value]);
+          break;
+        case 'merchant':
+          setMerchants(active ? [] : [f.value]);
+          break;
+        case 'location':
+          setPlaces(active ? [] : [f.value]);
+          break;
+        case 'tag':
+          setTagIds(active ? [] : [f.value]);
+          break;
+      }
+      if (!active) {
+        toast.info(`Filtered to ${f.kind}: "${f.label}"`);
+      }
+    },
+    [isFilteredTo]
+  );
+
+  const rowMenu = useCallback(
+    (row: TxRow): RowMenuEntry[] => {
+      const entries: RowMenuEntry[] = [
+        {
+          icon: 'edit',
+          label: 'Edit transaction',
+          onClick: () => setOpenRow(row),
+        },
+      ];
+
+      if (row.split) {
+        entries.push({
+          icon: 'combine',
+          label: 'Unsplit transaction',
+          onClick: () => {
+            const res = data.unsplit(row);
+            if ('undo' in res) toast.undo('Unsplit transaction', res.undo);
+            else if ('error' in res) toast.info(res.error);
+          },
+        });
+      } else if (row.combined) {
+        entries.push({
+          icon: 'split',
+          label: 'Uncombine transaction',
+          onClick: () => {
+            const res = data.uncombine(row);
+            if ('undo' in res) toast.undo('Uncombined transaction', res.undo);
+            else if ('error' in res) toast.info(res.error);
+          },
+        });
+      } else if (row.kind !== 'transfer' && !row.adjustment) {
+        entries.push({
+          icon: 'split',
+          label: 'Split transaction',
+          onClick: () => setSplitRow(row),
+        });
+      }
+
+      entries.push({
+        icon: 'copy',
+        label: 'Duplicate',
+        onClick: () => {
+          const res = data.duplicate(row, today);
+          if ('undo' in res) toast.undo(`Duplicated "${row.title}"`, res.undo);
+        },
+      });
+
+      if (row.kind !== 'transfer') {
+        entries.push({
+          icon: 'repeat',
+          label: 'Make recurring',
+          onClick: () => setRecurringRow(row),
+        });
+      }
+
+      if (row.located && (row.city || row.placeKey || row.country)) {
+        entries.push({
+          icon: 'pin',
+          label: 'Remove location',
+          onClick: () => {
+            const res = data.clearLocation([row]);
+            if ('undo' in res) toast.undo('Removed location', res.undo);
+            else if ('error' in res) toast.info(res.error);
+          },
+        });
+      }
+
+      entries.push({
+        icon: 'delete',
+        label: 'Delete',
+        danger: true,
+        separatorBefore: true,
+        onClick: async () => {
+          const ok = await confirmNew({
+            title: `Delete "${row.title}"?`,
+            message: 'You can undo this for a few seconds afterwards.',
+            danger: true,
+            confirmLabel: 'Hold to delete',
+          });
+          if (!ok) return;
+          const res = data.remove([row]);
+          if ('undo' in res) toast.undo(`Deleted "${row.title}"`, res.undo);
+        },
+      });
+
+      return entries;
+    },
+    [data, today]
+  );
 
   const allCategoryOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -367,6 +517,9 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
                 onToggleMany={toggleMany}
                 onOpen={setOpenRow}
                 filters={columnFilters}
+                rowMenu={rowMenu}
+                onFilterTo={onFilterTo}
+                isFilteredTo={isFilteredTo}
                 onSelectRow={row => { setSelecting(true); setSelected(new Set([row.id])); }}
               />
             ) : (
@@ -415,7 +568,7 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
       </Card>
 
       {/* Selection bar */}
-      {selecting && (
+      {(selecting || selected.size > 0) && (
         <div className="fixed inset-x-0 bottom-28 z-sticky flex justify-center px-4 lg:bottom-6 lg:pl-72">
           <div className="flex max-w-full flex-wrap items-center justify-center gap-1 rounded-[28px] bg-nv-ink py-2 pl-5 pr-2 text-nv-on-ink shadow-nv-float">
             <span className="mr-2 text-sm font-medium nv-tabular">{selected.size} selected</span>

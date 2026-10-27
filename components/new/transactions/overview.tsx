@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useId, useRef } from 'react';
 import { cn } from '../../../lib/utils';
 import type { Account, Currency } from '../../../types';
 import { formatCurrency } from '../../../utils';
-import { niceMax, sparkPath, type PlaceCluster } from '../../../utils/transactionsModel';
+import { niceMax, sparkPath, type PlaceCluster, type TxKind } from '../../../utils/transactionsModel';
 import { useMediaQuery } from '../Drawer';
 import { NvIcon, type NvIconName } from '../NvIcon';
 import { useShellNew } from '../shellContext';

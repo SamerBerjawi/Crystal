@@ -348,9 +348,9 @@ export const TransactionTable: React.FC<{
             {contextRow && (
               <>
                 <p className="truncate px-3 pb-1 pt-1.5 text-[12px] font-medium text-nv-muted">{contextRow.title}</p>
-                <RowItems entries={rowMenu(contextRow)} />
+                <RowItems entries={rowMenu ? rowMenu(contextRow) : []} />
                 {cellFiltersOf(contextRow, data).length > 0 && <div role="separator" className="mx-2 my-1 h-px bg-nv-line" />}
-                <FilterItems filters={cellFiltersOf(contextRow, data)} isActive={isFilteredTo} onFilter={onFilterTo} />
+                <FilterItems filters={cellFiltersOf(contextRow, data)} isActive={activeChecker} onFilter={filterHandler} />
               </>
             )}
           </ContextMenu.Popup>
