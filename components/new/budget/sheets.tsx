@@ -20,8 +20,30 @@ import { CategoryDisc } from './parts';
  * 4. UnbudgetedSheet: Review spending in categories without a budget.
  */
 
-const currencySign = (currency: Currency) =>
-  ({ EUR: '€', USD: '$', GBP: '£', BTC: '₿', RON: 'lei ' } as Record<string, string>)[currency] ?? `${currency} `;
+const currencySign = (currency: string = ''): string => {
+  const parenMatch = currency.match(/\((.*?)\)/);
+  if (parenMatch && parenMatch[1]) {
+    const inside = parenMatch[1].trim();
+    if (inside === '€' || inside === '$' || inside === '£' || inside === '¥' || inside === '₹' || inside === '₿') {
+      return inside;
+    }
+  }
+  const code = (currency.split(/[\s(]/)[0] || currency).trim().toUpperCase();
+  const map: Record<string, string> = {
+    EUR: '€',
+    USD: '$',
+    GBP: '£',
+    BTC: '₿',
+    RON: 'lei',
+    JPY: '¥',
+    CNY: '¥',
+    INR: '₹',
+    CAD: '$',
+    AUD: '$',
+    CHF: 'CHF',
+  };
+  return map[code] ?? (parenMatch?.[1]?.trim() || code);
+};
 
 /* ── 1. Add / Edit Budget Sheet ─────────────────────────────────────────── */
 

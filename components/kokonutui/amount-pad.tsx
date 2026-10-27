@@ -38,12 +38,14 @@ export interface AmountPadProps {
   toneClassName?: string;
   className?: string;
   autoFocus?: boolean;
+  /** Always show decimals (.00) with faint grey styling even when no dot is typed. Defaults to true. */
+  alwaysShowDecimals?: boolean;
 }
 
 /** One typed character, with an id that follows it as commas move around. */
 interface Char { id: number; char: string }
 
-interface Glyph { key: string; char: string; kind: 'digit' | 'sep' | 'ghost' }
+interface Glyph { key: string; char: string; kind: 'digit' | 'sep' | 'decimal' | 'ghost' }
 
 /** What typing `key` does to the amount: the new characters, or null if it can't take it. */
 function typeKey(chars: Char[], key: string, make: (char: string) => Char): Char[] | null {
@@ -60,7 +62,7 @@ function typeKey(chars: Char[], key: string, make: (char: string) => Char): Char
 }
 
 /** Lays typed characters out as an amount: commas every three whole digits, faint zeros for the cents still to come. */
-function layout(chars: Char[]): Glyph[] {
+function layout(chars: Char[], alwaysShowDecimals = true): Glyph[] {
   const point = chars.findIndex(c => c.char === '.');
   const whole = point === -1 ? chars : chars.slice(0, point);
   const glyphs: Glyph[] = [];
@@ -72,15 +74,29 @@ function layout(chars: Char[]): Glyph[] {
   if (point !== -1) {
     const cents = chars.slice(point + 1);
     glyphs.push({ key: `d-${chars[point].id}`, char: '.', kind: 'sep' });
-    for (const c of cents) glyphs.push({ key: `d-${c.id}`, char: c.char, kind: 'digit' });
+    for (const c of cents) glyphs.push({ key: `d-${c.id}`, char: c.char, kind: 'decimal' });
     for (let i = cents.length; i < 2; i++) glyphs.push({ key: `ghost-${i}`, char: '0', kind: 'ghost' });
+  } else if (alwaysShowDecimals && chars.length > 0) {
+    glyphs.push({ key: 'ghost-dot', char: '.', kind: 'sep' });
+    glyphs.push({ key: 'ghost-0', char: '0', kind: 'ghost' });
+    glyphs.push({ key: 'ghost-1', char: '0', kind: 'ghost' });
   }
   return glyphs;
 }
 
 const asString = (chars: Char[]) => chars.map(c => c.char).join('');
 
-export function AmountPad({ value, onChange, currency, keypad, label = 'Amount', toneClassName = 'text-nv-ink', className, autoFocus }: AmountPadProps) {
+export function AmountPad({
+  value,
+  onChange,
+  currency,
+  keypad,
+  label = 'Amount',
+  toneClassName = 'text-nv-ink',
+  className,
+  autoFocus,
+  alwaysShowDecimals = true,
+}: AmountPadProps) {
   const nextId = useRef(1);
   const make = (char: string): Char => ({ id: nextId.current++, char });
   const [chars, setCharsState] = useState<Char[]>(() => [...value].map(make));
@@ -141,7 +157,7 @@ export function AmountPad({ value, onChange, currency, keypad, label = 'Amount',
     if (key) { event.preventDefault(); press(key); }
   };
 
-  const glyphs = layout(chars);
+  const glyphs = layout(chars, alwaysShowDecimals);
   const digitIn = reduceMotion ? { duration: 0 } : { type: 'spring' as const, stiffness: 520, damping: 30, mass: 0.8 };
   const slide = reduceMotion ? { duration: 0 } : { type: 'spring' as const, stiffness: 500, damping: 40 };
 
@@ -163,7 +179,7 @@ export function AmountPad({ value, onChange, currency, keypad, label = 'Amount',
             ref={amountRef}
             style={{ scale: fit, x: shakeX }}
           >
-            <span className={cn('mr-0.5 transition-colors duration-200', empty ? 'text-nv-line' : 'text-nv-violet-text')}>{currency}</span>
+            <span className="mr-0.5 text-nv-violet-text">{currency}</span>
             <AnimatePresence initial={false} mode="popLayout">
               {empty && (
                 <motion.span animate={{ opacity: 1 }} className="text-nv-line" exit={{ opacity: 0, transition: { duration: 0.08 } }} initial={{ opacity: 0 }} key="placeholder" transition={{ duration: 0.15 }}>
@@ -173,7 +189,10 @@ export function AmountPad({ value, onChange, currency, keypad, label = 'Amount',
               {glyphs.map(glyph => (
                 <motion.span
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  className={cn('inline-block', glyph.kind === 'ghost' && 'text-nv-line', glyph.kind === 'sep' && 'text-nv-faint')}
+                  className={cn(
+                    'inline-block',
+                    (glyph.kind === 'sep' || glyph.kind === 'decimal' || glyph.kind === 'ghost') && 'text-nv-faint font-medium',
+                  )}
                   exit={{ opacity: 0, y: 18, filter: 'blur(2px)', transition: { duration: 0.14, ease: EASE_OUT } }}
                   initial={{ opacity: 0, y: -22, filter: 'blur(2px)' }}
                   key={glyph.key}
