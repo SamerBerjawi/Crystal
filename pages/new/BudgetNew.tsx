@@ -35,7 +35,6 @@ import {
   CategoryDisc,
   DayDots,
   FigureCell,
-  GoalRings,
   MonthNav,
   PaceBar,
   RingGauge,
@@ -150,6 +149,11 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   // Derived metrics
   const dailySafe = useMemo(() => dailyAllowance(summary.remaining, pace), [summary.remaining, pace]);
   const projected = useMemo(() => projectedSpend(summary.spent, pace), [summary.spent, pace]);
+
+  // Goals total summary
+  const totalGoalsSaved = useMemo(() => data.goals.reduce((s, g) => s + g.saved, 0), [data.goals]);
+  const totalGoalsTarget = useMemo(() => data.goals.reduce((s, g) => s + g.target, 0), [data.goals]);
+  const totalGoalsPct = totalGoalsTarget > 0 ? Math.round((totalGoalsSaved / totalGoalsTarget) * 100) : 0;
 
   // Filtered & sorted lines
   const filteredLines = useMemo(() => {
@@ -724,14 +728,14 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                     <p className="text-[13px] text-nv-muted">Total saved towards goals</p>
                     <div className="mt-1 flex flex-wrap items-baseline gap-2">
                       <Money
-                        amount={data.goals.reduce((s, g) => s + g.saved, 0)}
+                        amount={totalGoalsSaved}
                         currency={data.displayCurrency}
                         size="hero"
                       />
                       <span className="text-lg font-medium text-nv-muted">
                         of{' '}
                         <Money
-                          amount={data.goals.reduce((s, g) => s + g.target, 0)}
+                          amount={totalGoalsTarget}
                           currency={data.displayCurrency}
                           className="font-semibold text-nv-ink"
                         />{' '}
@@ -745,10 +749,15 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                   </div>
                 </div>
 
-                {/* Concentric Activity Rings */}
+                {/* Total Goals Combined Gauge Chart */}
                 {data.goals.length > 0 && (
                   <div className="flex shrink-0 items-center justify-center">
-                    <GoalRings goals={data.goals} size={150} withLegend />
+                    <RingGauge
+                      pct={totalGoalsPct}
+                      label="saved"
+                      size={170}
+                      activeFill={totalGoalsPct >= 100 ? 'var(--nv-green)' : 'var(--nv-violet)'}
+                    />
                   </div>
                 )}
               </div>

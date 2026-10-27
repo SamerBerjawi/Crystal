@@ -61,13 +61,20 @@ export const CategoryDisc: React.FC<{ name: string; color?: string; icon?: strin
  * A notched radial gauge from bklit/gauge-chart displaying budget spend percentage.
  * Over budget limit, the active notches transition to red.
  */
-export const RingGauge: React.FC<{ pct: number; elapsedPct?: number; label: string; size?: number }> = ({
+export const RingGauge: React.FC<{
+  pct: number;
+  elapsedPct?: number;
+  label: string;
+  size?: number;
+  activeFill?: string;
+}> = ({
   pct,
   label,
   size = 184,
+  activeFill,
 }) => {
   const shown = Math.max(0, Math.min(100, pct));
-  const activeColor = usageColor(pct);
+  const activeColor = activeFill ?? usageColor(pct);
 
   return (
     <div
