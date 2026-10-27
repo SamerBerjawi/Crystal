@@ -748,7 +748,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                 {/* Concentric Activity Rings */}
                 {data.goals.length > 0 && (
                   <div className="flex shrink-0 items-center justify-center">
-                    <GoalRings goals={data.goals} size={180} />
+                    <GoalRings goals={data.goals} size={150} withLegend />
                   </div>
                 )}
               </div>

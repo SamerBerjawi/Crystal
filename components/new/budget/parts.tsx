@@ -3,7 +3,7 @@ import { cn } from '../../../lib/utils';
 import type { Currency } from '../../../types';
 import { formatCurrency } from '../../../utils';
 import type { BudgetLine, BudgetStatus, GoalView, Pace, Slice } from '../../../utils/budgetModel';
-import { PieCenter, PieChart, PieSlice, type PieData } from '../../bklit/charts';
+import { Gauge, PieCenter, PieChart, PieSlice, type PieData } from '../../bklit/charts';
 import { EntityGlyph } from '../EntityIcon';
 import { NvIcon, type NvIconName } from '../NvIcon';
 import { Badge, IconButton, Money, type Accent } from '../ui';
@@ -55,45 +55,46 @@ export const CategoryDisc: React.FC<{ name: string; color?: string; icon?: strin
   </span>
 );
 
-/* ── Dark ring gauge (R8) ───────────────────────────────────────────────── */
+/* ── Budget spend gauge (bklit/gauge-chart) ─────────────────────────────── */
 
 /**
- * An ink disc with the share used as an arc and a small dot where the month is. `pct` may pass 100: the arc is then
- * full and red.
+ * A notched radial gauge from bklit/gauge-chart displaying budget spend percentage.
+ * Over budget limit, the active notches transition to red.
  */
-export const RingGauge: React.FC<{ pct: number; elapsedPct?: number; label: string; size?: number }> = ({ pct, elapsedPct, label, size = 188 }) => {
-  const entered = useEntered();
-  const stroke = 14;
-  const r = size / 2 - stroke - 6;
-  const c = 2 * Math.PI * r;
+export const RingGauge: React.FC<{ pct: number; elapsedPct?: number; label: string; size?: number }> = ({
+  pct,
+  label,
+  size = 184,
+}) => {
   const shown = Math.max(0, Math.min(100, pct));
-  const angle = ((elapsedPct ?? 0) / 100) * 2 * Math.PI - Math.PI / 2;
+  const activeColor = usageColor(pct);
+
   return (
     <div
       role="img"
-      aria-label={`${Math.round(pct)}% ${label}${elapsedPct !== undefined ? `, ${Math.round(elapsedPct)}% of the month gone` : ''}`}
-      className="relative flex shrink-0 items-center justify-center rounded-full border border-nv-line/50 bg-nv-tile text-nv-ink"
+      aria-label={`${Math.round(pct)}% ${label}`}
+      className="relative flex shrink-0 items-center justify-center text-nv-ink"
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeOpacity={0.12} strokeWidth={stroke} />
-        <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={usageColor(pct)} strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={c} strokeDashoffset={entered ? c * (1 - shown / 100) : c}
-          style={{ transition: `stroke-dashoffset 1100ms ${EASE}, stroke 300ms` }}
-        />
-      </svg>
-      {elapsedPct !== undefined && elapsedPct > 0 && elapsedPct < 100 && (
-        <span
-          className="absolute h-2.5 w-2.5 rounded-full bg-nv-surface ring-2 ring-nv-ink"
-          style={{ left: size / 2 + r * Math.cos(angle) - 5, top: size / 2 + r * Math.sin(angle) - 5 }}
-          aria-hidden
-        />
-      )}
-      <div className="relative text-center">
-        <div className="nv-tabular text-[40px] font-semibold leading-none tracking-tight">{Math.round(pct)}<span className="text-2xl text-nv-muted">%</span></div>
-        <div className="mt-1.5 text-[12px] font-medium text-nv-muted">{label}</div>
-      </div>
+      <Gauge
+        value={shown}
+        totalNotches={32}
+        spacing={24}
+        notchCornerRadius={3}
+        uniformWidth={true}
+        notchLengthPercent={90}
+        width={size}
+        height={size}
+        startAngle={135}
+        endAngle={405}
+        activeFill={activeColor}
+        inactiveFill="var(--nv-inset)"
+        inactiveFillOpacity={1}
+        centerValue={Math.round(pct)}
+        suffix="%"
+        defaultLabel={label}
+        className="size-full"
+      />
     </div>
   );
 };
@@ -253,28 +254,73 @@ const ACCENT_STROKE: Record<Accent, [string, string]> = {
 };
 
 /** Up to three goals as concentric rings, outermost first. */
-export const GoalRings: React.FC<{ goals: GoalView[]; size?: number }> = ({ goals, size = 196 }) => {
+export const GoalRings: React.FC<{ goals: GoalView[]; size?: number; withLegend?: boolean }> = ({
+  goals,
+  size = 170,
+  withLegend = false,
+}) => {
   const entered = useEntered();
-  const stroke = 16;
+  const stroke = 14;
   const shown = goals.slice(0, 3);
+
+  const ringSvg = (
+    <div className="relative flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="shrink-0 -rotate-90"
+        role="img"
+        aria-label={shown.map(g => `${g.name} ${Math.round(g.pct)}%`).join(', ')}
+      >
+        {shown.map((g, i) => {
+          const r = size / 2 - stroke / 2 - i * (stroke + 5);
+          const c = 2 * Math.PI * r;
+          const [fill, track] = ACCENT_STROKE[GOAL_ACCENTS[i]];
+          return (
+            <g key={g.id}>
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                fill="none"
+                stroke={fill}
+                strokeWidth={stroke}
+                strokeLinecap="round"
+                strokeDasharray={c}
+                strokeDashoffset={entered ? c * (1 - Math.max(g.pct > 0 ? 1.5 : 0, g.pct) / 100) : c}
+                style={{ transition: `stroke-dashoffset ${1000 + i * 150}ms ${EASE}` }}
+              />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-nv-muted">Top Goals</span>
+        <span className="nv-tabular text-xs font-bold text-nv-ink">{shown.length} Rings</span>
+      </div>
+    </div>
+  );
+
+  if (!withLegend) return ringSvg;
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-90" role="img" aria-label={shown.map(g => `${g.name} ${Math.round(g.pct)}%`).join(', ')}>
-      {shown.map((g, i) => {
-        const r = size / 2 - stroke / 2 - i * (stroke + 5);
-        const c = 2 * Math.PI * r;
-        const [fill, track] = ACCENT_STROKE[GOAL_ACCENTS[i]];
-        return (
-          <g key={g.id}>
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
-            <circle
-              cx={size / 2} cy={size / 2} r={r} fill="none" stroke={fill} strokeWidth={stroke} strokeLinecap="round"
-              strokeDasharray={c} strokeDashoffset={entered ? c * (1 - Math.max(g.pct > 0 ? 1.5 : 0, g.pct) / 100) : c}
-              style={{ transition: `stroke-dashoffset ${1000 + i * 150}ms ${EASE}` }}
-            />
-          </g>
-        );
-      })}
-    </svg>
+    <div className="flex flex-col sm:flex-row items-center gap-4">
+      {ringSvg}
+      <div className="space-y-2 text-[12px]">
+        {shown.map((g, i) => {
+          const [fill] = ACCENT_STROKE[GOAL_ACCENTS[i]];
+          return (
+            <div key={g.id} className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: fill }} aria-hidden />
+              <span className="truncate max-w-[130px] font-medium text-nv-ink">{g.name}</span>
+              <span className="nv-tabular text-nv-muted ml-auto font-semibold">{Math.round(g.pct)}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
