@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../lib/utils';
 import type { Currency } from '../../../types';
+import { formatCurrency } from '../../../utils';
 import type { BudgetLine, BudgetStatus, GoalView, Pace, Slice } from '../../../utils/budgetModel';
-import { Badge, IconButton, Money, type Accent } from '../ui';
+import { PieCenter, PieChart, PieSlice, type PieData } from '../../bklit/charts';
 import { EntityGlyph } from '../EntityIcon';
 import { NvIcon, type NvIconName } from '../NvIcon';
+import { Badge, IconButton, Money, type Accent } from '../ui';
 
 /*
  * Pieces of BudgetNew (UI_UX_DESIGN_REFERENCE.md §5.1, R8): the dark ring gauge, dot-matrix days, the pace bar,
@@ -189,37 +191,53 @@ export const BudgetRow: React.FC<{
   );
 };
 
-/* ── Allocation ring ────────────────────────────────────────────────────── */
+/* ── Allocation ring (bklit/pie-chart) ──────────────────────────────────── */
 
-/** Each budget's share of the month as a donut in the categories' colours, total in the middle. */
-export const AllocationRing: React.FC<{ slices: Slice[]; colorOf: (name: string) => string; total: number; currency: Currency; size?: number }> = ({ slices, colorOf, total, currency, size = 176 }) => {
-  const entered = useEntered();
-  const stroke = 20;
-  const r = size / 2 - stroke / 2 - 2;
-  const c = 2 * Math.PI * r;
-  const gap = slices.length > 1 ? 4 : 0;
-  let offset = 0;
+/** Each budget's share of the month as a donut using bklit/pie-chart, total in the middle. */
+export const AllocationRing: React.FC<{
+  slices: Slice[];
+  colorOf: (name: string) => string;
+  total: number;
+  currency: Currency;
+  size?: number;
+}> = ({ slices, colorOf, total, currency, size = 220 }) => {
+  const pieData = useMemo<PieData[]>(() => {
+    return slices.map(s => ({
+      label: s.name,
+      value: s.value,
+      color: colorOf(s.name),
+    }));
+  }, [slices, colorOf]);
+
+  if (pieData.length === 0) return null;
+
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" role="img" aria-label={`Budget split: ${slices.map(s => `${s.name} ${Math.round(s.pct)}%`).join(', ')}`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--nv-inset)" strokeWidth={stroke} />
-        {slices.map(s => {
-          const len = Math.max(0, (s.pct / 100) * c - gap);
-          const dash = (
-            <circle
-              key={s.name} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colorOf(s.name)} strokeWidth={stroke}
-              strokeDasharray={`${entered ? len : 0} ${c}`} strokeDashoffset={-offset}
-              style={{ transition: `stroke-dasharray 900ms ${EASE}` }}
-            />
-          );
-          offset += (s.pct / 100) * c;
-          return dash;
-        })}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <Money amount={total} currency={currency} size="lg" compact={total >= 100_000} />
-        <span className="text-[12px] text-nv-muted">a month</span>
-      </div>
+    <div className="relative flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <PieChart
+        data={pieData}
+        size={size}
+        innerRadius={Math.round(size * 0.31)}
+        cornerRadius={6}
+        padAngle={pieData.length > 1 ? 0.04 : 0}
+        hoverOffset={6}
+        className="h-full w-full"
+      >
+        {pieData.map((_, index) => (
+          <PieSlice key={index} index={index} showGlow />
+        ))}
+        <PieCenter defaultLabel="TOTAL">
+          {({ value, label, isHovered }) => (
+            <div className="flex flex-col items-center justify-center text-center px-1">
+              <span className="truncate max-w-[130px] text-[11px] font-semibold uppercase tracking-wider text-nv-muted mb-0.5">
+                {isHovered ? label : 'TOTAL'}
+              </span>
+              <span className="privacy-blur nv-tabular text-xl sm:text-2xl font-bold tracking-tight text-nv-ink">
+                {formatCurrency(isHovered ? value : total, currency)}
+              </span>
+            </div>
+          )}
+        </PieCenter>
+      </PieChart>
     </div>
   );
 };
