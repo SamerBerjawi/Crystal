@@ -349,7 +349,7 @@ export const AutofillSheet: React.FC<{
                 type="button"
                 onClick={() => setSelectedMonths(opt.value)}
                 className={cn(
-                  'h-11 rounded-full border px-3 text-center text-[13px] font-medium transition-colors',
+                  'h-11 rounded-full border px-2 text-center text-[12px] sm:text-[13px] font-medium transition-colors whitespace-nowrap',
                   selectedMonths === opt.value
                     ? 'border-nv-ink bg-nv-ink text-nv-on-ink'
                     : 'border-nv-line bg-nv-surface text-nv-ink hover:bg-nv-inset'

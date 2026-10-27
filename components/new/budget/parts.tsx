@@ -70,11 +70,11 @@ export const RingGauge: React.FC<{ pct: number; elapsedPct?: number; label: stri
     <div
       role="img"
       aria-label={`${Math.round(pct)}% ${label}${elapsedPct !== undefined ? `, ${Math.round(elapsedPct)}% of the month gone` : ''}`}
-      className="relative flex shrink-0 items-center justify-center rounded-full bg-nv-ink text-nv-on-ink"
+      className="relative flex shrink-0 items-center justify-center rounded-full border border-nv-line/50 bg-nv-tile text-nv-ink"
       style={{ width: size, height: size }}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeOpacity={0.14} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeOpacity={0.12} strokeWidth={stroke} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none" stroke={usageColor(pct)} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={entered ? c * (1 - shown / 100) : c}
@@ -83,14 +83,14 @@ export const RingGauge: React.FC<{ pct: number; elapsedPct?: number; label: stri
       </svg>
       {elapsedPct !== undefined && elapsedPct > 0 && elapsedPct < 100 && (
         <span
-          className="absolute h-2.5 w-2.5 rounded-full bg-nv-on-ink ring-[3px] ring-nv-ink"
+          className="absolute h-2.5 w-2.5 rounded-full bg-nv-surface ring-2 ring-nv-ink"
           style={{ left: size / 2 + r * Math.cos(angle) - 5, top: size / 2 + r * Math.sin(angle) - 5 }}
           aria-hidden
         />
       )}
       <div className="relative text-center">
-        <div className="nv-tabular text-[40px] font-semibold leading-none tracking-tight">{Math.round(pct)}<span className="text-2xl opacity-60">%</span></div>
-        <div className="mt-1.5 text-[12px] opacity-70">{label}</div>
+        <div className="nv-tabular text-[40px] font-semibold leading-none tracking-tight">{Math.round(pct)}<span className="text-2xl text-nv-muted">%</span></div>
+        <div className="mt-1.5 text-[12px] font-medium text-nv-muted">{label}</div>
       </div>
     </div>
   );

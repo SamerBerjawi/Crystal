@@ -13,9 +13,9 @@ export const BUDGET_ACCOUNT_TYPES: readonly string[] = ['Checking', 'Savings', '
 /** History lengths for auto-fill (classic parity with the quick-create options). */
 export const AUTOFILL_OPTIONS: { value: '1' | '3' | '6' | '12'; label: string }[] = [
   { value: '1', label: 'Last month' },
-  { value: '3', label: '3-month average' },
-  { value: '6', label: '6-month average' },
-  { value: '12', label: '12-month average' },
+  { value: '3', label: '3-month avg' },
+  { value: '6', label: '6-month avg' },
+  { value: '12', label: '12-month avg' },
 ];
 
 export const UNCATEGORIZED = 'Uncategorized';
