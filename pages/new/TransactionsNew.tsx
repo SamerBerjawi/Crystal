@@ -4,9 +4,9 @@ import type { User } from '../../types';
 import { useTransactionsData } from '../../hooks/useTransactionsData';
 import { downloadCSV, formatCurrency } from '../../utils';
 import {
-  PERIODS, SORTS, balanceAccounts, canCombineRows, filterRows, groupByDay, isDateSort, kpiTotals, metricSeries, needsReview, pctChange, periodRange, periodTotals,
+  PERIODS, SORTS, balanceAccounts, canCombineRows, filterRows, groupByDay, isDateSort, kpiTotals, needsReview, pctChange, periodRange, periodTotals,
   placeClusters, previousRange, rowsToCsv, sortRows, spendByWeekday, topCategory, totalBalance,
-  type MetricId, type PeriodId, type SortId, type TxKind, type TxRow,
+  type PeriodId, type SortId, type TxKind, type TxRow,
 } from '../../utils/transactionsModel';
 import { HeaderControls, HeaderTools, usePageAction, usePageSearch, usePageTabs, useShellNew } from '../../components/new/shellContext';
 import { Button, Card, EmptyState, IconButton, MoreButton, Money } from '../../components/new/ui';
@@ -21,8 +21,7 @@ import { PickerField, TextField, TransactionRowItem } from '../../components/new
 import { FilterList, accountFilterOptions, accountQuickFilters, categoryFilterOptions, merchantFilterOptions, tagFilterOptions, type FilterOption } from '../../components/new/transactions/filters';
 import { TransactionTable, type ColumnFilters, type CellFilter, type RowMenuEntry } from '../../components/new/transactions/table';
 import { useMediaQuery } from '../../components/new/Drawer';
-import { BalanceCard, SpendingHero } from '../../components/new/transactions/overview';
-import MetricCard from '../../components/kokonutui/metric-card';
+import { TransactionsHeroCard } from '../../components/new/transactions/overview';
 
 /*
  * TransactionsNew (UI_UX_DESIGN_REFERENCE.md §5, migration notes in §12). Tabs Activity / To review and the
@@ -41,7 +40,6 @@ interface TransactionsNewProps {
 }
 
 type Tab = 'activity' | 'review';
-const METRIC_LABELS: Record<MetricId, string> = { count: 'Total transactions', income: 'Total income', expense: 'Total expenses', net: 'Net cash flow' };
 const CHUNK = 60;
 const KIND_CHIPS: { kind: TxKind; label: string; icon: NvIconName }[] = [
   { kind: 'expense', label: 'Expenses', icon: 'money' },
@@ -158,27 +156,7 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
   // The four KPIs follow the list (classic parity): every filter applies, and the change compares with the same filters one period back.
   const kpi = useMemo(() => kpiTotals(shown, data.convert), [shown, data.convert]);
   const prevKpi = useMemo(() => kpiTotals(filterRows(filterRows(prevPeriod, filterSpec), { places, weekdays }), data.convert), [prevPeriod, filterSpec, places, weekdays, data.convert]);
-  const [metric, setMetric] = useState<MetricId>('count');
-  // The chart covers the period (at least a week), and the same length before it to compare with. A year at most,
-  // except all time, which reaches back to the oldest transaction.
-  const chartDays = useMemo(() => {
-    const day = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
-    if (!range.from || !range.to) {
-      const end = isoOf(new Date());
-      const oldest = scope.reduce((min, r) => (r.date < min ? r.date : min), end);
-      return Math.max(7, Math.round((day(end) - day(oldest)) / 86_400_000) + 1);
-    }
-    const span = Math.round((day(range.to) - day(range.from)) / 86_400_000) + 1;
-    return Math.min(366, Math.max(7, span));
-  }, [range, scope]);
-  const chart = useMemo(
-    () => metricSeries(filterRows(filterRows(scope, filterSpec), { places, weekdays }), metric, range.to ?? isoOf(new Date()), chartDays, data.convert),
-    [scope, filterSpec, places, weekdays, metric, range.to, chartDays, data.convert],
-  );
-  const formatMoney = useCallback((v: number) => formatCurrency(v, data.displayCurrency), [data.displayCurrency]);
-  // Each segment draws in its category's own colour; the rest, and the three kinds, in the accents.
-  const KIND_COLORS: Record<string, string> = { Expenses: 'var(--nv-red)', Income: 'var(--nv-green)', Transfers: 'var(--nv-sky)', 'Net cash flow': 'var(--nv-violet)' };
-  const segmentColor = (name: string) => data.categoryByName.get(name)?.color ?? KIND_COLORS[name] ?? 'var(--nv-faint)';
+
   const pctOf = (cur: number, prev: number) => (prev === 0 ? null : Math.round(((cur - prev) / Math.abs(prev)) * 1000) / 10);
   const top = useMemo(() => topCategory(inPeriod, data.convert), [inPeriod, data.convert]);
   const balanceAccts = useMemo(() => balanceAccounts(data.accounts), [data.accounts]);
@@ -436,30 +414,24 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-4">
-      {/* The balance with the four statistics (classic KPIs), then the expenses chart beside the map (§17, N15). */}
-      <BalanceCard
-        total={balance.total} count={balance.count} currency={data.displayCurrency}
+      {/* Unified hero card: total balance, account count, cash flow summary, and interactive map */}
+      <TransactionsHeroCard
+        total={balance.total}
+        accountCount={balance.count}
+        currency={data.displayCurrency}
         stats={kpi}
-        deltas={{ count: pctOf(kpi.count, prevKpi.count), income: pctOf(kpi.income, prevKpi.income), expense: pctOf(kpi.expense, prevKpi.expense), net: pctOf(kpi.net, prevKpi.net) }}
-        metric={metric} onMetric={setMetric}
-      />
-
-      <SpendingHero
-        chart={(
-          <MetricCard
-            key={`${metric}-${chartDays}-${range.to ?? 'all'}`}
-            bare
-            label={METRIC_LABELS[metric]}
-            segments={chart.segments}
-            data={chart.points}
-            colors={chart.segments.map(segmentColor)}
-            periods={[chartDays]}
-            defaultPeriod={chartDays}
-            formatValue={metric === 'count' ? undefined : formatMoney}
-            invert={metric === 'expense'}
-          />
-        )}
-        clusters={clusters} selectedPlaces={places} onTogglePlace={toggleIn(setPlaces)} unplaced={unplaced}
+        deltas={{
+          count: pctOf(kpi.count, prevKpi.count),
+          income: pctOf(kpi.income, prevKpi.income),
+          expense: pctOf(kpi.expense, prevKpi.expense),
+          net: pctOf(kpi.net, prevKpi.net),
+        }}
+        activeKinds={kinds}
+        onToggleKind={toggleIn(setKinds)}
+        clusters={clusters}
+        selectedPlaces={places}
+        onTogglePlace={toggleIn(setPlaces)}
+        unplaced={unplaced}
       />
 
       {/* Controls live in the header band (§14 N5): period, filters, type chips and active filters; the tools are on the tabs row (§15 N6). */}

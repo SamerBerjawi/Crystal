@@ -223,3 +223,233 @@ export const SpendingHero: React.FC<{
     </Card>
   );
 };
+
+/* -------------------------------------------------------- unified hero card */
+
+export interface TransactionsHeroCardProps {
+  total: number;
+  accountCount: number;
+  currency: Currency;
+  stats: { count: number; income: number; expense: number; net: number };
+  deltas: { count: number | null; income: number | null; expense: number | null; net: number | null };
+  activeKinds: TxKind[];
+  onToggleKind: (kind: TxKind) => void;
+  clusters: PlaceCluster[];
+  selectedPlaces: string[];
+  onTogglePlace: (key: string) => void;
+  unplaced: number;
+  className?: string;
+}
+
+/**
+ * Unified Transactions Hero Card: merges total balance, accounts, cash flow summary,
+ * and the interactive places map into a single compact, high-signal card.
+ */
+export const TransactionsHeroCard: React.FC<TransactionsHeroCardProps> = ({
+  total,
+  accountCount,
+  currency,
+  stats,
+  deltas,
+  activeKinds,
+  onToggleKind,
+  clusters,
+  selectedPlaces,
+  onTogglePlace,
+  unplaced,
+  className,
+}) => {
+  const { isDark } = useShellNew();
+  const located = clusters.reduce((n, c) => n + c.count, 0);
+
+  const hasFlow = stats.income > 0 || stats.expense > 0;
+  const totalFlow = stats.income + stats.expense;
+  const incomePct = totalFlow > 0 ? (stats.income / totalFlow) * 100 : 0;
+  const expensePct = totalFlow > 0 ? (stats.expense / totalFlow) * 100 : 0;
+
+  return (
+    <Card className={cn('p-4 sm:p-5 lg:p-6', className)}>
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        {/* Left Column: Balance, period count, flow bar, and cash flow tiles */}
+        <div className="flex min-w-0 flex-col justify-between gap-4">
+          <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[13px] font-medium text-nv-muted">Total balance</p>
+                  <span className="rounded-full border border-nv-line/60 bg-nv-surface px-2 py-0.5 text-[11px] font-medium text-nv-muted">
+                    Across {accountCount} {accountCount === 1 ? 'account' : 'accounts'}
+                  </span>
+                </div>
+                <div className="mt-1.5">
+                  <Money amount={total} currency={currency} size="hero" className="!text-3xl sm:!text-4xl lg:!text-5xl tracking-tight" />
+                </div>
+              </div>
+
+              <div className="flex shrink-0 flex-col items-end rounded-nv-sub border border-nv-line/50 bg-nv-surface px-3 py-2 text-right">
+                <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                  <span className="nv-tabular text-xl font-semibold leading-none text-nv-ink sm:text-2xl">{stats.count.toLocaleString()}</span>
+                  <span className="text-[12px] text-nv-muted">txns</span>
+                </span>
+                {deltas.count !== null && (
+                  <span className="mt-1 text-[11px]">
+                    <Delta pct={deltas.count} good="up" />
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Inflow vs Outflow Visual Bar */}
+            {hasFlow && (
+              <div className="mt-4 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-medium text-nv-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-nv-green" aria-hidden />
+                    Inflow {incomePct.toFixed(0)}%
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    Outflow {expensePct.toFixed(0)}%
+                    <span className="h-1.5 w-1.5 rounded-full bg-nv-red" aria-hidden />
+                  </span>
+                </div>
+                <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-nv-line/40">
+                  <div
+                    className="bg-nv-green transition-all duration-500 ease-out"
+                    style={{ width: `${incomePct}%` }}
+                  />
+                  <div
+                    className="bg-nv-red transition-all duration-500 ease-out"
+                    style={{ width: `${expensePct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cash Flow Summary Tiles */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {/* Income Tile (Clickable filter) */}
+            <button
+              type="button"
+              onClick={() => onToggleKind('income')}
+              aria-pressed={activeKinds.includes('income')}
+              title={activeKinds.includes('income') ? 'Remove income filter' : 'Filter by income'}
+              className={cn(
+                'group min-w-0 rounded-nv-sub border border-nv-line/40 bg-nv-surface p-2.5 text-left transition-all hover:border-nv-line sm:p-3',
+                activeKinds.includes('income') && 'border-nv-green/60 ring-1 ring-nv-green'
+              )}
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-nv-muted sm:text-[12px]">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-nv-green" aria-hidden />
+                  Income
+                </span>
+                <span className="text-[11px] sm:text-[12px]"><Delta pct={deltas.income} good="up" /></span>
+              </div>
+              <div className="mt-1 truncate">
+                <Money amount={stats.income} currency={currency} size="lg" signed={false} className="!text-[14px] sm:!text-lg font-semibold" />
+              </div>
+            </button>
+
+            {/* Expenses Tile (Clickable filter) */}
+            <button
+              type="button"
+              onClick={() => onToggleKind('expense')}
+              aria-pressed={activeKinds.includes('expense')}
+              title={activeKinds.includes('expense') ? 'Remove expenses filter' : 'Filter by expenses'}
+              className={cn(
+                'group min-w-0 rounded-nv-sub border border-nv-line/40 bg-nv-surface p-2.5 text-left transition-all hover:border-nv-line sm:p-3',
+                activeKinds.includes('expense') && 'border-nv-red/60 ring-1 ring-nv-red'
+              )}
+            >
+              <div className="flex items-center justify-between gap-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-nv-muted sm:text-[12px]">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-nv-red" aria-hidden />
+                  Expenses
+                </span>
+                <span className="text-[11px] sm:text-[12px]"><Delta pct={deltas.expense} good="down" /></span>
+              </div>
+              <div className="mt-1 truncate">
+                <Money amount={stats.expense} currency={currency} size="lg" className="!text-[14px] sm:!text-lg font-semibold" />
+              </div>
+            </button>
+
+            {/* Net Flow Tile */}
+            <div className="min-w-0 rounded-nv-sub border border-nv-line/40 bg-nv-surface p-2.5 text-left sm:p-3">
+              <div className="flex items-center justify-between gap-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-nv-muted sm:text-[12px]">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-nv-violet" aria-hidden />
+                  Net
+                </span>
+                <span className="text-[11px] sm:text-[12px]"><Delta pct={deltas.net} good="up" /></span>
+              </div>
+              <div className="mt-1 truncate">
+                <Money
+                  amount={stats.net}
+                  currency={currency}
+                  size="lg"
+                  signed={stats.net > 0}
+                  tone={stats.net > 0 ? 'income' : 'ink'}
+                  className="!text-[14px] sm:!text-lg font-semibold"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Interactive Map */}
+        <div className="flex flex-col">
+          <div className="mb-2.5 flex items-center justify-between text-[13px] text-nv-muted">
+            <span className="flex items-center gap-1.5 font-medium text-nv-ink">
+              <NvIcon name="pin" size={15} className="text-nv-violet-text" />
+              Where you spent
+            </span>
+            <div className="flex items-center gap-2">
+              {clusters.length > 0 && (
+                <span className="text-[12px] text-nv-muted">
+                  {clusters.length} {clusters.length === 1 ? 'place' : 'places'} · {located} txns
+                </span>
+              )}
+              {selectedPlaces.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => selectedPlaces.forEach(p => onTogglePlace(p))}
+                  className="rounded-full bg-nv-violet-soft px-2 py-0.5 text-[11px] font-medium text-nv-violet-text transition-opacity hover:opacity-80"
+                >
+                  Clear ({selectedPlaces.length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="relative min-h-[190px] flex-1 overflow-hidden rounded-nv-sub border border-nv-line/50 bg-nv-surface sm:min-h-[210px] lg:min-h-[220px]">
+            {clusters.length > 0 ? (
+              <Suspense fallback={<Bone className="h-full w-full rounded-nv-sub" />}>
+                <LazyPlacesMap clusters={clusters} selected={selectedPlaces} onSelect={onTogglePlace} dark={isDark} />
+              </Suspense>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-nv-violet-soft text-nv-violet-text">
+                  <NvIcon name="pin" size={18} />
+                </span>
+                <p className="text-[14px] font-medium text-nv-ink">No places yet</p>
+                <p className="max-w-xs text-[12px] text-nv-muted">
+                  {unplaced > 0
+                    ? `${unplaced} transaction${unplaced === 1 ? ' has' : 's have'} no coordinates to place on map.`
+                    : 'Add a location to transactions to see them here.'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {clusters.length > 0 && (
+            <p className="mt-1.5 text-[11px] text-nv-muted">
+              Tap a place to filter the list; tap again to clear.
+            </p>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
