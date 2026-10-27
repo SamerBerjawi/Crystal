@@ -1,6 +1,6 @@
 "use client";
 
-import type { scaleBand, scaleLinear, scaleTime } from "@visx/scale";
+import { type scaleBand, scaleLinear, type scaleTime } from "@visx/scale";
 
 type ScaleLinear<Output, _Input = number> = ReturnType<
   typeof scaleLinear<Output>
@@ -20,7 +20,10 @@ import {
   type RefObject,
   type SetStateAction,
   useContext,
+  useEffect,
+  useLayoutEffect,
   useMemo,
+  useState,
 } from "react";
 import type { ChartPhase, ChartStatus } from "./chart-phase";
 import type { ReferenceAreaConfig } from "./reference-area-config";
@@ -78,15 +81,33 @@ export interface TooltipData {
   yPositions: Record<string, number>;
   /** X positions for each series (for grouped bars), keyed by dataKey */
   xPositions?: Record<string, number>;
+  /**
+   * Series whose point is hovered when hover snaps to the nearest point
+   * (`ScatterChart` with `jitter`). The tooltip dot and panel follow this
+   * point.
+   */
+  activeDataKey?: string;
 }
 
 export interface LineConfig {
   dataKey: string;
-  label?: string;
   stroke: string;
   strokeWidth: number;
   /** Scale group id (Recharts `yAxisId`). Default: `"left"`. */
   yAxisId?: string | number;
+}
+
+/** Y-domain and tooltip inputs collected from a `<Band>` child. */
+export interface BandConfig {
+  yAxisId: string;
+  upperKey: string;
+  lowerKey: string;
+  /** Tooltip swatch / edge-dot colour (the band's `fill`). */
+  color: string;
+  /** Tooltip row label. */
+  label: string;
+  /** Whether the band adds a range row and edge dots to `ChartTooltip`. */
+  showInTooltip: boolean;
 }
 
 /**
@@ -146,6 +167,9 @@ export interface ChartContextValue extends ChartHoverContextValue {
 
   // Line configurations (extracted from children)
   lines: LineConfig[];
+
+  /** `<Band>` configs (time-series charts) — tooltip range rows and edge dots. */
+  bands?: BandConfig[];
 
   /** {@link ReferenceArea} bands — drives y-axis label colors in range. */
   referenceAreas: ReferenceAreaConfig[];
@@ -216,6 +240,13 @@ export interface ChartContextValue extends ChartHoverContextValue {
   composedStackOffsets?: Map<number, Map<string, number>>;
   /** Vertical gap in px between stacked `SeriesBar` segments. Default: 0 */
   composedStackGap?: number;
+
+  /**
+   * Hover resolves to the nearest point in 2D rather than the nearest x column
+   * (e.g. `ScatterChart` with `jitter`). `ChartTooltip` hides its crosshair
+   * line by default when set, since the line would not mark a single x value.
+   */
+  nearestPointHover?: boolean;
 }
 
 /**
@@ -227,6 +258,10 @@ export type ChartStableContextValue = Omit<
   ChartContextValue,
   keyof ChartHoverContextValue
 >;
+
+/** `useLayoutEffect` in the browser, `useEffect` on the server (no SSR warning). */
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const ChartStableContext = createContext<ChartStableContextValue | null>(null);
 const ChartHoverContext = createContext<ChartHoverContextValue | null>(null);
@@ -259,6 +294,7 @@ export function ChartProvider({
       columnWidth: value.columnWidth,
       containerRef: value.containerRef,
       lines: value.lines,
+      bands: value.bands,
       referenceAreas: value.referenceAreas,
       chartPhase: value.chartPhase,
       chartStatus: value.chartStatus,
@@ -289,6 +325,7 @@ export function ChartProvider({
       composedStacked: value.composedStacked,
       composedStackOffsets: value.composedStackOffsets,
       composedStackGap: value.composedStackGap,
+      nearestPointHover: value.nearestPointHover,
     }),
     [
       value.data,
@@ -304,6 +341,7 @@ export function ChartProvider({
       value.columnWidth,
       value.containerRef,
       value.lines,
+      value.bands,
       value.referenceAreas,
       value.chartPhase,
       value.chartStatus,
@@ -334,6 +372,7 @@ export function ChartProvider({
       value.composedStacked,
       value.composedStackOffsets,
       value.composedStackGap,
+      value.nearestPointHover,
     ]
   );
 
@@ -385,6 +424,34 @@ export function useChartStable(): ChartStableContextValue {
   return context;
 }
 
+/**
+ * Resolves a chart container element to use as a `createPortal` target.
+ *
+ * The element is captured from the ref after mount and kept in state, so
+ * nothing reads `ref.current` during render (React Compiler
+ * `react-hooks/refs`). Returns `null` during SSR / the first render.
+ *
+ * - Layout effect: when the container is a sibling or ancestor already
+ *   attached, the synchronous re-render puts portalled axes and tooltips in
+ *   the same painted frame as the plot.
+ * - Passive effect: React attaches refs child-first in the layout phase, so a
+ *   portal rendered *inside* its container (heatmap, choropleth tooltips) sees
+ *   `null` above. By the passive phase every ref is attached; this picks it up.
+ */
+export function useChartPortalContainer<T extends HTMLElement>(
+  containerRef: RefObject<T | null> | undefined
+): T | null {
+  const [container, setContainer] = useState<T | null>(null);
+  useIsomorphicLayoutEffect(() => {
+    setContainer(containerRef?.current ?? null);
+  }, [containerRef]);
+  useEffect(() => {
+    const element = containerRef?.current ?? null;
+    setContainer((previous) => (previous === element ? previous : element));
+  }, [containerRef]);
+  return container;
+}
+
 /** Y-scale for a series axis (`yAxisId` on Line / Area / YAxis). */
 export function useYScale(
   yAxisId?: string | number
@@ -393,6 +460,32 @@ export function useYScale(
   const id =
     yAxisId == null || yAxisId === "" ? DEFAULT_Y_AXIS_ID : String(yAxisId);
   return yScales[id] ?? yScale;
+}
+
+/**
+ * Y-scale at the end of the y-domain tween (the target domain), for series
+ * that animate toward their final pixels rather than the mid-tween scale.
+ * Falls back to {@link useYScale} when no target domain is published.
+ */
+export function useSettledYScale(
+  yAxisId?: string | number
+): ScaleLinear<number, number> {
+  const { yDomainTargetByAxis, innerHeight } = useChartStable();
+  const liveScale = useYScale(yAxisId);
+  const id =
+    yAxisId == null || yAxisId === "" ? DEFAULT_Y_AXIS_ID : String(yAxisId);
+  const domain =
+    yDomainTargetByAxis?.[id] ?? yDomainTargetByAxis?.[DEFAULT_Y_AXIS_ID];
+  const min = domain?.[0];
+  const max = domain?.[1];
+  const settled = useMemo(
+    () =>
+      min == null || max == null
+        ? null
+        : scaleLinear({ range: [innerHeight, 0], domain: [min, max] }),
+    [min, max, innerHeight]
+  );
+  return settled ?? liveScale;
 }
 
 /**

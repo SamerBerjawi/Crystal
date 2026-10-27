@@ -137,17 +137,41 @@ export function useAnimatedYDomains({
     targetByAxis
   );
   const destinationRef = useRef(destinationByAxis);
-  destinationRef.current = destinationByAxis;
   const skeletonRef = useRef(skeletonByAxis);
-  skeletonRef.current = skeletonByAxis;
   const targetRef = useRef(targetByAxis);
-  targetRef.current = targetByAxis;
 
   const [animatedByAxis, setAnimatedByAxis] = useState(destinationByAxis);
+
+  // Only grid-tween phases and (opt-in) ready-phase target changes animate.
+  // Everything else snaps — resolved during render so the new domain lands in
+  // the same commit as the data (a snap from an effect would paint a frame
+  // with the old y-scale, then re-render).
+  const mayTween =
+    isYDomainTweenPhase(chartPhase) ||
+    (tweenOnTargetChange &&
+      chartPhase === "ready" &&
+      enabled &&
+      !reducedMotion);
+  if (
+    !mayTween &&
+    animatedByAxis !== destinationByAxis &&
+    !domainsEqual(animatedByAxis, destinationByAxis)
+  ) {
+    setAnimatedByAxis(destinationByAxis);
+  }
   const animatedRef = useRef(animatedByAxis);
   const prevPhaseRef = useRef(chartPhase);
   const onSettledRef = useRef(onSettled);
-  onSettledRef.current = onSettled;
+
+  // Latest-value mirrors for the effects / animation callbacks below. Synced
+  // in an effect (not during render) and declared first so they are current
+  // before the tween effects run in the same commit.
+  useEffect(() => {
+    destinationRef.current = destinationByAxis;
+    skeletonRef.current = skeletonByAxis;
+    targetRef.current = targetByAxis;
+    onSettledRef.current = onSettled;
+  });
 
   useEffect(() => {
     animatedRef.current = animatedByAxis;
@@ -238,5 +262,5 @@ export function useAnimatedYDomains({
     tweenOnTargetChange,
   ]);
 
-  return animatedByAxis;
+  return mayTween ? animatedByAxis : destinationByAxis;
 }
