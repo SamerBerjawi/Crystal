@@ -129,8 +129,8 @@ test('goal views add up buckets and skip disabled goals', () => {
   const g = (over: Partial<FinancialGoal>): FinancialGoal => ({ id: 'g', name: 'Goal', type: 'one-time', transactionType: 'expense', amount: 100, currentAmount: 0, currency: 'EUR', ...over });
   const views = goalViews([
     g({ id: 'trip', name: 'Trip', isBucket: true, amount: 0 }),
-    g({ id: 'flights', parentId: 'trip', amount: 600, currentAmount: 300 }),
-    g({ id: 'hotel', parentId: 'trip', amount: 400, currentAmount: 100, currency: 'USD' }),
+    g({ id: 'flights', name: 'flights', parentId: 'trip', amount: 600, currentAmount: 300 }),
+    g({ id: 'hotel', name: 'hotel', parentId: 'trip', amount: 400, currentAmount: 100, currency: 'USD' }),
     g({ id: 'car', name: 'Car', amount: 1000, currentAmount: 1000 }),
     g({ id: 'off', name: 'Off', disabled: true }),
     g({ id: 'fund', name: 'Fund', type: 'recurring', amount: 200, currentAmount: 150, monthlyContribution: 50, endDate: '2027-01-01' }),
@@ -140,4 +140,12 @@ test('goal views add up buckets and skip disabled goals', () => {
   ]);
   assert.equal(views[0].due, '2027-01-01');
   assert.equal(views[0].monthly, 50);
+  const trip = views.find(v => v.name === 'Trip');
+  assert.equal(trip?.subGoals?.length, 2);
+  assert.equal(trip?.subGoals?.[0].name, 'flights');
+  assert.equal(trip?.subGoals?.[0].target, 600);
+  assert.equal(trip?.subGoals?.[0].saved, 300);
+  assert.equal(trip?.subGoals?.[1].name, 'hotel');
+  assert.equal(trip?.subGoals?.[1].target, 200);
+  assert.equal(trip?.subGoals?.[1].saved, 50);
 });

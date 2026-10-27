@@ -305,6 +305,7 @@ export interface GoalView {
   due?: string;
   monthly?: number;
   recurring: boolean;
+  subGoals?: GoalView[];
 }
 
 /**
@@ -316,18 +317,46 @@ export const goalViews = (goals: FinancialGoal[], convert: Convert): GoalView[] 
   return active
     .filter(g => !g.parentId)
     .map(g => {
-      const children = g.isBucket ? active.filter(c => c.parentId === g.id) : [];
+      const children = active.filter(c => c.parentId === g.id);
       const members = children.length ? children : [g];
       const target = members.reduce((s, m) => s + convert(m.amount, m.currency), 0);
       const saved = members.reduce((s, m) => s + convert(m.currentAmount ?? 0, m.currency), 0);
       const pct = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
       const done = !!g.completed || (target > 0 && saved >= target);
+
+      const subGoals: GoalView[] = children.map(c => {
+        const cTarget = convert(c.amount, c.currency);
+        const cSaved = convert(c.currentAmount ?? 0, c.currency);
+        const cPct = cTarget > 0 ? Math.min(100, (cSaved / cTarget) * 100) : 0;
+        const cDone = !!c.completed || (cTarget > 0 && cSaved >= cTarget);
+        return {
+          id: c.id,
+          name: c.name,
+          target: cTarget,
+          saved: cSaved,
+          pct: cPct,
+          parts: 0,
+          done: cDone,
+          status: c.projection?.status,
+          due: c.type === 'one-time' ? c.date : c.endDate,
+          monthly: c.monthlyContribution !== undefined ? convert(c.monthlyContribution, c.currency) : undefined,
+          recurring: c.type === 'recurring',
+        };
+      }).sort((a, b) => Number(a.done) - Number(b.done) || b.pct - a.pct);
+
       return {
-        id: g.id, name: g.name, target, saved, pct, parts: children.length, done,
+        id: g.id,
+        name: g.name,
+        target,
+        saved,
+        pct,
+        parts: children.length,
+        done,
         status: g.projection?.status,
         due: g.type === 'one-time' ? g.date : g.endDate,
         monthly: g.monthlyContribution !== undefined ? convert(g.monthlyContribution, g.currency) : undefined,
         recurring: g.type === 'recurring',
+        subGoals: subGoals.length > 0 ? subGoals : undefined,
       };
     })
     .sort((a, b) => Number(a.done) - Number(b.done) || b.pct - a.pct);

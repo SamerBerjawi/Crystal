@@ -97,6 +97,40 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [unbudgetedOpen, setUnbudgetedOpen] = useState(false);
 
+  // Goals expansion state
+  const [expandedGoalIds, setExpandedGoalIds] = useState<Set<string>>(() => new Set());
+  const toggleExpandGoal = (id: string) => {
+    setExpandedGoalIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const displayedGoals = useMemo(() => {
+    if (!searchQuery.trim() || tab !== 'goals') return data.goals;
+    const q = searchQuery.toLowerCase();
+    return data.goals.filter(g =>
+      g.name.toLowerCase().includes(q) ||
+      g.subGoals?.some(sg => sg.name.toLowerCase().includes(q))
+    );
+  }, [data.goals, searchQuery, tab]);
+
+  const goalsWithSub = useMemo(
+    () => data.goals.filter(g => (g.subGoals && g.subGoals.length > 0) || g.parts > 0),
+    [data.goals]
+  );
+  const allSubGoalsExpanded =
+    goalsWithSub.length > 0 && goalsWithSub.every(g => expandedGoalIds.has(g.id));
+  const toggleAllSubGoals = () => {
+    if (allSubGoalsExpanded) {
+      setExpandedGoalIds(new Set());
+    } else {
+      setExpandedGoalIds(new Set(goalsWithSub.map(g => g.id)));
+    }
+  };
+
   // Month navigation
   const isCurrent = sameMonth(selectedMonth, currentMonth);
   const pace = useMemo(() => monthPace(selectedMonth, today), [selectedMonth, today]);
@@ -759,78 +793,185 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
           </Card>
 
           {/* Goals Grid List */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {data.goals.length === 0 ? (
-              <div className="col-span-full">
-                <Card tone="surface">
-                  <EmptyState
-                    icon="award"
-                    title="No savings goals set"
-                    body="Define target amounts and dates to stay motivated and track your wealth journey."
+          <div className="space-y-3">
+            {goalsWithSub.length > 0 && (
+              <div className="flex items-center justify-between px-1 text-[13px]">
+                <span className="font-medium text-nv-muted">
+                  {displayedGoals.length} {displayedGoals.length === 1 ? 'Goal' : 'Goals'}
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleAllSubGoals}
+                  className="inline-flex items-center gap-1.5 font-medium text-nv-violet-text hover:underline text-[12px]"
+                >
+                  <NvIcon
+                    name="arrowDown"
+                    size={13}
+                    className={cn('transition-transform duration-200', allSubGoalsExpanded && 'rotate-180')}
                   />
-                </Card>
+                  <span>{allSubGoalsExpanded ? 'Collapse all sub-goals' : 'Expand all sub-goals'}</span>
+                </button>
               </div>
-            ) : (
-              data.goals.map((g, index) => {
-                const accent = GOAL_ACCENTS[index % GOAL_ACCENTS.length];
-                return (
-                  <Card key={g.id} tone="surface" className="flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-base font-semibold text-nv-ink">{g.name}</h3>
-                            {g.parts > 0 && (
-                              <span className="rounded-full bg-nv-inset px-2 py-0.5 text-[10px] font-semibold text-nv-muted">
-                                {g.parts} sub-goals
-                              </span>
+            )}
+
+            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {displayedGoals.length === 0 ? (
+                <div className="col-span-full">
+                  <Card tone="surface">
+                    <EmptyState
+                      icon="award"
+                      title={searchQuery ? 'No goals match your search' : 'No savings goals set'}
+                      body={
+                        searchQuery
+                          ? 'Try clearing your search query.'
+                          : 'Define target amounts and dates to stay motivated and track your wealth journey.'
+                      }
+                    />
+                  </Card>
+                </div>
+              ) : (
+                displayedGoals.map((g, index) => {
+                  const accent = GOAL_ACCENTS[index % GOAL_ACCENTS.length];
+                  const hasSub = (g.subGoals && g.subGoals.length > 0) || g.parts > 0;
+                  const isExpanded = expandedGoalIds.has(g.id);
+                  return (
+                    <Card key={g.id} tone="surface" className="flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="truncate text-base font-semibold text-nv-ink">{g.name}</h3>
+                              {hasSub && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandGoal(g.id)}
+                                  aria-expanded={isExpanded}
+                                  aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${g.name} sub-goals`}
+                                  className={cn(
+                                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+                                    isExpanded
+                                      ? 'border-nv-ink bg-nv-ink text-nv-on-ink'
+                                      : 'border-nv-line bg-nv-inset text-nv-ink hover:bg-nv-tile'
+                                  )}
+                                >
+                                  <span>{g.parts} sub-goals</span>
+                                  <NvIcon
+                                    name="arrowDown"
+                                    size={12}
+                                    className={cn(
+                                      'transition-transform duration-200',
+                                      isExpanded ? 'rotate-180 text-nv-on-ink' : 'text-nv-muted'
+                                    )}
+                                  />
+                                </button>
+                              )}
+                            </div>
+                            {g.due && (
+                              <p className="mt-0.5 text-[12px] text-nv-muted">Target: {g.due}</p>
                             )}
                           </div>
-                          {g.due && (
-                            <p className="mt-0.5 text-[12px] text-nv-muted">Target: {g.due}</p>
+
+                          {g.done ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-nv-green/40 bg-nv-green-soft px-2.5 py-0.5 text-xs font-semibold text-nv-green-text">
+                              <NvIcon name="check" size={14} /> Completed
+                            </span>
+                          ) : (
+                            <span className="nv-tabular shrink-0 text-sm font-semibold text-nv-ink">
+                              {Math.round(g.pct)}%
+                            </span>
                           )}
                         </div>
 
-                        {g.done ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-nv-green/40 bg-nv-green-soft px-2.5 py-0.5 text-xs font-semibold text-nv-green-text">
-                            <NvIcon name="check" size={14} /> Completed
-                          </span>
-                        ) : (
-                          <span className="nv-tabular text-sm font-semibold text-nv-ink">
-                            {Math.round(g.pct)}%
-                          </span>
-                        )}
+                        <div className="mt-4">
+                          <ProgressBar
+                            value={g.pct}
+                            tone={accent === 'sky' ? 'violet' : accent}
+                            label={`${g.name} progress`}
+                            showValue={false}
+                            className="h-2.5"
+                          />
+                        </div>
                       </div>
 
-                      <div className="mt-4">
-                        <ProgressBar
-                          value={g.pct}
-                          tone={accent === 'sky' ? 'violet' : accent}
-                          label={`${g.name} progress`}
-                          showValue={false}
-                          className="h-2.5"
-                        />
+                      <div className="mt-4 flex items-baseline justify-between border-t border-nv-line pt-3 text-[13px]">
+                        <div>
+                          <span className="text-nv-muted">Saved: </span>
+                          <Money
+                            amount={g.saved}
+                            currency={data.displayCurrency}
+                            className="font-semibold text-nv-ink"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-nv-muted">Target: </span>
+                          <Money amount={g.target} currency={data.displayCurrency} />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mt-4 flex items-baseline justify-between border-t border-nv-line pt-3 text-[13px]">
-                      <div>
-                        <span className="text-nv-muted">Saved: </span>
-                        <Money
-                          amount={g.saved}
-                          currency={data.displayCurrency}
-                          className="font-semibold text-nv-ink"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-nv-muted">Target: </span>
-                        <Money amount={g.target} currency={data.displayCurrency} />
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })
-            )}
+                      {/* Expandable sub-goals tray */}
+                      {hasSub && isExpanded && (
+                        <div className="mt-3.5 space-y-2 rounded-nv-tile border border-nv-line bg-nv-tile/60 p-3">
+                          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-nv-muted">
+                            <span>Sub-goal</span>
+                            <span>Progress</span>
+                          </div>
+                          {g.subGoals && g.subGoals.length > 0 ? (
+                            <div className="divide-y divide-nv-line/60">
+                              {g.subGoals.map(sg => (
+                                <div key={sg.id} className="py-2.5 first:pt-1 last:pb-0">
+                                  <div className="flex items-baseline justify-between gap-2">
+                                    <span className="truncate text-[13px] font-medium text-nv-ink">
+                                      {sg.name}
+                                    </span>
+                                    <div className="flex shrink-0 items-center gap-1.5">
+                                      {sg.done ? (
+                                        <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-nv-green-text">
+                                          <NvIcon name="check" size={12} /> Reached
+                                        </span>
+                                      ) : (
+                                        <span className="nv-tabular text-[12px] font-semibold text-nv-ink">
+                                          {Math.round(sg.pct)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-1.5 flex items-center gap-2">
+                                    <div className="flex-1">
+                                      <ProgressBar
+                                        value={sg.pct}
+                                        tone={sg.done ? 'green' : (accent === 'sky' ? 'violet' : accent)}
+                                        label={`${sg.name} progress`}
+                                        showValue={false}
+                                        className="h-1.5"
+                                      />
+                                    </div>
+                                    <span className="shrink-0 text-[11px] text-nv-muted">
+                                      <Money amount={sg.saved} currency={data.displayCurrency} /> /{' '}
+                                      <Money amount={sg.target} currency={data.displayCurrency} />
+                                    </span>
+                                  </div>
+
+                                  {sg.due && (
+                                    <p className="mt-1 text-[11px] text-nv-muted">
+                                      Target: {sg.due}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="py-2 text-center text-[12px] text-nv-muted">
+                              No sub-goals found in this bucket.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       )}

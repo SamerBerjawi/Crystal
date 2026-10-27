@@ -1,7 +1,6 @@
 "use client";
 
 import { Group } from "@visx/group";
-import { ParentSize } from "@visx/responsive";
 import { arc as arcGenerator } from "@visx/shape";
 import { pie as d3Pie } from "d3-shape";
 import type { Transition } from "motion/react";
@@ -18,6 +17,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import { ParentSize } from "./chart-parent-size";
 import {
   defaultPieColors,
   type PieArcData,
@@ -266,12 +266,29 @@ const PieChartCore = memo(function PieChartCore({
 
   const effectiveIsLoaded = geometryScrubbing || isLoaded;
 
+  // Replay enter when motion settings change. The reset is adjusted during
+  // render ("store previous props in state") instead of setState in an effect.
+  const [enterKey, setEnterKey] = useState({
+    enterTransition,
+    enterStaggerScale,
+    geometryScrubbing,
+  });
+  if (
+    enterKey.enterTransition !== enterTransition ||
+    enterKey.enterStaggerScale !== enterStaggerScale ||
+    enterKey.geometryScrubbing !== geometryScrubbing
+  ) {
+    setEnterKey({ enterTransition, enterStaggerScale, geometryScrubbing });
+    if (!geometryScrubbing) {
+      setIsLoaded(false);
+    }
+  }
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: enterTransition
   useEffect(() => {
     if (geometryScrubbing) {
       return;
     }
-    setIsLoaded(false);
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
@@ -369,7 +386,7 @@ const PieChartCore = memo(function PieChartCore({
   return (
     <PieProvider value={contextValue}>
       <div
-        className="grid mx-auto my-auto"
+        className="grid"
         style={{
           gridTemplateColumns: "1fr",
           gridTemplateRows: "1fr",
@@ -381,7 +398,12 @@ const PieChartCore = memo(function PieChartCore({
         <svg
           aria-hidden="true"
           height={size}
-          style={{ gridArea: "1 / 1", contain: "layout style paint" }}
+          style={{
+            gridArea: "1 / 1",
+            // No `paint` containment: it clips hover glow at the svg box.
+            contain: "layout style",
+            overflow: "visible",
+          }}
           width={size}
         >
           {/* Defs for patterns and gradients */}
@@ -494,10 +516,10 @@ export function PieChart({
   // Otherwise use ParentSize for responsive sizing
   return (
     <div
-      className={cn("relative aspect-square w-full h-full flex items-center justify-center", className)}
+      className={cn("relative aspect-square w-full", className)}
       ref={containerRef}
     >
-      <ParentSize debounceTime={10} className="w-full h-full flex items-center justify-center">
+      <ParentSize debounceTime={10}>
         {({ width, height }) => (
           <PieChartInner
             containerRef={containerRef}

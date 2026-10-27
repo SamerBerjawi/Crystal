@@ -19,7 +19,12 @@ export interface PieCenterProps {
   defaultLabel?: string;
   /** Format options for NumberFlow. Default: standard notation */
   formatOptions?: ChartStatFlowFormat;
-  /** Custom render function for complete control over center content */
+  /**
+   * Custom render function for complete control over center content.
+   * Called both at rest and while a slice is hovered: at rest `value` is the
+   * total, `label` is `defaultLabel`, `isHovered` is false and `data` has no
+   * `color`/`fill`. Branch on `isHovered` to style the two states.
+   */
   children?: (props: {
     value: number;
     label: string;
@@ -78,13 +83,6 @@ export function PieCenter({
 
   // If custom render function is provided, use it
   if (children) {
-    const fallbackData = hoveredData ?? {
-      label: displayLabel,
-      value: displayValue,
-      color: "",
-      fill: "",
-    };
-
     return (
       <div
         className={cn(
@@ -97,8 +95,8 @@ export function PieCenter({
         {children({
           value: displayValue,
           label: displayLabel,
-          isHovered: effectiveHoveredIndex !== null,
-          data: fallbackData,
+          isHovered: Boolean(hoveredData),
+          data: hoveredData ?? { label: defaultLabel, value: totalValue },
         })}
       </div>
     );
