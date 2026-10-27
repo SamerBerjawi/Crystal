@@ -633,7 +633,6 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
-  cartoApiKey?: string;
   smartPriceBindings?: Record<string, SmartPriceBinding>;
   investmentPriceConfigs?: Record<string, InvestmentPriceConfig>;
   conversionRates?: Record<string, number>;

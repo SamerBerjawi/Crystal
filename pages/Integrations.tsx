@@ -3,7 +3,6 @@ import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayl
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
 import Icon from '../components/ui/Icon';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface IntegrationsProps {
   preferences: AppPreferences;
@@ -143,12 +142,6 @@ const Integrations: React.FC<IntegrationsProps> = ({
     brandfetchClientId: preferences.brandfetchClientId || '',
   });
 
-  const [cartoApiKey, setCartoApiKey] = useLocalStorage<string>('crystal_carto_api_key', preferences.cartoApiKey || '');
-  const [localCartoKey, setLocalCartoKey] = React.useState(cartoApiKey || preferences.cartoApiKey || '');
-  React.useEffect(() => {
-    setLocalCartoKey(cartoApiKey || preferences.cartoApiKey || '');
-  }, [cartoApiKey, preferences.cartoApiKey]);
-
   React.useEffect(() => {
     setLocalApiKeys({
       twelveDataApiKey: preferences.twelveDataApiKey || '',
@@ -175,9 +168,8 @@ const Integrations: React.FC<IntegrationsProps> = ({
     let count = 0;
     if (localApiKeys.twelveDataApiKey?.trim()) count++;
     if (localApiKeys.brandfetchClientId?.trim()) count++;
-    if (cartoApiKey?.trim()) count++;
     return count;
-  }, [localApiKeys, cartoApiKey]);
+  }, [localApiKeys]);
 
   return (
     <div className="w-full pb-10 space-y-5 animate-fade-in-up px-3 sm:px-6 max-w-7xl mx-auto">
@@ -273,24 +265,6 @@ const Integrations: React.FC<IntegrationsProps> = ({
             placeholder="Client ID"
             colorClass="bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20"
             docsUrl="https://brandfetch.com/developers"
-          />
-
-          <ApiKeyCard
-            title="CARTO Basemaps"
-            tag="Map Tiles"
-            icon="map"
-            name="cartoApiKey"
-            value={localCartoKey}
-            onChange={value => setLocalCartoKey(value)}
-            onBlur={() => {
-              setCartoApiKey(localCartoKey);
-              if (preferences.cartoApiKey !== localCartoKey) {
-                setPreferences({ ...preferences, cartoApiKey: localCartoKey });
-              }
-            }}
-            placeholder="API Key"
-            colorClass="bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20"
-            docsUrl="https://carto.com/basemaps"
           />
         </div>
       </section>

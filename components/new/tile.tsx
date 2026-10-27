@@ -32,7 +32,7 @@ export function PeriodPill<T extends string>({ value, options, onChange, label, 
         <NvIcon name="arrowDown" size={14} />
       </Menu.Trigger>
       <Menu.Portal>
-        <Menu.Positioner sideOffset={8} align="end" className="z-popover">
+        <Menu.Positioner sideOffset={8} align="end" className="pointer-events-auto z-popover">
           <Menu.Popup className="crystal-new min-w-40 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 shadow-nv-float transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
             <Menu.RadioGroup value={value} onValueChange={v => onChange(v as T)}>
               {options.map(o => (
@@ -77,9 +77,9 @@ export const TileValue: React.FC<{ label: string; children: React.ReactNode; cla
 );
 
 /** Filter chip (R8): a pill with a remove ×. Active chips are ink. */
-export const FilterChip: React.FC<{ label: string; onRemove?: () => void; active?: boolean; onClick?: () => void }> = ({ label, onRemove, active, onClick }) => (
+export const FilterChip: React.FC<{ label: string; icon?: NvIconName; onRemove?: () => void; active?: boolean; onClick?: () => void }> = ({ label, icon, onRemove, active, onClick }) => (
   <span className={cn('inline-flex h-11 shrink-0 items-center rounded-full border text-sm font-medium', active ? 'border-nv-ink bg-nv-ink text-nv-on-ink' : 'border-nv-line bg-nv-surface text-nv-ink')}>
-    <button type="button" onClick={onClick} aria-pressed={onClick ? !!active : undefined} className={cn('h-full rounded-full pl-4', onRemove ? 'pr-1.5' : 'pr-4')}>{label}</button>
+    <button type="button" onClick={onClick} aria-pressed={onClick ? !!active : undefined} className={cn('inline-flex h-full items-center gap-2 rounded-full pl-4', onRemove ? 'pr-1.5' : 'pr-4')}>{icon && <NvIcon name={icon} size={16} />}{label}</button>
     {onRemove && (
       <button type="button" onClick={onRemove} aria-label={`Remove ${label}`} className="mr-1 flex h-9 w-9 items-center justify-center rounded-full hover:bg-nv-inset/60">
         <NvIcon name="close" size={14} />

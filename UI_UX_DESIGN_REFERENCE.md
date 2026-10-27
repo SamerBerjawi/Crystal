@@ -268,7 +268,7 @@ The **Capabilities / data** column below comes from `FinancialData` and the doma
 | **Preferences** | Currency, display currency, FY start, language, timezone, date format, default periods, font, privacy mode, transfer exclusion, API keys | `PreferencesNew.tsx` | Grouped form | Switch Button (theme), Wheel Picker (mobile selects) |
 | **Personal Info** | `userProfile` | `PersonalInfoNew.tsx` | Profile card + form | Account Menu visuals |
 | **Data Management** | Import (transactions, accounts, Mint, snapshot …), export, restore, `importExportHistory` | `DataImportExportNew.tsx` | Import wizard + history list | File Upload, Particle Button, Slide to Confirm / Tear Button (restore, wipe) |
-| **Integrations** | Enable Banking connections (status, sync options), Twelve Data, Brandfetch, Carto keys | `IntegrationsNew.tsx` | Connection cards | Uptime Card (connection health), Status Island (sync) |
+| **Integrations** | Enable Banking connections (status, sync options), Twelve Data, Brandfetch keys | `IntegrationsNew.tsx` | Connection cards | Uptime Card (connection health), Status Island (sync) |
 | **Documentation** | Static help content | `DocumentationNew.tsx` | Long-form | Scroll Index |
 | **Sign in / Sign up** | Auth | `SignInNew.tsx`, `SignUpNew.tsx` | Centred card on gradient | Particle Button |
 | **EnableBankingCallback** | OAuth return handler | Not redesigned (logic only) | — | — |
@@ -344,7 +344,7 @@ Running it: `npm run dev` needs a backend; the `dev-mock` launch configuration (
 
 Not built yet, and planned with the pages that need them: KokonutUI Command Palette and Account Menu ports, Amount Pad, Widget Grid, Metric Card, Spending Ring, Smooth Drawer, the logo chip (D12) and the Hugeicons finder (D12).
 
-Ports so far (D13): `hold-button` (KokonutUI 2.0.0, `components/kokonutui/hold-button.tsx`).
+Ports so far (D13): `hold-button` (KokonutUI 2.0.0, `components/kokonutui/hold-button.tsx`); `amount-pad` (KokonutUI 1.0.0, `components/kokonutui/amount-pad.tsx`: a controlled amount field; recipient, presets, balance and Send removed; keys read the latest value through a ref so fast typing never drops a digit).
 
 ## 9. Proposed page order
 
@@ -432,6 +432,9 @@ A third concept the user likes for its **layout, hero, tile styles and overall d
 | R7 | Buttons and selected state | **Black ink primary**: everyday primary buttons and selected pills are ink (`nv-ink` fill, light in dark mode) with a light secondary pill beside them. **Violet is kept for the single hero call to action per screen** ("Show my tasks", "Enable", "Save expense") | D3 |
 | R8 | Pattern catalogue | **Adopted:** the charts set (dark ring gauge, dot-matrix progress, year comparison pins, concentric circles, waveform bars with a dot pager); **two-tone titles** (first part ink, second part grey) for page titles, the brand and hero prompts; **filter chips with ×**, the **vertical icon stepper list**, and **period / filter pills with a caret** in tile headers. **Not adopted:** rating faces, the illustrated callout tile, circular single-action tiles | — |
 
+
+**R9 (2026-10-25, after reviewing TransactionsNew): no accent-filled surfaces.** The filled orange, green and violet stat tiles are removed everywhere. Every tile is the grey tile; accents live only on **icons** (a soft accent circle behind the icon), **badges**, **charts** and **text** (the violet currency symbol, income in green). This applies to all accent fills: the stat tiles (supersedes D9's filled tiles and R5's "filled triplet"), selected pills and category tiles (now ink outline or ink fill, R7), selected rows, and the money hero (supersedes R3's violet gradient and Q3's glass: it is now a neutral split tile with the figure on the white sub-card). `ACCENT` keeps only `icon` and `text`; `nv-hero-gradient`, `nv-glass` and the `glass` IconButton tone are deleted. D2 is revised: accents mark meaning on icons and text, never by filling a surface. Violet buttons (the one call to action, R7) and the violet `+` stay.
+
 ### 11.3 What changed in the foundation (built 2026-10-25)
 
 - Tokens: add `nv-tile` (light and dark), `nv-on-ink`; drop the card shadow from tiles; page background white in light mode.
@@ -442,3 +445,152 @@ A third concept the user likes for its **layout, hero, tile styles and overall d
 - Charts (R8) are built as Bklit-based or plain components when the first page needs them.
 
 Built as listed above: tokens `nv-tile` and `nv-on-ink` (`new.css`, `index.css`), white page in light mode, `shadow-nv-card` is `none`; `Card` defaults to the grey tile and takes `top` for a split tile; `components/new/tile.tsx` holds `IconChip`, `PeriodPill` (Base UI menu), `TileHeader`, `TileValue`, `FilterChip`, `FooterLink` and `TwoToneTitle`; `Money` colours the currency symbol; `Button` has `primary` (ink) and `cta` (violet); `IconButton` gains `chip` and `ink` tones; `SegmentedTabs` selects in ink. ShellNew has no sidebar: the grey band with menu, logo disc, two-tone title, `+`, notifications, profile and search (from 1024px), page tabs in the band, and `NavDrawer` (left on desktop, bottom sheet on phones) with a page search that ⌘K / Ctrl+K also opens. The phone dock is unchanged. Not yet: the dashboard greeting band (built with DashboardNew) and the R8 charts.
+
+---
+
+## 12. Migration notes: TransactionsNew (round 1, 2026-10-25)
+
+`pages/new/TransactionsNew.tsx`, `/transactions-new`; features from `pages/Transactions.tsx`, `components/AddTransactionModal.tsx` and the transactions context. The classic page is untouched.
+
+### 12.1 Decisions (T1–T4)
+
+| # | Topic | Decision |
+|---|---|---|
+| T1 | Scope | **Core now, advanced next.** Round 1 is below; split / combine, loan principal-interest, spare change, make recurring and location editing come in round 2 and stay reachable through "Open in classic UI" until then |
+| T2 | Tabs | **Activity / To review** in the band (`?tab=review` in the URL). Type is filter chips (Expenses, Income, Transfers) |
+| T3 | Stat tiles | **Spent** (orange), **Income** (green), **To review** count (violet, opens that tab), for the selected period |
+| T4 | Amount entry | **KokonutUI Amount Pad**: on-screen keys on phones, typing into the big amount on desktop |
+
+### 12.2 Notes
+
+- **Kept (features):** the list of every transaction, newest first, grouped by day; transfers shown once (both legs merged, "From → To"); split and combined parents shown with a Split badge (their parts hidden); search over title, merchant, description, category, note and amount; period (this month, last month, last 90 days, this year, last 12 months, all time; all time when the month is empty, with a line saying so); type chips; account, category and tag filters with removable chips; a detail sheet; add and edit expense, income and transfer (amount, category, account or from / to, date, merchant, description, note, tags); delete with Undo; duplicate to today with Undo; multi-select with categorize (Undo) and delete (Hold for more than one, then Undo); CSV export of what is shown; bank sync; the account and tag filters other pages hand over; balance adjustments follow the "show balance adjustments" preference; merchant logos (Brandfetch) with a letter fallback in the category colour.
+- **Round 2:** built, see §16.
+- **Dropped (decided, round 1):** the column table with per-column filter popups (replaced by the search, chips, filter sheet and sort pill); the map widget. Both can come back in a review round.
+- **Search, controls and the add button:** in the header band (§13 N2, §14 N4–N5); the page body starts with the stat tiles.
+- **Changed on purpose:** To review counts uncategorized expenses and income (not transfers or adjustments). Deleting one transaction applies at once with Undo instead of a confirm (D6); deleting several asks with the Hold Button first (D5). The last account used in quick add is remembered on the device.
+- **Where the logic lives:** `utils/transactionsModel.ts` (rows, filters, day groups, periods, totals, CSV, `planSave` for drafts; strict-typed; `tests/unit/transactionsModel.test.ts`) and `hooks/useTransactionsData.ts` (contexts, display currency, logos, writes that return an `undo`). The classic page keeps its own copy, untouched.
+- **Quick add:** `components/new/transactions/sheets.tsx` `QuickAddSheet`, mounted once in ShellNew and opened by the band's `+`, the dock's `+` and the page's "Add transaction" (`useShellNew().openQuickAdd`). The shared form is `TransactionForm.tsx`; parts (row, avatar, badges, picker and text fields) are in `parts.tsx`.
+- **KokonutUI-first check:** Amount Pad (ported), Hold Button (bulk delete). Swipe Tabs not used for the page tabs (they live in the band as segmented tabs). Smooth Drawer not ported yet: sheets use the Vaul `Drawer`. Plain components: the day-grouped list, the filter sheet and the picker field (no KokonutUI component covers a select).
+- **Keyboard and tap route:** every row is a button (Enter opens the sheet); in select mode a tap or Enter toggles a row; the amount takes digits, "." or ",", and Backspace; the period, category and account pickers are menus with arrow keys.
+- **Phones:** the stat tiles are a snap rail so the list starts on the first screen; the page's "Add transaction" button is hidden (the dock's `+` does it).
+- **Verified:** in the browser on demo data at 1440, 1024, 768 and 375, light and dark: quick add (keyboard and keypad), edit, delete and Undo, search, chips, filters, select, To review empty state, the empty-period state. **Not verified:** CSV download contents in a browser (the CSV text is unit tested), bank sync against a real Enable Banking connection, and Brandfetch logos (no key in demo mode).
+
+---
+
+## 13. Navigation and search adjustments (N1–N2, 2026-10-25)
+
+| # | Topic | Decision | Supersedes |
+|---|---|---|---|
+| N1 | Phone dock | **Every tab always shows its name.** The dock is Home, Accounts \| + \| Activity, Forecast, **More**; More opens the menu drawer with every page (it reads as selected on a page that has no dock tab). The `+` floats over its own gap so it stays between Accounts and Activity | D10's active-only labels; Q8's four-tab dock |
+| N2 | Header search | **The header search belongs to the page.** A page registers its own search with `usePageSearch({ value, onChange, placeholder })` and the header field filters that page (Transactions: transactions; Accounts: accounts). Pages without one (the dashboard, placeholders) get a **page finder**: type, then arrow keys and Enter, or click a result. Desktop: an inline field in the band. Phones and tablets: a search button opens the field under the header row. ⌘K / Ctrl+K focuses it; Escape clears it. **The menu drawer has no search** | R4's drawer search and "Start searching here…" button; the Transactions toolbar search field |
+
+Built: `components/new/HeaderSearch.tsx`, `usePageSearch` in `components/new/shellContext.ts`, ShellNew's band and dock. TransactionsNew registers "Search transactions".
+
+---
+
+## 14. Header actions and controls (N3–N5, 2026-10-25)
+
+| # | Topic | Decision | Supersedes |
+|---|---|---|---|
+| N3 | Phone dock | **Five named links, no `+`:** Home, Accounts, Activity, Forecast, More | Q8's centre `+`, N1's floating `+` |
+| N4 | Primary action | **Each page's primary action is the header's violet button** (desktop: icon and label, e.g. "+ Add transaction"; phones and tablets: a violet round icon button). A page sets it with `usePageAction({ label, icon, onClick })`; pages without one get **Add transaction** (quick add), so adding a transaction is one tap from anywhere. It is the screen's one call to action (R7); the page body does not repeat it (empty states use the ink button). On phones the bell moves into the account menu ("N bills due soon") to make room | The band's plain `+` (R4), the toolbar's "Add transaction" |
+| N5 | Page controls | **A page's controls live in the header band**, under the tabs: period, filters, type chips, active filter chips and tools (select, export, sync). Pages render them with `<HeaderControls>` (a portal into the band's slot); the slot disappears when a page has none | The toolbar tile at the top of the page body |
+
+Built in `components/new/shellContext.ts` (`usePageAction`, `HeaderControls`, `headerSlot`) and ShellNew. TransactionsNew moved its toolbar into `HeaderControls` and registers "Add transaction".
+
+---
+
+## 15. Header tools row (N6–N7, 2026-10-26)
+
+| # | Topic | Decision |
+|---|---|---|
+| N6 | Page tools | **A page's tools sit on the tabs row, right-aligned** (select, export, sync on Transactions), filled through `<HeaderTools>` (a portal into the row's slot, in `shellContext.ts`). The row shows only when a page has tabs or tools. On a 375px phone the tools wrap under the tabs, still right-aligned. Period, filters, sort and chips stay in the band's controls row (§14 N5) |
+| N7 | Sync and chips | **Sync is a green button with the word "Sync"** (`Button variant="success"`; "Syncing" and disabled while running). The Expenses / Income / Transfers chips carry icons (`FilterChip icon`), as every status chip does (D12) |
+
+---
+
+## 16. TransactionsNew round 2 (2026-10-26)
+
+Everything the classic page did that round 1 deferred. The logic is in `utils/transactionsModel.ts` (15 unit tests in `tests/unit/transactionsModel.test.ts`), the writes in `hooks/useTransactionsData.ts` (each returns an Undo), the sheets in `components/new/transactions/` (`actions.tsx`: split, combine, bulk edit, make recurring; `LocationField.tsx`; `TransactionForm.tsx`; `sheets.tsx`).
+
+- **Split and unsplit:** the detail sheet's menu (or the selection bar's Split) opens a sheet with two equal parts to start; add, remove and edit parts (amount, category, description); the button reads "Remaining €x" until the parts add up, then "Save N parts". A split row shows once with a Split badge (its parts are listed in the sheet). Editing a split replaces its parts. Unsplit removes the parts.
+- **Combine and uncombine:** select two or more ordinary transactions, Combine: a sheet for description, category, date and account, with the net total and the list. The combined row shows once with a Combined badge; Uncombine in the menu puts the originals back.
+- **Bulk edit:** the selection bar's Edit opens a sheet where each field has its own switch (date, account, description, merchant, category, tags with Add or Replace, location with clear). Only switched-on fields change. Categorize (the quick action) uses the same engine.
+- **Make recurring:** from the menu; a sheet with amount, account(s), category, merchant, description, repeats (daily to yearly) every N, start, optional end, day of the month, and the weekend rule. It creates a recurring transaction with an Undo.
+- **Location:** the form searches places with the app's address search; a chosen place stores address, place, street, city, postal code, state, country and coordinates. The detail sheet shows it, and the menu has Remove location. A **Locations** group in Filters filters by city; search also matches city and place.
+- **Loan payments:** a transfer into a loan account (or an income on one) shows principal and interest. They follow the amount from the loan's rate and balance until you type one of them (the other becomes the remainder); with no rate on the loan they start empty. They are stored on the loan's leg and shown in the detail sheet.
+- **Round-up:** an expense or transfer out of an account that feeds a spare-change account shows a Round up switch (on by default for new transactions), the Skip whole / Unit push rule and a multiplier, with the amount set aside. Saving creates the spare-change pair; editing updates or removes it.
+- **Filters and sort:** amount from / up to, locations, and a Sort pill (newest, oldest, largest, smallest, merchant, category). Date sorts group by day; the others are one flat list.
+
+**Corrections to round 1's notes:** "Pending bank matches in To review" was listed by mistake; the classic page has no such feature. Categorize now converts a transfer into an ordinary transaction (as the classic page did) instead of skipping transfers, and changes the type when the category is of the other kind.
+
+**Differences from the classic page, on purpose:** combine excludes transfers, existing groups and parents (the classic page only excluded transfers); bulk edit's account change skips transfers (the classic page moved one leg); loan principal and interest are recorded for payments into a loan, not from one; an existing round-up is found by the `spare-<id>` convention only; deleting a split or combined parent deletes its parts; the "sync location to merchant" option is dropped; a split or combined parent cannot be edited or duplicated (use Edit split, Unsplit or Uncombine).
+
+**Verified** in the browser on demo data (the preview's browser storage had been reset, so it held the demo data and not your backup): split, edit and unsplit; combine and uncombine; bulk edit and its empty message; the amount filter and flat sort; make recurring; a loan transfer with manual principal and interest, its detail row, edit and delete with Undo; the location search and pick. Not exercised in the browser: the round-up switch (the demo's spare-change account is not linked to an account; the model is unit tested), the sheets on a real touch device, and a bank sync.
+
+---
+
+## 17. Reference 4: dark fintech dashboard, applied to Transactions (R10, T5–T9, 2026-10-26)
+
+A fourth concept (a dark indigo dashboard with a phone set), integrated into the Transactions page. Questions on its conflicts with §1–§16 were shown with a sketch and answered by the user.
+
+### 17.1 What the reference shows
+
+- **Desktop:** a large **Total balance** card (big figure, faint decimals) with an **Accounts** row of account tiles (last digits, balance, a ↗ button) and arrows; four KPI tiles (Total spent with +10% and a gradient sparkline, Savings, Top category, Active subscriptions); a **Spending** panel with a bar chart by weekday (violet gradient bars, a tooltip on the hovered bar, a y-axis) beside **category percentage tiles** with glowing coloured outlines; a **Recent transactions** table.
+- **Phone:** a transactions list with square merchant logos, name and date under it, amount and category on the right; a budget progress line ("You've spent X / Y budget this month"); a home screen with a gradient balance card and category tiles; a **transaction details** screen with the logo, a large amount, a key-value card, a **map** of the location, a tag field with removable tags, "Split this payment", "Create saving rule from this" and "Report an issue".
+
+### 17.2 Decisions
+
+| # | Topic | Decision |
+|---|---|---|
+| R10 | Style | **Layout and content, plus gradient on data marks only.** Tiles stay flat grey (R2, R9). The violet-to-blue gradient (`--nv-grad-from` / `--nv-grad-to`, classes `nv-grad-v` and `nv-grad-h`) is used on chart bars, sparklines and map clusters, never on a surface, a button or a card. No glowing outlines |
+| R11 | Maps | **OSMF vector tiles + MapLibre, VersaTiles `colorful` / `colorful-dark`; no CARTO anywhere.** See the Map note below |
+| T5 | Hero | **Weekday bars beside a map of where you spent**, in one "Spending" tile. The map **replaces the category percentage tiles**. Both follow the account scope, the period and the page filters |
+| T6 | Top of the page | **A balance card with account tiles, and four KPI tiles**, replace the three stat tiles on this page: **Spent** and **Income** (each with the change against the previous period of the same length and a gradient sparkline), **Top category**, **To review**. "Total balance" is the checking, savings and credit-card accounts (cards count as what is owed) in the display currency, or just the picked accounts. Tapping an account tile filters the list to it. The reference's Savings and Active subscriptions tiles are not here (subscriptions belong to their own page); the budget strip was not chosen |
+| T7 | Cross-filtering | **The chart and the map filter the list.** Tap a weekday bar or a place on the map; each becomes a removable chip in the header controls. The chart ignores the day filter and the map ignores the place filter, so each can be switched while the other is set |
+| T8 | Rows | **The reference's row**: a 48px square merchant logo (a letter when there is none), the name in bold with the account (and the date when not grouped by day) under it, the amount with its category beneath on the right. Dates here carry no time, so none is shown |
+| T9 | Detail sheet | **A map of the location** (when the transaction has coordinates) and an **inline tag editor**: type a tag and press Enter (an existing tag is reused, a new one is created), × removes one; each change has an Undo. **Not added:** "Create saving rule" (the user did not choose it) and "Report an issue" (no equivalent) |
+
+### 17.3 Notes
+
+- **Map:** `components/new/transactions/PlacesMap.tsx`, loaded lazily so MapLibre stays out of the main bundle. Transactions with coordinates are grouped by city (else a coordinate cell); a cluster is a gradient circle sized by its count. The map frames the places and refits when it resizes until the user pans or zooms it. **R11 (basemap): OSMF Shortbread vector tiles drawn by MapLibre with VersaTiles styles, with Home Assistant 2026.10's palettes (cream and golden roads in light, navy with teal parks in dark) laid over `colorful` / `colorful-dark`**. No API key, and CARTO is removed everywhere (its key field, `cartoApiKey` preference, hook and provider badge are gone). The style is built in `utils/mapStyle.ts` (mercator, no globe) and shared by the New maps and, through `@maplibre/maplibre-gl-leaflet`, the classic Leaflet maps. Requests go to `vector.openstreetmap.org` (tiles) and `tiles.versatiles.org` (fonts, sprite); the production CSP already allows HTTPS. Attribution credits OpenStreetMap and VersaTiles. A transaction with a city but no coordinates is counted ("N name a city but have no coordinates") and cannot be placed; choosing the place from the location search stores coordinates.
+- **Logic:** `utils/transactionsModel.ts` (weekday totals, clusters, places, previous period, percentage change, series, sparkline path, top category, balance), 20 unit tests. The Locations filter now uses place keys (city, else a coordinate cell).
+- **Detail sheet:** the open row is resolved live from the data, so tag changes show at once; its edit draft resets only when a different transaction opens.
+- **Verified** in the browser: on demo data in a separate origin (so no real data was on screen) at 976, 1440 and 375 px, dark and light: balance card and account tiles, KPI sparklines, the chart, the map with clusters, a real click on a cluster (list 22 → 11, chip, ring), a weekday bar (22 → 6), the row layout, the detail sheet with its map and a tag added and removed. On the real data, by counts only: 6 account tiles, 7 bars, 6 places with 52 located transactions this month, no errors.
+- The account tile filter was also checked on the real data by counts (141 → 106 transactions, a chip, "1 selected account", then cleared).
+- **Not verified:** the previous-period change on a closed range (all-time has none, and the demo data is old; the logic is unit tested) and bank sync.
+
+## 18. Transactions table (2026-10-26)
+
+From `lg` up the list is a table with the classic page's structure in the New style (`components/new/transactions/table.tsx`): **Transaction details** (logo, title, merchant or description, attention badges, notes icon), **Account** (a transfer reads `from → to`), **Category** (pill with the category dot), **Location** (flag and city), **Tags** (first tag and `+n`), **Value**, and a row menu (View details, Select). Location and Tags show from `xl`. Day headers carry the record count and the day's **Daily net** (transfers and adjustments left out), and a day checkbox while selecting. Details, Category and Value headers sort (Details = merchant A–Z, Value = largest then smallest, each a third click back to newest first); Account, Location and Tags do not sort, since the model has no sort for them. Below `lg` the card rows stay. Classic's per-column filter popovers are not carried over: filtering stays in the Filters drawer and the header chips.
+
+**Round-ups are folded into their transaction (N8).** As in the classic table, a round-up (the `spare-<id>` transfer pair) is not a row of its own: it shows as a small piggy amount under the transaction's value (`SpareChip`, table and card rows), and deleting the transaction deletes its pair. The pair is matched by id, then, for older data, by account, day and description. A round-up that matches nothing stays listed as a "Round-up" row so no money movement is hidden. Built in `buildRows` (`TxRow.spare`).
+
+**Account logo and header filters (N9).** The Account column leads with the institution's logo on a white chip, else a bank icon. Each column header has a filter button (a count badge when active) opening a popover: Details searches, Account / Category / Location / Tags pick values, Value sets the type and amount range. They share state with the Filters drawer and the header chips.
+
+**One filter list everywhere (N10).** The column popovers and the Filters drawer share `FilterList` (`components/new/transactions/filters.tsx`): a search box from 8 options, a "n selected" count with Clear, and group headers that select or clear their whole group (with a partial state). Accounts group by type (assets before debts, Closed last), categories under Expenses and Income with sub-categories indented, locations show their transaction count, tags their colour. The drawer lists Type, Accounts, Categories, Locations and Tags as titled sections with a count badge.
+
+**Quick filters and details filters (N11).** The accounts list opens with presets (All accounts, Liquid only, All assets, All liabilities, Investments; a preset with no accounts is left out): a click selects exactly those accounts, and it shows pressed while the selection matches. Every filter list also has Select all next to Clear. The Details column filter (and a Details section in the drawer) has **Description** (details and notes) and **Merchant** as separate filters, each with a header chip when active; the page search in the header stays separate.
+
+**Permanent sidebar on desktop (N12).** From `lg` the grouped page links sit in a fixed grey sidebar (logo, Overview / Planning / Manage, its own scroll) that is always open; the header drops its menu button and logo mark, and the page shifts right by the sidebar's width. Phone and tablet keep the dock and the menu drawer (N1, N3). This supersedes the R8 "top bar with menu drawer replaces the sidebar" for desktop only. `NavList` is shared by the sidebar and the drawer.
+
+**Scroll index and hidden scrollbars on phone (N13).** From `lg` the shell wraps every page in KokonutUI's Scroll Index (`components/kokonutui/scroll-index.tsx`, installed with `npx shadcn@latest add @kokonutui/scroll-index`, moved next to the other ports and restyled with `nv-*` tokens, sample article removed): a rail of ticks at the page's right edge, one per tile title (`h2`) and, on Transactions, one per day (`data-nv-index`). Hover swells the ticks and names the section, a click or arrow key jumps there, dragging the rail scrubs the page. Below `lg` the rail is hidden and every scrollbar in the shell is hidden (the content still scrolls).
+
+**Icons and logos for what money is attached to (N14).** `components/new/EntityIcon.tsx`: categories and tags show the icon the user picked, in their colour (stored names in the old Material, Phosphor and Untitled spellings map onto a curated Hugeicons set of about 70 glyphs; an unknown name falls back to a letter in the colour). Financial institutions and merchants show their logo on a white chip, else a bank icon or a letter (`LogoTile`). Shown in the table (category and tag chips, account and merchant logos), the card rows, the detail sheet, the add and edit form's category picker and tag chips, and every filter list. The Details filter now picks merchants from a searchable list with logos and counts (replacing the free-text merchant box); long lists show the first 150 until searched.
+
+**The four KPIs, as in the classic page, with a chart (N15).** Total transactions, Total income, Total expenses and Net cash flow replace the Spent / Income / Top category / To review tiles (To review stays on the tab). They follow the list: every filter applies, transfers and balance adjustments are neither income nor expense, and each shows its change against the same filters one period back. The tiles are also the picker for the chart under them: KokonutUI's Metric Card (`components/kokonutui/metric-card.tsx`, installed with `npx shadcn@latest add @kokonutui/metric-card`, restyled with `nv-*` tokens, demo data removed, a `formatValue` and an `invert` prop added). It draws the selected KPI per day over the page's period (at least a week, at most a year) against the same number of days before it, with a breakdown (transactions by kind, income and expenses by their three biggest categories plus Other; net flow has none), hover or arrow-key reading of a day, and a drag to read a range. Phone: tiles two by two, the chart full width.
+
+**Redesigned overview and add / edit sheet (N16).** After the classic overview's layout, in the New style.
+- **Overview** (`components/new/transactions/detail.tsx`): the sheet opens on a full-bleed hero, the map of where it happened with the place as a glass pill (a quiet banner when there is no location), the merchant's logo, the date and account, the merchant name large, the amount very large (ink, green for income) with the currency and a kind pill, then the status badges. Below, soft tiles: Account (logo, last four), Category (icon in colour, its parent), Merchant, Net flow, Location (address, an Open in Maps link), Description, Memo, Round-up, Loan payment, Tags (edited in place), split or combined parts. The footer is Edit, then round Duplicate, Delete and More. The Drawer gained a `hero` prop for this (close button floats over it).
+- **Add / edit form**: the type tabs, then titled sections: **Amount** (a large tile with the keypad on phones, tinted by kind, a summary line of account, day and currency), **Category** (six tiles with their icon in colour, the one being edited always among them, plus Browse every category), **Details** (account picker with bank logos, merchant field that shows the merchant's logo once typing pauses, Today / Yesterday chips beside the date, description), the round-up and loan panels when they apply, and a collapsed **Note, location and tags** (open when the transaction has any).
+
+**Balance with the statistics, a coloured expenses chart, a flatter overview (N17).** Supersedes parts of N15 and N16.
+- **Balance card**: the account tiles are gone (the account filter lives in the filters). It holds the total balance, the transaction count at the top right, and Expenses, Income and Net in a compact row of three (each with its change on the period before). They are the chart's picker. Phone: 36 px balance, 15 px figures.
+- **Chart replaces the weekday bars**: the expenses chart sits beside the map in the Spending card. Each day is a stacked bar in the categories' own colours (the three biggest plus Other in grey; income likewise; transactions by kind in red, green and sky), the breakdown bar and dots use the same colours, and picking a segment shows only it. Amounts use the app's money style (violet sign, grey decimals), also in the breakdown. Net cash flow keeps the line. The weekday filter has no control now; its chips still appear if a link sets one.
+- **Overview**: no tiles. Each fact is a line with a round tinted glyph (account sky, category in its own colour, merchant orange, net flow in the kind's colour, location green, description and tags violet, memo orange, round-up green), a small label over the value, and a hairline between lines. The hero banner is tinted with the category's colour (income green, transfers sky) and shows a kind pill and a category pill in the same colours.
+
+**The add / edit composer and the layer fix (N18).** Supersedes the form part of N16.
+- **Bug**: popovers and menus opened from inside a sheet appeared behind it, and clicking them closed the sheet. Cause: `z-popover` (200) was below `z-modal` (500), and the sheet counts a click in another layer as outside. Now the scale is dropdown 50, sticky 100, modal 500, popover 600, toast 1000; every popup carries `pointer-events-auto`; and the Drawer ignores outside clicks that land in a `z-popover` layer.
+- **Composer** (`TransactionForm`, `composer.tsx`): it fits one screen. Type tabs, the amount (keypad on phones), one merchant line with its logo (none for transfers), a quiet description line, then chips that open a searchable pick list: Category (icon, sub-categories indented), Account (bank logos, grouped by type), To account (transfers), Date (Today, Yesterday, another day). A row of the six most used categories sits under them, tinted in their colours. Note, Location and Tags are dashed "+" chips that open their field on demand (open from the start when the transaction has them). Round-up and loan panels appear when they apply.
+
+**Round-up panel, tab centring and the chart line (N19).** The round-up panel: a green piggy disc, the title, a green "Sets aside €0.50" (or why nothing), the switch; when on, a divider, then two clear choices for a whole amount (radio cards: Set aside nothing / Set aside 1, each with one line of explanation) and the multiplier as a − ×1 + stepper. Segmented tabs centre their icon and label in the button, vertically too. The expenses chart draws the trend as a white (black in light mode) line over the coloured bars.

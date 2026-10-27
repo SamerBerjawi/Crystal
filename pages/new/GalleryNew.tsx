@@ -43,8 +43,8 @@ export const GalleryNew: React.FC = () => {
     <div className="mx-auto grid max-w-[1400px] gap-4 xl:grid-cols-12">
       {crash && <Crash />}
       <div className="grid gap-4 sm:grid-cols-3 xl:col-span-12">
-        <StatTile filled accent="violet" icon="wallet" label="Net worth" value={<Money amount={491080} currency="USD" size="lg" tone="inherit" />} />
-        <StatTile filled accent="green" icon="arrowUpRight" label="Income" detail="this month" value={<Money amount={8420} currency="USD" size="lg" tone="inherit" />} />
+        <StatTile accent="violet" icon="wallet" label="Net worth" value={<Money amount={491080} currency="USD" size="lg" />} />
+        <StatTile accent="green" icon="arrowUpRight" label="Income" detail="this month" value={<Money amount={8420} currency="USD" size="lg" />} />
         <StatTile accent="orange" icon="money" label="Spent" detail="67% of budget" value={<Money amount={2348.6} currency="USD" size="lg" />} />
       </div>
 
@@ -83,16 +83,19 @@ export const GalleryNew: React.FC = () => {
           {chips.length < 3 && <Button size="sm" variant="ghost" onClick={() => setChips(['Team', 'Insights', 'Today'])}>Reset</Button>}
         </div>
       </Card>
-      <div className="nv-hero-gradient rounded-nv-card p-6 xl:col-span-4">
-        <p className="text-center text-sm opacity-90">Spent this month</p>
-        <p className="mt-2 text-center"><Money amount={2348.6} currency="EUR" size="hero" tone="inherit" className="text-white" /></p>
-        <p className="mt-2 text-center text-sm opacity-80">of €3,500 budget · 67% · 8 days left</p>
-        <div className="nv-glass mt-6 grid grid-cols-3 divide-x divide-white/20 rounded-nv-tile py-4 text-center">
+      <Card className="xl:col-span-4" top={(
+        <div className="text-center">
+          <p className="text-sm text-nv-muted">Spent this month</p>
+          <p className="mt-2"><Money amount={2348.6} currency="EUR" size="hero" /></p>
+          <p className="mt-2 text-sm text-nv-muted">of €3,500 budget · 67% · 8 days left</p>
+        </div>
+      )}>
+        <div className="grid grid-cols-3 divide-x divide-nv-line text-center">
           {[['Daily average', '€62.10'], ['Transactions', '47'], ['Largest', '€142']].map(([k, v]) => (
-            <div key={k}><p className="text-xs opacity-80">{k}</p><p className="mt-1 text-xl font-semibold">{v}</p></div>
+            <div key={k}><p className="text-xs text-nv-muted">{k}</p><p className="nv-tabular mt-1 text-xl font-semibold">{v}</p></div>
           ))}
         </div>
-      </div>
+      </Card>
 
       <Card className="xl:col-span-8">
         <CardTitle action={<SegmentedTabs<'month' | 'quarter' | 'year'> label="Period" size="sm" value={period} onChange={setPeriod} items={[{ id: 'month', label: 'Month' }, { id: 'quarter', label: 'Quarter' }, { id: 'year', label: 'Year' }]} />}>
@@ -187,7 +190,7 @@ export const GalleryNew: React.FC = () => {
         <p className="py-6 text-center"><Money amount={42.5} currency="EUR" size="hero" /></p>
         <div className="grid grid-cols-3 gap-3">
           {['Food', 'Transport', 'Shopping', 'Fun', 'Health', 'Bills'].map((c, i) => (
-            <button key={c} type="button" className={i === 0 ? 'rounded-nv-tile bg-nv-violet-soft py-5 text-sm font-medium text-nv-violet-text ring-[1.5px] ring-nv-violet' : 'rounded-nv-tile bg-nv-inset py-5 text-sm text-nv-muted'}>{c}</button>
+            <button key={c} type="button" className={i === 0 ? 'rounded-nv-tile bg-nv-surface py-5 text-sm font-medium text-nv-ink ring-[1.5px] ring-nv-ink' : 'rounded-nv-tile bg-nv-inset py-5 text-sm text-nv-muted'}>{c}</button>
           ))}
         </div>
       </Drawer>

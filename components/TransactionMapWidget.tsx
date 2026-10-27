@@ -1,12 +1,11 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { countries, type TCountryCode } from 'countries-list';
 import { Transaction, Currency } from '../types';
 import { formatCurrency, safeRound } from '../utils';
 import L from 'leaflet';
 import Icon from './ui/Icon';
-import { useCartoBasemap } from '../hooks/useCartoBasemap';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { VectorBasemap } from './VectorBasemap';
 
 type CountryCode = Lowercase<TCountryCode>;
 
@@ -110,7 +109,6 @@ const LeafletZoomController: React.FC<{ zoomLevel: number }> = ({ zoomLevel }) =
 };
 
 const MapContainerAny = MapContainer as any;
-const TileLayerAny = TileLayer as any;
 const CircleMarkerAny = CircleMarker as any;
 const TooltipAny = Tooltip as any;
 
@@ -118,7 +116,6 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [hoveredLocationId, setHoveredLocationId] = useState<string | null>(null);
-  const [cartoApiKey] = useLocalStorage<string>('crystal_carto_api_key', '');
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
@@ -215,11 +212,6 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
   const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
 
-  const { tileUrl, attribution, isCarto, subdomains } = useCartoBasemap(
-    cartoApiKey || undefined,
-    isDarkMode,
-  );
-
   if (locations.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary min-h-[320px] p-6 text-center">
@@ -266,12 +258,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
           zoomControl={false}
           attributionControl={false}
         >
-          <TileLayerAny
-            key={tileUrl}
-            attribution={attribution}
-            url={tileUrl}
-            subdomains={subdomains}
-          />
+          <VectorBasemap dark={isDarkMode} />
           <BoundsFitter coords={coords} center={focalCenter} />
           <LeafletZoomController zoomLevel={tileZoom} />
           {locations.map(loc => {
@@ -306,20 +293,6 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
             );
           })}
         </MapContainerAny>
-
-        {/* Floating provider status pill */}
-        <div className="absolute bottom-2.5 left-2.5 z-[400] pointer-events-none">
-          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg backdrop-blur-md text-2xs font-mono shadow-md ${
-            isDarkMode
-              ? 'bg-black/60 text-slate-300'
-              : 'bg-white/80 text-slate-600'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-              isCarto ? 'bg-emerald-400' : 'bg-amber-400'
-            }`} />
-            {isCarto ? 'CARTO' : 'OpenStreetMap'}
-          </div>
-        </div>
       </div>
 
       {/* Floating Detail Card for Active / Hovered City */}

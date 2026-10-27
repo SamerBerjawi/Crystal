@@ -54,6 +54,8 @@ const ShellNew = lazyWithRetry(() => import('./components/new/ShellNew').then(m 
 const PlaceholderNew = lazyWithRetry(() => import('./pages/new/PlaceholderNew').then(m => ({ default: m.PlaceholderNew })));
 const NotFoundNew = lazyWithRetry(() => import('./pages/new/NotFoundNew').then(m => ({ default: m.NotFoundNew })));
 const GalleryNew = lazyWithRetry(() => import('./pages/new/GalleryNew').then(m => ({ default: m.GalleryNew })));
+const TransactionsNew = lazyWithRetry(() => import('./pages/new/TransactionsNew').then(m => ({ default: m.TransactionsNew })));
+const BudgetNew = lazyWithRetry(() => import('./pages/new/BudgetNew').then(m => ({ default: m.BudgetNew })));
 const SignUp = lazyWithRetry(() => import('./pages/SignUp'));
 const pageRegistry = {
   Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
@@ -1009,7 +1011,7 @@ const App: React.FC = () => {
 
   // Dev-only behaviours (IndexedDB data cache, auto demo mode) belong to the Vite dev build only.
   // They must never key off the hostname: a production install opened on localhost is not "dev".
-  const isDevEnvironment = Boolean((import.meta as any)?.env?.DEV);
+  const isDevEnvironment = import.meta.env.DEV;
 
   type SaveOutcome = { ok: boolean; status?: number; currentUpdatedAt?: string; isConflict?: boolean };
   const mergedFromOtherDeviceRef = useRef(false);
@@ -3166,6 +3168,8 @@ const App: React.FC = () => {
           >
             {newRoute.kind === 'gallery' && import.meta.env.DEV ? <GalleryNew />
               : newRoute.kind !== 'page' ? <NotFoundNew path={currentPath} />
+              : newRoute.page === 'Transactions' ? <TransactionsNew user={currentUser!} initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />
+              : newRoute.page === 'Budget' ? <BudgetNew />
               : <PlaceholderNew title={NEW_PAGE_TITLES[newRoute.page]} classicPath={classicPath} />}
           </ShellNew>
         </Suspense>

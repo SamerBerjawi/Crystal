@@ -1,16 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MapContainer, TileLayer, Marker as LeafletMarker, useMap } from 'react-leaflet';
+import { MapContainer, Marker as LeafletMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Transaction, Account, Tag, Category } from '../types';
 
 const MapContainerAny = MapContainer as any;
-const TileLayerAny = TileLayer as any;
 const MarkerAny = LeafletMarker as any;
 import { formatCurrency, parseLocalDate } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { useCartoBasemap } from '../hooks/useCartoBasemap';
+import { VectorBasemap } from './VectorBasemap';
 import Icon from './ui/Icon';
 import { safeImageSrcAttr } from '../utils/safeImageUrl';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
@@ -84,7 +83,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [logoLoadError, setLogoLoadError] = useState(false);
-  const { tileUrl, attribution, subdomains } = useCartoBasemap(undefined, isDarkMode);
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
@@ -248,13 +246,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                   touchZoom={false}
                   className="w-full h-full !z-0"
                 >
-                  <TileLayerAny
-                    key={tileUrl}
-                    attribution={attribution}
-                    url={tileUrl}
-                    subdomains={subdomains}
-                    maxZoom={19}
-                  />
+                  <VectorBasemap dark={isDarkMode} />
                   <MarkerAny position={mapCenter} icon={pinIcon} />
                   <MapCenterController center={mapCenter} zoom={15} />
                 </MapContainerAny>

@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { formatCurrency } from '../../utils';
 import type { Currency } from '../../types';
 import { NvIcon, type NvIconName } from './NvIcon';
+import { SmoothTab } from '../kokonutui/smooth-tab';
 
 /* Primitives for the New pages (UI_UX_DESIGN_REFERENCE.md §1–§3). Nothing here may import classic UI. */
 
@@ -46,7 +47,7 @@ export const CardTitle: React.FC<{ children: React.ReactNode; action?: React.Rea
  * R7: `primary` is ink (everyday primary and selected); `cta` is violet, for the single hero call to action
  * on a screen; `secondary` is the light pill beside them.
  */
-type ButtonVariant = 'primary' | 'cta' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'cta' | 'success' | 'secondary' | 'ghost' | 'danger';
 
 const buttonClass = (variant: ButtonVariant, size: 'sm' | 'md' | 'lg') => cn(
   'inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[background-color,color,box-shadow,transform] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
@@ -55,6 +56,7 @@ const buttonClass = (variant: ButtonVariant, size: 'sm' | 'md' | 'lg') => cn(
   size === 'lg' && 'h-14 px-6 text-base',
   variant === 'primary' && 'bg-nv-ink text-nv-on-ink hover:opacity-90',
   variant === 'cta' && 'bg-nv-violet text-nv-on-violet shadow-nv-violet hover:bg-nv-violet-strong',
+  variant === 'success' && 'bg-nv-green text-nv-on-green hover:brightness-95',
   variant === 'secondary' && 'border border-nv-line bg-nv-surface text-nv-ink hover:bg-nv-inset',
   variant === 'ghost' && 'text-nv-ink hover:bg-nv-inset',
   variant === 'danger' && 'bg-nv-red text-white hover:brightness-95',
@@ -72,7 +74,7 @@ Button.displayName = 'Button';
 
 /** Round icon-only button. `label` is required: it becomes the accessible name and the tooltip. */
 export const IconButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  icon: NvIconName; label: string; tone?: 'plain' | 'outline' | 'chip' | 'ink' | 'violet' | 'glass'; size?: number; badge?: boolean;
+  icon: NvIconName; label: string; tone?: 'plain' | 'outline' | 'chip' | 'ink' | 'violet'; size?: number; badge?: boolean;
 }>(({ icon, label, tone = 'outline', size = 44, badge, className, type = 'button', ...rest }, ref) => (
   <button
     ref={ref}
@@ -87,7 +89,6 @@ export const IconButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAt
       tone === 'chip' && 'bg-nv-surface text-nv-ink hover:bg-nv-inset',
       tone === 'ink' && 'bg-nv-ink text-nv-on-ink hover:opacity-90',
       tone === 'violet' && 'bg-nv-violet text-nv-on-violet shadow-nv-violet hover:bg-nv-violet-strong',
-      tone === 'glass' && 'nv-glass text-white hover:bg-white/25',
       className,
     )}
     {...rest}
@@ -101,69 +102,37 @@ IconButton.displayName = 'IconButton';
 /** The four accents (D1). Red is status only and is not an accent. */
 export type Accent = 'violet' | 'green' | 'orange' | 'sky';
 
-/** Class sets per accent: `fill` for filled surfaces (with the text that sits on them), `soft` for tints, `text` for small text and icons. */
-export const ACCENT: Record<Accent, { fill: string; soft: string; text: string; ring: string }> = {
-  violet: { fill: 'bg-nv-violet text-nv-on-violet', soft: 'bg-nv-violet-soft text-nv-violet-text', text: 'text-nv-violet-text', ring: 'ring-nv-violet' },
-  green: { fill: 'bg-nv-green text-nv-on-green', soft: 'bg-nv-green-soft text-nv-green-text', text: 'text-nv-green-text', ring: 'ring-nv-green' },
-  orange: { fill: 'bg-nv-orange text-nv-on-orange', soft: 'bg-nv-orange-soft text-nv-orange-text', text: 'text-nv-orange-text', ring: 'ring-nv-orange' },
-  sky: { fill: 'bg-nv-sky text-nv-on-sky', soft: 'bg-nv-sky-soft text-nv-sky-text', text: 'text-nv-sky-text', ring: 'ring-nv-sky' },
+/**
+ * Class sets per accent (R9): accents live on icons, badges, charts and text only, never on tile or pill
+ * surfaces. `icon` is the soft circle behind an icon; `text` is for small text and icons.
+ */
+export const ACCENT: Record<Accent, { icon: string; text: string }> = {
+  violet: { icon: 'bg-nv-violet-soft text-nv-violet-text', text: 'text-nv-violet-text' },
+  green: { icon: 'bg-nv-green-soft text-nv-green-text', text: 'text-nv-green-text' },
+  orange: { icon: 'bg-nv-orange-soft text-nv-orange-text', text: 'text-nv-orange-text' },
+  sky: { icon: 'bg-nv-sky-soft text-nv-sky-text', text: 'text-nv-sky-text' },
 };
 
-/** A tab. With `accent`, the selected pill takes that accent (D2); `icon` helps recognition. */
+/** A tab. `icon` helps recognition; with `accent` the icon takes that accent while the tab is not selected (R9). */
 export interface TabItem<T extends string> { id: T; label: string; accent?: Accent; icon?: NvIconName }
 
 /**
- * Segmented tabs (§3.2): a white thumb on a grey track. Arrow keys move between tabs. Used for page tabs in
+ * Segmented tabs (§3.2), drawn by the Smooth Tab (kokonutui): an ink pill that slides under the labels on a grey track. Arrow keys move between tabs. Used for page tabs in
  * the top bar (decision Q7) and for period switches inside cards.
  */
 export function SegmentedTabs<T extends string>({ items, value, onChange, label, size = 'md', className }: {
   items: TabItem<T>[]; value: T; onChange: (id: T) => void; label: string; size?: 'sm' | 'md'; className?: string;
 }) {
-  const groupId = useId();
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const onKeyDown = (e: React.KeyboardEvent, index: number) => {
-    const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    if (!delta) return;
-    e.preventDefault();
-    const next = (index + delta + items.length) % items.length;
-    refs.current[next]?.focus();
-    onChange(items[next].id);
-  };
   return (
-    <div role="tablist" aria-label={label} className={cn('inline-flex max-w-full overflow-x-auto rounded-full bg-nv-inset p-1 [scrollbar-width:none]', className)}>
-      {items.map((item, i) => {
-        const active = item.id === value;
-        return (
-          <button
-            key={item.id}
-            ref={el => { refs.current[i] = el; }}
-            role="tab"
-            type="button"
-            aria-selected={active}
-            tabIndex={active ? 0 : -1}
-            onClick={() => onChange(item.id)}
-            onKeyDown={e => onKeyDown(e, i)}
-            className={cn(
-              'relative shrink-0 whitespace-nowrap rounded-full font-medium transition-colors',
-              size === 'md' ? 'h-9 px-4 text-sm' : 'h-8 px-3 text-[13px]',
-              active ? (item.accent ? ACCENT[item.accent].text : 'text-nv-on-ink') : 'text-nv-muted hover:text-nv-ink',
-            )}
-          >
-            {active && (
-              <motion.span
-                layoutId={`nv-tab-${groupId}`}
-                className={cn('absolute inset-0 rounded-full', item.accent ? cn(ACCENT[item.accent].soft, 'shadow-nv-thumb') : 'bg-nv-ink')}
-                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-              />
-            )}
-            <span className="relative inline-flex items-center gap-1.5">
-              {item.icon && <NvIcon name={item.icon} size={16} />}
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+    <SmoothTab<T>
+      label={label}
+      size={size}
+      value={value}
+      onChange={onChange}
+      fill={/\bw-full\b/.test(className ?? '')}
+      className={className?.replace('[&>button]:flex-1', '')}
+      items={items.map(item => ({ id: item.id, label: item.label, icon: item.icon, iconClass: item.accent ? ACCENT[item.accent].text : undefined }))}
+    />
   );
 }
 
@@ -229,19 +198,19 @@ export const Badge: React.FC<{ tone?: Accent | 'red' | 'neutral'; icon?: NvIconN
 );
 
 /**
- * Stat tile (D9): the page's opening triplet. `filled` fills the surface with the accent (D2); otherwise the
- * icon sits in an accent-filled circle on a white card. Compact row: icon beside number and label.
+ * Stat tile (D9, R9): the page's opening triplet. A grey tile like every other; the accent is only the soft
+ * circle behind the icon. Compact row: icon beside number and label.
  */
-export const StatTile: React.FC<{ accent: Accent; icon: NvIconName; label: string; value: React.ReactNode; detail?: React.ReactNode; filled?: boolean; className?: string }> = ({
-  accent, icon, label, value, detail, filled, className,
+export const StatTile: React.FC<{ accent: Accent; icon: NvIconName; label: string; value: React.ReactNode; detail?: React.ReactNode; className?: string }> = ({
+  accent, icon, label, value, detail, className,
 }) => (
-  <div className={cn('flex items-center gap-4 rounded-nv-card p-5', filled ? ACCENT[accent].fill : 'bg-nv-tile', className)}>
-    <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-full', filled ? 'bg-nv-surface/25' : ACCENT[accent].fill)}>
+  <div className={cn('flex items-center gap-4 rounded-nv-card bg-nv-tile p-5', className)}>
+    <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-full', ACCENT[accent].icon)}>
       <NvIcon name={icon} size={22} />
     </span>
     <div className="min-w-0">
       <div className="nv-tabular truncate text-2xl font-semibold leading-tight tracking-tight">{value}</div>
-      <p className={cn('truncate text-[13px]', filled ? 'opacity-80' : 'text-nv-muted')}>
+      <p className="truncate text-[13px] text-nv-muted">
         {label}{detail && <span> · {detail}</span>}
       </p>
     </div>

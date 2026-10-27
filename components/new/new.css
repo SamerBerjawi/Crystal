@@ -42,6 +42,9 @@
   --nv-sky-text: #0369a1;
   --nv-sky-soft: #e3f4fd;
   --nv-on-sky: #1c1c28;
+  /* Gradient for data marks only (R10): chart bars, sparklines, map clusters, progress lines. Never a surface. */
+  --nv-grad-from: #5b6cf2;
+  --nv-grad-to: #a04dff;
   --nv-red: #ef4444;
   --nv-red-text: #c62828;
   --nv-red-soft: #fdeaea;
@@ -90,15 +93,15 @@
 }
 
 :root.dark .crystal-new {
-  --nv-canvas: #0e0d14;
-  --nv-tile: #17161f;
-  --nv-surface: #211f2b;
-  --nv-inset: #2b2a36;
-  --nv-line: #353441;
-  --nv-ink: #f1f0f7;
-  --nv-on-ink: #141420;
-  --nv-muted: #a09eb0;
-  --nv-faint: #7a788a;
+  --nv-canvas: #000000;
+  --nv-tile: #111111;
+  --nv-surface: #1c1c1c;
+  --nv-inset: #272727;
+  --nv-line: #333333;
+  --nv-ink: #f5f5f5;
+  --nv-on-ink: #0a0a0a;
+  --nv-muted: #a3a3a3;
+  --nv-faint: #7a7a7a;
   --nv-violet: #7c4dff;
   --nv-violet-strong: #6a3cf5;
   --nv-violet-soft: #251f42;
@@ -107,15 +110,17 @@
   --nv-orange: #f5a55f;
   --nv-orange-text: #f5a55f;
   --nv-orange-soft: #33230f;
-  --nv-on-orange: #141420;
+  --nv-on-orange: #0a0a0a;
   --nv-green: #34d399;
   --nv-green-text: #4ade80;
   --nv-green-soft: #11301f;
-  --nv-on-green: #141420;
+  --nv-on-green: #0a0a0a;
   --nv-sky: #7dd3fc;
   --nv-sky-text: #7dd3fc;
   --nv-sky-soft: #0f2a38;
-  --nv-on-sky: #141420;
+  --nv-on-sky: #0a0a0a;
+  --nv-grad-from: #6d7cff;
+  --nv-grad-to: #b36bff;
   --nv-red: #f87171;
   --nv-red-text: #fca5a5;
   --nv-red-soft: #3a1717;
@@ -127,9 +132,9 @@
   --nv-shadow-thumb: 0 1px 3px rgb(0 0 0 / 0.5);
   --nv-shadow-violet: 0 14px 32px -10px rgb(124 77 255 / 0.6);
 
-  --chart-tooltip-background: #f1f0f7;
-  --chart-tooltip-foreground: #141420;
-  --chart-tooltip-muted: #5d5b6e;
+  --chart-tooltip-background: #f5f5f5;
+  --chart-tooltip-foreground: #0a0a0a;
+  --chart-tooltip-muted: #5c5c5c;
   --chart-tooltip-border: rgb(0 0 0 / 0.08);
 }
 
@@ -139,21 +144,12 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Hero gradient (§1.1): only on hero surfaces, never on body cards. */
-  .nv-hero-gradient {
-    background:
-      radial-gradient(120% 80% at 85% 0%, rgb(255 255 255 / 0.18), transparent 55%),
-      radial-gradient(90% 70% at 0% 100%, rgb(255 255 255 / 0.10), transparent 60%),
-      linear-gradient(160deg, #7b4bff 0%, #5b2be8 100%);
-    color: #ffffff;
+  /* Gradient data marks (R10). v: light violet on top fading to indigo; h: left to right. */
+  .nv-grad-v {
+    background: linear-gradient(180deg, var(--nv-grad-to), var(--nv-grad-from));
   }
-
-  /* Frosted glass, used only on the hero gradient (decision Q3). */
-  .nv-glass {
-    background: rgb(255 255 255 / 0.16);
-    border: 1px solid rgb(255 255 255 / 0.25);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    backdrop-filter: blur(20px) saturate(140%);
+  .nv-grad-h {
+    background: linear-gradient(90deg, var(--nv-grad-from), var(--nv-grad-to));
   }
 
   /* Diagonal stripes on progress fills (§2.2). */
@@ -208,4 +204,10 @@
 }
 :root [data-sileo-viewport][data-theme='dark'] [data-sileo-description] {
   color: rgb(0 0 0 / 0.7);
+}
+
+/* Phone and tablet: no visible scrollbars, in the page or in any panel (the content still scrolls). */
+@media (max-width: 1023.98px) {
+  html:has(.crystal-new), .crystal-new, .crystal-new * { scrollbar-width: none; -ms-overflow-style: none; }
+  html:has(.crystal-new)::-webkit-scrollbar, .crystal-new *::-webkit-scrollbar { display: none; width: 0; height: 0; }
 }
