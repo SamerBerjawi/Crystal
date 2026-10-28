@@ -10,7 +10,7 @@ import {
   ArrowDataTransferHorizontalIcon, Delete02Icon, Archive02Icon, InformationCircleIcon, Alert02Icon, Copy01Icon,
   Undo02Icon, CheckmarkCircle02Icon, ArrowLeft02Icon, FilterHorizontalIcon, Download01Icon, Tag01Icon, Note01Icon,
   CheckmarkSquare02Icon, SquareIcon, PencilEdit02Icon, MapPinIcon, SplitIcon, GitMergeIcon, PiggyBankIcon, ArrowUpDownIcon,
-  Layout2ColumnIcon, ListViewIcon, GridViewIcon,
+  Layout2ColumnIcon, ListViewIcon, GridViewIcon, Car01Icon, ShoppingBag01Icon, Layers01Icon,
 } from '@hugeicons/core-free-icons';
 
 /**
@@ -32,7 +32,9 @@ const ICONS = {
   bank: BankIcon,
   budget: PieChartIcon,
   calendar: Calendar03Icon,
+  car: Car01Icon,
   card: CreditCardIcon,
+  chartLine: ChartLineData01Icon,
   check: Tick02Icon,
   close: Cancel01Icon,
   checkCircle: CheckmarkCircle02Icon,
@@ -51,6 +53,7 @@ const ICONS = {
   info: InformationCircleIcon,
   investments: ChartIncreaseIcon,
   invoice: Invoice01Icon,
+  layers: Layers01Icon,
   list: ListViewIcon,
   logout: Logout01Icon,
   menu: Menu01Icon,
@@ -66,6 +69,7 @@ const ICONS = {
   search: Search01Icon,
   select: CheckmarkSquare02Icon,
   settings: Settings01Icon,
+  shoppingBag: ShoppingBag01Icon,
   sort: ArrowUpDownIcon,
   sparkles: SparklesIcon,
   split: SplitIcon,
@@ -75,6 +79,7 @@ const ICONS = {
   tag: Tag01Icon,
   tasks: TaskDone01Icon,
   transactions: ArrowDataTransferHorizontalIcon,
+  transfer: ArrowDataTransferHorizontalIcon,
   undo: Undo02Icon,
   view: ViewIcon,
   viewOff: ViewOffSlashIcon,

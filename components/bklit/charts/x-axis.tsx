@@ -28,6 +28,10 @@ export interface XAxisProps {
   tickMode?: "domain" | "data";
   /** Optional labels aligned with data rows for the displayed ticks. */
   labels?: string[];
+  /** Custom dates to display as tick positions. */
+  values?: Date[];
+  /** Custom date formatter for tick labels. */
+  formatValue?: (date: Date) => string;
 }
 
 interface AxisTick {
@@ -389,6 +393,7 @@ export function selectEvenlySpacedIndices(
 function buildDataAlignedTicks({
   data,
   dateLabels,
+  formatValue,
   marginLeft,
   targetTickCount,
   xAccessor,
@@ -396,6 +401,7 @@ function buildDataAlignedTicks({
 }: {
   data: Record<string, unknown>[];
   dateLabels: string[];
+  formatValue?: (date: Date) => string;
   marginLeft: number;
   targetTickCount: number;
   xAccessor: (d: Record<string, unknown>) => Date;
@@ -423,7 +429,7 @@ function buildDataAlignedTicks({
       continue;
     }
     const date = xAccessor(point);
-    const label = dateLabels[index] ?? shortDateFmt.format(date);
+    const label = dateLabels[index] ?? (formatValue ? formatValue(date) : shortDateFmt.format(date));
     if (seenLabels.has(label)) {
       continue;
     }
@@ -439,10 +445,12 @@ function buildDataAlignedTicks({
 }
 
 function buildDomainTicks({
+  formatValue,
   marginLeft,
   numTicks,
   xScale,
 }: {
+  formatValue?: (date: Date) => string;
   marginLeft: number;
   numTicks: number;
   xScale: {
@@ -468,7 +476,7 @@ function buildDomainTicks({
   for (let i = 0; i < tickCount; i++) {
     const t = i / (tickCount - 1);
     const date = new Date(startTime + t * timeRange);
-    const label = shortDateFmt.format(date);
+    const label = formatValue ? formatValue(date) : shortDateFmt.format(date);
     if (seenLabels.has(label)) {
       continue;
     }
@@ -580,6 +588,8 @@ const XAxisInner = memo(function XAxisInner({
   tickerHalfWidth = 50,
   tickMode = "data",
   labels: labelsProp,
+  values: valuesProp,
+  formatValue,
   container,
 }: XAxisProps & { container: HTMLDivElement }) {
   const {
@@ -589,21 +599,34 @@ const XAxisInner = memo(function XAxisInner({
     data,
     xAccessor,
     dateLabels: contextDateLabels,
+    formatXLabel: contextFormatXLabel,
     xDomain,
     width,
   } = useChart();
   const dateLabels = labelsProp ?? contextDateLabels;
+  const effectiveFormat = formatValue ?? contextFormatXLabel;
   const resolvedNumTicks = useMemo(
     () => resolveResponsiveChartLabelCount(numTicks, width, 5),
     [numTicks, width]
   );
 
   const labelsToShow = useMemo(() => {
+    if (valuesProp && valuesProp.length > 0) {
+      return valuesProp.map((date, idx) => ({
+        date,
+        label:
+          dateLabels?.[idx] ??
+          (effectiveFormat ? effectiveFormat(date) : shortDateFmt.format(date)),
+        x: (xScale(date) ?? 0) + margin.left,
+      }));
+    }
+
     const projectionExtendsScale =
       tickMode === "data" && domainExtendsPastData(data, xAccessor, xScale);
 
     if (tickMode === "domain") {
       return buildDomainTicks({
+        formatValue: effectiveFormat,
         marginLeft: margin.left,
         numTicks: resolvedNumTicks,
         xScale,
@@ -613,6 +636,7 @@ const XAxisInner = memo(function XAxisInner({
     // No brush: evenly spaced ticks across the full domain (data + projection).
     if (projectionExtendsScale && xDomain == null) {
       return buildDomainTicks({
+        formatValue: effectiveFormat,
         marginLeft: margin.left,
         numTicks: resolvedNumTicks,
         xScale,
@@ -622,6 +646,7 @@ const XAxisInner = memo(function XAxisInner({
     const dataTicks = buildDataAlignedTicks({
       data,
       dateLabels,
+      formatValue: effectiveFormat,
       marginLeft: margin.left,
       targetTickCount: resolvedNumTicks,
       xAccessor,
@@ -642,6 +667,8 @@ const XAxisInner = memo(function XAxisInner({
 
     return dataTicks;
   }, [
+    valuesProp,
+    effectiveFormat,
     tickMode,
     xDomain,
     data,
@@ -657,7 +684,9 @@ const XAxisInner = memo(function XAxisInner({
   const hoveredLabel =
     isHovering && tooltipData
       ? (dateLabels[tooltipData.index] ??
-        shortDateFmt.format(xAccessor(tooltipData.point)))
+        (effectiveFormat
+          ? effectiveFormat(xAccessor(tooltipData.point))
+          : shortDateFmt.format(xAccessor(tooltipData.point))))
       : null;
 
   return createPortal(

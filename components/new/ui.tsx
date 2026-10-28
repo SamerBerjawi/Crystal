@@ -158,14 +158,26 @@ export const Money: React.FC<{
         size === 'xl' && 'text-3xl font-semibold leading-tight',
         size === 'lg' && 'text-xl font-semibold',
         size === 'md' && 'text-[15px] font-medium',
-        tone === 'ink' && 'text-nv-ink',
-        tone === 'income' && 'text-nv-green-text',
-        tone === 'expense' && 'text-nv-ink',
+        tone === 'inherit' ? '' : 'text-nv-ink',
         className,
       )}
     >
       {sign}
-      {symbol && <span className={tone === 'inherit' ? 'opacity-80' : 'text-nv-violet-text'}>{symbol.trim()}</span>}
+      {symbol && (
+        <span
+          className={
+            tone === 'inherit'
+              ? 'opacity-80'
+              : tone === 'expense'
+              ? 'text-nv-red-text'
+              : tone === 'income'
+              ? 'text-nv-green-text'
+              : 'text-nv-violet-text'
+          }
+        >
+          {symbol.trim()}
+        </span>
+      )}
       {digits}
       {fraction && <span className={faint}>{fraction}</span>}
       {rest}

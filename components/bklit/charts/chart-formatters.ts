@@ -22,6 +22,16 @@ export const valueLabelFmt = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 }).format;
 
+/**
+ * Returns an array of labels evaluated on demand or pre-generated.
+ */
+export function lazyLabels(
+  length: number,
+  getLabel: (index: number) => string
+): string[] {
+  return Array.from({ length }, (_, i) => getLabel(i));
+}
+
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }

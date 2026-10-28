@@ -117,6 +117,10 @@ export const useCategoryContext = () => {
   return context;
 };
 
+export const useCategoryContextOptional = () => {
+  return useContext(CategoryContext);
+};
+
 export const useTagsContext = () => {
   const context = useContext(TagsContext);
   if (!context) throw new Error('useTagsContext must be used within FinancialDataProvider');

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../lib/utils';
 import type { Account, Category, Currency, Transaction } from '../../../types';
 import { normalizeCurrency, toLocalISOString } from '../../../utils';
+import { getMerchantLogoUrl } from '../../../utils/brandfetch';
+import { usePreferencesContextOptional } from '../../../contexts/DomainProviders';
 import { AmountPad } from '../../kokonutui/amount-pad';
 import { Drawer, useMediaQuery } from '../Drawer';
 import { EntityGlyph } from '../EntityIcon';
@@ -26,6 +28,61 @@ import { currencySign } from './AccountFormSheet';
  * - `RecordAccountTxSheet`: Drawer to record an Expense, Income, Interest Payout, or Statement Payment.
  */
 
+export const TxLedgerAvatar: React.FC<{
+  tx: Transaction;
+  category?: Category;
+  logoUrl: string | null;
+  size?: number;
+}> = ({ tx, category, logoUrl, size = 40 }) => {
+  const [failed, setFailed] = useState(false);
+  const isTransfer = Boolean(tx.transferId || tx.category === 'Transfer');
+
+  if (logoUrl && !failed) {
+    return (
+      <span
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white"
+        style={{ width: size, height: size }}
+        aria-hidden
+      >
+        <img
+          src={logoUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
+  if (isTransfer) {
+    return (
+      <span
+        className="flex shrink-0 items-center justify-center rounded-full bg-nv-sky-soft text-nv-sky-text"
+        style={{ width: size, height: size }}
+        aria-hidden
+      >
+        <NvIcon name="transactions" size={Math.round(size * 0.45)} />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full bg-nv-inset text-nv-ink"
+      style={{ width: size, height: size }}
+      aria-hidden
+    >
+      <EntityGlyph
+        icon={category?.icon}
+        label={category?.name || tx.category || 'T'}
+        color={category?.color}
+        size={Math.round(size * 0.45)}
+      />
+    </span>
+  );
+};
+
 type TxFilterKind = 'all' | 'income' | 'expense' | 'transfer';
 
 export const AccountActivitySection: React.FC<{
@@ -41,6 +98,9 @@ export const AccountActivitySection: React.FC<{
   onToggleBalanceAdjustments: (show: boolean) => void;
   onOpenRecordTx: () => void;
   onNavigateToFullTransactions?: () => void;
+  brandfetchClientId?: string;
+  merchantLogoOverrides?: Record<string, string>;
+  accounts?: Account[];
 }> = ({
   account,
   normalizedTransactions,
@@ -49,10 +109,107 @@ export const AccountActivitySection: React.FC<{
   onToggleBalanceAdjustments,
   onOpenRecordTx,
   onNavigateToFullTransactions,
+  brandfetchClientId,
+  merchantLogoOverrides,
+  accounts,
 }) => {
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState<TxFilterKind>('all');
   const [expanded, setExpanded] = useState(false);
+
+  const prefContext = usePreferencesContextOptional();
+  const effectiveClientId =
+    brandfetchClientId ?? (prefContext?.preferences?.brandfetchClientId || '').trim();
+
+  const effectiveOverrides = useMemo(() => {
+    const fromProps = merchantLogoOverrides ?? {};
+    const fromPrefs = prefContext?.preferences?.merchantLogoOverrides ?? {};
+    const fromRules = Object.entries(prefContext?.preferences?.merchantRules ?? {}).reduce<
+      Record<string, string>
+    >((acc, [key, rule]) => {
+      if (rule?.logo) acc[key] = rule.logo;
+      return acc;
+    }, {});
+    return { ...fromPrefs, ...fromRules, ...fromProps };
+  }, [
+    merchantLogoOverrides,
+    prefContext?.preferences?.merchantLogoOverrides,
+    prefContext?.preferences?.merchantRules,
+  ]);
+
+  const accountsById = useMemo(() => {
+    const map = new Map<string, Account>();
+    for (const a of accounts || []) {
+      map.set(a.id, a);
+    }
+    return map;
+  }, [accounts]);
+
+  const getLogoForTx = (tx: Transaction): string | null => {
+    // 1. Merchant name
+    if (tx.merchant && tx.merchant.trim()) {
+      const url = getMerchantLogoUrl(tx.merchant.trim(), effectiveClientId, effectiveOverrides, {
+        fallback: '404',
+        type: 'icon',
+        width: 80,
+        height: 80,
+      });
+      if (url) return url;
+    }
+
+    // 2. Transfer counterpart account's image or institution
+    if (tx.transferId && accountsById.size > 0) {
+      const counterpartId = (tx as any).toAccountId || (tx as any).destinationAccountId;
+      const otherAcc = counterpartId ? accountsById.get(counterpartId) : undefined;
+      if (otherAcc) {
+        if (otherAcc.imageUrl?.trim()) return otherAcc.imageUrl.trim();
+        const inst = otherAcc.financialInstitution || otherAcc.name;
+        if (inst) {
+          const url = getMerchantLogoUrl(inst, effectiveClientId, effectiveOverrides, {
+            fallback: '404',
+            type: 'icon',
+            width: 80,
+            height: 80,
+          });
+          if (url) return url;
+        }
+      }
+    }
+
+    // 3. Fallback: check transaction description
+    if (tx.description && tx.description.trim()) {
+      const url = getMerchantLogoUrl(tx.description.trim(), effectiveClientId, effectiveOverrides, {
+        fallback: '404',
+        type: 'icon',
+        width: 80,
+        height: 80,
+      });
+      if (url) return url;
+    }
+
+    // 4. Financial institution for account-level entries (fees, interest, adjustments, card payments)
+    const isBankEntry =
+      tx.isBalanceAdjustment ||
+      tx.category === 'Interest' ||
+      tx.category === 'Bank Fee' ||
+      tx.category === 'Loan & Debt Payment' ||
+      !tx.merchant;
+
+    if (isBankEntry) {
+      if (account.imageUrl?.trim()) return account.imageUrl.trim();
+      if (account.financialInstitution?.trim()) {
+        const url = getMerchantLogoUrl(
+          account.financialInstitution.trim(),
+          effectiveClientId,
+          effectiveOverrides,
+          { fallback: '404', type: 'icon', width: 80, height: 80 }
+        );
+        if (url) return url;
+      }
+    }
+
+    return null;
+  };
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, Category>();
@@ -185,14 +342,12 @@ export const AccountActivitySection: React.FC<{
                 className="flex items-center justify-between gap-3 rounded-nv-sub bg-nv-surface px-4 py-3"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-nv-inset text-nv-ink">
-                    <EntityGlyph
-                      icon={cat?.icon}
-                      label={cat?.name || tx.category || 'T'}
-                      color={cat?.color}
-                      size={18}
-                    />
-                  </span>
+                  <TxLedgerAvatar
+                    tx={tx}
+                    category={cat}
+                    logoUrl={getLogoForTx(tx)}
+                    size={40}
+                  />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-medium text-nv-ink">

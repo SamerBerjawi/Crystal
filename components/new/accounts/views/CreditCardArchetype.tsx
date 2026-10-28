@@ -39,9 +39,9 @@ export const CreditCardArchetype: React.FC<{
         : 'green';
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+    <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
       {/* Left 6 Cols: Interactive Credit Card + Utilization & Statement Cycle */}
-      <Card className="space-y-5 lg:col-span-6">
+      <Card className="flex flex-col h-full space-y-5 lg:col-span-6">
         <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold text-nv-ink">
@@ -194,7 +194,7 @@ export const CreditCardArchetype: React.FC<{
       </Card>
 
       {/* Right 6 Cols: 6-Month Statement Spend Bar Chart */}
-      <Card className="space-y-4 lg:col-span-6">
+      <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
         <div>
           <h2 className="text-lg font-semibold text-nv-ink">
             6-Month Statement Spend History
@@ -204,24 +204,26 @@ export const CreditCardArchetype: React.FC<{
           </p>
         </div>
 
-        <div className="grid grid-cols-6 gap-3 rounded-nv-sub bg-nv-surface p-5">
-          {creditCardMetrics.spendingHistory.map((m) => {
-            const pct = Math.round((m.value / maxSpend) * 100);
-            return (
-              <div key={m.name} className="flex flex-col items-center">
-                <div className="flex h-44 w-full items-end justify-center rounded-xl bg-nv-inset/60 p-2">
-                  <div
-                    style={{ height: `${Math.max(5, pct)}%` }}
-                    className="w-5 rounded-t-full bg-nv-orange transition-all"
-                  />
+        <div className="flex-1 flex flex-col justify-between rounded-nv-sub bg-nv-surface p-5">
+          <div className="grid grid-cols-6 gap-3">
+            {creditCardMetrics.spendingHistory.map((m) => {
+              const pct = Math.round((m.value / maxSpend) * 100);
+              return (
+                <div key={m.name} className="flex flex-col items-center">
+                  <div className="flex h-56 w-full items-end justify-center rounded-xl bg-nv-inset/60 p-2">
+                    <div
+                      style={{ height: `${Math.max(5, pct)}%` }}
+                      className="w-5 rounded-t-full bg-nv-orange transition-all"
+                    />
+                  </div>
+                  <span className="mt-2 text-xs font-medium text-nv-ink">{m.name}</span>
+                  <span className="nv-tabular text-[11px] text-nv-muted">
+                    <Money amount={m.value} currency={account.currency} compact />
+                  </span>
                 </div>
-                <span className="mt-2 text-xs font-medium text-nv-ink">{m.name}</span>
-                <span className="nv-tabular text-[11px] text-nv-muted">
-                  <Money amount={m.value} currency={account.currency} compact />
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </Card>
     </div>

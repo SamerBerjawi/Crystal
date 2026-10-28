@@ -4,6 +4,7 @@ import type {
   Account,
   AccountType,
   Currency,
+  FuelType,
   InvestmentSubType,
   OtherAssetSubType,
   OtherLiabilitySubType,
@@ -56,6 +57,7 @@ const PROPERTY_TYPES: PropertyType[] = [
   'Other',
 ];
 const VEHICLE_OWNERSHIP_TYPES: VehicleOwnership[] = ['Owned', 'Leased'];
+const FUEL_TYPES: FuelType[] = ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'LPG'];
 const OTHER_ASSET_SUBTYPES: OtherAssetSubType[] = [
   'Cash',
   'Meal Voucher',
@@ -145,9 +147,14 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
   const [institution, setInstitution] = useState('');
   const [website, setWebsite] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [accountNumber, setAccountNumber] = useState('');
+  const [routingNumber, setRoutingNumber] = useState('');
+  const [openingDate, setOpeningDate] = useState('');
   const [last4, setLast4] = useState('');
   const [cardNetwork, setCardNetwork] = useState<string>('Visa');
+  const [cardholderName, setCardholderName] = useState('');
+  const [expirationDate, setExpirationDate] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [includeInAnalytics, setIncludeInAnalytics] = useState(true);
   const [notes, setNotes] = useState('');
@@ -193,6 +200,9 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
   const [yearStr, setYearStr] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
   const [registrationCountryCode, setRegistrationCountryCode] = useState('BE');
+  const [vin, setVin] = useState('');
+  const [fuelType, setFuelType] = useState<FuelType>('Gasoline');
+  const [currentMileageStr, setCurrentMileageStr] = useState('');
   const [ownership, setOwnership] = useState<VehicleOwnership>('Owned');
   const [leaseStartDate, setLeaseStartDate] = useState('');
   const [leaseEndDate, setLeaseEndDate] = useState('');
@@ -203,6 +213,23 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
   const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>('Cash');
   const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>('Private Debt');
   const [counterparty, setCounterparty] = useState('');
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+        toast.success('Image loaded from disk');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -219,8 +246,12 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       setWebsite(editingAccount.website || '');
       setImageUrl(editingAccount.imageUrl || '');
       setAccountNumber(editingAccount.accountNumber || '');
+      setRoutingNumber(editingAccount.routingNumber || '');
+      setOpeningDate(editingAccount.openingDate || '');
       setLast4(editingAccount.last4 || '');
       setCardNetwork(editingAccount.cardNetwork || 'Visa');
+      setCardholderName(editingAccount.cardholderName || '');
+      setExpirationDate(editingAccount.expirationDate || '');
       setIsPrimary(!!editingAccount.isPrimary);
       setIncludeInAnalytics(editingAccount.includeInAnalytics ?? true);
       setNotes(editingAccount.notes || '');
@@ -285,6 +316,13 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       setYearStr(editingAccount.year !== undefined ? String(editingAccount.year) : '');
       setLicensePlate(editingAccount.licensePlate || '');
       setRegistrationCountryCode(editingAccount.registrationCountryCode || 'BE');
+      setVin(editingAccount.vin || '');
+      setFuelType(editingAccount.fuelType || 'Gasoline');
+      const latestLog =
+        editingAccount.mileageLogs && editingAccount.mileageLogs.length > 0
+          ? editingAccount.mileageLogs[editingAccount.mileageLogs.length - 1].reading
+          : undefined;
+      setCurrentMileageStr(latestLog !== undefined ? String(latestLog) : '');
       setOwnership(editingAccount.ownership || 'Owned');
       setLeaseStartDate(editingAccount.leaseStartDate || '');
       setLeaseEndDate(editingAccount.leaseEndDate || '');
@@ -316,8 +354,12 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       setWebsite('');
       setImageUrl('');
       setAccountNumber('');
+      setRoutingNumber('');
+      setOpeningDate('');
       setLast4('');
       setCardNetwork('Visa');
+      setCardholderName('');
+      setExpirationDate('');
       setIsPrimary(false);
       setIncludeInAnalytics(true);
       setNotes('');
@@ -352,6 +394,9 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       setYearStr('');
       setLicensePlate('');
       setRegistrationCountryCode('BE');
+      setVin('');
+      setFuelType('Gasoline');
+      setCurrentMileageStr('');
       setOwnership('Owned');
       setLeaseStartDate('');
       setLeaseEndDate('');
@@ -426,6 +471,8 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       website: website.trim() || undefined,
       imageUrl: imageUrl.trim() || undefined,
       accountNumber: accountNumber.trim() || undefined,
+      routingNumber: routingNumber.trim().toUpperCase() || undefined,
+      openingDate: openingDate || undefined,
       last4: last4.trim().slice(-4) || undefined,
       isPrimary,
       includeInAnalytics,
@@ -435,6 +482,8 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
     if (type === 'Checking' || type === 'Savings' || type === 'Credit Card') {
       draft.cardNetwork = cardNetwork;
+      draft.cardholderName = cardholderName.trim() || undefined;
+      draft.expirationDate = expirationDate.trim() || undefined;
     }
 
     if (type === 'Savings') {
@@ -531,7 +580,37 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       draft.year = Number.isFinite(yr) ? yr : undefined;
       draft.licensePlate = licensePlate.trim().toUpperCase() || undefined;
       draft.registrationCountryCode = registrationCountryCode.trim().toUpperCase() || 'BE';
+      draft.vin = vin.trim().toUpperCase() || undefined;
+      draft.fuelType = fuelType;
       draft.ownership = ownership;
+      const parsedMileage = parseInt(currentMileageStr, 10);
+      if (Number.isFinite(parsedMileage) && parsedMileage >= 0) {
+        const existingLogs = editingAccount?.mileageLogs ? [...editingAccount.mileageLogs] : [];
+        const latestReading =
+          existingLogs.length > 0 ? existingLogs[existingLogs.length - 1].reading : null;
+        if (latestReading === null) {
+          draft.mileageLogs = [
+            {
+              id: `log-${Date.now()}`,
+              date: toLocalISOString(new Date()),
+              reading: parsedMileage,
+            },
+          ];
+        } else if (latestReading !== parsedMileage) {
+          draft.mileageLogs = [
+            ...existingLogs,
+            {
+              id: `log-${Date.now()}`,
+              date: toLocalISOString(new Date()),
+              reading: parsedMileage,
+            },
+          ];
+        } else {
+          draft.mileageLogs = existingLogs;
+        }
+      } else if (editingAccount?.mileageLogs) {
+        draft.mileageLogs = editingAccount.mileageLogs;
+      }
       const pp = parseFloat(purchasePriceStr);
       draft.purchasePrice = Number.isFinite(pp) ? pp : undefined;
       draft.purchaseDate = purchaseDate || undefined;
@@ -746,12 +825,55 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             />
           </div>
           <div>
-            <FieldLabel hint="Optional">Image / Logo URL</FieldLabel>
-            <TextInput
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
+            <FieldLabel hint="Upload or URL">Image / Logo</FieldLabel>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageFileUpload}
             />
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1">
+                <TextInput
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://... or upload"
+                />
+                {imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-nv-muted hover:bg-nv-inset hover:text-nv-ink"
+                    title="Clear image"
+                  >
+                    <NvIcon name="close" size={13} />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-nv-control border border-nv-line bg-nv-surface px-3 text-xs font-semibold text-nv-ink transition-colors hover:bg-nv-inset"
+                title="Upload image file from disk"
+              >
+                <NvIcon name="add" size={15} />
+                <span>Upload</span>
+              </button>
+            </div>
+            {imageUrl && (
+              <div className="mt-2 flex items-center gap-2">
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="h-8 w-8 rounded-lg border border-nv-line object-cover bg-nv-inset"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <span className="text-[11px] text-nv-muted">Image preview</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -780,7 +902,27 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <FieldLabel hint="BIC / SWIFT">Routing Number / BIC</FieldLabel>
+                <TextInput
+                  value={routingNumber}
+                  onChange={(e) => setRoutingNumber(e.target.value.toUpperCase())}
+                  placeholder="e.g. GEBABEBB"
+                />
+              </div>
+              <div>
+                <FieldLabel>Account Opening Date</FieldLabel>
+                <TextInput
+                  type="date"
+                  value={openingDate}
+                  onChange={(e) => setOpeningDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <FieldLabel>Card Network</FieldLabel>
                 <SelectInput
@@ -794,19 +936,37 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                   ))}
                 </SelectInput>
               </div>
-              {type === 'Savings' && (
-                <div>
-                  <FieldLabel hint="Annual Yield">APY (%)</FieldLabel>
-                  <TextInput
-                    type="number"
-                    step="0.01"
-                    value={apyStr}
-                    onChange={(e) => setApyStr(e.target.value)}
-                    placeholder="e.g. 2.85"
-                  />
-                </div>
-              )}
+              <div>
+                <FieldLabel>Cardholder Name</FieldLabel>
+                <TextInput
+                  value={cardholderName}
+                  onChange={(e) => setCardholderName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+              <div>
+                <FieldLabel hint="MM/YY">Card Expiration</FieldLabel>
+                <TextInput
+                  maxLength={5}
+                  value={expirationDate}
+                  onChange={(e) => setExpirationDate(e.target.value)}
+                  placeholder="12/28"
+                />
+              </div>
             </div>
+
+            {type === 'Savings' && (
+              <div>
+                <FieldLabel hint="Annual Yield">APY (%)</FieldLabel>
+                <TextInput
+                  type="number"
+                  step="0.01"
+                  value={apyStr}
+                  onChange={(e) => setApyStr(e.target.value)}
+                  placeholder="e.g. 2.85"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -1207,6 +1367,40 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                   value={registrationCountryCode}
                   onChange={(e) => setRegistrationCountryCode(e.target.value.toUpperCase())}
                   placeholder="BE"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <FieldLabel hint="17-char VIN">VIN</FieldLabel>
+                <TextInput
+                  maxLength={17}
+                  value={vin}
+                  onChange={(e) => setVin(e.target.value.toUpperCase())}
+                  placeholder="e.g. WBA33AY08..."
+                />
+              </div>
+              <div>
+                <FieldLabel>Fuel / Powertrain</FieldLabel>
+                <SelectInput
+                  value={fuelType}
+                  onChange={(e) => setFuelType(e.target.value as FuelType)}
+                >
+                  {FUEL_TYPES.map((ft) => (
+                    <option key={ft} value={ft}>
+                      {ft}
+                    </option>
+                  ))}
+                </SelectInput>
+              </div>
+              <div>
+                <FieldLabel hint="km">Odometer Reading</FieldLabel>
+                <TextInput
+                  type="number"
+                  value={currentMileageStr}
+                  onChange={(e) => setCurrentMileageStr(e.target.value)}
+                  placeholder="45000"
                 />
               </div>
             </div>

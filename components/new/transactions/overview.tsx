@@ -309,8 +309,8 @@ const SparkKpiCard: React.FC<SparkKpiCardProps> = ({
             height={40}
             curve="monotone"
             fill="gradient"
-            fillOpacity={0.25}
-            strokeWidth={1.75}
+            fillOpacity={0.32}
+            strokeWidth={2}
             {...hover.sparklineProps}
           />
         ) : (
@@ -544,8 +544,8 @@ export const TransactionsHeroCard: React.FC<TransactionsHeroCardProps> = ({
 
               <SparkKpiCard
                 label="Net"
-                dotColor="bg-nv-violet"
-                chartColor="var(--nv-violet)"
+                dotColor="bg-nv-grad-from"
+                chartColor="var(--nv-grad-from)"
                 data={sparkSeries?.net ?? []}
                 total={stats.net}
                 delta={deltas.net}

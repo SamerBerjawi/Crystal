@@ -59,8 +59,8 @@ export const YieldPotArchetype: React.FC<{
     const maxMonth = Math.max(1, ...spareChangeMetrics.monthlyData.map((m) => m.value));
 
     return (
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <Card className="space-y-4 lg:col-span-7">
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
+        <Card className="flex flex-col h-full space-y-4 lg:col-span-7">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
@@ -75,28 +75,30 @@ export const YieldPotArchetype: React.FC<{
             </Badge>
           </div>
 
-          <div className="grid grid-cols-6 gap-3 rounded-nv-sub bg-nv-surface p-4">
-            {spareChangeMetrics.monthlyData.map((m) => {
-              const pct = Math.round((m.value / maxMonth) * 100);
-              return (
-                <div key={m.name} className="flex flex-col items-center">
-                  <div className="flex h-36 w-full items-end justify-center rounded-xl bg-nv-inset/60 p-2">
-                    <div
-                      style={{ height: `${Math.max(5, pct)}%` }}
-                      className="w-5 rounded-t-full bg-nv-violet transition-all"
-                    />
+          <div className="flex-1 flex flex-col justify-center rounded-nv-sub bg-nv-surface p-4">
+            <div className="grid grid-cols-6 gap-3">
+              {spareChangeMetrics.monthlyData.map((m) => {
+                const pct = Math.round((m.value / maxMonth) * 100);
+                return (
+                  <div key={m.name} className="flex flex-col items-center">
+                    <div className="flex h-36 w-full items-end justify-center rounded-xl bg-nv-inset/60 p-2">
+                      <div
+                        style={{ height: `${Math.max(5, pct)}%` }}
+                        className="w-5 rounded-t-full bg-nv-violet transition-all"
+                      />
+                    </div>
+                    <span className="mt-2 text-xs font-medium text-nv-ink">{m.name}</span>
+                    <span className="nv-tabular text-[11px] text-nv-muted">
+                      <Money amount={m.value} currency={account.currency} />
+                    </span>
                   </div>
-                  <span className="mt-2 text-xs font-medium text-nv-ink">{m.name}</span>
-                  <span className="nv-tabular text-[11px] text-nv-muted">
-                    <Money amount={m.value} currency={account.currency} />
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </Card>
 
-        <Card className="space-y-4 lg:col-span-5">
+        <Card className="flex flex-col h-full space-y-4 lg:col-span-5">
           <div>
             <h2 className="text-lg font-semibold text-nv-ink">Round-Up Diagnostics</h2>
             <p className="text-xs text-nv-muted">
@@ -104,7 +106,7 @@ export const YieldPotArchetype: React.FC<{
             </p>
           </div>
 
-          <div className="space-y-2.5 rounded-nv-sub bg-nv-surface p-4 text-sm">
+          <div className="flex-1 space-y-2.5 rounded-nv-sub bg-nv-surface p-4 text-sm flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-nv-muted">Pure Round-Up Captures</span>
               <Money
@@ -191,10 +193,10 @@ export const YieldPotArchetype: React.FC<{
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
         {/* Left 7 Cols: 12-Month Interest Yield Chart (Savings) OR Contribution History (Pension) */}
         {savingsMetrics ? (
-          <Card className="space-y-4 lg:col-span-7">
+          <Card className="flex flex-col h-full space-y-4 lg:col-span-7">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
@@ -282,7 +284,7 @@ export const YieldPotArchetype: React.FC<{
             )}
           </Card>
         ) : pensionMetrics ? (
-          <Card className="space-y-4 lg:col-span-7">
+          <Card className="flex flex-col h-full space-y-4 lg:col-span-7">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
@@ -296,7 +298,7 @@ export const YieldPotArchetype: React.FC<{
             </div>
 
             {pensionChartData.length > 1 && (
-              <div className="rounded-nv-sub bg-nv-surface p-4">
+              <div className="flex-1 rounded-nv-sub bg-nv-surface p-4 flex flex-col justify-center">
                 <AreaChart
                   margin={{ top: 8, right: 8, bottom: 40, left: 8 }}
                   data={pensionChartData}
@@ -331,7 +333,7 @@ export const YieldPotArchetype: React.FC<{
         ) : null}
 
         {/* Right 5 Cols: Interactive Compounding & Wealth Projector */}
-        <Card className="space-y-4 lg:col-span-5">
+        <Card className="flex flex-col h-full space-y-4 lg:col-span-5">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">

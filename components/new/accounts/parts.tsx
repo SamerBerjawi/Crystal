@@ -142,30 +142,45 @@ const AccountActionMenu: React.FC<{
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner sideOffset={6} align="end" className="pointer-events-auto z-popover">
-          <Menu.Popup className="crystal-new min-w-48 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 shadow-nv-float transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
+          <Menu.Popup
+            onClick={(e) => e.stopPropagation()}
+            className="crystal-new min-w-48 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 shadow-nv-float transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
+          >
             <Menu.Item
-              onClick={() => onOpenDetail(account)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDetail(account);
+              }}
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="arrowUpRight" size={16} className="text-nv-muted" />
               Open Full Cockpit
             </Menu.Item>
             <Menu.Item
-              onClick={() => onQuickPeek(account)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTimeout(() => onQuickPeek(account), 50);
+              }}
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="view" size={16} className="text-nv-muted" />
               Quick Overview
             </Menu.Item>
             <Menu.Item
-              onClick={() => onAdjustBalance(account)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTimeout(() => onAdjustBalance(account), 50);
+              }}
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="refresh" size={16} className="text-nv-muted" />
               Reconcile Balance
             </Menu.Item>
             <Menu.Item
-              onClick={() => onEdit(account)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTimeout(() => onEdit(account), 50);
+              }}
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="edit" size={16} className="text-nv-muted" />
@@ -176,7 +191,10 @@ const AccountActionMenu: React.FC<{
                 <div className="my-1 h-px bg-nv-line" />
                 {onMoveUp && (
                   <Menu.Item
-                    onClick={onMoveUp}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveUp();
+                    }}
                     className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
                   >
                     <NvIcon name="sort" size={16} className="text-nv-muted" />
@@ -185,7 +203,10 @@ const AccountActionMenu: React.FC<{
                 )}
                 {onMoveDown && (
                   <Menu.Item
-                    onClick={onMoveDown}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveDown();
+                    }}
                     className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
                   >
                     <NvIcon name="arrowDown" size={16} className="text-nv-muted" />
@@ -196,7 +217,10 @@ const AccountActionMenu: React.FC<{
             )}
             <div className="my-1 h-px bg-nv-line" />
             <Menu.Item
-              onClick={() => onToggleStatus(account)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleStatus(account);
+              }}
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="archive" size={16} className="text-nv-muted" />
@@ -227,6 +251,7 @@ export interface AccountItemProps {
   onToggleStatus: (account: Account) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onContextMenu?: (e: React.MouseEvent, account: Account) => void;
 }
 
 export const AccountRowNew: React.FC<AccountItemProps> = ({
@@ -245,6 +270,7 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
   onToggleStatus,
   onMoveUp,
   onMoveDown,
+  onContextMenu,
 }) => {
   const typeLabel = account.subType || account.otherSubType || account.type;
   const isClosed = account.status === 'closed';
@@ -263,6 +289,13 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
       role="button"
       tabIndex={0}
       onClick={() => onOpenDetail(account)}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu(e, account);
+        }
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -400,6 +433,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
     onToggleStatus,
     onMoveUp,
     onMoveDown,
+    onContextMenu,
   } = props;
 
   const typeLabel = account.subType || account.otherSubType || account.type;
@@ -432,6 +466,13 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
       role="button"
       tabIndex={0}
       onClick={() => onOpenDetail(account)}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          onContextMenu(e, account);
+        }
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();

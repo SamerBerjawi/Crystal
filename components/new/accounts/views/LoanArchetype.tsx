@@ -108,9 +108,9 @@ export const LoanArchetype: React.FC<{
   return (
     <div className="space-y-5">
       {/* Top Row: Payoff Progress + Early-Payoff Simulator */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
         {/* Left 6 Cols: Principal & Interest Breakdown + Linked Asset */}
-        <Card className="space-y-4 lg:col-span-6">
+        <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
@@ -197,7 +197,7 @@ export const LoanArchetype: React.FC<{
         </Card>
 
         {/* Right 6 Cols: Early-Payoff & Extra Principal Simulator */}
-        <Card className="space-y-4 lg:col-span-6">
+        <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
           <div>
             <h2 className="text-lg font-semibold text-nv-ink">
               Early-Payoff & Interest Saver Simulator

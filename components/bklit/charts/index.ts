@@ -23,10 +23,22 @@ export { Background, type BackgroundProps } from './background';
 export { Grid, type GridProps } from './grid';
 export { XAxis, type XAxisProps } from './x-axis';
 export { YAxis, type YAxisProps } from './y-axis';
-export { ChartTooltip, type ChartTooltipProps } from './tooltip';
+export { type YScaleType } from './y-axis-scales';
+export {
+  ChartTooltip,
+  type ChartTooltipProps,
+  TooltipContent,
+  type TooltipContentProps,
+  TooltipHeader,
+  type TooltipHeaderProps,
+  type TooltipRow,
+} from './tooltip';
 export { TrendLine, type TrendLineProps } from './trend-line';
 export { LineChart, type LineChartProps } from './line-chart';
 export { Line, type LineProps } from './line';
+export { ScatterChart, type ScatterChartProps } from './scatter-chart';
+export { Scatter, type ScatterProps } from './scatter';
+export { type ScatterJitter } from './scatter-jitter';
 export { curveNatural, curveMonotoneX } from '@visx/curve';
 export {
   Legend,

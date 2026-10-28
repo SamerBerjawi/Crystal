@@ -77,9 +77,9 @@ export const PhysicalAssetArchetype: React.FC<{
 
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
           {/* Left 6 Cols: Equity vs Mortgage & Valuation History */}
-          <Card className="space-y-4 lg:col-span-6">
+          <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
@@ -165,7 +165,7 @@ export const PhysicalAssetArchetype: React.FC<{
           </Card>
 
           {/* Right 6 Cols: Operating Cashflow & Rental Yield */}
-          <Card className="space-y-4 lg:col-span-6">
+          <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
@@ -282,9 +282,9 @@ export const PhysicalAssetArchetype: React.FC<{
 
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
           {/* Left 6 Cols: Lease Pace Tracker OR Owned Equity & Depreciation */}
-          <Card className="space-y-4 lg:col-span-6">
+          <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
@@ -416,7 +416,7 @@ export const PhysicalAssetArchetype: React.FC<{
           </Card>
 
           {/* Right 6 Cols: Total Cost of Ownership (TCO / km) */}
-          <Card className="space-y-4 lg:col-span-6">
+          <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">

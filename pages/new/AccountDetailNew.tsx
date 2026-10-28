@@ -157,6 +157,9 @@ export const AccountDetailNew: React.FC<{
         showBalanceAdjustments={data.showBalanceAdjustments}
         onToggleBalanceAdjustments={data.setShowBalanceAdjustments}
         onOpenRecordTx={() => setRecordTxMode('expense')}
+        brandfetchClientId={data.brandfetchClientId}
+        merchantLogoOverrides={data.merchantLogoOverrides}
+        accounts={data.accounts}
         onNavigateToFullTransactions={
           data.navigateToTransactions
             ? () => {

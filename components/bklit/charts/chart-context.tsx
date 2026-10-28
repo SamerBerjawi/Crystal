@@ -201,6 +201,7 @@ export interface ChartContextValue extends ChartHoverContextValue {
 
   // Pre-computed date labels for ticker animation
   dateLabels: string[];
+  formatXLabel?: (date: Date) => string;
 
   /** Active brush zoom range — when set, axis ticks align to visible data rows. */
   xDomain?: [Date, Date];
