@@ -188,7 +188,8 @@ const TableRow: React.FC<{
   const filters = cellFiltersOf(row, data);
   const of = (kind: CellFilterKind) => filters.filter(f => f.kind === kind);
   const cell = { isActive, onFilter };
-  const detail = row.kind === 'transfer' ? 'Transfer' : row.detail && row.detail !== row.merchant ? row.detail : '';
+  const detail = row.detail && row.detail !== row.merchant && row.detail !== row.title ? row.detail : '';
+  const hasBadges = (row.kind !== 'transfer' && row.uncategorized && !row.adjustment) || row.kind === 'transfer' || row.split || row.combined || row.recurring || row.adjustment;
   const activate = () => (selecting ? onToggle() : onOpen());
   return (
     <div
@@ -209,16 +210,12 @@ const TableRow: React.FC<{
             <span className="truncate text-[15px] font-semibold text-nv-ink">{row.title}</span>
             {row.notes && <NvIcon name="note" size={14} className="shrink-0 text-nv-faint" aria-label="Has notes" />}
           </span>
-          <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[13px] text-nv-muted">
-            {row.merchant && row.kind !== 'transfer' && (
-              <CellValue {...cell} filters={of('merchant')} label={`Merchant ${row.merchant}: filter`} className="shrink">
-                <span className="truncate underline decoration-nv-line decoration-dotted underline-offset-4 hover:text-nv-ink">{row.merchant}</span>
-              </CellValue>
-            )}
-            {row.merchant && row.kind !== 'transfer' && detail && <span aria-hidden>·</span>}
-            {(detail || !row.merchant) && <span className="truncate">{detail || 'Activity'}</span>}
-            <TxBadges row={row} className="ml-0.5 shrink-0 flex-nowrap" />
-          </span>
+          {(detail || hasBadges) ? (
+            <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[13px] text-nv-muted">
+              {detail && <span className="truncate">{detail}</span>}
+              <TxBadges row={row} className="ml-0.5 shrink-0 flex-nowrap" />
+            </span>
+          ) : null}
         </span>
       </span>
       <span role="cell" className="min-w-0">
