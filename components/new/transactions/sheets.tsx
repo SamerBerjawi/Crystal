@@ -137,6 +137,13 @@ export const TransactionSheet: React.FC<{ row: TxRow | null; onClose: () => void
   const doDelete = () => run(data.remove([row]), `Deleted "${row.title}"`);
   const doDuplicate = () => run(data.duplicate(row, todayIso()), `Duplicated "${row.title}" to today`);
 
+  const changeCategory = (cat: string) => {
+    if (lockedParent) return;
+    const result = data.save({ ...draftFromRow(row, data.transactions), category: cat }, row);
+    if ('error' in result) { toast.error(result.error); return; }
+    toast.undo(`Changed category to ${cat}`, result.undo);
+  };
+
   const menu: { icon: NvIconName; label: string; onClick: () => void }[] = [];
   if (!lockedParent) menu.push({ icon: 'copy', label: 'Duplicate to today', onClick: doDuplicate });
   if (row.kind !== 'transfer' && !row.adjustment && !row.combined) menu.push({ icon: 'split', label: row.split ? 'Edit split' : 'Split transaction', onClick: () => actions.split(row) });
@@ -152,7 +159,7 @@ export const TransactionSheet: React.FC<{ row: TxRow | null; onClose: () => void
       title={editing ? 'Edit transaction' : row.title}
       description={editing ? undefined : new Date(`${row.date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       width={520}
-      hero={editing ? undefined : <DetailHero row={row} data={data} isDark={isDark} />}
+      hero={editing ? undefined : <DetailHero row={row} data={data} isDark={isDark} onSelectCategory={lockedParent ? undefined : changeCategory} />}
       footer={editing && draft ? (
         <div className="flex gap-3">
           <Button variant="secondary" size="lg" onClick={() => { setEditing(false); setDraft(draftFromRow(row, data.transactions)); setError(null); }}>Cancel</Button>

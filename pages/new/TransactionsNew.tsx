@@ -4,7 +4,7 @@ import type { User } from '../../types';
 import { useTransactionsData } from '../../hooks/useTransactionsData';
 import { downloadCSV, formatCurrency } from '../../utils';
 import {
-  PERIODS, SORTS, balanceAccounts, canCombineRows, filterRows, groupByDay, isDateSort, kpiTotals, needsReview, pctChange, periodRange, periodTotals,
+  PERIODS, SORTS, balanceAccounts, canCombineRows, filterRows, groupByDay, isDateSort, kpiSparkSeries, kpiTotals, needsReview, pctChange, periodRange, periodTotals,
   placeClusters, previousRange, rowsToCsv, sortRows, spendByWeekday, topCategory, totalBalance,
   type PeriodId, type SortId, type TxKind, type TxRow,
 } from '../../utils/transactionsModel';
@@ -156,6 +156,10 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
   // The four KPIs follow the list (classic parity): every filter applies, and the change compares with the same filters one period back.
   const kpi = useMemo(() => kpiTotals(shown, data.convert), [shown, data.convert]);
   const prevKpi = useMemo(() => kpiTotals(filterRows(filterRows(prevPeriod, filterSpec), { places, weekdays }), data.convert), [prevPeriod, filterSpec, places, weekdays, data.convert]);
+  const sparkSeries = useMemo(
+    () => kpiSparkSeries(shown, range.from, range.to, data.convert),
+    [shown, range.from, range.to, data.convert]
+  );
 
   const pctOf = (cur: number, prev: number) => (prev === 0 ? null : Math.round(((cur - prev) / Math.abs(prev)) * 1000) / 10);
   const top = useMemo(() => topCategory(inPeriod, data.convert), [inPeriod, data.convert]);
@@ -419,6 +423,9 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
         total={balance.total}
         accountCount={balance.count}
         currency={data.displayCurrency}
+        accounts={balanceAccts}
+        selectedAccountIds={accountIds}
+        onToggleAccount={toggleIn(setAccountIds)}
         stats={kpi}
         deltas={{
           count: pctOf(kpi.count, prevKpi.count),
@@ -426,6 +433,7 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
           expense: pctOf(kpi.expense, prevKpi.expense),
           net: pctOf(kpi.net, prevKpi.net),
         }}
+        sparkSeries={sparkSeries}
         activeKinds={kinds}
         onToggleKind={toggleIn(setKinds)}
         clusters={clusters}

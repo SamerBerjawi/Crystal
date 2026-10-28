@@ -49,7 +49,7 @@ export function resolveSparklinePadding(
   fallback: number
 ): SparklinePadding {
   if (typeof padding === "number" || padding === undefined) {
-    const p = padding ?? fallback;
+    const p = (padding as number | undefined) ?? fallback;
     return { top: p, right: p, bottom: p, left: p };
   }
   return {

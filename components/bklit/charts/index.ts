@@ -7,5 +7,13 @@ export {
   Gauge,
   type GaugeProps,
   CRYSTAL_LINEAR_GAUGE_GRADIENTS,
+  CRYSTAL_FLOW_GRADIENTS,
   getCrystalLinearGaugeGradients,
 } from './gauge';
+export {
+  AreaSparkline,
+  type AreaSparklineProps,
+  LineSparkline,
+  type LineSparklineProps,
+  useSparklineHover,
+} from './sparkline';

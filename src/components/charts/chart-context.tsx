@@ -91,6 +91,7 @@ export interface TooltipData {
 
 export interface LineConfig {
   dataKey: string;
+  label?: string;
   stroke: string;
   strokeWidth: number;
   /** Scale group id (Recharts `yAxisId`). Default: `"left"`. */

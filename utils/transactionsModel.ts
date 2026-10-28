@@ -1070,3 +1070,98 @@ export const metricSeries = (rows: TxRow[], metric: MetricId, end: string, days:
   for (const p of points) p.parts = p.parts.map(round2);
   return { segments, points };
 };
+
+export interface SparkPoint {
+  day: string;
+  date: string;
+  value: number;
+}
+
+/**
+ * Cumulative daily series for the overview sparklines: income, expense, and net over the period.
+ */
+export const kpiSparkSeries = (
+  rows: TxRow[],
+  from: string | undefined,
+  to: string | undefined,
+  convert: Convert
+): { income: SparkPoint[]; expense: SparkPoint[]; net: SparkPoint[] } => {
+  let startDate: string;
+  let endDate: string;
+
+  if (from && to) {
+    startDate = from;
+    endDate = to;
+  } else if (rows.length > 0) {
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    startDate = sorted[0].date;
+    endDate = sorted[sorted.length - 1].date;
+  } else {
+    const today = iso(new Date());
+    startDate = today;
+    endDate = today;
+  }
+
+  const start = utcDay(startDate);
+  const end = Math.max(start, utcDay(endDate));
+  const totalDays = Math.max(1, Math.round((end - start) / DAY) + 1);
+
+  const byDate = new Map<string, { income: number; expense: number; net: number }>();
+  for (const r of rows) {
+    let b = byDate.get(r.date);
+    if (!b) {
+      b = { income: 0, expense: 0, net: 0 };
+      byDate.set(r.date, b);
+    }
+    if (countsAsSpend(r)) {
+      const amt = -convert(r.amount, r.currency);
+      b.expense += amt;
+      b.net -= amt;
+    } else if (countsAsIncome(r)) {
+      const amt = convert(r.amount, r.currency);
+      b.income += amt;
+      b.net += amt;
+    }
+  }
+
+  const step = totalDays > 60 ? Math.ceil(totalDays / 45) : 1;
+
+  let cumIncome = 0;
+  let cumExpense = 0;
+  let cumNet = 0;
+
+  const income: SparkPoint[] = [];
+  const expense: SparkPoint[] = [];
+  const net: SparkPoint[] = [];
+
+  for (let i = 0; i < totalDays; i++) {
+    const curUtc = start + i * DAY;
+    const curIso = isoFromUtc(curUtc);
+    const b = byDate.get(curIso);
+    if (b) {
+      cumIncome += b.income;
+      cumExpense += b.expense;
+      cumNet += b.net;
+    }
+
+    if (i % step === 0 || i === totalDays - 1) {
+      const dt = new Date(`${curIso}T12:00:00Z`);
+      const dayLabel = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const incVal = round2(cumIncome);
+      const expVal = round2(cumExpense);
+      const netVal = round2(cumNet);
+
+      income.push({ day: dayLabel, date: curIso, value: incVal });
+      expense.push({ day: dayLabel, date: curIso, value: expVal });
+      net.push({ day: dayLabel, date: curIso, value: netVal });
+    }
+  }
+
+  if (income.length === 1) {
+    income.unshift({ ...income[0] });
+    expense.unshift({ ...expense[0] });
+    net.unshift({ ...net[0] });
+  }
+
+  return { income, expense, net };
+};

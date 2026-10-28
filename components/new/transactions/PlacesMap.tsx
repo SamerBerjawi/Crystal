@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { cn } from '../../../lib/utils';
+import type { Currency } from '../../../types';
+import { formatCurrency } from '../../../utils';
 import type { PlaceCluster } from '../../../utils/transactionsModel';
 import { BASEMAP_ATTRIBUTION, loadBasemapStyle } from '../../../utils/mapStyle';
 
@@ -75,27 +77,41 @@ const useMap = (container: React.RefObject<HTMLDivElement>, { dark, center, zoom
   return { map: mapRef, ready };
 };
 
-const clusterEl = (c: PlaceCluster, selected: boolean, onSelect: (key: string) => void) => {
-  // Flat dot: size and count carry the frequency, a soft same-colour halo marks it without a gradient or shadow.
-  const size = c.count > 1 ? Math.round(20 + Math.min(24, Math.sqrt(c.count) * 4)) : 10;
+const clusterEl = (
+  c: PlaceCluster,
+  selected: boolean,
+  onSelect: (key: string) => void,
+  metric: 'count' | 'spent' = 'count',
+  currency: Currency = 'EUR'
+) => {
+  // Flat dot: size and count or spend carry the frequency, a soft same-colour halo marks it without a gradient or shadow.
+  const isSpent = metric === 'spent';
+  const label = isSpent ? formatCurrency(c.spent, currency, { compact: true }) : (c.count > 1 ? String(c.count) : '');
+  const size = isSpent ? 36 : (c.count > 1 ? Math.round(20 + Math.min(24, Math.sqrt(c.count) * 4)) : 10);
   const el = document.createElement('button');
   el.type = 'button';
   el.className = cn(
-    'flex items-center justify-center rounded-full text-[10px] font-semibold leading-none transition-colors',
+    'flex items-center justify-center rounded-full text-[10px] font-semibold leading-none transition-colors px-1',
     selected ? 'bg-nv-violet text-nv-on-violet' : 'bg-nv-ink text-nv-on-ink',
   );
   el.style.width = el.style.height = `${size}px`;
-  el.style.boxShadow = `0 0 0 ${c.count > 1 ? 4 : 3}px color-mix(in srgb, ${selected ? 'var(--nv-violet)' : 'var(--nv-ink)'} 16%, transparent)`;
-  el.textContent = c.count > 1 ? String(c.count) : '';
-  el.setAttribute('aria-label', `${c.label}: ${c.count} transaction${c.count === 1 ? '' : 's'}`);
+  el.style.boxShadow = `0 0 0 ${c.count > 1 || isSpent ? 4 : 3}px color-mix(in srgb, ${selected ? 'var(--nv-violet)' : 'var(--nv-ink)'} 16%, transparent)`;
+  el.textContent = label;
+  el.setAttribute('aria-label', `${c.label}: ${c.count} transaction${c.count === 1 ? '' : 's'}${isSpent ? `, ${formatCurrency(c.spent, currency)}` : ''}`);
   el.setAttribute('aria-pressed', String(selected));
   el.addEventListener('click', e => { e.stopPropagation(); onSelect(c.key); });
   return el;
 };
 
 export const PlacesMap: React.FC<{
-  clusters: PlaceCluster[]; selected: string[]; onSelect: (key: string) => void; dark: boolean; className?: string;
-}> = ({ clusters, selected, onSelect, dark, className }) => {
+  clusters: PlaceCluster[];
+  selected: string[];
+  onSelect: (key: string) => void;
+  dark: boolean;
+  metric?: 'count' | 'spent';
+  currency?: Currency;
+  className?: string;
+}> = ({ clusters, selected, onSelect, dark, metric = 'count', currency = 'EUR', className }) => {
   const box = useRef<HTMLDivElement>(null);
   const first = clusters[0];
   const { map, ready } = useMap(box, { dark, center: first ? [first.lat, first.lng] : [30, 0], zoom: first ? 4 : 1.5, interactive: true });
@@ -131,12 +147,12 @@ export const PlacesMap: React.FC<{
     const m = map.current;
     if (!ready || !m) return;
     const markers = clusters.map(c =>
-      new maplibregl.Marker({ element: clusterEl(c, selected.includes(c.key), k => onSelectRef.current(k)) })
+      new maplibregl.Marker({ element: clusterEl(c, selected.includes(c.key), k => onSelectRef.current(k), metric, currency) })
         .setLngLat([c.lng, c.lat]).addTo(m));
     return () => markers.forEach(mk => mk.remove());
     // `key` and `selectedKey` identify the clusters and the selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, key, selectedKey, map]);
+  }, [ready, key, selectedKey, metric, currency, map]);
 
   return <div ref={box} role="region" aria-label="Map of where transactions happened" className={cn('nv-map z-0 h-full w-full overflow-hidden rounded-nv-tile bg-nv-inset', className)} />;
 };

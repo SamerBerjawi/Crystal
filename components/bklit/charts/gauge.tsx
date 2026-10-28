@@ -747,6 +747,11 @@ export const CRYSTAL_LINEAR_GAUGE_GRADIENTS = {
   inactiveLight: ["#e4e4eb", "#38bdf8"] as const,
 };
 
+export const CRYSTAL_FLOW_GRADIENTS = {
+  active: ["#22c55e", "#38bdf8"] as const,
+  inactive: ["#ef4444", "#dc2626"] as const,
+};
+
 export function getCrystalLinearGaugeGradients(options?: {
   color?: string;
   over?: boolean;
