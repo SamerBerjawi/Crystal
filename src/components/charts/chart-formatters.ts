@@ -27,6 +27,29 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 /**
+ * Converts a data key or label (camelCase, snake_case, kebab-case, or lower case)
+ * into human-readable Proper Case / Title Case (e.g. "netWorth" -> "Net Worth", "balance" -> "Balance").
+ * Preserves uppercase acronyms and abbreviations (e.g. "USD", "EUR", "LTV", "APY").
+ */
+export function toProperCase(str: string): string {
+  if (!str || typeof str !== "string") return str;
+  const withSpaces = str
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z\d]+)/g, "$1 $2")
+    .replace(/[_\-]+/g, " ")
+    .trim();
+
+  return withSpaces
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return "";
+      if (word.length > 1 && word === word.toUpperCase()) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+/**
  * Tooltip value for a `<Band>` row: `"low – high"` (ordered), the value itself
  * when both edges read the same key, or `null` when either edge is missing
  * (e.g. Bollinger warm-up rows).

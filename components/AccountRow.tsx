@@ -1,7 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
-import { convertToEur, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
+import { convertToEur, formatCurrency, normalizeCurrency } from '../utils';
+import { computeAccount90dSparkline, computeAccountDisplayBalance } from '../utils/accountsModel';
 import { LineChart, Line } from '../src/components/charts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
@@ -32,6 +33,7 @@ interface AccountRowProps {
 
 const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, onOverview, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu, isLinkedToEnableBanking = false, viewStyle = 'detailed' }) => {
     const { loanPaymentOverrides } = useScheduleContext();
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
     const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
     const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
     const [logoError, setLogoError] = useState(false);
@@ -46,77 +48,18 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         onAdjustBalance();
     };
 
-    const displayBalance = useMemo(() => {
-        if (account.type === 'Loan' || account.type === 'Lending') {
-             if (account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined) {
-                 const overrides = loanPaymentOverrides[account.id] || {};
-                 const schedule = generateAmortizationSchedule(account, transactions, overrides);
-                 
-                 const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
-                 const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
-                 const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
-                 const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
-                
-                 const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-                 const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
-                 
-                 const totalOutstanding = outstandingPrincipal + outstandingInterest;
-                 return account.type === 'Loan' ? -totalOutstanding : totalOutstanding;
-             }
+    const displayBalance = useMemo(
+        () => computeAccountDisplayBalance(account, transactions, loanPaymentOverrides),
+        [account, transactions, loanPaymentOverrides]
+    );
 
-             if (account.totalAmount) {
-                const isLending = account.type === 'Lending';
-                const loanPayments = transactions.filter(tx => tx.type === (isLending ? 'expense' : 'income'));
-                const totalPaid = loanPayments.reduce((sum, tx) => {
-                    const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-                    return sum + (totalPayment > 0 ? totalPayment : tx.amount);
-                }, 0);
-                const outstanding = account.totalAmount - totalPaid;
-                return isLending ? outstanding : -outstanding;
-             }
-        }
-        return account.balance;
-    }, [account, transactions, loanPaymentOverrides]);
-
-    const { sparklineData, trend, isPositiveTrend } = useMemo(() => {
-        const NUM_POINTS = 90;
-        const today = new Date();
-        const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - 90);
-
-        const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        let currentBal = convertToEur(displayBalance, account.currency);
-        
-        const txsByDate: Record<string, number> = {};
-        sortedTransactions.forEach(tx => {
-            const dateStr = tx.date;
-            const amount = convertToEur(tx.amount, tx.currency);
-            txsByDate[dateStr] = (txsByDate[dateStr] || 0) + amount;
-        });
-
-        const runningDate = new Date(endDate);
-        const history: { date: Date; value: number }[] = [];
-        let runningBal = currentBal;
-
-        for (let i = 0; i < NUM_POINTS; i++) {
-            history.push({
-                date: new Date(runningDate),
-                value: runningBal,
-            });
-            const dateStr = toLocalISOString(runningDate);
-            const change = txsByDate[dateStr] || 0;
-            runningBal -= change;
-            runningDate.setDate(runningDate.getDate() - 1);
-        }
-        
-        const data = history.reverse().map(item => ({ date: item.date, value: Math.max(0, item.value) }));
-
-        const trendVal = data[data.length - 1].value - data[0].value;
-        const isPositive = trendVal >= 0;
-        
-        return { sparklineData: data, trend: trendVal, isPositiveTrend: isPositive };
-    }, [account, transactions, displayBalance]);
+    const { sparklineData, trend, isPositiveTrend } = useMemo(
+        () =>
+            computeAccount90dSparkline(account, transactions, displayBalance, {
+                conversionRates,
+            }),
+        [account, transactions, displayBalance, conversionRates]
+    );
 
     const isComputedAccount = useMemo(() => {
         if (account.type !== 'Investment' || !account.symbol) return false;
@@ -352,7 +295,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
                         <div className="flex items-center gap-1.5 mt-1">
-                            {account.currency !== 'EUR' && (
+                            {normalizeCurrency(account.currency) !== 'EUR' && (
                                 <p className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-40">
                                     {formatCurrency(displayBalance, account.currency)}
                                 </p>
@@ -509,7 +452,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         <p className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-slate-900 dark:text-white tracking-tight tabular-nums privacy-blur truncate">
                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                         </p>
-                        {account.currency !== 'EUR' && (
+                        {normalizeCurrency(account.currency) !== 'EUR' && (
                             <p className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur truncate opacity-50">
                                 {formatCurrency(displayBalance, account.currency)}
                             </p>

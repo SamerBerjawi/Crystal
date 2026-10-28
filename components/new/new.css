@@ -1,12 +1,12 @@
 /*
- * Design tokens for the New pages (UI_UX_DESIGN_REFERENCE.md §1, decisions Q1–Q4, D1–D16, R1–R8).
+ * Design tokens for the New pages (UI_UX_DESIGN_REFERENCE.md §1, decisions Q1–Q4, D1–D16, R1–R8, §19).
  * Surfaces (R2): a white page (canvas), grey tiles (tile) with no shadow, white sub-cards (surface) inside
  * tiles, and inset for tracks and fields. Dark mode steps each layer one shade lighter.
  * Scoped to .crystal-new so the classic pages are unaffected. Tailwind's `nv-*` utilities read these
  * (index.css). Dark mode follows the app's `dark` class on <html>.
  *
  * Light values are sampled from the desktop reference. *-text variants are the AA-safe shades for small
- * text on surfaces. The violet fill and its text differ only in dark mode.
+ * text on surfaces. The primary brand/CTA slot (--nv-violet) uses Dark Slate Grey (#183A37).
  */
 @import '@fontsource-variable/outfit';
 
@@ -22,14 +22,14 @@
   --nv-muted: #6b7080;
   /* Large figures' units and decimals only (3.3:1): never body text. */
   --nv-faint: #8a8fa3;
-  --nv-violet: #6d3af2;
-  --nv-violet-strong: #5b2be8;
-  --nv-violet-soft: #efeafe;
-  --nv-violet-text: #5b2be8;
+  --nv-violet: #183a37;
+  --nv-violet-strong: #112b29;
+  --nv-violet-soft: #e6efee;
+  --nv-violet-text: #183a37;
   --nv-on-violet: #ffffff;
-  /* Accents (D1): violet brand / selected / cash, green income / on track, orange spending / attention,
-     sky transfers / planned / forecast. Red is status only. Each has a fill, a small-text shade (*-text),
-     a tint for tinted surfaces (*-soft) and the text colour that sits on its fill (on-*). */
+  /* Accents (D1): brand / selected / cash (--nv-violet, Dark Slate Grey #183A37), green income / on track,
+     orange spending / attention, sky transfers / planned / forecast. Red is status only. Each has a fill, a
+     small-text shade (*-text), a tint for tinted surfaces (*-soft) and the text colour that sits on its fill (on-*). */
   --nv-orange: #f2994a;
   --nv-orange-text: #b45309;
   --nv-orange-soft: #fdf0e4;
@@ -56,7 +56,7 @@
   --nv-shadow-chrome: 0 1px 2px rgb(20 20 40 / 0.04), 0 8px 24px rgb(20 20 40 / 0.06);
   --nv-shadow-float: 0 12px 40px rgb(20 20 40 / 0.14);
   --nv-shadow-thumb: 0 1px 3px rgb(20 20 40 / 0.10);
-  --nv-shadow-violet: 0 14px 32px -8px rgb(109 58 242 / 0.55);
+  --nv-shadow-violet: 0 14px 32px -8px rgb(24 58 55 / 0.55);
 
   /* bklit charts (components/bklit) read these. */
   --chart-1: var(--nv-violet);
@@ -72,10 +72,10 @@
   --chart-label: var(--nv-muted);
   --chart-grid: var(--nv-line);
   --chart-crosshair: var(--nv-violet);
-  --chart-tooltip-background: #141420;
-  --chart-tooltip-foreground: #ffffff;
-  --chart-tooltip-muted: #b4b2c6;
-  --chart-tooltip-border: rgb(255 255 255 / 0.08);
+  --chart-tooltip-background: rgb(24 24 27 / 0.82);
+  --chart-tooltip-foreground: #fafafa;
+  --chart-tooltip-muted: #a1a1aa;
+  --chart-tooltip-border: rgb(255 255 255 / 0.12);
   --chart-marker-background: var(--nv-surface);
   --chart-marker-border: var(--nv-violet);
   --chart-marker-foreground: var(--nv-ink);
@@ -102,10 +102,10 @@
   --nv-on-ink: #0a0a0a;
   --nv-muted: #a3a3a3;
   --nv-faint: #7a7a7a;
-  --nv-violet: #7c4dff;
-  --nv-violet-strong: #6a3cf5;
-  --nv-violet-soft: #251f42;
-  --nv-violet-text: #b39dff;
+  --nv-violet: #183a37;
+  --nv-violet-strong: #112b29;
+  --nv-violet-soft: #132927;
+  --nv-violet-text: #65b5ad;
   --nv-on-violet: #ffffff;
   --nv-orange: #f5a55f;
   --nv-orange-text: #f5a55f;
@@ -130,12 +130,15 @@
   --nv-shadow-chrome: 0 10px 30px rgb(0 0 0 / 0.45);
   --nv-shadow-float: 0 16px 48px rgb(0 0 0 / 0.6);
   --nv-shadow-thumb: 0 1px 3px rgb(0 0 0 / 0.5);
-  --nv-shadow-violet: 0 14px 32px -10px rgb(124 77 255 / 0.6);
+  --nv-shadow-violet: 0 14px 32px -10px rgb(24 58 55 / 0.6);
 
-  --chart-tooltip-background: #f5f5f5;
-  --chart-tooltip-foreground: #0a0a0a;
-  --chart-tooltip-muted: #5c5c5c;
-  --chart-tooltip-border: rgb(0 0 0 / 0.08);
+  --chart-1: var(--nv-violet-text);
+  --chart-line-primary: var(--nv-violet-text);
+  --chart-crosshair: var(--nv-violet-text);
+  --chart-tooltip-background: rgb(18 18 18 / 0.85);
+  --chart-tooltip-foreground: #fafafa;
+  --chart-tooltip-muted: #a1a1aa;
+  --chart-tooltip-border: rgb(255 255 255 / 0.12);
 }
 
 @layer components {

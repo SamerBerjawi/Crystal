@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOYearMonth } from '../utils';
+import { formatCurrency, parseLocalDate, toLocalISOYearMonth } from '../utils';
+import { computePensionAccountMetrics } from '../utils/accountDetailModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend, ComposedChart, Line, Cell } from 'recharts';
@@ -75,109 +77,27 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
   isLinkedToEnableBanking,
   showBalanceAdjustments = true,
 }) => {
-  const timeZone = getPreferredTimeZone();
-  const currentYear = new Date().getFullYear();
-  const retirementYear = account.expectedRetirementYear || (currentYear + 20);
-  const yearsToRetirement = Math.max(0, retirementYear - currentYear);
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
+  const rawTransactions = useMemo(() => transactions.map(t => t.tx), [transactions]);
 
-  // --- Growth & Contributions ---
-  const { totalContributions, totalGrowth, annualizedReturn, monthlyContributionAvg } = useMemo(() => {
-    let contributions = 0;
-    const now = new Date();
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(now.getFullYear() - 1);
-    let contributionsLast12Months = 0;
-
-    transactions
-        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-        .forEach(({ tx, parsedDate, convertedAmount }) => {
-        if (tx.type === 'income') {
-            if (!tx.isMarketAdjustment && !tx.category.toLowerCase().includes('interest') && !tx.category.toLowerCase().includes('dividend')) {
-                 contributions += convertedAmount;
-                 if (parsedDate >= oneYearAgo) {
-                     contributionsLast12Months += convertedAmount;
-                 }
-            }
-        } else if (tx.type === 'expense') {
-            if (!tx.isMarketAdjustment) {
-                contributions -= Math.abs(convertedAmount);
-            }
-        }
-    });
-
-    const currentBalanceEur = convertToEur(account.balance, account.currency);
-    const growth = currentBalanceEur - contributions;
-    const simpleReturn = contributions > 0 ? (growth / contributions) : 0;
-    
-    return {
-        totalContributions: contributions,
-        totalGrowth: growth,
-        annualizedReturn: simpleReturn, 
-        monthlyContributionAvg: contributionsLast12Months / 12
-    };
-  }, [transactions, account.balance, account.currency, showBalanceAdjustments]);
-
-  // --- Projection Chart ---
-  const chartData = useMemo(() => {
-    const historicalDataPoints = [];
-    const today = new Date();
-    const openingDate = account.openingDate ? parseLocalDate(account.openingDate) : new Date(today.getFullYear() - 5, today.getMonth(), 1);
-    const monthsToBackfill = (today.getFullYear() - openingDate.getFullYear()) * 12 + (today.getMonth() - openingDate.getMonth()) + 1;
-    const monthlyDataMap = new Map<string, { balance: number, contributions: number }>();
-    
-    let currentBal = convertToEur(account.balance, account.currency);
-    let currentContrib = totalContributions;
-    
-    for (let i = 0; i < Math.max(1, monthsToBackfill); i++) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const key = toLocalISOYearMonth(d);
-        monthlyDataMap.set(key, { balance: currentBal, contributions: currentContrib });
-        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        const txsInMonth = transactions
-            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-            .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
-        txsInMonth.forEach(({ tx, convertedAmount }) => {
-            currentBal -= convertedAmount;
-             if (tx.type === 'income' && !tx.isMarketAdjustment && !tx.category.toLowerCase().includes('interest')) {
-                 currentContrib -= convertedAmount;
-             } else if (tx.type === 'expense' && !tx.isMarketAdjustment) {
-                 currentContrib += Math.abs(convertedAmount);
-             }
-        });
-        if (currentBal < 0) currentBal = 0;
-        if (currentContrib < 0) currentContrib = 0;
-    }
-    const historicalData = Array.from(monthlyDataMap.entries())
-        .map(([date, data]) => ({ date, ...data, type: 'History' }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-    const projectionData = [];
-    let projBalance = convertToEur(account.balance, account.currency);
-    let projContrib = totalContributions;
-    const monthlyRate = (account.apy || 5) / 100 / 12;
-    const monthsToRetire = yearsToRetirement * 12;
-    const step = Math.max(1, Math.floor(monthsToRetire / 24));
-    let d = new Date(today);
-    
-    for (let i = 1; i <= monthsToRetire; i++) {
-        projBalance += monthlyContributionAvg;
-        projContrib += monthlyContributionAvg;
-        projBalance = projBalance * (1 + monthlyRate);
-        d.setMonth(d.getMonth() + 1);
-        if (i % step === 0 || i === monthsToRetire) {
-             projectionData.push({
-                 date: toLocalISOYearMonth(d),
-                 balance: projBalance,
-                 contributions: projContrib,
-                 type: 'Projection'
-             });
-        }
-    }
-    return [...historicalData, ...projectionData];
-  }, [transactions, account.balance, account.currency, account.apy, account.openingDate, totalContributions, monthlyContributionAvg, yearsToRetirement, showBalanceAdjustments]);
-
-  const projectedValueAtRetirement = chartData.length > 0 ? chartData[chartData.length - 1].balance : 0;
+  // --- Growth, Contributions & Projection Chart (BUG-14 & BUG-07 Fixed) ---
+  const {
+    retirementYear,
+    yearsToRetirement,
+    totalContributions,
+    totalGrowth,
+    annualizedReturn,
+    monthlyContributionAvg,
+    chartData,
+    projectedValueAtRetirement,
+  } = useMemo(
+    () =>
+      computePensionAccountMetrics(account, rawTransactions, {
+        conversionRates,
+        showBalanceAdjustments,
+      }),
+    [account, rawTransactions, conversionRates, showBalanceAdjustments]
+  );
 
   return (
     <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">

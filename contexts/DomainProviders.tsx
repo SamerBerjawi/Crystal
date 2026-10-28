@@ -1,6 +1,16 @@
 
 import React, { createContext, useContext, useMemo, useRef, ReactNode } from 'react';
-import { Account, AppPreferences, Transaction, Warrant, Invoice } from '../types';
+import {
+  Account,
+  AppPreferences,
+  AssetClosureDetails,
+  EnableBankingAccount,
+  EnableBankingConnection,
+  EnableBankingSyncOptions,
+  Transaction,
+  Warrant,
+  Invoice,
+} from '../types';
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
@@ -13,11 +23,30 @@ export interface TransactionsContextValue {
   digest?: string;
 }
 
+export interface EnableBankingLinkInfo {
+  connection: EnableBankingConnection;
+  account: EnableBankingAccount;
+}
+
 export interface AccountsContextValue {
   accounts: Account[];
   accountOrder: string[];
   setAccountOrder: (order: string[]) => void;
   saveAccount: (accountData: Omit<Account, 'id'> & { id?: string }) => void;
+  deleteAccount?: (accountId: string) => void;
+  toggleAccountStatus?: (accountId: string) => void;
+  closeAsset?: (accountId: string, details: AssetClosureDetails) => void;
+  revertClosure?: (accountId: string) => void;
+  linkedEnableBankingAccountIds?: Set<string>;
+  enableBankingLinkMap?: Map<string, EnableBankingLinkInfo>;
+  syncAllBanks?: () => Promise<void>;
+  isSyncingBanks?: boolean;
+  triggerEnableBankingSync?: (
+    connectionId: string,
+    connectionOverride?: EnableBankingConnection,
+    syncOptions?: EnableBankingSyncOptions
+  ) => Promise<void>;
+  navigateToTransactions?: (filters?: { accountName?: string | null; tagId?: string | null }) => void;
 }
 
 export interface PreferencesContextValue {
@@ -90,6 +119,10 @@ export const usePreferencesContext = () => {
   const context = useContext(PreferencesContext);
   if (!context) throw new Error('usePreferencesContext must be used within a PreferencesProvider');
   return context;
+};
+
+export const usePreferencesContextOptional = () => {
+  return useContext(PreferencesContext);
 };
 
 export const useWarrantsContext = () => {

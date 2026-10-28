@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Account, Category, Currency, Tag, Transaction } from '../types';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
-import { convertCurrency } from '../utils';
+import { convertCurrency, normalizeCurrency } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import {
   buildRows, merchantOptions, nextTagColor, placeOptions, planBulkEdit, planCombine, planRecurring, planSave, planSplit, planUncombine, planUnsplit,
@@ -32,7 +32,7 @@ export const useTransactionsData = () => {
 
   const showBalanceAdjustments = preferences.showBalanceAdjustments ?? true;
   const rows = useMemo(() => buildRows(transactions, { showBalanceAdjustments }), [transactions, showBalanceAdjustments]);
-  const displayCurrency = (preferences.displayCurrency || preferences.currency || 'EUR') as Currency;
+  const displayCurrency = normalizeCurrency(preferences.displayCurrency || preferences.currency || 'EUR');
   const convert = useCallback((amount: number, currency: Currency) => convertCurrency(amount, currency, displayCurrency), [displayCurrency]);
 
   const openAccounts = useMemo(() => accounts.filter(a => a.status !== 'closed'), [accounts]);

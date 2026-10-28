@@ -14,7 +14,7 @@ import {
   useChart,
   useChartStable,
 } from "../chart-context";
-import { weekdayDateFmt } from "../chart-formatters";
+import { toProperCase, weekdayDateFmt } from "../chart-formatters";
 import type { IndicatorFadeEdges } from "../indicator-fade";
 import { DateTicker } from "./date-ticker";
 import { TooltipBox } from "./tooltip-box";
@@ -209,7 +209,7 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
       const rawVal = tooltipData.point[line.dataKey];
       const val = typeof rawVal === "number" ? rawVal : (rawVal as any) ?? 0;
       const rawKey = String(line.label || line.dataKey || "");
-      const label = rawKey ? rawKey.charAt(0).toUpperCase() + rawKey.slice(1) : rawKey;
+      const label = toProperCase(rawKey);
       return {
         color: line.stroke,
         label,

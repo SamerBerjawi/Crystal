@@ -17,3 +17,29 @@ export {
   type LineSparklineProps,
   useSparklineHover,
 } from './sparkline';
+export { AreaChart, type AreaChartProps } from './area-chart';
+export { Area, type AreaProps } from './area';
+export { Background, type BackgroundProps } from './background';
+export { Grid, type GridProps } from './grid';
+export { XAxis, type XAxisProps } from './x-axis';
+export { YAxis, type YAxisProps } from './y-axis';
+export { ChartTooltip, type ChartTooltipProps } from './tooltip';
+export { TrendLine, type TrendLineProps } from './trend-line';
+export { LineChart, type LineChartProps } from './line-chart';
+export { Line, type LineProps } from './line';
+export { curveNatural, curveMonotoneX } from '@visx/curve';
+export {
+  Legend,
+  type LegendProps,
+  LegendItem,
+  type LegendItemProps,
+  LegendLabel,
+  type LegendLabelProps,
+  LegendMarker,
+  type LegendMarkerProps,
+  LegendProgress,
+  type LegendProgressProps,
+  LegendValue,
+  type LegendValueProps,
+} from './legend';
+export { toProperCase, formatCurrencyAmount } from './chart-formatters';

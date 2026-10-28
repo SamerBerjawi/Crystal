@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Account, MileageLog, Transaction, LoanPaymentOverrides } from '../types';
-import { formatCurrency, parseLocalDate, generateAmortizationSchedule, calculateTrendLine } from '../utils';
+import { formatCurrency, parseLocalDate, calculateTrendLine } from '../utils';
+import { computeVehicleAccountMetrics } from '../utils/accountDetailModel';
 import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -171,6 +172,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
 }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
   const brandLogoUrl = useMemo(() => {
     if (!brandfetchClientId || !account.make) return null;
@@ -181,61 +183,24 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
 
   const isLeased = account.ownership === 'Leased';
   const isClosed = account.status === 'closed';
-  const linkedLoan = accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
 
-  let outstandingLoanBalance = 0;
-  if (linkedLoan) {
-      const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
-      if (linkedLoan.principalAmount && linkedLoan.duration && linkedLoan.loanStartDate && linkedLoan.interestRate !== undefined) {
-          const overrides = loanPaymentOverrides[linkedLoan.id] || {};
-          const schedule = generateAmortizationSchedule(linkedLoan, filteredTxs, overrides);
-          const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
-          const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
-          outstandingLoanBalance = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-      } else {
-          outstandingLoanBalance = Math.abs(linkedLoan.balance);
-      }
-  }
-
-  const sortedMileageLogs = useMemo(() => {
-    return [...(account.mileageLogs || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [account.mileageLogs]);
+  // BUG-10 & BUG-11 Fixed: Bidirectional loan resolution + baseline mileage subtraction
+  const {
+    linkedLoan,
+    outstandingLoanBalance,
+    sortedMileageLogs,
+    currentMileage,
+    leaseStats,
+  } = useMemo(
+    () =>
+      computeVehicleAccountMetrics(account, accounts, transactions, loanPaymentOverrides, {
+        conversionRates,
+        showBalanceAdjustments,
+      }),
+    [account, accounts, transactions, loanPaymentOverrides, conversionRates, showBalanceAdjustments]
+  );
 
   const sortedMileageLogsDesc = useMemo(() => [...sortedMileageLogs].reverse(), [sortedMileageLogs]);
-
-  const currentMileage = useMemo(() => {
-    if (sortedMileageLogs.length === 0) return 0;
-    return sortedMileageLogs[sortedMileageLogs.length - 1].reading;
-  }, [sortedMileageLogs]);
-
-  const leaseStats = useMemo(() => {
-    if (account.ownership !== 'Leased' || !account.leaseStartDate || !account.leaseEndDate) return null;
-    const start = parseLocalDate(account.leaseStartDate);
-    const end = parseLocalDate(account.leaseEndDate);
-    const now = new Date();
-    const totalDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-    const elapsedDays = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-    const progress = Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
-    
-    let mileageStatus: 'Over Budget' | 'Under Budget' | 'On Track' = 'On Track';
-    let mileageDiff = 0;
-    let projectedMileage = 0;
-    let totalAllowance = 0;
-    
-    if (account.annualMileageAllowance) {
-        const dailyAllowance = account.annualMileageAllowance / 365;
-        const expectedMileage = elapsedDays * dailyAllowance;
-        const years = totalDays / 365;
-        totalAllowance = account.annualMileageAllowance * years;
-        mileageDiff = currentMileage - expectedMileage;
-        projectedMileage = elapsedDays > 0 ? (currentMileage / elapsedDays) * totalDays : 0;
-        
-        if (mileageDiff > 1000) mileageStatus = 'Over Budget';
-        else if (mileageDiff < -1000) mileageStatus = 'Under Budget';
-    }
-    
-    return { progress, mileageStatus, mileageDiff, daysRemaining: Math.max(0, Math.ceil(totalDays - elapsedDays)), projectedMileage, totalAllowance };
-  }, [account, currentMileage]);
 
   const priceHistoryWithTrend = useMemo(() => {
     if (!account.priceHistory || account.priceHistory.length === 0) return [];

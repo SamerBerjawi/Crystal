@@ -10,6 +10,7 @@ import {
   ArrowDataTransferHorizontalIcon, Delete02Icon, Archive02Icon, InformationCircleIcon, Alert02Icon, Copy01Icon,
   Undo02Icon, CheckmarkCircle02Icon, ArrowLeft02Icon, FilterHorizontalIcon, Download01Icon, Tag01Icon, Note01Icon,
   CheckmarkSquare02Icon, SquareIcon, PencilEdit02Icon, MapPinIcon, SplitIcon, GitMergeIcon, PiggyBankIcon, ArrowUpDownIcon,
+  Layout2ColumnIcon, ListViewIcon, GridViewIcon,
 } from '@hugeicons/core-free-icons';
 
 /**
@@ -36,6 +37,7 @@ const ICONS = {
   close: Cancel01Icon,
   checkCircle: CheckmarkCircle02Icon,
   command: CommandIcon,
+  columns: Layout2ColumnIcon,
   copy: Copy01Icon,
   dashboard: DashboardSquare01Icon,
   delete: Delete02Icon,
@@ -44,10 +46,12 @@ const ICONS = {
   external: LinkSquare02Icon,
   filter: FilterHorizontalIcon,
   forecast: ChartLineData01Icon,
+  grid: GridViewIcon,
   home: Home01Icon,
   info: InformationCircleIcon,
   investments: ChartIncreaseIcon,
   invoice: Invoice01Icon,
+  list: ListViewIcon,
   logout: Logout01Icon,
   menu: Menu01Icon,
   money: Money01Icon,

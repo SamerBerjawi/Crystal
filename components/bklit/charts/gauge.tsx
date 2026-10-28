@@ -741,7 +741,7 @@ export function Gauge({
 Gauge.displayName = "Gauge";
 
 export const CRYSTAL_LINEAR_GAUGE_GRADIENTS = {
-  active: ["#6d3af2", "#38bdf8"] as const,
+  active: ["#183a37", "#38bdf8"] as const,
   over: ["#ef4444", "#dc2626"] as const,
   inactiveDark: ["#2a2d3d", "#38bdf8"] as const,
   inactiveLight: ["#e4e4eb", "#38bdf8"] as const,

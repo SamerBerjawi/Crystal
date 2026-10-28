@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Airplane01Icon, Atm01Icon, Baby01Icon, BankIcon, Book01Icon, BookOpen01Icon, Briefcase01Icon, Building02Icon, Building03Icon, Bus01Icon,
@@ -11,7 +11,10 @@ import {
   Video01Icon, Wallet01Icon, Wifi01Icon, Wrench01Icon,
 } from '@hugeicons/core-free-icons';
 import { cn } from '../../lib/utils';
-import { NvIcon } from './NvIcon';
+import type { AccountType } from '../../types';
+import { getAccountBrandfetchUrl } from '../../utils/brandfetch';
+import { usePreferencesContextOptional } from '../../contexts/DomainProviders';
+import { NvIcon, type NvIconName } from './NvIcon';
 
 /*
  * Icons and logos for the things money is attached to: categories and tags (an icon the user picked, stored by name),
@@ -146,3 +149,151 @@ export const EntityLabel: React.FC<{ icon?: string; label: string; color?: strin
     <span className="truncate">{children ?? label}</span>
   </span>
 );
+
+/**
+ * Standard icon mapping for account archetypes across all account surfaces.
+ */
+export const accountTypeIcon = (account: { type: string; subType?: string; otherSubType?: string; name?: string }): NvIconName => {
+  if (account.otherSubType === 'Meal Voucher' || account.subType === 'Meal Voucher') return 'card';
+  if (account.type === 'Checking') return 'bank';
+  if (account.type === 'Savings') return 'piggy';
+  if (account.type === 'Credit Card') return 'card';
+  if (account.type === 'Loan') return 'invoice';
+  if (account.type === 'Lending') return 'transactions';
+  if (account.type === 'Property') return 'home';
+  if (account.type === 'Vehicle') return 'pin';
+  if (account.type === 'Investment') {
+    return account.subType === 'Spare Change' ? 'piggy' : 'investments';
+  }
+  if (account.type === 'Other Liabilities') return 'warning';
+  return 'wallet';
+};
+
+export interface AccountLogoProps {
+  account: {
+    id?: string;
+    name: string;
+    type: AccountType;
+    subType?: string;
+    icon?: string;
+    imageUrl?: string | null;
+    financialInstitution?: string | null;
+    cardNetwork?: string | null;
+    website?: string | null;
+  };
+  brandfetchClientId?: string | null;
+  merchantLogoOverrides?: Record<string, string>;
+  size?: number;
+  rounded?: 'full' | 'lg' | 'xl';
+  className?: string;
+}
+
+/**
+ * 3-tier Account Logo Component (UI_UX_DESIGN_REFERENCE.md §20.5):
+ * 1. Brandfetch logo (if configured with brandfetchClientId, with fallback=404).
+ * 2. User's uploaded image (account.imageUrl) if Brandfetch not configured or failed to load.
+ * 3. Icon (account.icon if recognizable entity glyph, else archetype icon).
+ */
+export const AccountLogo: React.FC<AccountLogoProps> = ({
+  account,
+  brandfetchClientId,
+  merchantLogoOverrides,
+  size = 40,
+  rounded = 'xl',
+  className,
+}) => {
+  const prefContext = usePreferencesContextOptional();
+  const effectiveClientId = brandfetchClientId ?? prefContext?.preferences?.brandfetchClientId;
+  const effectiveOverrides = merchantLogoOverrides ?? prefContext?.preferences?.merchantLogoOverrides;
+
+  // Tier 1: Brandfetch URL
+  const brandfetchUrl = useMemo(
+    () =>
+      getAccountBrandfetchUrl(account, effectiveClientId, effectiveOverrides, {
+        width: size * 2,
+        height: size * 2,
+      }),
+    [account, effectiveClientId, effectiveOverrides, size]
+  );
+
+  // Tier 2: User's uploaded image
+  const uploadedUrl = account.imageUrl?.trim() || null;
+
+  const [brandfetchFailed, setBrandfetchFailed] = useState(false);
+  const [uploadedFailed, setUploadedFailed] = useState(false);
+
+  useEffect(() => {
+    setBrandfetchFailed(false);
+    setUploadedFailed(false);
+  }, [account.id, brandfetchUrl, uploadedUrl]);
+
+  const shapeClass =
+    rounded === 'full' ? 'rounded-full' : rounded === 'lg' || (size < 40 && rounded !== 'xl') ? 'rounded-lg' : 'rounded-xl';
+  const style = { width: size, height: size };
+  const iconSize = Math.max(12, Math.round(size * 0.5));
+
+  // 1. Tier 1: Brandfetch
+  if (brandfetchUrl && !brandfetchFailed) {
+    return (
+      <span
+        className={cn(
+          'flex shrink-0 items-center justify-center overflow-hidden bg-white shadow-xs',
+          shapeClass,
+          className
+        )}
+        style={style}
+        aria-hidden
+      >
+        <img
+          src={brandfetchUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setBrandfetchFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
+  // 2. Tier 2: User's uploaded image
+  if (uploadedUrl && !uploadedFailed) {
+    return (
+      <span
+        className={cn(
+          'flex shrink-0 items-center justify-center overflow-hidden bg-white shadow-xs',
+          shapeClass,
+          className
+        )}
+        style={style}
+        aria-hidden
+      >
+        <img
+          src={uploadedUrl}
+          alt=""
+          loading="lazy"
+          onError={() => setUploadedFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
+  // 3. Tier 3: Icon
+  return (
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center bg-nv-inset text-nv-ink',
+        shapeClass,
+        className
+      )}
+      style={style}
+      aria-hidden
+    >
+      {account.icon && hasEntityIcon(account.icon) ? (
+        <EntityGlyph icon={account.icon} label={account.name} size={iconSize} />
+      ) : (
+        <NvIcon name={accountTypeIcon(account)} size={iconSize} />
+      )}
+    </span>
+  );
+};

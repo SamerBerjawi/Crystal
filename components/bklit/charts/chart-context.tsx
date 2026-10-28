@@ -245,6 +245,9 @@ export interface ChartContextValue extends ChartHoverContextValue {
    * line by default when set, since the line would not mark a single x value.
    */
   nearestPointHover?: boolean;
+
+  /** Currency code for tooltip / value formatting (e.g. "EUR", "USD"). */
+  currency?: string;
 }
 
 /**

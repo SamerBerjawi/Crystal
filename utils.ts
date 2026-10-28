@@ -122,11 +122,41 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
     }
 
     // Handle both "EUR" and "EUR (€)" formats
-    const cleanCurrency = currency.split(' ')[0] as Currency;
+    const cleanCurrency = normalizeCurrency(currency);
     const symbol = symbolMap[cleanCurrency] || cleanCurrency;
 
     return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;
 }
+
+export const normalizeCurrency = (currency?: string | null): Currency => {
+    if (!currency) return 'EUR';
+    const clean = currency.trim().split(/[\s(]/)[0].toUpperCase();
+    return (clean as Currency) || 'EUR';
+};
+
+export const currencySign = (currency?: string | null): string => {
+    if (!currency) return '€';
+    const parenMatch = currency.match(/\((.*?)\)/);
+    if (parenMatch && parenMatch[1]) {
+        const inside = parenMatch[1].trim();
+        if (['€', '$', '£', '¥', '₹', '₿', '₣', 'lei', 'C$', 'A$'].includes(inside)) {
+            return inside;
+        }
+    }
+    const clean = normalizeCurrency(currency);
+    const map: Record<string, string> = {
+        EUR: '€',
+        USD: '$',
+        GBP: '£',
+        BTC: '₿',
+        RON: 'lei',
+        CHF: '₣',
+        JPY: '¥',
+        CAD: 'C$',
+        AUD: 'A$',
+    };
+    return map[clean] || clean;
+};
 
 export const CONVERSION_RATES: { [key in Currency]?: number } = {
     'USD': 0.93, 'GBP': 1.18, 'BTC': 65000, 'EUR': 1, 'RON': 0.20
@@ -140,26 +170,29 @@ export const updateConversionRates = (rates: Record<string, number>) => {
 
 // A currency without a rate is converted 1:1 so totals still render, but that is a guess: say so once per currency.
 const rateFor = (activeRates: Record<string, number>, currency: string): number => {
-    const rate = activeRates[currency];
+    const clean = normalizeCurrency(currency);
+    const rate = activeRates[clean] ?? activeRates[currency];
     if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0) return rate;
-    if (currency !== 'EUR') warnIgnored(`exchange rate for ${currency} (treated as 1:1)`, new Error('missing rate'));
+    if (clean !== 'EUR') warnIgnored(`exchange rate for ${clean} (treated as 1:1)`, new Error('missing rate'));
     return 1;
 };
 
 export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    return safeMultiply(balance, rateFor(activeRates, currency));
+    return safeMultiply(balance, rateFor(activeRates, normalizeCurrency(currency)));
 }
 
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    if (from === to) return amount;
+    const cleanFrom = normalizeCurrency(from);
+    const cleanTo = normalizeCurrency(to);
+    if (cleanFrom === cleanTo) return amount;
 
     // Convert from 'from' to EUR
-    const amountInEur = safeMultiply(amount, rateFor(activeRates, from));
+    const amountInEur = safeMultiply(amount, rateFor(activeRates, cleanFrom));
 
     // Convert from EUR to 'to'
-    const rateTo = rateFor(activeRates, to);
+    const rateTo = rateFor(activeRates, cleanTo);
     return safeDivide(amountInEur, rateTo);
 }
 
@@ -1295,16 +1328,22 @@ export function generateBalanceForecast(
         const dateStr = toLocalISOString(currentDate);
         const eventsForDay = dailyEvents.get(dateStr) || [];
 
-        // Apply Market Return to Investment Accounts
-        if (dailyMarketRate !== 0) {
-            accounts.forEach(acc => {
-                if (acc.type === 'Investment' && currentBalances[acc.id] !== undefined) {
-                    const growth = safeRound(currentBalances[acc.id] * dailyMarketRate, 2);
+        // Apply Market Return to Investment Accounts and APY to Savings / Pension Accounts
+        accounts.forEach(acc => {
+            if (currentBalances[acc.id] === undefined || currentBalances[acc.id] <= 0) return;
+            if (acc.type === 'Investment' && dailyMarketRate !== 0) {
+                const growth = safeRound(currentBalances[acc.id] * dailyMarketRate, 2);
+                currentBalances[acc.id] = safeRound(currentBalances[acc.id] + growth, 2);
+                runningTotalBalance = safeRound(runningTotalBalance + growth, 2);
+            } else if ((acc.type === 'Savings' || (acc.type === 'Investment' && acc.subType === 'Pension Fund')) && acc.apy && acc.apy > 0) {
+                const dailyApyRate = Math.pow(1 + acc.apy / 100, 1 / 365) - 1;
+                const growth = safeRound(currentBalances[acc.id] * dailyApyRate, 2);
+                if (growth !== 0) {
                     currentBalances[acc.id] = safeRound(currentBalances[acc.id] + growth, 2);
                     runningTotalBalance = safeRound(runningTotalBalance + growth, 2);
                 }
-            });
-        }
+            }
+        });
 
         // Sort same-day events: income first (highest to lowest), then expenses (highest to lowest)
         eventsForDay.sort((a, b) => {
@@ -1418,14 +1457,44 @@ export function generateAmortizationSchedule(
 
     const paymentTransactions = transactions.filter(tx =>
         tx.accountId === account.id &&
-        tx.transferId &&
+        !tx.isBalanceAdjustment &&
         ((account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense'))
     ).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
 
-    const paymentMap = new Map<string, Transaction>();
+    interface AggregatedPeriodPayment {
+        id: string;
+        principalAmount: number;
+        interestAmount: number;
+        rawAmount: number;
+        hasBreakdown: boolean;
+    }
+
+    const paymentMap = new Map<string, AggregatedPeriodPayment>();
     paymentTransactions.forEach(p => {
         const monthYear = toLocalISOYearMonth(parseLocalDate(p.date));
-        paymentMap.set(monthYear, p);
+        const existing = paymentMap.get(monthYear);
+        const txPrincipal = p.principalAmount !== undefined ? convertCurrency(p.principalAmount, p.currency || account.currency, account.currency) : 0;
+        const txInterest = p.interestAmount !== undefined ? convertCurrency(p.interestAmount, p.currency || account.currency, account.currency) : 0;
+        const txRaw = Math.abs(convertCurrency(p.amount, p.currency || account.currency, account.currency));
+        const txHasBreakdown = p.principalAmount !== undefined || p.interestAmount !== undefined;
+
+        if (!existing) {
+            paymentMap.set(monthYear, {
+                id: p.id,
+                principalAmount: txPrincipal,
+                interestAmount: txInterest,
+                rawAmount: txRaw,
+                hasBreakdown: txHasBreakdown,
+            });
+        } else {
+            paymentMap.set(monthYear, {
+                id: p.id,
+                principalAmount: safeAdd(existing.principalAmount, txPrincipal),
+                interestAmount: safeAdd(existing.interestAmount, txInterest),
+                rawAmount: safeAdd(existing.rawAmount, txRaw),
+                hasBreakdown: existing.hasBreakdown || txHasBreakdown,
+            });
+        }
     });
 
     const schedule: ScheduledPayment[] = [];
@@ -1486,8 +1555,9 @@ export function generateAmortizationSchedule(
                 principal = 0;
                 totalPayment = 0;
             }
-        } else if (outstandingBalance <= 0 && !realPaymentForPeriod && !override?.totalPayment && !override?.principal) {
-            if (i > duration) {
+        } else if (outstandingBalance <= 0.005 && !realPaymentForPeriod && !override?.totalPayment && !override?.principal) {
+            const hasExtraPrincipal = Object.values(overrides).some(o => (o?.extraPrincipal ?? 0) > 0);
+            if (i > duration || hasExtraPrincipal) {
                 break;
             }
             // Loan is paid off, generate a zero-value entry to maintain schedule length
@@ -1498,8 +1568,17 @@ export function generateAmortizationSchedule(
             status = 'Paid';
             transactionId = realPaymentForPeriod.id;
 
-            principal = realPaymentForPeriod.principalAmount || 0;
-            interest = realPaymentForPeriod.interestAmount || 0;
+            if (realPaymentForPeriod.hasBreakdown && (realPaymentForPeriod.principalAmount > 0 || realPaymentForPeriod.interestAmount > 0)) {
+                principal = realPaymentForPeriod.principalAmount;
+                interest = realPaymentForPeriod.interestAmount;
+            } else {
+                interest = Math.min(realPaymentForPeriod.rawAmount, calculatedInterest);
+                principal = Math.max(0, realPaymentForPeriod.rawAmount - interest);
+            }
+            if (override?.extraPrincipal && override.extraPrincipal > 0) {
+                const extra = Math.min(override.extraPrincipal, Math.max(0, outstandingBalance - principal));
+                principal += extra;
+            }
             totalPayment = principal + interest;
 
         } else {
@@ -1546,6 +1625,15 @@ export function generateAmortizationSchedule(
                 principal = totalPayment - interest;
             }
 
+            if (override?.extraPrincipal && override.extraPrincipal > 0) {
+                const extra = Math.min(override.extraPrincipal, Math.max(0, outstandingBalance - principal));
+                principal += extra;
+                totalPayment = principal + interest;
+                if (outstandingBalance - principal <= 0.005) {
+                    isFinalScheduledPayment = true;
+                }
+            }
+
             if (scheduledDate < today) {
                 status = 'Overdue';
             }
@@ -1557,12 +1645,12 @@ export function generateAmortizationSchedule(
         let roundedInterest = roundToTwo(interest);
         let roundedTotalPayment = roundToTwo(totalPayment);
 
+        const hasAnyExtraPrincipal = Object.values(overrides).some(o => (o?.extraPrincipal ?? 0) > 0);
         if (isFinalScheduledPayment && !realPaymentForPeriod && !hasExplicitBreakdown) {
             const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
-            roundedPrincipal = remainingPrincipal;
-            roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
+            roundedPrincipal = Math.max(0, remainingPrincipal);
             roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
-            if (typeof targetTotalInterest === 'number') {
+            if (typeof targetTotalInterest === 'number' && !hasAnyExtraPrincipal && i === duration) {
                 const remainingInterest = roundToTwo(targetTotalInterest - roundedInterestTotal);
                 roundedInterest = Math.max(0, remainingInterest);
                 roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);

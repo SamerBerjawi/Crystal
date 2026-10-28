@@ -59,6 +59,8 @@ export interface LineChartProps {
   style?: CSSProperties;
   /** Fires when the internal chart phase changes (e.g. OG capture readiness). */
   onPhaseChange?: (phase: ChartPhase) => void;
+  /** Currency code for tooltip / value formatting (e.g. "EUR", "USD"). */
+  currency?: string;
   /** Child components (Line, Grid, ChartTooltip, etc.) */
   children: ReactNode;
 }
@@ -157,6 +159,7 @@ interface ChartInnerProps {
   children: ReactNode;
   containerRef: React.RefObject<HTMLDivElement | null>;
   onPhaseChange: (phase: ChartPhase) => void;
+  currency?: string;
 }
 
 function ChartInner({
@@ -179,6 +182,7 @@ function ChartInner({
   children,
   containerRef,
   onPhaseChange,
+  currency,
 }: ChartInnerProps) {
   const lines = useMemo(() => extractLineConfigs(children), [children]);
 
@@ -189,6 +193,7 @@ function ChartInner({
       chartStatus={chartStatus}
       clipPathId="chart-grow-clip"
       containerRef={containerRef}
+      currency={currency}
       data={data}
       enterTransition={enterTransition}
       height={height}
@@ -229,6 +234,7 @@ export function LineChart({
   tweenYDomainOnXDomainChange = false,
   style,
   onPhaseChange,
+  currency,
   children,
 }: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -283,6 +289,7 @@ export function LineChart({
             xDomainSlotCount={xDomainSlotCount}
             yDomainTween={yDomainTween}
             yDomainTweenDuration={yDomainTweenDuration}
+            currency={currency}
           >
             {children}
           </ChartInner>

@@ -54,6 +54,8 @@ const ShellNew = lazyWithRetry(() => import('./components/new/ShellNew').then(m 
 const PlaceholderNew = lazyWithRetry(() => import('./pages/new/PlaceholderNew').then(m => ({ default: m.PlaceholderNew })));
 const NotFoundNew = lazyWithRetry(() => import('./pages/new/NotFoundNew').then(m => ({ default: m.NotFoundNew })));
 const GalleryNew = lazyWithRetry(() => import('./pages/new/GalleryNew').then(m => ({ default: m.GalleryNew })));
+const AccountsNew = lazyWithRetry(() => import('./pages/new/AccountsNew').then(m => ({ default: m.AccountsNew })));
+const AccountDetailNew = lazyWithRetry(() => import('./pages/new/AccountDetailNew').then(m => ({ default: m.AccountDetailNew })));
 const TransactionsNew = lazyWithRetry(() => import('./pages/new/TransactionsNew').then(m => ({ default: m.TransactionsNew })));
 const BudgetNew = lazyWithRetry(() => import('./pages/new/BudgetNew').then(m => ({ default: m.BudgetNew })));
 const SignUp = lazyWithRetry(() => import('./pages/SignUp'));
@@ -117,7 +119,7 @@ import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
-import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
+import { convertCurrency, convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { applyTransactionRulesToFields } from './utils/rules';
 import { upsertEntity, removeEntityById } from './utils/collection';
@@ -1653,16 +1655,21 @@ const App: React.FC = () => {
           };
         }
         if (incomeTx && acc.id === details.incomeAccountId) {
-          return { ...acc, balance: acc.balance + details.value };
+          const convertedSaleProceeds = convertCurrency(
+            details.value,
+            account.currency,
+            acc.currency,
+            preferences.conversionRates
+          );
+          return { ...acc, balance: safeRound(acc.balance + convertedSaleProceeds) };
         }
         return acc;
       });
     });
 
     setViewingAccountId(null);
-    setCurrentPageState('Accounts');
-    navigateToPath('/accounts');
-  }, [accounts, navigateToPath]);
+    setCurrentPage('Accounts');
+  }, [accounts, preferences.conversionRates, setCurrentPage]);
 
   const handleRevertAccountClosure = useCallback((accountId: string) => {
     const account = accounts.find(a => a.id === accountId);
@@ -1686,12 +1693,18 @@ const App: React.FC = () => {
           };
         }
         if (details.closureType === 'Sold' && details.incomeAccountId && acc.id === details.incomeAccountId) {
-          return { ...acc, balance: acc.balance - details.value };
+          const convertedSaleProceeds = convertCurrency(
+            details.value,
+            account.currency,
+            acc.currency,
+            preferences.conversionRates
+          );
+          return { ...acc, balance: safeRound(acc.balance - convertedSaleProceeds) };
         }
         return acc;
       });
     });
-  }, [accounts]);
+  }, [accounts, preferences.conversionRates]);
 
   const handleDeleteAccount = useCallback((accountId: string) => {
     const accountToDelete = accounts.find(acc => acc.id === accountId);
@@ -3118,7 +3131,37 @@ const App: React.FC = () => {
   }, []);
 
   const preferencesContextValue = useMemo(() => ({ preferences, setPreferences }), [preferences]);
-  const accountsContextValue = useMemo(() => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }), [accounts, accountOrder, handleSaveAccount]);
+  const accountsContextValue = useMemo(() => ({
+    accounts,
+    accountOrder,
+    setAccountOrder,
+    saveAccount: handleSaveAccount,
+    deleteAccount: handleDeleteAccount,
+    toggleAccountStatus: handleToggleAccountStatus,
+    closeAsset: handleCloseAsset,
+    revertClosure: handleRevertAccountClosure,
+    linkedEnableBankingAccountIds,
+    enableBankingLinkMap,
+    syncAllBanks: handleSyncAllEnableBankingConnections,
+    isSyncingBanks,
+    triggerEnableBankingSync: handleSyncEnableBankingConnection,
+    navigateToTransactions,
+  }), [
+    accounts,
+    accountOrder,
+    setAccountOrder,
+    handleSaveAccount,
+    handleDeleteAccount,
+    handleToggleAccountStatus,
+    handleCloseAsset,
+    handleRevertAccountClosure,
+    linkedEnableBankingAccountIds,
+    enableBankingLinkMap,
+    handleSyncAllEnableBankingConnections,
+    isSyncingBanks,
+    handleSyncEnableBankingConnection,
+    navigateToTransactions,
+  ]);
   const transactionsContextValue = useMemo(() => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }), [transactions, handleDeleteTransactions, handleSaveTransaction]);
   const warrantsContextValue = useMemo(() => ({ warrants, prices: warrantPrices }), [warrantPrices, warrants]);
   const invoicesContextValue = useMemo(() => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }), [invoices]);
@@ -3168,6 +3211,8 @@ const App: React.FC = () => {
           >
             {newRoute.kind === 'gallery' && import.meta.env.DEV ? <GalleryNew />
               : newRoute.kind !== 'page' ? <NotFoundNew path={currentPath} />
+              : newRoute.page === 'Accounts' ? <AccountsNew />
+              : newRoute.page === 'AccountDetail' && newRoute.id ? <AccountDetailNew accountId={newRoute.id} />
               : newRoute.page === 'Transactions' ? <TransactionsNew user={currentUser!} initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />
               : newRoute.page === 'Budget' ? <BudgetNew />
               : <PlaceholderNew title={NEW_PAGE_TITLES[newRoute.page]} classicPath={classicPath} />}

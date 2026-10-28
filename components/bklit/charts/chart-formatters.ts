@@ -27,6 +27,87 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 /**
+ * Converts a data key or label (camelCase, snake_case, kebab-case, or lower case)
+ * into human-readable Proper Case / Title Case (e.g. "netWorth" -> "Net Worth", "balance" -> "Balance").
+ * Preserves uppercase acronyms and abbreviations (e.g. "USD", "EUR", "LTV", "APY").
+ */
+export function toProperCase(str: string): string {
+  if (!str || typeof str !== "string") return str;
+  const withSpaces = str
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z\d]+)/g, "$1 $2")
+    .replace(/[_\-]+/g, " ")
+    .trim();
+
+  return withSpaces
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return "";
+      if (word.length > 1 && word === word.toUpperCase()) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+const symbolMap: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  BTC: "BTC",
+  RON: "lei",
+};
+
+/**
+ * Splits a currency amount into split-weight components matching the application's
+ * standard money styling (§1.2 rule 1):
+ * - sign: "" or "-"
+ * - symbol: currency symbol (e.g. "€", "$", "£")
+ * - digits: whole integer portion (e.g. "1,234")
+ * - fraction: decimal portion (e.g. ".50")
+ * - rest: suffix or currency code when applicable
+ */
+export function formatCurrencyAmount(
+  amount: number,
+  currency: string = "EUR"
+): { sign: string; symbol: string; digits: string; fraction: string; rest: string } {
+  const cleanCurrency = currency.split(" ")[0] || "EUR";
+  if (cleanCurrency === "BTC") {
+    const formatted = `${amount.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 8,
+    })} BTC`;
+    return { sign: "", symbol: "", digits: formatted, fraction: "", rest: "" };
+  }
+
+  const formatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const sign = amount < 0 ? "-" : "";
+  const symbol = symbolMap[cleanCurrency] || cleanCurrency;
+  const absFormatted = formatter.format(Math.abs(amount));
+  const dotIndex = absFormatted.lastIndexOf(".");
+  if (dotIndex !== -1) {
+    return {
+      sign,
+      symbol,
+      digits: absFormatted.slice(0, dotIndex),
+      fraction: absFormatted.slice(dotIndex),
+      rest: "",
+    };
+  }
+
+  return {
+    sign,
+    symbol,
+    digits: absFormatted,
+    fraction: "",
+    rest: "",
+  };
+}
+
+/**
  * Tooltip value for a `<Band>` row: `"low – high"` (ordered), the value itself
  * when both edges read the same key, or `null` when either edge is missing
  * (e.g. Bollinger warm-up rows).

@@ -122,6 +122,7 @@ function LineSeriesStroke({
         ref={pathRef}
         stroke={visibleStroke}
         strokeLinecap="round"
+        strokeLinejoin="round"
         strokeWidth={strokeWidth}
       />
     );
@@ -134,6 +135,7 @@ function LineSeriesStroke({
       innerRef={pathRef}
       stroke={visibleStroke}
       strokeLinecap="round"
+      strokeLinejoin="round"
       strokeWidth={strokeWidth}
       x={(d) => xScale(xAccessor(d)) ?? 0}
       y={getY}

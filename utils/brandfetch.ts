@@ -27,12 +27,12 @@ export const buildMerchantIdentifier = (
   const base = normalizedKey;
   if (!base) return null;
 
-  // 2. Support searching for domains within the merchant name
+  // 2. Support searching for domains within the merchant name / URL
   // Split by common separators to find something that looks like a domain
   const chunks = base.split(/[\s*|/]/);
   for (const chunk of chunks) {
-    // Basic sanitization for the chunk
-    const sanitized = chunk.replace(/[^a-z0-9.-]/g, '');
+    // Basic sanitization for the chunk, stripping protocol and leading www.
+    const sanitized = chunk.replace(/^(https?:)?\/\//, '').replace(/^www\./, '').replace(/[^a-z0-9.-]/g, '');
     if (sanitized.length < 4) continue;
 
     const parts = sanitized.split('.');
@@ -135,4 +135,61 @@ export const getCardNetworkLogoUrl = (
   });
 
   return `https://cdn.brandfetch.io/${domain}?${params.toString()}`;
+};
+
+export const getAccountBrandfetchUrl = (
+  account: {
+    financialInstitution?: string | null;
+    name?: string | null;
+    cardNetwork?: string | null;
+    type?: string | null;
+    website?: string | null;
+  },
+  clientId?: string | null,
+  overrides?: Record<string, string>,
+  options?: { width?: number; height?: number }
+): string | null => {
+  const trimmedClient = clientId?.trim();
+  if (!trimmedClient) return null;
+
+  const width = options?.width ?? 96;
+  const height = options?.height ?? 96;
+
+  // 1. Explicit website URL configured on the account
+  const website = account.website?.trim();
+  if (website) {
+    const directUrl = getMerchantLogoUrl(website, trimmedClient, overrides, {
+      fallback: '404',
+      type: 'icon',
+      width,
+      height,
+    });
+    if (directUrl) return directUrl;
+  }
+
+  // 2. Financial institution — ONLY if configured with a domain/URL or matched in overrides
+  const inst = account.financialInstitution?.trim();
+  if (inst) {
+    const directUrl = getMerchantLogoUrl(inst, trimmedClient, overrides, {
+      fallback: '404',
+      type: 'icon',
+      width,
+      height,
+    });
+    if (directUrl) return directUrl;
+  }
+
+  // 3. Account name — ONLY if configured with a domain/URL or matched in overrides
+  const name = account.name?.trim();
+  if (name && name !== inst) {
+    const directUrl = getMerchantLogoUrl(name, trimmedClient, overrides, {
+      fallback: '404',
+      type: 'icon',
+      width,
+      height,
+    });
+    if (directUrl) return directUrl;
+  }
+
+  return null;
 };

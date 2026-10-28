@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Budget, Category, Currency } from '../types';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext } from '../contexts/FinancialDataContext';
-import { convertCurrency } from '../utils';
+import { convertCurrency, normalizeCurrency } from '../utils';
 import {
   autofillPlan, averageMonthlySpend, budgetAccountIds, budgetSuggestions, goalViews, monthBounds, spendByCategory,
   type BudgetDraft, type Month,
@@ -24,7 +24,7 @@ export const useBudgetData = () => {
   const { preferences } = usePreferencesContext();
   const { expenseCategories } = useCategoryContext();
 
-  const displayCurrency = (preferences.displayCurrency || preferences.currency || 'EUR') as Currency;
+  const displayCurrency = normalizeCurrency(preferences.displayCurrency || preferences.currency || 'EUR');
   const convert = useCallback((amount: number, currency: Currency) => convertCurrency(amount, currency, displayCurrency), [displayCurrency]);
   const accountIds = useMemo(() => budgetAccountIds(accounts), [accounts]);
   const options = useMemo(() => ({ accountIds, categories: expenseCategories, convert }), [accountIds, expenseCategories, convert]);

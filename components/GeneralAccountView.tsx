@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Account, DisplayTransaction, Category, Transaction } from '../types';
-import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, getPreferredTimeZone, toLocalISOString } from '../utils';
+import { convertCurrency, formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, generateSyntheticPropertyTransactions, getPreferredTimeZone, toLocalISOString } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
@@ -111,6 +111,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
   const [logoError, setLogoError] = useState(false);
 
   const logoUrl = useMemo(() => {
@@ -132,8 +133,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     const sortedTxsDesc = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     let realTodayBalance = account.balance;
     
-    sortedTxsDesc.forEach(({ tx, parsedDate }) => {
-        if (parsedDate > now) realTodayBalance -= tx.amount;
+    sortedTxsDesc.forEach(({ convertedAmount, parsedDate }) => {
+        if (parsedDate > now) realTodayBalance -= convertedAmount;
     });
 
     const threeMonthsAgo = new Date(todayStart);
@@ -141,8 +142,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     threeMonthsAgo.setDate(1);
     const endOfLastMonth = new Date(todayStart.getFullYear(), todayStart.getMonth(), 0);
     const last3MonthsTxs = filteredTxs.filter(t => t.parsedDate >= threeMonthsAgo && t.parsedDate <= endOfLastMonth);
-    const totalSpend3Months = last3MonthsTxs.reduce((sum, { tx }) => {
-        if (tx.amount < 0 && !tx.transferId) return sum + Math.abs(tx.amount);
+    const totalSpend3Months = last3MonthsTxs.reduce((sum, { tx, convertedAmount }) => {
+        if (tx.amount < 0 && !tx.transferId) return sum + Math.abs(convertedAmount);
         return sum;
     }, 0);
     const avgMonthlySpend = totalSpend3Months / 3;
@@ -162,7 +163,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         let safety = 0;
         while (nextDue <= next7Days && safety < 50) { 
              safety++;
-             if (nextDue >= todayStart) upcomingOutflows += rt.amount;
+             if (nextDue >= todayStart) {
+                 upcomingOutflows += convertCurrency(Math.abs(rt.amount), rt.currency, account.currency, conversionRates);
+             }
              const d = new Date(nextDue);
              if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
              else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
@@ -182,11 +185,10 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     forecastEndDate.setDate(forecastEndDate.getDate() + 30);
     const accountForForecast = { ...account, balance: realTodayBalance };
     const { lowestPoint } = generateBalanceForecast([accountForForecast], allRecurringItems, financialGoals, billsAndPayments, forecastEndDate, recurringTransactionOverrides);
-    const conversionRate = convertToEur(1, account.currency);
-    const lowestBalanceForecast = lowestPoint.value / (conversionRate || 1);
+    const lowestBalanceForecast = convertCurrency(lowestPoint.value, 'EUR', account.currency, conversionRates);
 
     return { lowestBalanceForecast, avgMonthlySpend, safeToSpend, realTodayBalance };
-  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides, showBalanceAdjustments]);
+  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides, showBalanceAdjustments, conversionRates]);
 
   // --- 2. Chart Data ---
   const balanceHistory = useMemo(() => {
@@ -197,10 +199,10 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
     const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
-    sortedTxs.forEach(({ tx, parsedDate }) => {
+    sortedTxs.forEach(({ convertedAmount, parsedDate }) => {
          if (parsedDate > today) return; 
          const dateStr = toLocalISOString(parsedDate);
-         dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
+         dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + convertedAmount;
     });
     let iterDate = new Date(endDate);
     for (let i = 0; i <= 30; i++) {

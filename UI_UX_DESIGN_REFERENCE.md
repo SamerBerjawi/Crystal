@@ -1,6 +1,6 @@
 # UI/UX Design Reference: Finance Concept Deconstruction
 
-> **Status:** design reference for the New pages (§5.0). Decisions Q1–Q12 (§7) and the WanderGrid alignment decisions D1–D16 (§10) were recorded on 2026-10-25. The third reference (coral "Financial Dashboard") and its decisions R1–R8 are in §11. Priority when sections disagree: §11, then §10, then §7, then §1–§5.
+> **Status:** design reference for the New pages (§5.0). Decisions Q1–Q12 (§7) and the WanderGrid alignment decisions D1–D16 (§10) were recorded on 2026-10-25. The third reference (coral "Financial Dashboard") and its decisions R1–R8 are in §11. Priority when sections disagree: §20, then §19, then §11, then §10, then §7, then §1–§5.
 >
 > **Authority:** for the New pages, this document **wins over `DESIGN.md`** wherever the two conflict. Every rule in `DESIGN.md` and `CLAUDE.md` that this document does not override still applies.
 >
@@ -140,7 +140,7 @@ Crystal fit: Crystal has 25 pages against the reference's 7. The reference's fla
 - **Period dropdown** ("Last Week ▾", "July 2026 ▾"): a pill trigger that opens a small menu.
 - **Chart-type toggle** (bar / line): a two-icon segmented switch. The active one is a filled violet circle.
 - **Overflow menus** (`•••`): on the chart and on every table row.
-- **Chart tooltip**: a dark pill (`#141420`) with a date heading and a coloured dot per series. A dashed vertical crosshair and hollow ring markers sit on each line. The x-axis label for the hovered day turns into an outlined pill.
+- **Chart tooltip & curves**: frosted glassmorphic pill with `backdrop-blur-sm` (`rgb(24 24 27 / 0.82)` in light, `rgb(18 18 18 / 0.85)` in dark, neutral 1px border `rgb(255 255 255 / 0.12)` and `shadow-2xl`), a date heading and a coloured dot per series with series names strictly formatted in **Proper Case** (e.g. `Net Worth`, `Balance`) and split-weight currency figures. Line and area charts draw smooth rounded continuous curves (`curveNatural`) with `strokeLinejoin="round"` and `strokeLinecap="round"` instead of sharp zigzag edges. A dashed vertical crosshair and hollow ring markers sit on each line. The x-axis label for the hovered day turns into an outlined pill or glassmorphic date ticker.
 - **Segmented control** (Month / Quarter / Year): a white thumb on a grey track.
 - **Search with filter button**: the table header has a search field plus a square filter-icon button.
 - **Card carousel**: prev/next round arrow buttons around a single centred card.
@@ -594,3 +594,149 @@ From `lg` up the list is a table with the classic page's structure in the New st
 - **Composer** (`TransactionForm`, `composer.tsx`): it fits one screen. Type tabs, the amount (keypad on phones), one merchant line with its logo (none for transfers), a quiet description line, then chips that open a searchable pick list: Category (icon, sub-categories indented), Account (bank logos, grouped by type), To account (transfers), Date (Today, Yesterday, another day). A row of the six most used categories sits under them, tinted in their colours. Note, Location and Tags are dashed "+" chips that open their field on demand (open from the start when the transaction has them). Round-up and loan panels appear when they apply.
 
 **Round-up panel, tab centring and the chart line (N19).** The round-up panel: a green piggy disc, the title, a green "Sets aside €0.50" (or why nothing), the switch; when on, a divider, then two clear choices for a whole amount (radio cards: Set aside nothing / Set aside 1, each with one line of explanation) and the multiplier as a − ×1 + stepper. Segmented tabs centre their icon and label in the button, vertically too. The expenses chart draws the trend as a white (black in light mode) line over the coloured bars.
+
+---
+
+## 19. Primary Brand & CTA Colour Update (2026-10-28)
+
+Only the primary brand & CTA slot (`--nv-violet` token family in `components/new/new.css`) is updated from electric violet (`#6D3AF2`) to **Dark Slate Grey (`#183A37`)**. All other surfaces (`#FFFFFF` / `#F4F4F6` in light, `#000000` / `#111111` / `#1C1C1C` in dark), text hierarchy, and accents (`orange`, `green`, `sky`, `red`, `peach`) remain unchanged.
+
+| Token | Light Mode | Dark Mode | Role |
+|---|---|---|---|
+| `--nv-violet` | `#183A37` | `#183A37` | Primary brand fill, hero CTA buttons, primary chart series (`--chart-1`), focus rings |
+| `--nv-violet-strong` | `#112B29` | `#112B29` | CTA hover state |
+| `--nv-violet-soft` | `#E6EFEE` | `#132927` | Soft icon circle & badge background |
+| `--nv-violet-text` | `#183A37` | `#65B5AD` | Currency symbols, links, and small brand text |
+| `--nv-on-violet` | `#FFFFFF` | `#FFFFFF` | Text on primary brand / CTA fills |
+
+---
+
+## 20. Tooltips & Legends Design Standards (2026-10-28)
+
+Every tooltip and chart legend across the application must strictly adhere to the following design rules:
+
+### 20.1 Glassmorphic Blur & Neutral Background for All Tooltips
+All floating tooltips (chart hover tooltips, date tickers, base UI tooltips, and popovers) feature a subtle frosted glassmorphic appearance with a neutral (non-tinted) backdrop:
+1. **Neutral Translucent Background:**
+   - Light mode: `--chart-tooltip-background: rgb(24 24 27 / 0.82);` (neutral dark Zinc-900 glass, no blue/violet color cast)
+   - Dark mode: `--chart-tooltip-background: rgb(18 18 18 / 0.85);` (neutral dark 950 glass)
+   - Base UI tooltips: `bg-white/80 dark:bg-zinc-900/80`
+   - Foreground / Muted: `--chart-tooltip-foreground: #fafafa;`, `--chart-tooltip-muted: #a1a1aa;`
+2. **Backdrop Blur `sm`:**
+   - `backdrop-blur-sm` (`backdrop-filter: blur(4px)` and `-webkit-backdrop-filter: blur(4px)`) for a crisp, light frosted aesthetic.
+3. **Delicate Translucent Border:**
+   - `--chart-tooltip-border: rgb(255 255 255 / 0.12);` (1px subtle border, plus internal header divider line `border-b border-chart-tooltip-border`).
+4. **Soft Layered Elevation:**
+   - Deep diffused shadow `shadow-2xl` with 1px inner edge highlight (`before:` pseudo-element ring).
+
+### 20.2 Proper Case for Legends and Tooltip Data Labels
+Chart series keys and legend labels must never render raw developer keys (camelCase, snake_case, or lower case). They must always be transformed into clean **Proper Case / Title Case**:
+- **Automatic Formatter:** Powered by `toProperCase()` in `components/bklit/charts/chart-formatters.ts`.
+- **Examples:**
+  - `netWorth` → **`Net Worth`**
+  - `balance` → **`Balance`**
+  - `income` → **`Income`**
+  - `expenses` → **`Expenses`**
+  - `dailyAvg` → **`Daily Avg`**
+  - `monthlyIncome` → **`Monthly Income`**
+  - `loan_balance` → **`Loan Balance`**
+  - `cost-per-km` → **`Cost Per Km`**
+  - `desktop` → **`Desktop`**
+- **Acronym Preservation:** Established financial and technical abbreviations (`USD`, `EUR`, `LTV`, `APY`, `ROI`, `APR`) preserve their uppercase presentation.
+- **Components Enforcing Proper Case:**
+  - `ChartTooltip` (maps series rows and band labels through `toProperCase`)
+  - `TooltipContent` (formats `row.label` with `toProperCase`)
+  - `LegendLabel` (formats `item.label` with `toProperCase`)
+
+### 20.3 Split-Weight Currency Formatting in Tooltips
+Numeric data values in chart tooltips must be rendered with proper currency and the app's standard split-weight typographic hierarchy (§1.2 rule 1):
+- **Currency Resolution:** Inherits from the chart's `currency` prop (e.g. `<AreaChart currency={currency} ...>` or `<ChartTooltip currency={currency} />`), falling back to chart context or `'EUR'`.
+- **Typographic Anatomy:**
+  - **Currency Symbol:** formatted cleanly in `text-chart-tooltip-muted` (e.g., `€`, `$`, `£`).
+  - **Whole Number (Digits):** bold/prominent in `text-chart-tooltip-foreground` with `tabular-nums`.
+  - **Decimal Fraction:** smaller and lighter in `text-chart-tooltip-muted text-xs` (e.g., `.00` or `.50`).
+- **Formatter Utility:** Powered by `formatCurrencyAmount()` in `chart-formatters.ts` and rendered in `TooltipContent`.
+
+### 20.4 Rounded Line & Area Chart Curves
+All line and area charts must feature smooth, rounded continuous curves rather than sharp or angular zigzag edges:
+- **Default Curve Interpolation:** Standardized on `curveNatural` (cubic spline with continuous second derivatives) across `<Area>` and `<Line>`. No sharp corners or angular tangent breaks.
+- **Path Joins & Terminals:** All rendered chart strokes (`<Area>`, `<Line>`, `<TrendLine>`) specify `strokeLinecap="round"` and `strokeLinejoin="round"` to guarantee fully rounded corners, smooth path transitions, and soft stroke terminals.
+- **Visual Feel:** Delivers a fluid, premium financial aesthetic matching modern finance dashboard standards (Ref D / Ref M) across net worth, historical balance, compounding, and cashflow charts.
+
+### 20.5 Account Logos 3-Tier Resolution Order (Brandfetch → Uploaded Image → Icon)
+All account visuals across balance sheet rows, bento cards, wallet carousels, account detail hero views, archetype views, and modals follow a strict 3-tier cascade via `<AccountLogo />` (`components/new/EntityIcon.tsx`):
+1. **Tier 1 — Brandfetch (Strictly User-Configured URLs Only):**
+   - Active only when `preferences.brandfetchClientId` is non-empty **AND** a valid domain/URL has been configured by the user.
+   - Evaluates user-configured identifiers via `getAccountBrandfetchUrl()` (`utils/brandfetch.ts`):
+     a. `account.website`: Explicit website/portal domain or URL entered by the user.
+     b. `account.financialInstitution`: Only if it contains an explicit domain with a valid TLD (e.g. `belfius.be`) or matches a user-defined mapping in `merchantLogoOverrides`.
+     c. `account.name`: Only if it contains an explicit domain or matches an override.
+   - **No Unconfigured Guessing:** The system never guesses or synthesizes domains (no auto-appending `.com` to bank or account names, and no automatic card network fallbacks like `visa.com`). If no domain or URL is configured by the user, Brandfetch is **never queried**, returning `null` immediately.
+   - Requests Brandfetch with `fallback: '404'`. If Brandfetch returns 404 or image fails to load, `onError` automatically cascades to Tier 2.
+2. **Tier 2 — User's Uploaded Image:**
+   - Active if Brandfetch has no configured URL, is not enabled, or fails to load.
+   - Loads the user's custom URL / uploaded asset (`account.imageUrl`).
+   - If `account.imageUrl` is absent or encounters a network error / 404, `onError` cascades to Tier 3.
+3. **Tier 3 — Icon:**
+   - Fallback when no Brandfetch or uploaded image is available or both fail.
+   - Renders `account.icon` if matching a recognized entity icon glyph (`EntityGlyph`).
+   - Otherwise, renders archetype icon from `accountTypeIcon(account)` (e.g. `bank`, `piggy`, `card`, `invoice`, `home`, `pin`, `investments`, `wallet`, `warning`).
+
+### 20.6 Card & Account Wallet Priority Hierarchy
+The interactive momentum carousel (`CardWalletRail` in `components/new/accounts/overview.tsx`, populated via `getCardWalletAccounts()` in `utils/accountsModel.ts`) organizes open liquid and card-bearing accounts into a strict priority hierarchy:
+1. **Rank 0 — Primary Account First:**
+   - The user-designated primary account (`account.isPrimary === true`) always anchors the first slot in the wallet, regardless of type.
+   - Carries a prominent violet `Primary` badge.
+2. **Rank 1 — Checking Accounts:**
+   - Active everyday checking and transaction accounts (`account.type === 'Checking'`).
+3. **Rank 2 — Credit Cards:**
+   - Revolving cards and debt facilities (`account.type === 'Credit Card'`).
+   - Features dark card surface (`bg-nv-ink text-nv-on-ink`), credit limit utilization gauge, and statement payment quick-actions.
+4. **Rank 3 — Savings Accounts:**
+   - Yield reserve and emergency funds (`account.type === 'Savings'`).
+   - Features green APY badge (`X% APY`).
+5. **Rank 4 — Meal Vouchers:**
+   - Dedicated benefit payment cards (e.g., Edenred, Pluxee, Sodexo, Monizze, or `otherSubType: 'Meal Voucher'`).
+   - Displays `Voucher Balance` and teal `Voucher` tag badge.
+
+### 20.7 Account Type Grouping across Split Sheet, List, and Bento Grid Views
+Accounts on the `/accounts-new` cockpit are grouped by type across all three primary presentation layouts via `groupAccountsByType()` in `utils/accountsModel.ts`:
+
+1. **Balance Sheet Split View (`viewMode === 'split'`):**
+   - **Assets Column:** Groups asset accounts under subheaders (Checking Accounts $\rightarrow$ Savings Accounts $\rightarrow$ Meal Vouchers $\rightarrow$ Investments $\rightarrow$ Lending $\rightarrow$ Property & Real Estate $\rightarrow$ Vehicles $\rightarrow$ Other Assets).
+   - **Liabilities Column:** Groups liability accounts under subheaders (Credit Cards $\rightarrow$ Loans & Mortgages $\rightarrow$ Other Liabilities).
+   - Each group subheader displays the archetype icon, type title, count badge (`N`), and dynamic converted subtotal in `displayCurrency`.
+2. **List View (`viewMode === 'list'`):**
+   - Accounts are segmented into individual `<Card>` containers for each account type.
+   - Header bar contains the archetype icon on a subtle chip (`bg-nv-inset`), type label, count pill, and subtotal formatted with `nv-*` tokens.
+   - Intra-group sort order respects the user's active sort setting, including manual drag/reorder within adjacent peers.
+3. **Bento Grid View (`viewMode === 'bento'`):**
+   - Accounts are segmented into sections by account type with a header containing the archetype icon, section title, count badge, and subtotal.
+   - Bento cards are organized underneath in a responsive 3-column grid (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3`).
+4. **Ordering & Filter Rules:**
+   - Standard priority order conforms to: Checking $\rightarrow$ Credit Cards $\rightarrow$ Savings $\rightarrow$ Meal Vouchers $\rightarrow$ Loans & Mortgages $\rightarrow$ Investments $\rightarrow$ Lending $\rightarrow$ Property & Real Estate $\rightarrow$ Vehicles $\rightarrow$ Other Assets $\rightarrow$ Other Liabilities.
+   - Groups with zero matching accounts in the current active filter/search state are cleanly hidden.
+
+### 20.8 Account Type & Segment Selector Icons in the Header Cockpit
+The balance-sheet hero card (`AccountsHeroCard` in `components/new/accounts/overview.tsx`) and header navigation tabs include archetype icons:
+1. **Capital & Debt Allocation Selector Buttons (Hero Card):**
+   - Each allocation button renders a `5x5` (`20px`) soft badge containing its semantic archetype icon:
+     - **Liquid Cash:** `bank` in `bg-nv-violet-soft text-nv-violet-text`
+     - **Savings & Pension:** `piggy` in `bg-nv-green-soft text-nv-green-text`
+     - **Property & Physical:** `home` in `bg-nv-sky-soft text-nv-sky-text`
+     - **Credit Cards:** `card` in `bg-nv-orange-soft text-nv-orange-text`
+     - **Loans & Mortgages:** `invoice` in `bg-nv-red-soft text-nv-red-text`
+   - Active state displays an ink ring (`ring-1.5 ring-nv-violet`) when the corresponding segment is selected.
+2. **Summary Strip Metrics (Hero Card — bklit AreaSparkline KPI Cards):**
+   - The triplet tiles (**Total Assets**, **Total Liabilities**, and **Liquid Cash**) are implemented as interactive bklit `AreaSparkline` KPI cards (`useSparklineHover`):
+     - **Total Assets:** `wallet` icon with `text-nv-green-text`, `var(--nv-green)` 40px monotone area sparkline, gross holdings subtitle.
+     - **Total Liabilities:** `invoice` icon with `text-nv-orange-text`, `var(--nv-orange)` 40px monotone area sparkline, debt obligations subtitle.
+     - **Liquid Cash:** `bank` icon with `text-nv-grad-from`, `var(--nv-grad-from)` 40px monotone area sparkline, runway / 30d net flow subtitle.
+   - **Hover Interaction:** Moving across the sparkline updates the date badge to the hovered day (`shown.day`) and scrubs the displayed value to that specific point in time. When not hovering, shows the current total and 30-day percentage change delta (`<Delta pct={...} good={...} />`).
+3. **Shell Header Navigation Tabs (`usePageTabs`):**
+   - Segment tabs display archetype icons (`wallet` for All, `card` for Cash & Cards, `piggy` for Savings & Yield, `invoice` for Loans & Debt, `home` for Property & Vehicles, `archive` for Archived).
+
+
+
+
+

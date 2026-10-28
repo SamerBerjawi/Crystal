@@ -15,7 +15,7 @@ import {
   useChartPortalContainer,
   useChartStable,
 } from "../chart-context";
-import { formatBandRange, weekdayDateFmt } from "../chart-formatters";
+import { formatBandRange, toProperCase, weekdayDateFmt } from "../chart-formatters";
 import type { IndicatorFadeEdges } from "../indicator-fade";
 import { DateTicker } from "./date-ticker";
 import { TooltipBox, type TooltipBoxProps } from "./tooltip-box";
@@ -112,6 +112,10 @@ export interface ChartTooltipProps {
   backgroundColor?: string;
   /** Fade the panel out when hover ends. Default: true */
   exit?: boolean;
+  /** Currency code for formatting numeric amounts (e.g. "EUR", "USD"). Default: chart context or "EUR" */
+  currency?: string;
+  /** Custom value formatter */
+  valueFormatter?: (value: number | string, dataKey?: string) => React.ReactNode;
 }
 
 interface ChartTooltipInnerProps extends ChartTooltipProps {
@@ -213,6 +217,8 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
   backgroundColor,
   dateLabels: dateLabelsProp,
   exit = true,
+  currency: currencyProp,
+  valueFormatter,
 }: ChartTooltipInnerProps) {
   const {
     tooltipData,
@@ -231,7 +237,9 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
     bandWidth,
     squareSnap,
     nearestPointHover,
+    currency: contextCurrency,
   } = useChart();
+  const currency = currencyProp ?? contextCurrency ?? "EUR";
   const tooltipBands = useMemo(
     () => (bands ?? []).filter((band) => band.showInTooltip),
     [bands]
@@ -320,11 +328,15 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
           (line) => typeof tooltipData.point[line.dataKey] === "number"
         )
       : lines;
-    const rows: TooltipRow[] = rowLines.map((line) => ({
-      color: line.stroke,
-      label: line.dataKey,
-      value: (tooltipData.point[line.dataKey] as number) ?? 0,
-    }));
+    const rows: TooltipRow[] = rowLines.map((line) => {
+      const rawVal = tooltipData.point[line.dataKey];
+      const val = typeof rawVal === "number" ? rawVal : (rawVal as any) ?? 0;
+      return {
+        color: line.stroke,
+        label: line.label ? toProperCase(line.label) : toProperCase(line.dataKey),
+        value: valueFormatter ? valueFormatter(val, line.dataKey) : val,
+      };
+    });
     for (const band of tooltipBands) {
       const value = formatBandRange(
         tooltipData.point,
@@ -332,11 +344,11 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
         band.lowerKey
       );
       if (value != null) {
-        rows.push({ color: band.color, label: band.label, value });
+        rows.push({ color: band.color, label: toProperCase(band.label), value });
       }
     }
     return rows;
-  }, [tooltipData, lines, tooltipBands, rowsRenderer, nearestPointHover]);
+  }, [tooltipData, lines, tooltipBands, rowsRenderer, nearestPointHover, valueFormatter]);
 
   // One dot per band edge (deduped; edges shared with a `<Line>` use its dot).
   const bandDots = useMemo(() => {
@@ -529,7 +541,7 @@ const ChartTooltipInner = memo(function ChartTooltipInner({
               index: tooltipData.index,
             })
           : !content && (
-              <TooltipContent rows={tooltipRows} title={title}>
+              <TooltipContent currency={currency} rows={tooltipRows} title={title}>
                 {children}
               </TooltipContent>
             )}

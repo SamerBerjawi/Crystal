@@ -66,7 +66,7 @@ export const Tooltip = ({
                 {({ isEntering, isExiting }) => (
                     <div
                         className={cx(
-                            "z-50 flex max-w-xs origin-(--trigger-anchor-point) flex-col items-start gap-1 rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-black/10 dark:border-white/10 px-3.5 shadow-xl backdrop-blur-md will-change-transform",
+                            "z-50 flex max-w-xs origin-(--trigger-anchor-point) flex-col items-start gap-1 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-black/10 dark:border-white/10 px-3.5 shadow-xl backdrop-blur-sm will-change-transform",
                             description ? "py-3" : "py-2",
 
                             isEntering &&

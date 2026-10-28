@@ -16,6 +16,7 @@
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
+import { currencySign } from '../../utils';
 import { NvIcon } from '../new/NvIcon';
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
@@ -172,14 +173,14 @@ export function AmountPad({
         className="rounded-nv-tile outline-none focus-visible:ring-2 focus-visible:ring-nv-violet"
       >
         <div className="flex h-20 items-center justify-center" ref={frameRef}>
-          <output aria-live="polite" className="sr-only">{`${currency}${value || '0'}`}</output>
+          <output aria-live="polite" className="sr-only">{`${currencySign(currency)}${value || '0'}`}</output>
           <motion.div
             aria-hidden="true"
             className={cn('nv-tabular flex origin-center items-baseline whitespace-nowrap text-[56px] font-semibold leading-none tracking-tight', toneClassName)}
             ref={amountRef}
             style={{ scale: fit, x: shakeX }}
           >
-            <span className="mr-0.5 text-nv-violet-text">{currency}</span>
+            <span className="mr-0.5 text-nv-violet-text">{currencySign(currency)}</span>
             <AnimatePresence initial={false} mode="popLayout">
               {empty && (
                 <motion.span animate={{ opacity: 1 }} className="text-nv-line" exit={{ opacity: 0, transition: { duration: 0.08 } }} initial={{ opacity: 0 }} key="placeholder" transition={{ duration: 0.15 }}>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, getPreferredTimeZone } from '../utils';
+import { formatCurrency } from '../utils';
+import { computeCreditCardAccountMetrics } from '../utils/accountDetailModel';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
@@ -75,75 +76,26 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     isLinkedToEnableBanking,
     showBalanceAdjustments = true,
 }) => {
-    const timeZone = getPreferredTimeZone();
     const [logoError, setLogoError] = useState(false);
     const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
     const logoUrl = useMemo(() => {
         if (logoError || !brandfetchClientId || !account.cardNetwork) return null;
         return getCardNetworkLogoUrl(account.cardNetwork, brandfetchClientId);
     }, [account.cardNetwork, brandfetchClientId, logoError]);
 
-    // --- Metrics ---
-    const { totalSpent, totalPayments, utilization, availableCredit } = useMemo(() => {
-        let spent = 0;
-        let payments = 0;
-        const today = new Date();
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const rawTransactions = useMemo(() => transactions.map(t => t.tx), [transactions]);
 
-        transactions
-            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-            .forEach(({ tx, parsedDate, convertedAmount }) => {
-                if (parsedDate >= startOfMonth) {
-                    if (tx.type === 'expense') {
-                        spent += Math.abs(convertedAmount);
-                    } else if (tx.type === 'income') {
-                        if (tx.transferId || tx.category.toLowerCase().includes('payment') || tx.category.toLowerCase().includes('transfer')) {
-                            payments += convertedAmount;
-                        } else {
-                            spent -= convertedAmount;
-                        }
-                    }
-                }
-            });
-
-        const creditLimit = account.creditLimit || 0;
-        const balanceOwed = -account.balance;
-        const util = creditLimit > 0 ? (balanceOwed / creditLimit) * 100 : 0;
-        const available = creditLimit - balanceOwed;
-
-        return { totalSpent: spent, totalPayments: payments, utilization: util, availableCredit: available };
-    }, [transactions, account.balance, account.creditLimit, showBalanceAdjustments]);
-
-    // --- Chart Data ---
-    const spendingHistory = useMemo(() => {
-        const data = [];
-        const today = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthKey = d.toLocaleString('default', { month: 'short' });
-
-            const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-            const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-
-            const total = transactions
-                .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth)
-                .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-                .reduce((sum, t) => {
-                    if (t.tx.type === 'expense') {
-                        return sum + Math.abs(t.convertedAmount);
-                    } else if (t.tx.type === 'income') {
-                        if (!(t.tx.transferId || t.tx.category.toLowerCase().includes('payment') || t.tx.category.toLowerCase().includes('transfer'))) {
-                            return sum - t.convertedAmount;
-                        }
-                    }
-                    return sum;
-                }, 0);
-
-            data.push({ name: monthKey, value: total });
-        }
-        return data;
-    }, [transactions, showBalanceAdjustments]);
+    // --- Metrics & Chart Data (BUG-13 & BUG-07 Fixed) ---
+    const { totalSpent, totalPayments, utilization, availableCredit, spendingHistory } = useMemo(
+        () =>
+            computeCreditCardAccountMetrics(account, rawTransactions, {
+                conversionRates,
+                showBalanceAdjustments,
+            }),
+        [account, rawTransactions, conversionRates, showBalanceAdjustments]
+    );
 
     return (
         <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">

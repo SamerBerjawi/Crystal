@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
+import { computeSpareChangeAccountMetrics } from '../utils/accountDetailModel';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
-import { useAccountsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
 import Icon from './ui/Icon';
@@ -78,60 +79,27 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
     showBalanceAdjustments = true,
 }) => {
     const { accounts } = useAccountsContext();
-    const timeZone = getPreferredTimeZone();
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
+    const rawTransactions = useMemo(() => transactions.map(t => t.tx), [transactions]);
 
-    const sourceAccount = useMemo(() => {
-        return accounts.find(a => a.id === account.linkedAccountId);
-    }, [accounts, account.linkedAccountId]);
-
-    const { totalSaved, totalRoundUps, avgRoundUp, thisMonthSaved, biggestRoundUp } = useMemo(() => {
-        let saved = 0;
-        let count = 0;
-        let thisMonth = 0;
-        let max = 0;
-        const now = new Date();
-        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        transactions
-            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-            .forEach(({ tx, parsedDate, convertedAmount }) => {
-                if (tx.type === 'income') {
-                    if (!tx.isMarketAdjustment) {
-                        saved += convertedAmount;
-                        count++;
-                        if (convertedAmount > max) max = convertedAmount;
-                        if (parsedDate >= currentMonthStart) {
-                            thisMonth += convertedAmount;
-                        }
-                    }
-                }
-            });
-        return {
-            totalSaved: saved,
-            totalRoundUps: count,
-            avgRoundUp: count > 0 ? saved / count : 0,
-            thisMonthSaved: thisMonth,
-            biggestRoundUp: max
-        };
-    }, [transactions, showBalanceAdjustments]);
-
-    const monthlyData = useMemo(() => {
-        const data = [];
-        const today = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthKey = d.toLocaleString('default', { month: 'short' });
-            const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-            const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-            const total = transactions
-                .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-                .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.type === 'income' && !t.tx.isMarketAdjustment)
-                .reduce((sum, t) => sum + t.convertedAmount, 0);
-            data.push({ name: monthKey, value: total });
-        }
-        return data;
-    }, [transactions, showBalanceAdjustments]);
-
-    const coffeesSaved = Math.floor(totalSaved / 4.50);
+    // BUG-15 & BUG-07 Fixed: Only count genuine round-up captures in round-up stats
+    const {
+        sourceAccount,
+        totalSaved,
+        totalRoundUps,
+        avgRoundUp,
+        thisMonthSaved,
+        biggestRoundUp,
+        monthlyData,
+        coffeesSaved,
+    } = useMemo(
+        () =>
+            computeSpareChangeAccountMetrics(account, accounts, rawTransactions, {
+                conversionRates,
+                showBalanceAdjustments,
+            }),
+        [account, accounts, rawTransactions, conversionRates, showBalanceAdjustments]
+    );
 
     return (
         <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">

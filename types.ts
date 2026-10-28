@@ -39,7 +39,7 @@ export interface Tag {
 
 export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Pension Fund' | 'Spare Change' | 'Other';
 export type PropertyType = 'Apartment' | 'Detached House' | 'Semi-Detached House' | 'Terraced House' | 'Land' | 'Commercial' | 'Other';
-export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Other';
+export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Meal Voucher' | 'Other';
 export type OtherLiabilitySubType = 'Tax' | 'Private Debt' | 'Legal Settlement' | 'Business Debt' | 'Other';
 
 // Vehicle Specific Types
@@ -75,6 +75,7 @@ export interface Account {
   icon?: string;
   last4?: string;
   financialInstitution?: string;
+  website?: string; // Website / portal URL for institution/account
   symbol?: string; // Ticker symbol for investments/warrants
 
   // Banking specific

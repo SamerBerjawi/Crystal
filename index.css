@@ -1006,6 +1006,8 @@ img {
   --color-nv-red-text: var(--nv-red-text);
   --color-nv-red-soft: var(--nv-red-soft);
   --color-nv-peach: var(--nv-peach);
+  --color-nv-grad-from: var(--nv-grad-from);
+  --color-nv-grad-to: var(--nv-grad-to);
   --font-nv: 'Outfit Variable', Outfit, -apple-system, BlinkMacSystemFont, sans-serif;
   --radius-nv-card: 28px;
   --radius-nv-sub: 20px;

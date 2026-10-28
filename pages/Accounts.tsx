@@ -4,7 +4,12 @@ import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency } from '../utils';
+import {
+  computeCashSegmentNetFlow,
+  computePortfolio90dNetWorthTrend,
+  getVisibleAccountsForAccountsPage,
+} from '../utils/accountsModel';
 import AccountsListSection from '../components/AccountsListSection';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
@@ -80,15 +85,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     };
   }, []);
   
-  const visibleAccounts = useMemo(() => {
-      return accounts.filter(acc => {
-          // Hide all investment accounts from accounts page to show on investments page instead
-          if (acc.type === 'Investment') {
-              return false;
-          }
-          return true;
-      });
-  }, [accounts]);
+  const visibleAccounts = useMemo(
+    () => getVisibleAccountsForAccountsPage(accounts),
+    [accounts]
+  );
 
   // --- Metrics Calculation ---
   const analyticsAccounts = useMemo(() => visibleAccounts.filter(acc => acc.includeInAnalytics ?? true), [visibleAccounts]);
@@ -103,28 +103,13 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open, analyticsTransactions, loanPaymentOverrides);
       const liquidCash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
                             .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-                            
-      // Calculate daily trend for sparkline
-      const dailyTrend = [];
-      let runningNetWorth = netWorth;
-      const sortedTxs = [...analyticsTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      const changesByDate: Record<string, number> = {};
-      sortedTxs.forEach(tx => {
-          const d = tx.date;
-          changesByDate[d] = (changesByDate[d] || 0) + convertToEur(tx.amount, tx.currency);
+
+      const trendData = computePortfolio90dNetWorthTrend(open, analyticsTransactions, loanPaymentOverrides, {
+          conversionRates,
       });
 
-      for (let i = 0; i < 90; i++) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          const dateStr = toLocalISOString(date);
-          dailyTrend.push({ date: dateStr, value: runningNetWorth });
-          runningNetWorth -= (changesByDate[dateStr] || 0);
-      }
-      
-      return { totalAssets, totalDebt, netWorth, liquidCash, trendData: dailyTrend.reverse() };
-  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides]);
+      return { totalAssets, totalDebt, netWorth, liquidCash, trendData };
+  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides, conversionRates]);
 
   // --- Filter Logic ---
   const filteredAccounts = useMemo(() => {
@@ -168,12 +153,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const checking = accountsToSum.filter(a => a.type === 'Checking').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
           const savings = accountsToSum.filter(a => a.type === 'Savings').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
           
-          // Calculate 90-day net flow for cash accounts
-          const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
-          const cashIds = new Set(accountsToSum.map(a => a.id));
-          const netFlow = transactions
-            .filter(t => cashIds.has(t.accountId) && new Date(t.date) >= thirtyDaysAgo && !t.transferId)
-            .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
+          // Calculate 30-day net flow for cash accounts (BUG-05 fix: 30 days instead of 90 days)
+          const netFlow = computeCashSegmentNetFlow(accountsToSum, transactions, 30, { conversionRates });
 
           details = [
               { label: 'Checking', value: formatCurrency(convertCurrency(checking, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'Bank' },

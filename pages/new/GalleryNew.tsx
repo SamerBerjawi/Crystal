@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { curveNatural } from '@visx/curve';
-import { LineChart } from '../../components/bklit/charts/line-chart';
-import { Line } from '../../components/bklit/charts/line';
+import { AreaChart } from '../../components/bklit/charts/area-chart';
+import { Area } from '../../components/bklit/charts/area';
+import { Background } from '../../components/bklit/charts/background';
 import { Grid } from '../../components/bklit/charts/grid';
+import { TrendLine } from '../../components/bklit/charts/trend-line';
 import { XAxis } from '../../components/bklit/charts/x-axis';
 import { ChartTooltip } from '../../components/bklit/charts/tooltip';
 import { Badge, Button, Card, CardTitle, IconButton, MoreButton, Money, ProgressBar, SegmentedTabs, StatTile, Switch } from '../../components/new/ui';
@@ -106,13 +108,23 @@ export const GalleryNew: React.FC = () => {
           <span className="flex items-center gap-2 text-sm text-nv-muted"><span className="h-2.5 w-2.5 rounded-full border-2 border-nv-violet" />Income</span>
           <span className="flex items-center gap-2 text-sm text-nv-muted"><span className="h-2.5 w-2.5 rounded-full border-2 border-nv-orange" />Expenses</span>
         </div>
-        <LineChart data={sample} aspectRatio="3 / 1">
+        <AreaChart margin={{ top: 8, right: 8, bottom: 40, left: 8 }} data={sample} aspectRatio="3 / 1" currency="USD">
+          <Background pattern="dots" opacity={0.85} />
           <Grid horizontal />
-          <Line dataKey="income" curve={curveNatural} stroke="var(--chart-line-primary)" />
-          <Line dataKey="expenses" curve={curveNatural} stroke="var(--chart-line-secondary)" />
+          <TrendLine
+            dataKey="income"
+            strokeStyle="gradient"
+            gradientStart="var(--chart-3)"
+            gradientEnd="var(--chart-1)"
+            strokeWidth={2}
+            strokeOpacity={0.5}
+            fadeEdges
+          />
+          <Area dataKey="income" curve={curveNatural} fill="var(--chart-line-primary)" stroke="var(--chart-line-primary)" fillOpacity={0.2} strokeWidth={3} />
+          <Area dataKey="expenses" curve={curveNatural} fill="var(--chart-line-secondary)" stroke="var(--chart-line-secondary)" fillOpacity={0.2} strokeWidth={3} />
           <XAxis />
-          <ChartTooltip />
-        </LineChart>
+          <ChartTooltip currency="USD" />
+        </AreaChart>
       </Card>
 
       {tab === 'tokens' ? (

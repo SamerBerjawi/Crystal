@@ -1,4 +1,4 @@
-import { curveMonotoneX } from "@visx/curve";
+import { curveNatural } from "@visx/curve";
 import { AreaClosed, LinePath } from "@visx/shape";
 
 import type { CurveFactory } from "d3-shape";
@@ -38,7 +38,7 @@ export interface AreaProps {
   stroke?: string;
   /** Stroke width. Default: 2 */
   strokeWidth?: number;
-  /** Curve function. Default: curveMonotoneX */
+  /** Curve function. Default: curveNatural */
   curve?: CurveFactory;
   /** Whether to animate the area. Default: true */
   animate?: boolean;
@@ -148,7 +148,7 @@ export function Area({
   fillOpacity = 0.4,
   stroke,
   strokeWidth = 2,
-  curve = curveMonotoneX,
+  curve = curveNatural,
   animate = true,
   showLine = true,
   showHighlight = true,
@@ -273,6 +273,7 @@ export function Area({
             innerRef={pathRef}
             stroke={visibleStroke}
             strokeLinecap="round"
+            strokeLinejoin="round"
             strokeWidth={strokeWidth}
             x={(d) => xScale(xAccessor(d)) ?? 0}
             y={getY}
@@ -322,8 +323,8 @@ export function Area({
       />
 
       <SeriesHoverDim
-        dimOpacity={0.6}
-        enabled={showHighlight}
+        dimOpacity={lines.length > 1 ? 0.6 : 1}
+        enabled={showHighlight && lines.length > 1}
         seriesIndex={seriesIndex}
       >
         {useViewportEdgeFade ? (

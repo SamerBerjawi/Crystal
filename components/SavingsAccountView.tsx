@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, getPreferredTimeZone, toLocalISOString, calculateTrendLine } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
+import { computeSavingsAccountMetrics } from '../utils/accountDetailModel';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, Area, Line, Cell } from 'recharts';
+import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, Area, Line } from 'recharts';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { motion } from 'motion/react';
 import { MobileAccountHeader } from './MobileAccountHeader';
 import Icon from './ui/Icon';
@@ -78,118 +80,36 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
     onAdjustBalance,
 }) => {
     const { financialGoals } = useGoalsContext();
-    const timeZone = getPreferredTimeZone();
-
-    // --- 1. Interest & APY Calculations ---
-    const apy = account.apy || 0;
-    const projectedAnnualInterest = (account.balance * apy) / 100;
-    const projectedMonthlyInterest = projectedAnnualInterest / 12;
-
-    // Set the reference date to today if there is recent transaction activity,
-    // or fall back to the latest transaction date in the past (e.g. 2024 for demo data).
-    const referenceDate = useMemo(() => {
-        if (transactions.length === 0) return new Date();
-        const latestTxDate = new Date(Math.max(...transactions.map(t => t.parsedDate.getTime())));
-        const today = new Date();
-        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return latestTxDate > thirtyDaysAgo ? today : latestTxDate;
-    }, [transactions]);
-
-    const interestHistory = useMemo(() => {
-        const data = [];
-        const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
-        const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
-
-        for (let i = 11; i >= 0; i--) {
-            const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
-            const monthKey = d.toLocaleString('default', { month: 'short' });
-            const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-            const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-
-            const interestTxs = transactions
-                .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-                .filter(({ tx, parsedDate }) => {
-                    const cat = allCategories.find(c => c.id === tx.category);
-                    const categoryName = cat ? cat.name : tx.category;
-                    const matchesCategory = categoryName && categoryName.toLowerCase().includes('interest');
-                    const matchesDescription = tx.description && tx.description.toLowerCase().includes('interest');
-                    return parsedDate >= startOfMonth &&
-                        parsedDate <= endOfMonth &&
-                        tx.type === 'income' &&
-                        (matchesCategory || matchesDescription);
-                });
-
-            const actualInterest = interestTxs.reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
-
-            // Estimate balance at the end of this month
-            let estBalance = account.balance;
-            sortedTxs.forEach(({ tx, parsedDate }) => {
-                if (parsedDate > endOfMonth) {
-                    estBalance -= tx.amount;
-                }
-            });
-            if (estBalance < 0) estBalance = 0;
-
-            const projectedInterest = (estBalance * apy) / 100 / 12;
-
-            data.push({
-                name: monthKey,
-                actual: actualInterest,
-                projected: projectedInterest,
-                value: actualInterest > 0 ? actualInterest : projectedInterest,
-                isProjected: actualInterest === 0
-            });
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
+    const currencySymbol = useMemo(() => {
+        try {
+            const parts = new Intl.NumberFormat(undefined, { style: 'currency', currency: account.currency }).formatToParts(0);
+            return parts.find(p => p.type === 'currency')?.value || account.currency;
+        } catch {
+            return account.currency;
         }
-        return data;
-    }, [transactions, account.balance, account.apy, referenceDate, allCategories, showBalanceAdjustments]);
+    }, [account.currency]);
 
-    const totalInterestYTD = useMemo(() => {
-        const startOfYear = new Date(referenceDate.getFullYear(), 0, 1);
-        return transactions
-            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-            .filter(({ tx, parsedDate }) => {
-                const cat = allCategories.find(c => c.id === tx.category);
-                const categoryName = cat ? cat.name : tx.category;
-                const matchesCategory = categoryName && categoryName.toLowerCase().includes('interest');
-                const matchesDescription = tx.description && tx.description.toLowerCase().includes('interest');
-                return parsedDate >= startOfYear &&
-                    parsedDate <= referenceDate &&
-                    tx.type === 'income' &&
-                    (matchesCategory || matchesDescription);
-            })
-            .reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
-    }, [transactions, referenceDate, allCategories, showBalanceAdjustments]);
-
-    // --- 2. Balance History ---
-    const balanceHistory = useMemo(() => {
-        const data = [];
-        let currentBalance = account.balance;
-        const endDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
-        const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
-        const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
-        const dailyChanges: Record<string, number> = {};
-
-        sortedTxs.forEach(({ tx, parsedDate }) => {
-            if (parsedDate > referenceDate) return;
-            const dateStr = toLocalISOString(parsedDate);
-            dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
-        });
-
-        let iterDate = new Date(endDate);
-        for (let i = 0; i <= 90; i++) {
-            const dateStr = toLocalISOString(iterDate);
-            data.push({ date: dateStr, value: currentBalance });
-            const change = dailyChanges[dateStr] || 0;
-            currentBalance -= change;
-            iterDate.setDate(iterDate.getDate() - 1);
-        }
-        const reversedData = data.reverse();
-        const trendVals = calculateTrendLine(reversedData, 'value');
-        return reversedData.map((item, idx) => ({
-            ...item,
-            trend: trendVals[idx]
-        }));
-    }, [account.balance, transactions, referenceDate, showBalanceAdjustments]);
+    // --- 1. Interest, APY & Balance Trajectory Calculations ---
+    const rawTransactions = useMemo(() => transactions.map(t => t.tx), [transactions]);
+    const {
+        apy,
+        projectedAnnualInterest,
+        projectedMonthlyInterest,
+        totalInterestYTD,
+        actualInterestYTD,
+        accruedInterestYTD,
+        interestHistory,
+        balanceHistory,
+        growthIndexLabel,
+    } = useMemo(
+        () =>
+            computeSavingsAccountMetrics(account, rawTransactions, allCategories, {
+                conversionRates,
+                showBalanceAdjustments,
+            }),
+        [account, rawTransactions, allCategories, conversionRates, showBalanceAdjustments]
+    );
 
     // --- 3. Linked Goals ---
     const linkedGoals = useMemo(() => {
@@ -296,7 +216,13 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                 <p className="font-black text-xl text-white tabular-nums drop-shadow-sm">{apy > 0 ? formatCurrency(projectedAnnualInterest, account.currency) : '—'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/70 mb-1">YTD Interest</p>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/70 mb-1">
+                                    {actualInterestYTD > 0 && accruedInterestYTD === 0
+                                        ? 'YTD Interest (Paid)'
+                                        : accruedInterestYTD > 0 && actualInterestYTD === 0
+                                        ? 'YTD Interest (Accrued)'
+                                        : 'YTD Interest'}
+                                </p>
                                 <p className="font-black text-xl text-emerald-300 tabular-nums">{formatCurrency(totalInterestYTD, account.currency)}</p>
                             </div>
                         </div>
@@ -315,7 +241,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         />
                         <MetricTile
                             label="Growth Index"
-                            value={`${((balanceHistory[balanceHistory.length - 1].value / (balanceHistory[0].value || 1) - 1) * 100).toFixed(1)}%`}
+                            value={growthIndexLabel}
                             icon="insights"
                             colorClass="blue"
                             subValue="90-day balance change"
@@ -361,7 +287,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                         tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }}
                                         tickFormatter={(val) => parseLocalDate(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                     />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val / 1000).toFixed(0)}k`} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `${currencySymbol}${(val / 1000).toFixed(0)}k`} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: 'var(--tooltip-bg, #ffffff)',
