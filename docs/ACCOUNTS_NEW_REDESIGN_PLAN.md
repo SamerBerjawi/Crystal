@@ -2,6 +2,39 @@
 
 > **Superseded in part (2026-10-29):** the header tabs, `HeaderTools`, `HeaderControls`, the three layouts and the Cards & Passbooks rail described below were replaced; see `UI_UX_DESIGN_REFERENCE.md` §21 (N20 to N24).
 
+## Status (2026-10-29)
+
+What was built, changed or dropped, after phases 1–4 of `docs/ACCOUNTS_BUDGET_REVIEW_PLAN.md`. The migration notes are `UI_UX_DESIGN_REFERENCE.md` §22.
+
+| Item | Status |
+|---|---|
+| BUG-01 Pension and round-ups on Accounts | Built |
+| BUG-02 Future-dated items in today's balance | Built; Phase 1 moved it into one shared service (`resolveAccountBalance`) used by every figure |
+| BUG-03 Sparklines clamped to 0 | Built |
+| BUG-04 90-day net worth reconstruction | Built; Phase 1 rebuilt it on the shared balances, so the chart ends at the headline |
+| BUG-05 "30d" figure summing 90 days | Built; Phase 2 made it exactly 30 days including today |
+| BUG-06 Synthetic payments in the forecast | Built |
+| BUG-07 Currency of transactions | Built |
+| BUG-08 / BUG-09 Loan schedule payments and extra principal | Built (shared `utils.ts`, classic too) |
+| BUG-10 Linked loan ↔ asset | Built |
+| BUG-11 Lease mileage baseline | **Was marked fixed but wasn't**; fixed in Phase 1 (baseline from the first reading in the lease; `currentMileage` does not exist) |
+| BUG-12 Cash burn rate | Built |
+| BUG-13 Card statement cycle | Built; Phase 2 made the history per statement cycle |
+| BUG-14 Pension return | Changed: money-weighted return (XIRR) instead of CAGR, and no projection without a retirement year and expected return |
+| BUG-15 Round-up captures | Built; the "≤ 10 units" fallback is still open (review plan L-D12) |
+| §3.1 Hero | Built, then slimmed (4.4): one change line, no Solvency %, two allocation bars, totals not links |
+| §3.2 Cards & Passbooks rail | **Dropped** (§21 N24) |
+| §3.3 Workspace layouts | Changed: split sheet only; list and bento **dropped** (N24) |
+| §4 Workspace tabs | Built as body tabs (N21), not `usePageTabs`: Overview · Activity · Details, plus Payment plan and Valuations (& logs) |
+| §4.1 Quick account switcher | Built, on the account name |
+| §4.2 Archetypes 1–5 | Built; the history / forecast chart is an area chart with a toggle rather than one dashed line |
+| Archetype 2 "Retirement accumulation index" | Not built |
+| Archetype 4 Payment plan tab | Built (skip, interest only, edit, extra principal, mark paid, reset, Changed filter); **dropped**: bulk override sheet and schedule CSV export; "Pay installment" is Mark paid on the loan (no pre-filled transfer from the paying account) |
+| Archetype 5 Valuations & logs | Built, with valuation history and the mileage chart |
+| §5 Sheets | Built |
+| §6 Files and tests | Built; tests grew to cover every phase (see §22) |
+
+
 **Target Routes:** `/accounts-new` (`AccountsNew`) and `/accounts-new/:id` (`AccountDetailNew`)  
 **Design Authority:** [UI_UX_DESIGN_REFERENCE.md](file:///Users/samerberjawi/Documents/Crystal/UI_UX_DESIGN_REFERENCE.md) (§18/N1–N19 > §17 > §11/R1–R9 > §10/D1–D16 > §7/Q1–Q12)  
 **Reference Benchmark:** [TransactionsNew.tsx](file:///Users/samerberjawi/Documents/Crystal/pages/new/TransactionsNew.tsx) & [overview.tsx](file:///Users/samerberjawi/Documents/Crystal/components/new/transactions/overview.tsx)  

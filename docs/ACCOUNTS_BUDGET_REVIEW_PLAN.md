@@ -265,6 +265,8 @@ Planned 2026-10-29 after the audit of the New Accounts pages on `feat/new-ui-mob
 
 **4.5 Docs.** §22 Accounts migration notes (D13: kept, moved, dropped, where the logic lives, keyboard route, verified / not verified), and mark each item of `docs/ACCOUNTS_NEW_REDESIGN_PLAN.md` built or dropped.
 
+*Status 4.5 (2026-10-29): done.* `UI_UX_DESIGN_REFERENCE.md` §22 holds the Accounts migration notes; `docs/ACCOUNTS_NEW_REDESIGN_PLAN.md` starts with a built / changed / dropped table. **Phase 4 (Accounts) is complete**; Budget B1–B6 and Phase 5 remain.
+
 Order: 4.1 → 4.2 (needs the tabs) → 4.3 → 4.4 → 4.5. 4.3's Q5 and Q4 and all of 4.4 don't depend on 4.1 and could run in parallel in their own worktrees if wanted. Not in Phase 4: L-D9–L-D12, L-H4, L-H5, X10 (Phase 5).
 
 ### Phase 5: Polish and docs (P2)
