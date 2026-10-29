@@ -43,13 +43,13 @@ import {
  * under the hero, above the list they control (§21, N20 to N24); the header keeps only search and New account.
  */
 
-type SortMode = 'manual' | 'balance' | 'name' | 'change30d' | 'apy_apr';
+type SortMode = 'manual' | 'balance' | 'name' | 'change90d' | 'apy_apr';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'manual', label: 'Custom order' },
   { value: 'balance', label: 'Highest balance' },
-  { value: 'change30d', label: '90d momentum' },
-  { value: 'apy_apr', label: 'Highest APY / APR' },
+  { value: 'change90d', label: 'Change (90 days)' },
+  { value: 'apy_apr', label: 'Interest rate' },
   { value: 'name', label: 'Alphabetical (A–Z)' },
 ];
 
@@ -73,32 +73,7 @@ export const AccountsNew: React.FC = () => {
   const [defaultFormType, setDefaultFormType] = useState<AccountType>('Checking');
   const [peekAccountId, setPeekAccountId] = useState<string | null>(null);
   const [reconcileAccount, setReconcileAccount] = useState<Account | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; account: Account } | null>(
-    null
-  );
-  const contextMenuRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!contextMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setContextMenu(null);
-    };
-    const handleScroll = () => setContextMenu(null);
-
-    window.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('scroll', handleScroll, true);
-    return () => {
-      window.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('scroll', handleScroll, true);
-    };
-  }, [contextMenu]);
 
   const peekAccount = useMemo(
     () =>
@@ -347,9 +322,13 @@ export const AccountsNew: React.FC = () => {
       onMoveUp: canReorder && idx > 0 ? () => handleMoveOrder(account, -1, list) : undefined,
       onMoveDown:
         canReorder && idx < list.length - 1 ? () => handleMoveOrder(account, 1, list) : undefined,
-      onContextMenu: (e: React.MouseEvent, acc: Account) => {
-        setContextMenu({ x: e.clientX, y: e.clientY, account: acc });
-      },
+      onFilterTransactions: data.navigateToTransactions
+        ? (acc: Account) => {
+            data.navigateToTransactions?.({ accountName: acc.name });
+            navigate('/transactions-new');
+          }
+        : undefined,
+      onDelete: (acc: Account) => void handleDeleteWithConfirm(acc),
     };
 
     return <AccountRowNew key={account.id} {...itemProps} />;
@@ -484,158 +463,6 @@ export const AccountsNew: React.FC = () => {
       </FilterSheet>
 
       {/* ── Desktop Context Menu ─────────────────────────────────────── */}
-      {contextMenu && (
-        <div
-          ref={contextMenuRef}
-          style={{
-            left:
-              typeof window !== 'undefined'
-                ? Math.max(12, Math.min(contextMenu.x, window.innerWidth - 240))
-                : contextMenu.x,
-            top:
-              typeof window !== 'undefined'
-                ? Math.max(12, Math.min(contextMenu.y, window.innerHeight - 380))
-                : contextMenu.y,
-          }}
-          className="crystal-new fixed z-popover min-w-56 rounded-nv-sub bg-nv-surface p-1.5 shadow-nv-float animate-in fade-in zoom-in-95 duration-100 select-none"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-2.5 px-3 py-2 border-b border-nv-line/50">
-            <AccountLogo account={contextMenu.account} size={28} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-nv-ink">
-                {contextMenu.account.name}
-              </p>
-              <p className="truncate text-xs text-nv-muted">
-                {contextMenu.account.financialInstitution || contextMenu.account.type}
-              </p>
-            </div>
-          </div>
-
-          <div className="py-1">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const accId = contextMenu.account.id;
-                setContextMenu(null);
-                setTimeout(() => setPeekAccountId(accId), 50);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-            >
-              <NvIcon name="view" size={15} className="text-nv-muted" />
-              <span>Quick overview</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                openAccountDetail(contextMenu.account);
-                setContextMenu(null);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-            >
-              <NvIcon name="arrowUpRight" size={15} className="text-nv-muted" />
-              <span>Open full cockpit</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                data.navigateToTransactions({ accountName: contextMenu.account.name });
-                setContextMenu(null);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-            >
-              <NvIcon name="invoice" size={15} className="text-nv-muted" />
-              <span>Filter transactions</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setReconcileAccount(contextMenu.account);
-                setContextMenu(null);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-            >
-              <NvIcon name="refresh" size={15} className="text-nv-muted" />
-              <span>Reconcile balance</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEditingAccount(contextMenu.account);
-                setFormOpen(true);
-                setContextMenu(null);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-            >
-              <NvIcon name="edit" size={15} className="text-nv-muted" />
-              <span>Edit account</span>
-            </button>
-
-            {sortBy === 'manual' && (
-              <>
-                <div className="my-1 h-px bg-nv-line/50" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleMoveOrder(contextMenu.account, -1, filteredAccounts);
-                    setContextMenu(null);
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-                >
-                  <NvIcon name="sort" size={15} className="text-nv-muted" />
-                  <span>Move up in order</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleMoveOrder(contextMenu.account, 1, filteredAccounts);
-                    setContextMenu(null);
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-                >
-                  <NvIcon name="arrowDown" size={15} className="text-nv-muted" />
-                  <span>Move down in order</span>
-                </button>
-              </>
-            )}
-
-            <div className="my-1 h-px bg-nv-line/50" />
-
-            <button
-              type="button"
-              onClick={() => {
-                handleToggleStatus(contextMenu.account);
-                setContextMenu(null);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
-            >
-              <NvIcon name="archive" size={15} className="text-nv-muted" />
-              <span>
-                {contextMenu.account.status === 'closed' ? 'Reopen Account' : 'Archive Account'}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const acc = contextMenu.account;
-                setContextMenu(null);
-                void handleDeleteWithConfirm(acc);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-red-text transition-colors hover:bg-nv-red-soft cursor-pointer"
-            >
-              <NvIcon name="delete" size={15} />
-              <span>Delete account</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── 4. Drawers & Sheets ─────────────────────────────────────────── */}
       <AccountFormSheet
         open={formOpen}

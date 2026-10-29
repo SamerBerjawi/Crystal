@@ -622,12 +622,16 @@ export const computeAccountsHeroModel = (
       count: bucketLoanAccounts.length,
     },
   ];
-  // Shares of the gross footprint; a bucket that is net negative (all overdrawn) shows 0 %.
-  const totalBucketSum = rawBuckets.reduce((s, b) => safeAdd(s, Math.max(0, b.value)), 0);
-  const allocationItems: AccountsAllocationItem[] = rawBuckets.map((b) => ({
-    ...b,
-    pct: totalBucketSum > 0 ? safeRound((Math.max(0, b.value) / totalBucketSum) * 100, 1) : 0,
-  }));
+  // A2: shares within each side, so assets add up to 100 % and liabilities to 100 %.
+  // A bucket that is net negative (all overdrawn, a card in credit) shows 0 %.
+  const sideTotal = (kind: 'asset' | 'liability') =>
+    rawBuckets.filter((b) => b.kind === kind).reduce((s, b) => safeAdd(s, Math.max(0, b.value)), 0);
+  const assetSide = sideTotal('asset');
+  const liabilitySide = sideTotal('liability');
+  const allocationItems: AccountsAllocationItem[] = rawBuckets.map((b) => {
+    const side = b.kind === 'asset' ? assetSide : liabilitySide;
+    return { ...b, pct: side > 0 ? safeRound((Math.max(0, b.value) / side) * 100, 1) : 0 };
+  });
 
   // Ranked Attention Items
   const attentionItems: AccountAttentionItem[] = [];
@@ -1006,7 +1010,7 @@ export interface AccountFilterAndSortOptions {
   linkedOnly?: boolean;
   linkedAccountIds?: Set<string>;
   analyticsOnly?: boolean;
-  sortBy?: 'manual' | 'balance' | 'name' | 'change30d' | 'apy_apr';
+  sortBy?: 'manual' | 'balance' | 'name' | 'change90d' | 'apy_apr';
   accountOrder?: string[];
   sparklinesById?: Record<string, AccountSparklineResult>;
   conversionRates?: Partial<Record<Currency, number>>;
@@ -1080,15 +1084,20 @@ export const filterAndSortAccounts = (
       );
       return balB - balA;
     }
-    if (sortBy === 'change30d') {
+    if (sortBy === 'change90d') {
       // Trends are in each account's own currency; compare them in EUR.
       const trA = convertCurrency(options.sparklinesById?.[a.id]?.trend ?? 0, a.currency, 'EUR', options.conversionRates);
       const trB = convertCurrency(options.sparklinesById?.[b.id]?.trend ?? 0, b.currency, 'EUR', options.conversionRates);
       return trB - trA;
     }
     if (sortBy === 'apy_apr') {
-      const rateA = a.apy ?? a.interestRate ?? 0;
-      const rateB = b.apy ?? b.interestRate ?? 0;
+      // L-A8: savings rates and loan rates are different things. Assets rank by APY, debts by APR,
+      // and assets come first (the page shows them in separate columns anyway).
+      const isDebtA = DEBT_TYPES.includes(a.type);
+      const isDebtB = DEBT_TYPES.includes(b.type);
+      if (isDebtA !== isDebtB) return isDebtA ? 1 : -1;
+      const rateA = isDebtA ? a.interestRate ?? 0 : a.apy ?? 0;
+      const rateB = isDebtB ? b.interestRate ?? 0 : b.apy ?? 0;
       return rateB - rateA;
     }
     // manual order with primary accounts prioritized if not explicitly ordered

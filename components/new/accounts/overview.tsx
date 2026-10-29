@@ -289,37 +289,23 @@ export const AccountsHeroCard: React.FC<{
           {/* Left 7 Cols: Net Worth Headline + Assets/Liabilities/Runway Triplet */}
           <div className="space-y-5 lg:col-span-7">
             <div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <TwoToneTitle
-                  as="h2"
-                  first="Balance sheet"
-                  second="net worth"
-                  className="text-base"
-                />
-                <Badge
-                  tone={isPositive90d ? 'green' : 'orange'}
-                  icon={isPositive90d ? 'investments' : 'warning'}
-                >
-                  {isPositive90d ? '+' : ''}
-                  {hero.netWorth90dPct}% (90d)
-                </Badge>
-                <Badge tone="violet" icon="checkCircle">
-                  {hero.solvencyRatioPct}% Solvency
-                </Badge>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-baseline gap-3">
+              <TwoToneTitle as="h2" first="Balance sheet" second="net worth" className="text-base" />
+              <div className="mt-2">
                 <Money amount={hero.netWorth} currency={displayCurrency} size="hero" />
-                <span className="text-xs text-nv-muted">
-                  90d change:{' '}
-                  <Money
-                    amount={hero.netWorth90dDelta}
-                    currency={displayCurrency}
-                    signed
-                    tone={isPositive90d ? 'income' : 'ink'}
-                  />
-                </span>
               </div>
+              {/* A3: one change line (the badge and the "90d change" said the same thing; Solvency % is gone). */}
+              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm text-nv-muted">
+                <NvIcon
+                  name={isPositive90d ? 'investments' : 'warning'}
+                  size={15}
+                  className={isPositive90d ? 'text-nv-green-text' : 'text-nv-orange-text'}
+                />
+                <Money amount={hero.netWorth90dDelta} currency={displayCurrency} signed tone={isPositive90d ? 'income' : 'ink'} />
+                <span>
+                  ({isPositive90d ? '+' : ''}
+                  {hero.netWorth90dPct}%) in 90 days
+                </span>
+              </p>
             </div>
 
             {/* 3-Column Balance Sheet Summary Strip: bklit AreaSparkline KPI Cards */}
@@ -334,8 +320,6 @@ export const AccountsHeroCard: React.FC<{
                 subtitle="Gross positive holdings"
                 good="up"
                 currency={displayCurrency}
-                active={activeSegment === 'all'}
-                onClick={() => onSelectSegment?.('all')}
               />
 
               <AccountsSparkKpiCard
@@ -348,8 +332,6 @@ export const AccountsHeroCard: React.FC<{
                 subtitle="Cards, loans & mortgages"
                 good="down"
                 currency={displayCurrency}
-                active={activeSegment === 'loans_debt'}
-                onClick={() => onSelectSegment?.('loans_debt')}
               />
 
               <AccountsSparkKpiCard
@@ -376,8 +358,6 @@ export const AccountsHeroCard: React.FC<{
                 }
                 good="up"
                 currency={displayCurrency}
-                active={activeSegment === 'cash_cards'}
-                onClick={() => onSelectSegment?.('cash_cards')}
               />
             </div>
           </div>
@@ -391,64 +371,69 @@ export const AccountsHeroCard: React.FC<{
     >
       {/* Bottom Grey Tile Band: 5-Bucket Allocation Breakdown + Needs Attention Strip */}
       <div className="space-y-4">
-        {/* Stacked Allocation Bar */}
-        <div>
-          <div className="mb-2 flex items-center justify-between text-xs text-nv-muted">
-            <span className="font-medium text-nv-ink">Capital & debt allocation</span>
-          </div>
-          {/* The bar is a picture of the shares; the buttons below filter (one target per bucket, 44px+). */}
-          <div aria-hidden className="flex h-3 w-full overflow-hidden rounded-full bg-nv-inset p-0.5 gap-0.5">
-            {hero.allocationItems
-              .filter((item) => item.pct > 0)
-              .map((item) => (
-                <span
-                  key={item.id}
-                  title={`${item.label}: ${item.pct}%`}
-                  style={{ width: `${Math.max(3, item.pct)}%` }}
-                  className={cn('h-full first:rounded-l-full last:rounded-r-full', BUCKET_DOT_CLASSES[item.id])}
-                />
-              ))}
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {hero.allocationItems.map((item) => {
-              const targetSegment = BUCKET_SEGMENT_MAP[item.id];
-              const isActive = activeSegment === targetSegment;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onSelectSegment?.(targetSegment)}
-                  className={cn(
-                    'group flex flex-col rounded-nv-control p-2.5 text-left transition-all',
-                    isActive
-                      ? 'bg-nv-surface ring-1.5 ring-nv-ink'
-                      : 'bg-nv-surface/70 hover:bg-nv-surface'
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-1.5">
-                    <span className="flex items-center gap-1.5 truncate text-xs font-medium text-nv-ink">
+        {/* A2: assets and liabilities each as their own bar (each adds up to 100 %); a bucket opens its tab. */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {(['asset', 'liability'] as const).map((kind) => {
+            const items = hero.allocationItems.filter((item) => item.kind === kind);
+            return (
+              <div key={kind}>
+                <p className="mb-2 text-xs font-medium text-nv-ink">{kind === 'asset' ? 'Assets' : 'Liabilities'}</p>
+                {/* The bar is a picture of the shares; the buttons below filter (one target per bucket, 44px+). */}
+                <div aria-hidden className="flex h-3 w-full gap-0.5 overflow-hidden rounded-full bg-nv-inset p-0.5">
+                  {items
+                    .filter((item) => item.pct > 0)
+                    .map((item) => (
                       <span
+                        key={item.id}
+                        title={`${item.label}: ${item.pct}%`}
+                        style={{ width: `${item.pct}%` }}
+                        className={cn('h-full min-w-1 first:rounded-l-full last:rounded-r-full', BUCKET_DOT_CLASSES[item.id])}
+                      />
+                    ))}
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {items.map((item) => {
+                    const targetSegment = BUCKET_SEGMENT_MAP[item.id];
+                    const isActive = activeSegment === targetSegment;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onSelectSegment?.(targetSegment)}
+                        aria-pressed={isActive}
                         className={cn(
-                          'flex h-5 w-5 shrink-0 items-center justify-center rounded-md',
-                          BUCKET_ICON_BG_CLASSES[item.id],
-                          BUCKET_ICON_CLASSES[item.id]
+                          'flex min-h-11 flex-col rounded-nv-control p-2.5 text-left transition-colors',
+                          isActive ? 'bg-nv-surface ring-1.5 ring-nv-ink' : 'bg-nv-surface/70 hover:bg-nv-surface'
                         )}
                       >
-                        <NvIcon name={BUCKET_ICONS[item.id]} size={12} />
-                      </span>
-                      <span className="truncate">{item.label}</span>
-                    </span>
-                    <span className="nv-tabular text-xs text-nv-muted">{item.pct}%</span>
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-between gap-1">
-                    <Money amount={item.value} currency={displayCurrency} compact />
-                    <span className="text-xs text-nv-muted">{item.count} {item.count === 1 ? 'account' : 'accounts'}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                        <span className="flex items-center justify-between gap-1.5">
+                          <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-nv-ink">
+                            <span
+                              className={cn(
+                                'flex h-5 w-5 shrink-0 items-center justify-center rounded-md',
+                                BUCKET_ICON_BG_CLASSES[item.id],
+                                BUCKET_ICON_CLASSES[item.id]
+                              )}
+                            >
+                              <NvIcon name={BUCKET_ICONS[item.id]} size={12} />
+                            </span>
+                            <span className="truncate">{item.label}</span>
+                          </span>
+                          <span className="nv-tabular text-xs text-nv-muted">{item.pct}%</span>
+                        </span>
+                        <span className="mt-1 flex items-baseline justify-between gap-1">
+                          <Money amount={item.value} currency={displayCurrency} compact />
+                          <span className="text-xs text-nv-muted">
+                            {item.count} {item.count === 1 ? 'account' : 'accounts'}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Ranked Attention Items Strip */}
@@ -456,7 +441,7 @@ export const AccountsHeroCard: React.FC<{
           <div className="border-t border-nv-line pt-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-nv-ink">
               <NvIcon name="warning" size={15} className="text-nv-orange-text" />
-              <span>Needs Attention ({hero.attentionItems.length})</span>
+              <span>Needs attention ({hero.attentionItems.length})</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {hero.attentionItems.map((alert: AccountAttentionItem) => (
