@@ -6,12 +6,10 @@ import { normalizeCurrency, parseLocalDate } from '../../../utils';
 import {
   Area,
   AreaChart,
-  Background,
   ChartTooltip,
   Grid,
-  TrendLine,
   XAxis,
-  curveNatural,
+  curveMonotoneX,
 } from '../../bklit/charts';
 import { NvIcon } from '../NvIcon';
 import { Badge, Button, Card, Money, SegmentedTabs } from '../ui';
@@ -31,24 +29,14 @@ type ForecastHorizon = '30' | '90' | '180' | '365';
 
 export const AccountDetailHero: React.FC<{
   data: AccountDetailData;
-  onBack: () => void;
   /** Opens another account from the switcher on the title. */
   onSwitchAccount?: (account: Account) => void;
   onEdit: () => void;
-  onAdjustBalance: () => void;
-  onRecordTx: () => void;
-  onOpenValuation?: () => void;
-  onOpenBankSync?: () => void;
   onOpenCloseAsset?: () => void;
 }> = ({
   data,
-  onBack,
   onSwitchAccount,
   onEdit,
-  onAdjustBalance,
-  onRecordTx,
-  onOpenValuation,
-  onOpenBankSync,
   onOpenCloseAsset,
 }) => {
   const { account, archetype, displayBalance, sparkline90d, forecastSeries } = data;
@@ -74,6 +62,13 @@ export const AccountDetailHero: React.FC<{
   const typeLabel = account.subType || account.otherSubType || account.type;
   const isPhysicalAsset = account.type === 'Property' || account.type === 'Vehicle';
   const isLeasedVehicle = account.type === 'Vehicle' && account.ownership === 'Leased';
+  // Whole months until the lease ends (Q5: the hero is the payment and the time left).
+  const leaseMonthsLeft = (() => {
+    if (!isLeasedVehicle || !account.leaseEndDate) return null;
+    const end = parseLocalDate(account.leaseEndDate);
+    const now = new Date();
+    return Math.max(0, (end.getFullYear() - now.getFullYear()) * 12 + (end.getMonth() - now.getMonth()) - (end.getDate() < now.getDate() ? 1 : 0));
+  })();
   const latestPoint = chartData[chartData.length - 1];
   // A picture (car, house) beats the card; a bank account or card shows its card.
   const pictureSrc = (() => {
@@ -89,40 +84,7 @@ export const AccountDetailHero: React.FC<{
     <Card
       top={
         <div className="space-y-6">
-          {/* Top Breadcrumb & Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-nv-inset px-4 text-sm font-medium text-nv-ink transition-colors hover:bg-nv-line"
-            >
-              <NvIcon name="arrowLeft" size={16} />
-              <span>All accounts</span>
-            </button>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {data.enableBankingLink && onOpenBankSync && (
-                <Button variant="secondary" size="sm" icon="refresh" onClick={onOpenBankSync}>
-                  Bank sync
-                </Button>
-              )}
-              {isPhysicalAsset && !isLeasedVehicle && onOpenValuation && (
-                <Button variant="secondary" size="sm" icon="investments" onClick={onOpenValuation}>
-                  Appraise value
-                </Button>
-              )}
-              <Button variant="secondary" size="sm" icon="refresh" onClick={onAdjustBalance}>
-                Reconcile
-              </Button>
-              <Button variant="secondary" size="sm" icon="edit" onClick={onEdit}>
-                Edit
-              </Button>
-              <Button variant="primary" size="sm" icon="add" onClick={onRecordTx}>
-                Record activity
-              </Button>
-            </div>
-          </div>
-
+          {/* The page's tools sit in the toolbar under the tabs and the main action in the header (D3, N4, N23). */}
           {/* Main Identity & Interactive Trajectory Grid */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
             {/* Left: title, then the card or picture with the balance beside it */}
@@ -192,6 +154,16 @@ export const AccountDetailHero: React.FC<{
                       currency={account.currency}
                       size="hero"
                     />
+                    {isLeasedVehicle && (
+                      <p className="mt-1 text-sm text-nv-muted">
+                        {[
+                          leaseMonthsLeft !== null ? `${leaseMonthsLeft} month${leaseMonthsLeft === 1 ? '' : 's'} left` : null,
+                          account.residualValue ? `counts at its residual value` : 'not counted in net worth',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    )}
                     {normalizeCurrency(account.currency) !== normalizeCurrency(data.displayCurrency) && !isLeasedVehicle && (
                       <p className="mt-1 text-sm text-nv-muted">
                         ≈ <Money amount={data.convertToDisplay(displayBalance)} currency={data.displayCurrency} />
@@ -249,20 +221,10 @@ export const AccountDetailHero: React.FC<{
                     aspectRatio="2.8 / 1"
                     currency={account.currency}
                   >
-                    <Background pattern="dots" opacity={0.85} />
                     <Grid horizontal />
-                    <TrendLine
-                      dataKey="balance"
-                      strokeStyle="gradient"
-                      gradientStart="var(--chart-3)"
-                      gradientEnd="var(--chart-1)"
-                      strokeWidth={2}
-                      strokeOpacity={0.5}
-                      fadeEdges
-                    />
                     <Area
                       dataKey="balance"
-                      curve={curveNatural}
+                      curve={curveMonotoneX}
                       fill={strokeColor}
                       stroke={strokeColor}
                       fillOpacity={0.2}

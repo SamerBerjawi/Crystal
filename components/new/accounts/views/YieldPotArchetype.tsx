@@ -7,12 +7,10 @@ import { computeCompoundingProjection } from '../../../../utils/accountDetailMod
 import {
   Area,
   AreaChart,
-  Background,
   ChartTooltip,
   Grid,
-  TrendLine,
   XAxis,
-  curveNatural,
+  curveMonotoneX,
 } from '../../../bklit/charts';
 import { NvIcon } from '../../NvIcon';
 import { Badge, Button, Card, Money, SegmentedTabs } from '../../ui';
@@ -293,20 +291,10 @@ export const YieldPotArchetype: React.FC<{
                   aspectRatio="2.6 / 1"
                   currency={account.currency}
                 >
-                  <Background pattern="dots" opacity={0.85} />
                   <Grid horizontal />
-                  <TrendLine
-                    dataKey="balance"
-                    strokeStyle="gradient"
-                    gradientStart="var(--chart-3)"
-                    gradientEnd="var(--chart-1)"
-                    strokeWidth={2}
-                    strokeOpacity={0.5}
-                    fadeEdges
-                  />
                   <Area
                     dataKey="balance"
-                    curve={curveNatural}
+                    curve={curveMonotoneX}
                     fill="var(--chart-line-primary)"
                     stroke="var(--chart-line-primary)"
                     fillOpacity={0.2}
@@ -413,20 +401,10 @@ export const YieldPotArchetype: React.FC<{
                   aspectRatio="2.4 / 1"
                   currency={account.currency}
                 >
-                  <Background pattern="dots" opacity={0.85} />
                   <Grid horizontal />
-                  <TrendLine
-                    dataKey="balance"
-                    strokeStyle="gradient"
-                    gradientStart="var(--chart-3)"
-                    gradientEnd="var(--chart-1)"
-                    strokeWidth={2}
-                    strokeOpacity={0.5}
-                    fadeEdges
-                  />
                   <Area
                     dataKey="balance"
-                    curve={curveNatural}
+                    curve={curveMonotoneX}
                     fill="var(--chart-line-primary)"
                     stroke="var(--chart-line-primary)"
                     fillOpacity={0.2}

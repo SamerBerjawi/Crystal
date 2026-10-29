@@ -23,6 +23,7 @@ import { OperatingAccountArchetype } from '../../components/new/accounts/views/O
 import { PhysicalAssetArchetype } from '../../components/new/accounts/views/PhysicalAssetArchetype';
 import { YieldPotArchetype } from '../../components/new/accounts/views/YieldPotArchetype';
 import { usePageAction, useShellNew } from '../../components/new/shellContext';
+import { PageToolbar, ToolbarSpacer, ToolButton } from '../../components/new/PageToolbar';
 import { Button, Card, EmptyState } from '../../components/new/ui';
 import { useAccountDetailData } from '../../hooks/useAccountDetailData';
 import type { Account } from '../../types';
@@ -55,17 +56,36 @@ export const AccountDetailNew: React.FC<{
     'expense' | 'income' | 'interest' | 'card_payment' | null
   >(null);
 
-  const pageAction = useMemo(
-    () =>
-      account
-        ? {
-            label: 'Record activity',
-            icon: 'add' as const,
-            onClick: () => setRecordTxMode('expense'),
-          }
-        : null,
-    [account]
-  );
+  const isScheduledLoan =
+    !!account &&
+    (account.type === 'Loan' || account.type === 'Lending') &&
+    !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
+  const isLeasedVehicle = account?.type === 'Vehicle' && account.ownership === 'Leased';
+
+  // The header's one violet action follows the kind of account (D3, N4).
+  const pageAction = useMemo(() => {
+    if (!account) return null;
+    if (archetype === 'credit_card') {
+      return { label: 'Pay statement', icon: 'card' as const, onClick: () => setRecordTxMode('card_payment') };
+    }
+    if (archetype === 'loan') {
+      return isScheduledLoan
+        ? { label: 'Record payment', icon: 'add' as const, onClick: () => setTab('plan') }
+        : { label: 'Record payment', icon: 'add' as const, onClick: () => setRecordTxMode(account.type === 'Lending' ? 'expense' : 'income') };
+    }
+    if (archetype === 'physical_asset') {
+      return isLeasedVehicle
+        ? { label: 'Log mileage', icon: 'car' as const, onClick: () => setTab('valuations') }
+        : { label: 'Add valuation', icon: 'add' as const, onClick: () => setValuationSheetOpen(true) };
+    }
+    if (account.type === 'Savings') {
+      return { label: 'Log interest', icon: 'add' as const, onClick: () => setRecordTxMode('interest') };
+    }
+    if (account.subType === 'Pension Fund') {
+      return { label: 'Add contribution', icon: 'add' as const, onClick: () => setRecordTxMode('income') };
+    }
+    return { label: 'Add transaction', icon: 'add' as const, onClick: () => setRecordTxMode('expense') };
+  }, [account, archetype, isScheduledLoan, isLeasedVehicle, setTab]);
   usePageAction(pageAction);
 
   const handleNavigateToAccount = (target: Account) => {
@@ -105,20 +125,23 @@ export const AccountDetailNew: React.FC<{
       {/* 1. Unified Split Hero Card (Identity + 90d History / Forward Forecast + 4 KPIs) */}
       <AccountDetailHero
         data={data}
-        onBack={() => navigate('/accounts-new')}
         onSwitchAccount={handleNavigateToAccount}
         onEdit={() => setEditSheetOpen(true)}
-        onAdjustBalance={() => setAdjustSheetOpen(true)}
-        onRecordTx={() => setRecordTxMode('expense')}
-        onOpenValuation={() => setValuationSheetOpen(true)}
-        onOpenBankSync={
-          data.enableBankingLink ? () => setBankSyncSheetOpen(true) : undefined
-        }
         onOpenCloseAsset={() => setCloseAssetSheetOpen(true)}
       />
 
       {/* 2. Workspace tabs, directly above what they switch (N21) */}
-      <AccountDetailTabBar tabs={tabs} value={tab} onChange={setTab} />
+      <div className="space-y-3">
+        <AccountDetailTabBar tabs={tabs} value={tab} onChange={setTab} />
+        <PageToolbar>
+          <ToolbarSpacer />
+          {data.enableBankingLink && (
+            <ToolButton variant="success" icon="refresh" label="Sync" onClick={() => setBankSyncSheetOpen(true)} />
+          )}
+          {!isScheduledLoan && <ToolButton icon="refresh" label="Reconcile" onClick={() => setAdjustSheetOpen(true)} />}
+          <ToolButton icon="edit" label="Edit" onClick={() => setEditSheetOpen(true)} />
+        </PageToolbar>
+      </div>
 
       {tab === 'overview' && archetype === 'operating' && (
         <OperatingAccountArchetype data={data} onNavigateToAccount={handleNavigateToAccount} />

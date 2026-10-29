@@ -13,13 +13,11 @@ import {
   Area,
   AreaChart,
   AreaSparkline,
-  Background,
   ChartTooltip,
   Grid,
-  TrendLine,
   XAxis,
-  curveNatural,
   useSparklineHover,
+  curveMonotoneX,
 } from '../../bklit/charts';
 import { NvIcon, type NvIconName } from '../NvIcon';
 import { useMediaQuery } from '../Drawer';
@@ -116,20 +114,10 @@ const NetWorth90dChart: React.FC<{
           aspectRatio={compact ? '2 / 1' : '2.8 / 1'}
           currency={currency}
         >
-          <Background pattern="dots" opacity={0.85} />
           <Grid horizontal />
-          <TrendLine
-            dataKey="netWorth"
-            strokeStyle="gradient"
-            gradientStart="var(--chart-3)"
-            gradientEnd="var(--chart-1)"
-            strokeWidth={2}
-            strokeOpacity={0.5}
-            fadeEdges
-          />
           <Area
             dataKey="netWorth"
-            curve={curveNatural}
+            curve={curveMonotoneX}
             fill="var(--chart-line-primary)"
             stroke="var(--chart-line-primary)"
             fillOpacity={0.2}

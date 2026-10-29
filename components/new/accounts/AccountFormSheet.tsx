@@ -206,6 +206,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
   const [leaseStartDate, setLeaseStartDate] = useState('');
   const [leaseEndDate, setLeaseEndDate] = useState('');
   const [leasePaymentStr, setLeasePaymentStr] = useState('');
+  const [residualValueStr, setResidualValueStr] = useState('');
   const [annualMileageAllowanceStr, setAnnualMileageAllowanceStr] = useState('15000');
 
   // Other Assets / Liabilities
@@ -328,6 +329,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       setLeasePaymentStr(
         editingAccount.leasePaymentAmount !== undefined ? String(editingAccount.leasePaymentAmount) : ''
       );
+      setResidualValueStr(editingAccount.residualValue !== undefined ? String(editingAccount.residualValue) : '');
       setAnnualMileageAllowanceStr(
         editingAccount.annualMileageAllowance !== undefined
           ? String(editingAccount.annualMileageAllowance)
@@ -400,6 +402,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       setLeaseStartDate('');
       setLeaseEndDate('');
       setLeasePaymentStr('');
+      setResidualValueStr('');
       setAnnualMileageAllowanceStr('15000');
       setOtherAssetSubType('Cash');
       setOtherLiabilitySubType('Private Debt');
@@ -621,7 +624,10 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         draft.leasePaymentAmount = Number.isFinite(lp) ? lp : undefined;
         const allowance = parseInt(annualMileageAllowanceStr, 10);
         draft.annualMileageAllowance = Number.isFinite(allowance) ? allowance : 15000;
-        draft.balance = 0;
+        // Counts in net worth only with a residual value (Q5).
+        const rv = parseFloat(residualValueStr);
+        draft.residualValue = Number.isFinite(rv) && rv > 0 ? rv : undefined;
+        draft.balance = draft.residualValue ?? 0;
       } else {
         draft.balance = Math.abs(rawMagnitude);
       }
@@ -1429,6 +1435,15 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                     value={leasePaymentStr}
                     onChange={(e) => setLeasePaymentStr(e.target.value)}
                     placeholder="690"
+                  />
+                </div>
+                <div>
+                  <FieldLabel>Residual value (optional)</FieldLabel>
+                  <TextInput
+                    type="number"
+                    value={residualValueStr}
+                    onChange={(e) => setResidualValueStr(e.target.value)}
+                    placeholder="18000"
                   />
                 </div>
                 <div>
