@@ -10,6 +10,7 @@ import {
   type AccountsPageSegment,
 } from '../../utils/accountsModel';
 import { newPathFor } from '../../utils/newRoutes';
+import { debtFromBalance, safeAdd } from '../../utils';
 import {
   HeaderControls,
   HeaderTools,
@@ -188,8 +189,7 @@ export const AccountsNew: React.FC = () => {
   const totalAssetsConverted = useMemo(
     () =>
       assets.reduce(
-        (sum, a) =>
-          sum + Math.max(0, data.convert(data.displayBalancesById[a.id] ?? a.balance, a.currency)),
+        (sum, a) => safeAdd(sum, data.convert(data.displayBalancesById[a.id] ?? a.balance, a.currency)),
         0
       ),
     [assets, data]
@@ -199,7 +199,7 @@ export const AccountsNew: React.FC = () => {
     () =>
       liabilities.reduce(
         (sum, a) =>
-          sum + Math.abs(Math.min(0, data.convert(data.displayBalancesById[a.id] ?? a.balance, a.currency))),
+          safeAdd(sum, debtFromBalance(a, data.convert(data.displayBalancesById[a.id] ?? a.balance, a.currency))),
         0
       ),
     [liabilities, data]
@@ -529,7 +529,7 @@ export const AccountsNew: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-wider text-nv-muted">Subtotal</p>
+                  <p className="text-xs uppercase tracking-wider text-nv-muted">Subtotal</p>
                   <Money amount={group.subtotal} currency={data.displayCurrency} size="md" />
                 </div>
               </div>
@@ -561,7 +561,7 @@ export const AccountsNew: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-wider text-nv-muted">Subtotal</p>
+                  <p className="text-xs uppercase tracking-wider text-nv-muted">Subtotal</p>
                   <Money amount={group.subtotal} currency={data.displayCurrency} className="text-sm font-semibold" />
                 </div>
               </div>
@@ -600,7 +600,7 @@ export const AccountsNew: React.FC = () => {
               <p className="truncate text-xs font-semibold text-nv-ink">
                 {contextMenu.account.name}
               </p>
-              <p className="truncate text-[10px] text-nv-muted">
+              <p className="truncate text-xs text-nv-muted">
                 {contextMenu.account.financialInstitution || contextMenu.account.type}
               </p>
             </div>
@@ -791,6 +791,7 @@ export const AccountsNew: React.FC = () => {
         }}
         account={reconcileAccount}
         onAdjust={data.adjustBalance}
+        getBalanceOnDate={data.getBalanceOnDate}
       />
     </div>
   );

@@ -1,4 +1,6 @@
 import type { Account, Budget, Category, Currency, FinancialGoal, GoalProjectionStatus, Transaction } from '../types';
+import { parseAmount as parseTypedAmount } from './parseAmount';
+import { safeAdd } from '../utils';
 
 /*
  * Budget logic for BudgetNew (UI_UX_DESIGN_REFERENCE.md §5.1, D13). Pure and strict-typed, so it is unit tested
@@ -106,7 +108,7 @@ export const spendByCategory = (
     if (t.parentTransactionId && !splitParents.has(t.parentTransactionId)) continue;
     if (!options.accountIds.has(t.accountId)) continue;
     const key = parentCategoryName(t.category, options.categories) ?? UNCATEGORIZED;
-    spend.set(key, (spend.get(key) ?? 0) + Math.abs(options.convert(t.amount, t.currency)));
+    spend.set(key, safeAdd(spend.get(key) ?? 0, Math.abs(options.convert(t.amount, t.currency))));
   }
   return spend;
 };
@@ -191,8 +193,8 @@ export interface BudgetSummary {
 }
 
 export const summarize = (lines: BudgetLine[], spend: Map<string, number>): BudgetSummary => {
-  const budgeted = lines.reduce((s, l) => s + l.limit, 0);
-  const spent = lines.reduce((s, l) => s + l.spent, 0);
+  const budgeted = lines.reduce((s, l) => safeAdd(s, l.limit), 0);
+  const spent = lines.reduce((s, l) => safeAdd(s, l.spent), 0);
   const named = new Set(lines.map(l => l.name));
   let outside = 0;
   for (const [name, value] of spend) if (!named.has(name)) outside += value;
@@ -264,14 +266,11 @@ export const autofillPlan = (average: Map<string, number>, budgets: Budget[], cu
     .filter(item => item.amount > 0)
     .map(item => ({ id: budgets.find(b => b.categoryName === item.categoryName)?.id, categoryName: item.categoryName, amount: item.amount, period: 'monthly' as const, currency }));
 
-/** Parses a typed amount ("1,250.5" or "1250,5"). NaN when it is not a number. */
-export const parseAmount = (text: string) => {
-  const trimmed = text.trim();
-  if (!trimmed) return NaN;
-  const normalized = /,\d{1,2}$/.test(trimmed) && !trimmed.includes('.') ? trimmed.replace(',', '.') : trimmed.replace(/,/g, '');
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : NaN;
-};
+/**
+ * Parses a typed amount in either style: "1,250.50", "1.250,50", "1250,5", "1.250" (= 1250).
+ * Same parser as the CSV importer. NaN when it is not a number.
+ */
+export const parseAmount = (text: string) => parseTypedAmount(text);
 
 /* ── Allocation ─────────────────────────────────────────────────────────── */
 
@@ -279,13 +278,13 @@ export interface Slice { name: string; value: number; pct: number }
 
 /** Each budget's share of the total, largest first. Shares under `minPct` are folded into one "Other" slice. */
 export const allocation = (lines: BudgetLine[], minPct = 4): Slice[] => {
-  const total = lines.reduce((s, l) => s + Math.max(0, l.limit), 0);
+  const total = lines.reduce((s, l) => safeAdd(s, Math.max(0, l.limit)), 0);
   if (total <= 0) return [];
   const slices = lines.filter(l => l.limit > 0).map(l => ({ name: l.name, value: l.limit, pct: (l.limit / total) * 100 })).sort((a, b) => b.value - a.value);
   const big = slices.filter(s => s.pct >= minPct);
   const small = slices.filter(s => s.pct < minPct);
   if (small.length < 2) return slices;
-  const other = small.reduce((s, x) => s + x.value, 0);
+  const other = small.reduce((s, x) => safeAdd(s, x.value), 0);
   return [...big, { name: 'Other', value: other, pct: (other / total) * 100 }];
 };
 
@@ -319,8 +318,8 @@ export const goalViews = (goals: FinancialGoal[], convert: Convert): GoalView[] 
     .map(g => {
       const children = active.filter(c => c.parentId === g.id);
       const members = children.length ? children : [g];
-      const target = members.reduce((s, m) => s + convert(m.amount, m.currency), 0);
-      const saved = members.reduce((s, m) => s + convert(m.currentAmount ?? 0, m.currency), 0);
+      const target = members.reduce((s, m) => safeAdd(s, convert(m.amount, m.currency)), 0);
+      const saved = members.reduce((s, m) => safeAdd(s, convert(m.currentAmount ?? 0, m.currency)), 0);
       const pct = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
       const done = !!g.completed || (target > 0 && saved >= target);
 

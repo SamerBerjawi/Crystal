@@ -1322,8 +1322,10 @@ export const BalanceAdjustmentSheet: React.FC<{
     targetBalance: number,
     dateStr?: string,
     note?: string
-  ) => { delta: number; undo?: () => void };
-}> = ({ open, onOpenChange, account, onAdjust }) => {
+  ) => { delta: number; undo?: () => void; unsupported?: boolean };
+  /** Balance on a given day (null when it can't be reconciled, e.g. amortised loans). */
+  getBalanceOnDate?: (account: Account, dateStr: string) => number | null;
+}> = ({ open, onOpenChange, account, onAdjust, getBalanceOnDate }) => {
   const phone = !useMediaQuery('(min-width: 768px)');
   const [amountStr, setAmountStr] = useState('');
   const [isNegative, setIsNegative] = useState(false);
@@ -1332,28 +1334,35 @@ export const BalanceAdjustmentSheet: React.FC<{
 
   useEffect(() => {
     if (open && account) {
-      setAmountStr(String(Math.abs(account.balance || 0)));
+      const today = toLocalISOString(new Date());
+      const start = getBalanceOnDate ? getBalanceOnDate(account, today) ?? account.balance : account.balance;
+      setAmountStr(String(Math.abs(start || 0)));
       setIsNegative(
-        account.balance < 0 ||
+        start < 0 ||
           account.type === 'Credit Card' ||
           account.type === 'Loan' ||
           account.type === 'Other Liabilities'
       );
-      setDateStr(toLocalISOString(new Date()));
+      setDateStr(today);
       setNote('');
     }
-  }, [open, account]);
+    // Prefill once per opening; later balance changes must not overwrite what was typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, account?.id]);
 
   if (!account) return null;
 
   const rawMagnitude = parseFloat(amountStr || '0') || 0;
   const targetBalance = isNegative ? -Math.abs(rawMagnitude) : Math.abs(rawMagnitude);
-  const delta = safeRound(
-    targetBalance - account.balance,
-    account.currency === 'BTC' ? 8 : 2
-  );
+  // Measure against the balance on the chosen day, not today's stored balance.
+  const balanceOnDate = getBalanceOnDate ? getBalanceOnDate(account, dateStr) : account.balance;
+  const unsupported = balanceOnDate === null;
+  const delta = unsupported
+    ? 0
+    : safeRound(targetBalance - balanceOnDate, account.currency === 'BTC' ? 8 : 2);
 
   const handleConfirm = () => {
+    if (unsupported) return;
     if (Math.abs(delta) < 0.000001) {
       toast.info('Balance is already equal to the entered amount');
       onOpenChange(false);
@@ -1386,7 +1395,7 @@ export const BalanceAdjustmentSheet: React.FC<{
           <Button
             variant="cta"
             onClick={handleConfirm}
-            disabled={Math.abs(delta) < 0.000001}
+            disabled={unsupported || Math.abs(delta) < 0.000001}
             className="flex-1"
           >
             Post Adjustment
@@ -1420,12 +1429,16 @@ export const BalanceAdjustmentSheet: React.FC<{
           />
         </div>
 
+        {unsupported && (
+          <p className="text-sm text-nv-muted">Loan balances follow the payment plan. Change a payment there.</p>
+        )}
+
         {/* Delta Comparison Card */}
         <div className="grid grid-cols-3 gap-2 rounded-nv-tile bg-nv-inset p-4 text-center">
           <div>
             <p className="text-[11px] text-nv-muted">Current Book</p>
             <div className="mt-1">
-              <Money amount={account.balance} currency={account.currency} />
+              <Money amount={balanceOnDate ?? account.balance} currency={account.currency} />
             </div>
           </div>
           <div>

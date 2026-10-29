@@ -8,12 +8,13 @@ import {
   useWarrantsContext,
 } from '../contexts/DomainProviders';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
-import { convertCurrency, downloadCSV, normalizeCurrency, safeRound, toLocalISOString } from '../utils';
+import { convertCurrency, downloadCSV, normalizeCurrency, resolveRates, safeRound, toLocalISOString } from '../utils';
 import {
   accountsToCSV,
   computeAccount90dSparkline,
   computeAccountDisplayBalance,
   computeAccountsHeroModel,
+  computeBalanceAdjustmentDelta,
   getCardWalletAccounts,
   getVisibleAccountsForAccountsPage,
   type AccountSparklineResult,
@@ -22,7 +23,6 @@ import {
 import {
   findLinkedAssetForLoan,
   findLinkedLoanForAsset,
-  resolveRealTodayBalance,
 } from '../utils/accountDetailModel';
 
 /*
@@ -54,7 +54,8 @@ export const useAccountsData = () => {
   const { financialGoals } = useGoalsContext();
 
   const displayCurrency = normalizeCurrency(preferences.displayCurrency || preferences.currency || 'EUR');
-  const conversionRates = preferences.conversionRates;
+  // One FX table for every figure on the page (Q1): defaults overridden by saved rates.
+  const conversionRates = useMemo(() => resolveRates(preferences.conversionRates), [preferences.conversionRates]);
 
   const convert = useCallback(
     (amount: number, fromCurrency: Currency) =>
@@ -81,22 +82,13 @@ export const useAccountsData = () => {
     const map: Record<string, number> = {};
     for (const acc of visibleAccounts) {
       const accTxs = transactionsByAccountId.get(acc.id) || [];
-      map[acc.id] = computeAccountDisplayBalance(acc, accTxs, loanPaymentOverrides);
+      map[acc.id] = computeAccountDisplayBalance(acc, accTxs, loanPaymentOverrides, { conversionRates });
     }
     return map;
-  }, [visibleAccounts, transactionsByAccountId, loanPaymentOverrides]);
+  }, [visibleAccounts, transactionsByAccountId, loanPaymentOverrides, conversionRates]);
 
-  const realTodayBalancesById = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const acc of visibleAccounts) {
-      const accTxs = transactionsByAccountId.get(acc.id) || [];
-      const disp = displayBalancesById[acc.id] ?? acc.balance;
-      map[acc.id] = resolveRealTodayBalance(disp, acc.currency, accTxs, {
-        conversionRates,
-      });
-    }
-    return map;
-  }, [visibleAccounts, transactionsByAccountId, displayBalancesById, conversionRates]);
+  // The display balance is already today's balance (future-dated items excluded).
+  const realTodayBalancesById = displayBalancesById;
 
   const sparklinesById = useMemo(() => {
     const map: Record<string, AccountSparklineResult> = {};
@@ -104,10 +96,11 @@ export const useAccountsData = () => {
       const accTxs = transactionsByAccountId.get(acc.id) || [];
       map[acc.id] = computeAccount90dSparkline(acc, accTxs, displayBalancesById[acc.id], {
         conversionRates,
+        loanPaymentOverrides,
       });
     }
     return map;
-  }, [visibleAccounts, transactionsByAccountId, displayBalancesById, conversionRates]);
+  }, [visibleAccounts, transactionsByAccountId, displayBalancesById, conversionRates, loanPaymentOverrides]);
 
   const heroModel: AccountsHeroModel = useMemo(
     () =>
@@ -235,6 +228,15 @@ export const useAccountsData = () => {
     [accountOrder, setAccountOrder]
   );
 
+  /** Balance of `account` on `dateStr`, for the reconcile sheet; null for amortised loans. */
+  const getBalanceOnDate = useCallback(
+    (account: Account, dateStr: string): number | null => {
+      const delta = computeBalanceAdjustmentDelta(account, transactionsByAccountId.get(account.id) || [], 0, dateStr, conversionRates);
+      return delta === null ? null : -delta;
+    },
+    [transactionsByAccountId, conversionRates]
+  );
+
   /** Record a Balance Adjustment transaction that reconciles an account to `targetBalance`. */
   const adjustBalance = useCallback(
     (
@@ -242,9 +244,15 @@ export const useAccountsData = () => {
       targetBalance: number,
       dateStr?: string,
       note?: string
-    ): { delta: number; undo?: () => void } => {
-      const currentBal = account.balance;
-      const delta = safeRound(targetBalance - currentBal, account.currency === 'BTC' ? 8 : 2);
+    ): { delta: number; undo?: () => void; unsupported?: boolean } => {
+      const delta = computeBalanceAdjustmentDelta(
+        account,
+        transactionsByAccountId.get(account.id) || [],
+        targetBalance,
+        dateStr,
+        conversionRates
+      );
+      if (delta === null) return { delta: 0, unsupported: true };
       if (Math.abs(delta) < 0.000001) {
         return { delta: 0 };
       }
@@ -273,7 +281,7 @@ export const useAccountsData = () => {
         undo: () => deleteTransactions([txId]),
       };
     },
-    [saveTransaction, deleteTransactions]
+    [saveTransaction, deleteTransactions, transactionsByAccountId, conversionRates]
   );
 
   /** Record a market valuation entry (`priceHistory` + `balance`) for a Property or Vehicle account. */
@@ -373,6 +381,7 @@ export const useAccountsData = () => {
     toggleAccountStatus,
     reorderAccounts,
     adjustBalance,
+    getBalanceOnDate,
     recordValuation,
     closeAsset,
     revertClosure,

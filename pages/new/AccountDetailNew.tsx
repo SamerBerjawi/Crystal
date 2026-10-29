@@ -196,6 +196,7 @@ export const AccountDetailNew: React.FC<{
           const res = data.adjustBalance(newBalance, date, notes);
           return res ?? { delta: 0 };
         }}
+        getBalanceOnDate={data.getBalanceOnDate}
       />
 
       <ValuationSheet

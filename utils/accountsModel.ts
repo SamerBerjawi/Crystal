@@ -3,19 +3,29 @@ import { Account, Currency, LoanPaymentOverrides, Transaction } from '../types';
 import {
   arrayToCSV,
   calculateAccountTotals,
+  classifyAccountBalanceEur,
+  debtFromBalance,
   convertCurrency,
   convertToEur,
   generateAmortizationSchedule,
   parseLocalDate,
+  resolveAccountBalance,
+  safeAdd,
   safeRound,
+  safeSubtract,
   toLocalISOString,
 } from '../utils';
-import { computeVehicleAccountMetrics, resolveRealTodayBalance } from './accountDetailModel';
+import { computeVehicleAccountMetrics } from './accountDetailModel';
 
 export interface AccountsModelOptions {
   conversionRates?: Partial<Record<Currency, number>>;
   referenceDate?: Date;
+  loanPaymentOverrides?: LoanPaymentOverrides;
 }
+
+/** Accounts counted as liquid cash: checking, savings, cards (signed) and physical cash. */
+export const isLiquidAccount = (a: Account): boolean =>
+  LIQUID_ACCOUNT_TYPES.includes(a.type) || (a.type === 'Other Assets' && a.otherSubType === 'Cash');
 
 /**
  * Returns accounts that belong on the Accounts hub page.
@@ -32,60 +42,47 @@ export const getVisibleAccountsForAccountsPage = (accounts: Account[]): Account[
 };
 
 /**
- * Computes the effective display balance of an account in its native currency,
- * resolving amortized or simple loan/lending balances when configured.
+ * Today's balance of an account, signed, in its own currency. One rule for every figure
+ * on the Accounts pages (see `resolveAccountBalance`): future-dated items excluded,
+ * amortised loans as principal + accrued interest.
  */
 export const computeAccountDisplayBalance = (
   account: Account,
   accountTransactions: Transaction[],
-  loanPaymentOverrides: LoanPaymentOverrides = {}
-): number => {
-  if (account.type === 'Loan' || account.type === 'Lending') {
-    if (
-      account.principalAmount &&
-      account.duration &&
-      account.loanStartDate &&
-      account.interestRate !== undefined
-    ) {
-      const overrides = loanPaymentOverrides[account.id] || {};
-      const schedule = generateAmortizationSchedule(account, accountTransactions, overrides);
+  loanPaymentOverrides: LoanPaymentOverrides = {},
+  options: AccountsModelOptions = {}
+): number =>
+  resolveAccountBalance(account, accountTransactions, loanPaymentOverrides, {
+    rates: options.conversionRates as Record<string, number> | undefined,
+    referenceDate: options.referenceDate,
+  });
 
-      const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
-      const totalPaidPrincipal = schedule.reduce(
-        (acc, p) => (p.status === 'Paid' ? acc + p.principal : acc),
-        0
-      );
-      const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
-      const totalPaidInterest = schedule.reduce(
-        (acc, p) => (p.status === 'Paid' ? acc + p.interest : acc),
-        0
-      );
-
-      const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-      const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
-
-      const totalOutstanding = outstandingPrincipal + outstandingInterest;
-      return account.type === 'Loan' ? -totalOutstanding : totalOutstanding;
-    }
-
-    if (account.totalAmount) {
-      const isLending = account.type === 'Lending';
-      const loanPayments = accountTransactions.filter(
-        (tx) => tx.type === (isLending ? 'expense' : 'income')
-      );
-      const totalPaid = loanPayments.reduce((sum, tx) => {
-        const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-        return sum + (totalPayment > 0 ? totalPayment : Math.abs(tx.amount));
-      }, 0);
-      const outstanding = Math.max(0, account.totalAmount - totalPaid);
-      return isLending ? outstanding : -outstanding;
-    }
-  }
-  return account.balance;
+/**
+ * The balance-adjustment amount that brings an account to `targetBalance` on `dateStr`
+ * (default today), measured against the balance on that day, not against `account.balance`
+ * (which includes future-dated items). Returns null for amortised loans, whose balance
+ * comes from the schedule: correct those with payment overrides instead.
+ */
+export const computeBalanceAdjustmentDelta = (
+  account: Account,
+  accountTransactions: Transaction[],
+  targetBalance: number,
+  dateStr?: string,
+  rates?: Record<string, number>
+): number | null => {
+  const isScheduledLoan =
+    (account.type === 'Loan' || account.type === 'Lending') &&
+    !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
+  if (isScheduledLoan) return null;
+  const asOf = dateStr ? parseLocalDate(dateStr) : new Date();
+  const balanceOnDate = resolveAccountBalance(account, accountTransactions, {}, { rates, referenceDate: asOf });
+  return safeRound(safeSubtract(targetBalance, balanceOnDate), account.currency === 'BTC' ? 8 : 2);
 };
 
 export interface AccountSparklineResult {
+  /** Daily balance in the account's own currency, oldest first. */
   sparklineData: { date: Date; value: number }[];
+  /** Change over the window, in the account's own currency. */
   trend: number;
   trendPct: number | null;
   isPositiveTrend: boolean;
@@ -97,12 +94,31 @@ export interface AccountsKpiSparkPoint {
   value: number;
 }
 
+const NUM_SPARK_POINTS = 90;
+
+const summarizeSparkline = (points: { date: Date; value: number }[]): AccountSparklineResult => {
+  if (points.length === 0) {
+    return { sparklineData: [], trend: 0, trendPct: null, isPositiveTrend: true };
+  }
+  const startVal = points[0].value;
+  const endVal = points[points.length - 1].value;
+  const trend = safeSubtract(endVal, startVal);
+  const startAbs = Math.abs(startVal);
+  // A higher signed balance is more asset or less debt, so up is always good.
+  return {
+    sparklineData: points,
+    trend,
+    trendPct: startAbs >= 1 ? safeRound((trend / startAbs) * 100, 1) : null,
+    isPositiveTrend: trend >= 0,
+  };
+};
+
 /**
- * Computes the 90-day daily balance sparkline for a single account.
- * Fixes:
- *  - BUG-02: Backs out future-dated transactions (`tx.date > today`) before walking backward.
- *  - BUG-03: Preserves true signed balances (no `Math.max(0, value)` clamping on liabilities or overdrafts).
- *  - Respects `priceHistory` for `Property` and `Vehicle` accounts when available.
+ * The 90-day daily balance of one account, in the account's own currency.
+ *  - Amortised loans: the schedule's balance on each day (principal + accrued interest).
+ *  - Property / Vehicle: today's balance, the last valuation before that, nothing before purchase.
+ *  - Everything else: walk back from today's balance through dated transactions.
+ * `displayBalance` is today's balance when the caller already has it.
  */
 export const computeAccount90dSparkline = (
   account: Account,
@@ -110,115 +126,84 @@ export const computeAccount90dSparkline = (
   displayBalance?: number,
   options: AccountsModelOptions = {}
 ): AccountSparklineResult => {
-  const NUM_POINTS = 90;
   const now = options.referenceDate ? new Date(options.referenceDate) : new Date();
   const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayStr = toLocalISOString(endDate);
+  const overrides = options.loanPaymentOverrides || {};
+  const rates = options.conversionRates as Record<string, number> | undefined;
+  const ownTxs = accountTransactions.filter((tx) => tx.accountId === account.id);
 
-  const effectiveDisplayBalance =
+  const todayBalance =
     displayBalance !== undefined
       ? displayBalance
-      : computeAccountDisplayBalance(account, accountTransactions);
+      : computeAccountDisplayBalance(account, ownTxs, overrides, { ...options, referenceDate: endDate });
 
-  // Back out future transactions from the starting balance (BUG-02)
-  const realTodayNativeBalance = resolveRealTodayBalance(
-    effectiveDisplayBalance,
-    account.currency,
-    accountTransactions,
-    { ...options, referenceDate: endDate }
-  );
-
-  // Property / Vehicle with explicit priceHistory
-  if (
-    (account.type === 'Property' || account.type === 'Vehicle') &&
-    account.priceHistory &&
-    account.priceHistory.length > 0
-  ) {
-    const sortedRecords = [...account.priceHistory].sort(
-      (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
-    );
-    const points: { date: Date; value: number }[] = [];
-    for (let i = NUM_POINTS - 1; i >= 0; i--) {
-      const d = new Date(endDate);
-      d.setDate(endDate.getDate() - i);
-      const dStr = toLocalISOString(d);
-      let valNative = realTodayNativeBalance;
-      const applicable = sortedRecords.filter((r) => r.date <= dStr);
-      if (applicable.length > 0) {
-        const lastEntry = applicable[applicable.length - 1] as { price?: number; value?: number };
-        valNative = lastEntry.price ?? lastEntry.value ?? realTodayNativeBalance;
-      } else if (account.purchasePrice !== undefined) {
-        valNative = account.purchasePrice;
-      }
-      const valEur = convertCurrency(valNative, account.currency, 'EUR', options.conversionRates);
-      points.push({ date: d, value: valEur });
-    }
-    const startVal = points[0].value;
-    const endVal = points[points.length - 1].value;
-    const trendVal = endVal - startVal;
-    const startAbs = Math.abs(startVal);
-    const trendPct = startAbs >= 1 ? safeRound((trendVal / startAbs) * 100, 1) : null;
-    return {
-      sparklineData: points,
-      trend: trendVal,
-      trendPct,
-      isPositiveTrend: trendVal >= 0,
-    };
-  }
-
-  const currentBalEur = convertCurrency(
-    realTodayNativeBalance,
-    account.currency,
-    'EUR',
-    options.conversionRates
-  );
-
-  const txsByDate: Record<string, number> = {};
-  accountTransactions.forEach((tx) => {
-    if (tx.date > todayStr) return; // Ignore future transactions in past 90d walk (already backed out of realTodayNativeBalance)
-    const amountEur = convertCurrency(tx.amount, tx.currency, 'EUR', options.conversionRates);
-    txsByDate[tx.date] = (txsByDate[tx.date] || 0) + amountEur;
-  });
-
-  const runningDate = new Date(endDate);
-  const history: { date: Date; value: number }[] = [];
-  let runningBal = currentBalEur;
-
-  for (let i = 0; i < NUM_POINTS; i++) {
-    history.push({
-      date: new Date(runningDate),
-      value: runningBal,
-    });
-    const dateStr = toLocalISOString(runningDate);
-    const change = txsByDate[dateStr] || 0;
-    runningBal -= change;
-    runningDate.setDate(runningDate.getDate() - 1);
-  }
-
-  // BUG-03 Fix: Do NOT clamp negative values to 0
-  const data = history.reverse();
-  const startVal = data[0].value;
-  const endVal = data[data.length - 1].value;
-  const trendVal = endVal - startVal;
-  // For both assets and signed liabilities (e.g. -500 -> -200 gives trendVal = +300),
-  // a higher signed balance means higher asset or lower debt!
-  const isPositive = trendVal >= 0;
-  const startAbs = Math.abs(startVal);
-  const trendPct = startAbs >= 1 ? safeRound((trendVal / startAbs) * 100, 1) : null;
-
-  return {
-    sparklineData: data,
-    trend: trendVal,
-    trendPct,
-    isPositiveTrend: isPositive,
+  const dayAt = (offsetFromStart: number) => {
+    const d = new Date(endDate);
+    d.setDate(endDate.getDate() - (NUM_SPARK_POINTS - 1 - offsetFromStart));
+    return d;
   };
+
+  const isScheduledLoan =
+    (account.type === 'Loan' || account.type === 'Lending') &&
+    !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
+  if (isScheduledLoan) {
+    const points: { date: Date; value: number }[] = [];
+    for (let i = 0; i < NUM_SPARK_POINTS; i++) {
+      const d = dayAt(i);
+      if (toLocalISOString(d) < account.loanStartDate!) continue;
+      const value =
+        i === NUM_SPARK_POINTS - 1
+          ? todayBalance
+          : resolveAccountBalance(account, ownTxs, overrides, { rates, referenceDate: d });
+      points.push({ date: d, value });
+    }
+    return summarizeSparkline(points);
+  }
+
+  if (account.type === 'Property' || account.type === 'Vehicle') {
+    const records = [...(account.priceHistory || [])].sort((a, b) => a.date.localeCompare(b.date));
+    const startStr = account.purchaseDate || account.leaseStartDate || account.openingDate;
+    const points: { date: Date; value: number }[] = [];
+    for (let i = 0; i < NUM_SPARK_POINTS; i++) {
+      const d = dayAt(i);
+      const dStr = toLocalISOString(d);
+      if (startStr && dStr < startStr) continue;
+      let value = todayBalance;
+      if (dStr < todayStr) {
+        const applicable = records.filter((r) => r.date <= dStr);
+        if (applicable.length > 0) value = applicable[applicable.length - 1].price;
+        else if (account.purchasePrice !== undefined) value = account.purchasePrice;
+      }
+      points.push({ date: d, value });
+    }
+    return summarizeSparkline(points);
+  }
+
+  const changeByDate: Record<string, number> = {};
+  for (const tx of ownTxs) {
+    if (tx.date > todayStr) continue; // already excluded from today's balance
+    const native = convertCurrency(tx.amount, tx.currency || account.currency, account.currency, rates);
+    changeByDate[tx.date] = safeAdd(changeByDate[tx.date] || 0, native);
+  }
+
+  const history: { date: Date; value: number }[] = [];
+  let running = todayBalance;
+  for (let i = NUM_SPARK_POINTS - 1; i >= 0; i--) {
+    const d = dayAt(i);
+    const dStr = toLocalISOString(d);
+    if (account.openingDate && dStr < account.openingDate) break;
+    history.push({ date: d, value: safeRound(running, 2) });
+    running = safeSubtract(running, changeByDate[dStr] || 0);
+  }
+  return summarizeSparkline(history.reverse());
 };
 
 /**
- * Reconstructs the 90-day daily trends across Portfolio Net Worth, Assets, Liabilities, and Liquid Cash.
- * Fixes BUG-04 & BUG-02:
- *  - Backs out future-dated transactions before walking backward.
- *  - Respects Property/Vehicle `priceHistory` and amortized Loan schedules per account.
+ * The 90-day daily trends of net worth, assets, liabilities and liquid cash, in EUR.
+ * Built from the same per-account balances and the same signed classification as
+ * `calculateAccountTotals`, so the last point of each series equals the headline figure
+ * and assets − liabilities = net worth on every day.
  */
 export const computePortfolio90dTrends = (
   openAccounts: Account[],
@@ -231,9 +216,9 @@ export const computePortfolio90dTrends = (
   liabilities: AccountsKpiSparkPoint[];
   liquidCash: AccountsKpiSparkPoint[];
 } => {
-  const NUM_POINTS = 90;
   const now = options.referenceDate ? new Date(options.referenceDate) : new Date();
   const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const rates = options.conversionRates as Record<string, number> | undefined;
 
   const includedAccounts = openAccounts.filter((acc) => acc.includeInAnalytics ?? true);
   const txsByAccount: Record<string, Transaction[]> = {};
@@ -241,33 +226,35 @@ export const computePortfolio90dTrends = (
     (txsByAccount[tx.accountId] = txsByAccount[tx.accountId] || []).push(tx);
   });
 
-  const dailyNetWorth = new Array<number>(NUM_POINTS).fill(0);
-  const dailyAssets = new Array<number>(NUM_POINTS).fill(0);
-  const dailyLiabilities = new Array<number>(NUM_POINTS).fill(0);
-  const dailyLiquid = new Array<number>(NUM_POINTS).fill(0);
+  const dateKeys: string[] = [];
+  for (let idx = 0; idx < NUM_SPARK_POINTS; idx++) {
+    const d = new Date(endDate);
+    d.setDate(endDate.getDate() - (NUM_SPARK_POINTS - 1 - idx));
+    dateKeys.push(toLocalISOString(d));
+  }
+  const indexByDate = new Map(dateKeys.map((k, i) => [k, i]));
+
+  const dailyAssets = new Array<number>(NUM_SPARK_POINTS).fill(0);
+  const dailyLiabilities = new Array<number>(NUM_SPARK_POINTS).fill(0);
+  const dailyLiquid = new Array<number>(NUM_SPARK_POINTS).fill(0);
 
   includedAccounts.forEach((acc) => {
     const accTxs = txsByAccount[acc.id] || [];
-    const displayBal = computeAccountDisplayBalance(acc, accTxs, loanPaymentOverrides);
-    const { sparklineData } = computeAccount90dSparkline(acc, accTxs, displayBal, {
+    const { sparklineData } = computeAccount90dSparkline(acc, accTxs, undefined, {
       ...options,
+      loanPaymentOverrides,
       referenceDate: endDate,
     });
+    const isLiquid = isLiquidAccount(acc);
 
-    const isDebt = DEBT_TYPES.includes(acc.type);
-    const isLiquid =
-      LIQUID_ACCOUNT_TYPES.includes(acc.type) ||
-      (acc.type === 'Other Assets' && acc.otherSubType === 'Cash');
-
-    sparklineData.forEach((pt, idx) => {
-      dailyNetWorth[idx] += pt.value;
-      if (isDebt) {
-        dailyLiabilities[idx] += Math.abs(pt.value);
-      } else {
-        dailyAssets[idx] += Math.max(0, pt.value);
-      }
+    sparklineData.forEach((pt) => {
+      const idx = indexByDate.get(toLocalISOString(pt.date));
+      if (idx === undefined) return;
+      const { asset, debt } = classifyAccountBalanceEur(acc, pt.value, rates);
+      dailyAssets[idx] = safeAdd(dailyAssets[idx], asset);
+      dailyLiabilities[idx] = safeAdd(dailyLiabilities[idx], debt);
       if (isLiquid) {
-        dailyLiquid[idx] += Math.max(0, pt.value);
+        dailyLiquid[idx] = safeAdd(dailyLiquid[idx], convertToEur(pt.value, acc.currency, rates));
       }
     });
   });
@@ -277,17 +264,13 @@ export const computePortfolio90dTrends = (
   const liabilities: AccountsKpiSparkPoint[] = [];
   const liquidCash: AccountsKpiSparkPoint[] = [];
 
-  for (let idx = 0; idx < NUM_POINTS; idx++) {
-    const d = new Date(endDate);
-    d.setDate(endDate.getDate() - (NUM_POINTS - 1 - idx));
-    const dateStr = toLocalISOString(d);
-    const dayStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-    netWorth.push({ date: dateStr, value: dailyNetWorth[idx] });
+  dateKeys.forEach((dateStr, idx) => {
+    const dayStr = parseLocalDate(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    netWorth.push({ date: dateStr, value: safeSubtract(dailyAssets[idx], dailyLiabilities[idx]) });
     assets.push({ date: dateStr, day: dayStr, value: dailyAssets[idx] });
     liabilities.push({ date: dateStr, day: dayStr, value: dailyLiabilities[idx] });
     liquidCash.push({ date: dateStr, day: dayStr, value: dailyLiquid[idx] });
-  }
+  });
 
   return { netWorth, assets, liabilities, liquidCash };
 };
@@ -336,7 +319,7 @@ export const computeCashSegmentNetFlow = (
       const eurAmount = options.conversionRates
         ? convertCurrency(t.amount, t.currency, 'EUR', options.conversionRates)
         : convertToEur(t.amount, t.currency);
-      return sum + eurAmount;
+      return safeAdd(sum, eurAmount);
     }, 0);
 };
 
@@ -466,11 +449,30 @@ export const computeAccountsHeroModel = (
   const analyticsIds = new Set(analyticsOpen.map((a) => a.id));
   const analyticsTxs = transactions.filter((t) => analyticsIds.has(t.accountId));
 
+  const rates = options.conversionRates as Record<string, number> | undefined;
+  const balanceOptions = { rates, referenceDate: options.referenceDate };
+
   const { totalAssets: assetsEur, totalDebt: debtEur, netWorth: netWorthEur } =
-    calculateAccountTotals(analyticsOpen, analyticsTxs, loanPaymentOverrides);
+    calculateAccountTotals(analyticsOpen, analyticsTxs, loanPaymentOverrides, balanceOptions);
+
+  // Today's signed native balance per account: the single source for every figure below.
+  const txsByAccount = new Map<string, Transaction[]>();
+  for (const t of transactions) {
+    const list = txsByAccount.get(t.accountId);
+    if (list) list.push(t);
+    else txsByAccount.set(t.accountId, [t]);
+  }
+  const todayBalance = new Map<string, number>();
+  for (const a of open) {
+    todayBalance.set(
+      a.id,
+      resolveAccountBalance(a, txsByAccount.get(a.id) || [], loanPaymentOverrides, balanceOptions)
+    );
+  }
+  const balanceEur = (a: Account) => convertToEur(todayBalance.get(a.id) ?? 0, a.currency, rates);
 
   const toPref = (eurVal: number) =>
-    safeRound(convertCurrency(eurVal, 'EUR', preferredCurrency, options.conversionRates), 2);
+    safeRound(convertCurrency(eurVal, 'EUR', preferredCurrency, rates), 2);
 
   const totalAssets = toPref(assetsEur);
   const totalLiabilities = toPref(debtEur);
@@ -483,22 +485,8 @@ export const computeAccountsHeroModel = (
       : 100;
 
   // Liquid cash & 30d net flow / burn runway
-  const liquidAccounts = analyticsOpen.filter(
-    (a) =>
-      LIQUID_ACCOUNT_TYPES.includes(a.type) ||
-      (a.type === 'Other Assets' && a.otherSubType === 'Cash')
-  );
-  const liquidCashEur = liquidAccounts.reduce(
-    (sum, a) =>
-      sum +
-      convertCurrency(
-        resolveRealTodayBalance(a, analyticsTxs, options),
-        a.currency,
-        'EUR',
-        options.conversionRates
-      ),
-    0
-  );
+  const liquidAccounts = analyticsOpen.filter(isLiquidAccount);
+  const liquidCashEur = liquidAccounts.reduce((sum, a) => safeAdd(sum, balanceEur(a)), 0);
   const liquidCash = toPref(liquidCashEur);
 
   const netFlow30dEur = computeCashSegmentNetFlow(liquidAccounts, analyticsTxs, 30, options);
@@ -517,9 +505,7 @@ export const computeAccountsHeroModel = (
       return t.amount < 0 && d >= cutoff30d && d <= todayEnd;
     })
     .reduce(
-      (sum, t) =>
-        sum +
-        Math.abs(convertCurrency(t.amount, t.currency, 'EUR', options.conversionRates)),
+      (sum, t) => safeAdd(sum, Math.abs(convertCurrency(t.amount, t.currency, 'EUR', rates))),
       0
     );
   const liquidRunwayMonths =
@@ -566,14 +552,11 @@ export const computeAccountsHeroModel = (
       ? safeRound((netWorth90dDelta / Math.abs(start90d)) * 100, 1)
       : 0;
 
-  // 5-Bucket Allocation Breakdown
+  // 5-Bucket Allocation Breakdown (signed, same classification as the totals)
   const sumBucketEur = (accs: Account[], isLiability = false) =>
     accs.reduce((s, a) => {
-      const accTxs = analyticsTxs.filter((t) => t.accountId === a.id);
-      const disp = computeAccountDisplayBalance(a, accTxs, loanPaymentOverrides);
-      const real = resolveRealTodayBalance(disp, a.currency, accTxs, options);
-      const eur = convertCurrency(real, a.currency, 'EUR', options.conversionRates);
-      return s + (isLiability ? Math.abs(Math.min(0, eur)) : Math.max(0, eur));
+      const { asset, debt } = classifyAccountBalanceEur(a, todayBalance.get(a.id) ?? 0, rates);
+      return safeAdd(s, isLiability ? debt : asset);
     }, 0);
 
   const bucketCashAccounts = analyticsOpen.filter(
@@ -633,18 +616,19 @@ export const computeAccountsHeroModel = (
       count: bucketLoanAccounts.length,
     },
   ];
-  const totalBucketSum = rawBuckets.reduce((s, b) => s + b.value, 0);
+  // Shares of the gross footprint; a bucket that is net negative (all overdrawn) shows 0 %.
+  const totalBucketSum = rawBuckets.reduce((s, b) => safeAdd(s, Math.max(0, b.value)), 0);
   const allocationItems: AccountsAllocationItem[] = rawBuckets.map((b) => ({
     ...b,
-    pct: totalBucketSum > 0 ? safeRound((b.value / totalBucketSum) * 100, 1) : 0,
+    pct: totalBucketSum > 0 ? safeRound((Math.max(0, b.value) / totalBucketSum) * 100, 1) : 0,
   }));
 
   // Ranked Attention Items
   const attentionItems: AccountAttentionItem[] = [];
   open.forEach((acc) => {
-    const accTxs = transactions.filter((t) => t.accountId === acc.id);
+    const accTxs = txsByAccount.get(acc.id) || [];
     if (acc.type === 'Credit Card' && (acc.creditLimit || 0) > 0) {
-      const realBal = resolveRealTodayBalance(acc, accTxs, options);
+      const realBal = todayBalance.get(acc.id) ?? 0;
       const owed = Math.max(0, -realBal);
       const util = (owed / (acc.creditLimit || 1)) * 100;
       if (util >= 30) {
@@ -1014,10 +998,8 @@ export const groupAccountsByType = (
     const subtotal = matchedAccounts.reduce((sum, acc) => {
       const bal = displayBalancesById[acc.id] ?? acc.balance;
       const converted = convert ? convert(bal, acc.currency) : bal;
-      if (def.category === 'liability') {
-        return sum + Math.abs(converted);
-      }
-      return sum + converted;
+      // Signed, like the balance-sheet totals: a card in credit lowers its group's debt.
+      return safeAdd(sum, def.category === 'liability' ? debtFromBalance(acc, converted) : converted);
     }, 0);
 
     groups.push({
@@ -1118,8 +1100,9 @@ export const filterAndSortAccounts = (
       return balB - balA;
     }
     if (sortBy === 'change30d') {
-      const trA = options.sparklinesById?.[a.id]?.trend ?? 0;
-      const trB = options.sparklinesById?.[b.id]?.trend ?? 0;
+      // Trends are in each account's own currency; compare them in EUR.
+      const trA = convertCurrency(options.sparklinesById?.[a.id]?.trend ?? 0, a.currency, 'EUR', options.conversionRates);
+      const trB = convertCurrency(options.sparklinesById?.[b.id]?.trend ?? 0, b.currency, 'EUR', options.conversionRates);
       return trB - trA;
     }
     if (sortBy === 'apy_apr') {

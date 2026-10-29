@@ -14,6 +14,7 @@ import {
   calculateStatementPeriods,
   calculateTrendLine,
   convertCurrency,
+  expandRecurringOccurrences,
   flattenCategories,
   generateAmortizationSchedule,
   generateBalanceForecast,
@@ -775,13 +776,23 @@ export function computeVehicleAccountMetrics(
     const elapsedDays = Math.min(totalDays, Math.max(0, rawElapsedDays));
     const progress = Math.min(100, Math.max(0, safeRound((elapsedDays / totalDays) * 100, 1)));
 
-    // Find baseline odometer at lease start if logs exist on/before leaseStartDate
+    // Baseline odometer: the last log on/before the lease start, else the first log after it
+    // (a used car leased at 40,000 km starts at 40,000, not 0). No logs: nothing driven yet known.
     const logsOnOrBeforeStart = sortedMileageLogs.filter(
       log => parseLocalDate(log.date).getTime() <= start.getTime()
     );
+    const firstLogInLease = sortedMileageLogs.find(
+      log => parseLocalDate(log.date).getTime() > start.getTime()
+    );
     const baselineOdometer = logsOnOrBeforeStart.length > 0
       ? logsOnOrBeforeStart[logsOnOrBeforeStart.length - 1].reading
-      : 0;
+      : firstLogInLease?.reading ?? currentMileage;
+    const hasMileageData = sortedMileageLogs.length > 0;
+    // Pace is measured from the baseline's date: km before the first log in the lease are unknown.
+    const baselineTime = logsOnOrBeforeStart.length === 0 && firstLogInLease
+      ? parseLocalDate(firstLogInLease.date).getTime()
+      : start.getTime();
+    const measuredDays = Math.min(totalDays, Math.max(0, (today.getTime() - baselineTime) / (1000 * 60 * 60 * 24)));
     const distanceDrivenInLease = Math.max(0, currentMileage - baselineOdometer);
 
     let mileageStatus: 'Over Budget' | 'Under Budget' | 'On Track' = 'On Track';
@@ -790,19 +801,22 @@ export function computeVehicleAccountMetrics(
     let totalAllowance = 0;
     let proRataExpectedMileage = 0;
 
-    if (account.annualMileageAllowance && account.annualMileageAllowance > 0) {
+    if (hasMileageData && account.annualMileageAllowance && account.annualMileageAllowance > 0) {
       const dailyAllowance = account.annualMileageAllowance / 365;
-      const expectedMileage = elapsedDays * dailyAllowance;
+      const expectedMileage = measuredDays * dailyAllowance;
       proRataExpectedMileage = Math.round(expectedMileage);
       const years = totalDays / 365;
       totalAllowance = Math.round(account.annualMileageAllowance * years);
       mileageDiff = Math.round(distanceDrivenInLease - expectedMileage);
-      projectedMileage = elapsedDays > 0
-        ? Math.round(baselineOdometer + (distanceDrivenInLease / elapsedDays) * totalDays)
+      const remainingDays = Math.max(0, totalDays - elapsedDays);
+      projectedMileage = measuredDays > 0
+        ? Math.round(currentMileage + (distanceDrivenInLease / measuredDays) * remainingDays)
         : currentMileage;
 
-      if (mileageDiff > 1000) mileageStatus = 'Over Budget';
-      else if (mileageDiff < -1000) mileageStatus = 'Under Budget';
+      // Tolerance scales with the allowance: 3 % of the whole lease, at least 500 km.
+      const tolerance = Math.max(500, totalAllowance * 0.03);
+      if (mileageDiff > tolerance) mileageStatus = 'Over Budget';
+      else if (mileageDiff < -tolerance) mileageStatus = 'Under Budget';
     }
 
     leaseStats = {
@@ -1195,31 +1209,26 @@ export function computeOperatingAccountMetrics(
   const relevantRecurring = allRecurringItems.filter(
     (rt) => rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')
   );
+  // Shared expander: every frequency (biweekly included), weekend rules, end dates, overrides.
   relevantRecurring.forEach((rt) => {
-    let nextDue = parseLocalDate(rt.nextDueDate);
-    const interval = rt.frequencyInterval || 1;
-    let safety = 0;
-    while (nextDue <= horizon14d && safety < 60) {
-      safety++;
-      if (nextDue >= todayStart) {
-        const amtNative = safeRound(
-          convertCurrency(Math.abs(rt.amount), rt.currency, account.currency, effectiveRates),
-          2
-        );
-        upcomingOutflows14d = safeAdd(upcomingOutflows14d, amtNative);
-        upcomingPayments.push({
-          date: toLocalISOString(nextDue),
-          description: rt.description,
-          amount: amtNative,
-          isRecurring: true,
-        });
-      }
-      const d = new Date(nextDue);
-      if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
-      else if (rt.frequency === 'weekly') d.setDate(d.getDate() + 7 * interval);
-      else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-      else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
-      nextDue = d;
+    const occurrences = expandRecurringOccurrences(
+      rt,
+      todayStart,
+      horizon14d,
+      options.recurringTransactionOverrides || []
+    );
+    for (const occ of occurrences) {
+      const amtNative = safeRound(
+        convertCurrency(occ.amount, rt.currency, account.currency, effectiveRates),
+        2
+      );
+      upcomingOutflows14d = safeAdd(upcomingOutflows14d, amtNative);
+      upcomingPayments.push({
+        date: occ.date,
+        description: occ.description,
+        amount: amtNative,
+        isRecurring: true,
+      });
     }
   });
 
@@ -1227,7 +1236,10 @@ export function computeOperatingAccountMetrics(
     if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
       const due = parseLocalDate(bill.dueDate);
       if (due >= todayStart && due <= horizon14d) {
-        const amtNative = safeRound(Math.abs(bill.amount), 2);
+        const amtNative = safeRound(
+          convertCurrency(Math.abs(bill.amount), bill.currency || account.currency, account.currency, effectiveRates),
+          2
+        );
         upcomingOutflows14d = safeAdd(upcomingOutflows14d, amtNative);
         upcomingPayments.push({
           date: bill.dueDate,
@@ -1580,17 +1592,39 @@ export function computePropertyHoldingCashflow(account: Account) {
   };
 }
 
+// Whole-word matches on category names (and, on the vehicle's own account, descriptions):
+// "ev" in "Revolut", "gas" in "Las Vegas" or "tax" in "taxi" must not count.
+const VEHICLE_FUEL_RE = /\b(fuel|petrol|diesel|gasoline|gas station|charging|supercharger|ev charging)\b/i;
+const VEHICLE_MAINTENANCE_RE = /\b(service|servicing|repairs?|maintenance|tyres?|tires?|oil change|mechanic|inspection|mot|car wash)\b/i;
+const VEHICLE_INSURANCE_TAX_RE = /\b(insurance|road tax|vehicle tax|car tax|registration|tolls?|parking)\b/i;
+// A category on another account only counts toward this vehicle when it is clearly about a car.
+const VEHICLE_CATEGORY_RE = /\b(car|cars|vehicle|auto|automotive|fuel|petrol|diesel|gasoline|charging|parking|tolls?)\b/i;
+
 /**
- * Archetype 5: Vehicle Total Cost of Ownership (TCO / km) Calculator.
+ * Total cost of ownership for a vehicle over one window: from the first mileage log
+ * (else purchase / lease start) to today. Costs come from the vehicle's own account and,
+ * when it is the only open vehicle, from vehicle categories on any other account.
+ * Depreciation and distance use the same window.
  */
 export function computeVehicleTcoMetrics(
   account: Account,
   transactions: Array<Transaction | TxWithMeta>,
-  options: DetailModelOptions = {}
+  options: DetailModelOptions & { allAccounts?: Account[] } = {}
 ) {
-  const normalized = normalizeAccountTransactions(transactions, account.currency, options).filter(
-    (t) => t.tx.accountId === account.id
+  const sortedLogs = [...(account.mileageLogs || [])].sort(
+    (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
   );
+  const windowStart = sortedLogs[0]?.date || account.purchaseDate || account.leaseStartDate || '';
+  const otherVehicles = (options.allAccounts || []).filter(
+    (a) => a.type === 'Vehicle' && a.status !== 'closed' && a.id !== account.id
+  );
+  const includeOtherAccounts = !!options.allAccounts && otherVehicles.length === 0;
+
+  const normalized = normalizeAccountTransactions(transactions, account.currency, options).filter((t) => {
+    if (windowStart && t.dateStr < windowStart) return false;
+    if (t.tx.accountId === account.id) return true;
+    return includeOtherAccounts && VEHICLE_CATEGORY_RE.test(t.tx.category || '');
+  });
 
   let fuelSpend = 0;
   let maintenanceSpend = 0;
@@ -1600,12 +1634,15 @@ export function computeVehicleTcoMetrics(
   for (const { tx, amountInAccountCurrency } of normalized) {
     if (amountInAccountCurrency >= 0 || tx.transferId || tx.isBalanceAdjustment) continue;
     const absAmt = Math.abs(amountInAccountCurrency);
-    const text = `${tx.category || ''} ${tx.description || ''} ${tx.merchant || ''}`.toLowerCase();
-    if (/fuel|gas|petrol|diesel|charging|supercharger|ev/i.test(text)) {
+    const text =
+      tx.accountId === account.id
+        ? `${tx.category || ''} ${tx.description || ''} ${tx.merchant || ''}`
+        : tx.category || '';
+    if (VEHICLE_FUEL_RE.test(text)) {
       fuelSpend = safeAdd(fuelSpend, absAmt);
-    } else if (/service|repair|maintenance|tire|tyre|oil|mechanic|inspection/i.test(text)) {
+    } else if (VEHICLE_MAINTENANCE_RE.test(text)) {
       maintenanceSpend = safeAdd(maintenanceSpend, absAmt);
-    } else if (/insurance|tax|registration|toll|parking/i.test(text)) {
+    } else if (VEHICLE_INSURANCE_TAX_RE.test(text)) {
       insuranceTaxSpend = safeAdd(insuranceTaxSpend, absAmt);
     } else {
       otherOperatingSpend = safeAdd(otherOperatingSpend, absAmt);
@@ -1616,21 +1653,22 @@ export function computeVehicleTcoMetrics(
     safeAdd(safeAdd(fuelSpend, maintenanceSpend), safeAdd(insuranceTaxSpend, otherOperatingSpend)),
     2
   );
+
+  // Value at the window start: the last valuation on/before it, else the purchase price.
+  const valuations = [...(account.priceHistory || [])].sort((a, b) => a.date.localeCompare(b.date));
+  const startValuation = windowStart
+    ? [...valuations].reverse().find((v) => v.date <= windowStart)?.price
+    : undefined;
+  const startValue = startValuation ?? account.purchasePrice ?? 0;
   const depreciation =
-    account.purchasePrice && account.purchasePrice > account.balance
-      ? safeRound(safeSubtract(account.purchasePrice, account.balance), 2)
-      : 0;
+    startValue > account.balance ? safeRound(safeSubtract(startValue, account.balance), 2) : 0;
   const totalCostOfOwnership = safeRound(safeAdd(totalOperatingSpend, depreciation), 2);
 
-  const sortedLogs = [...(account.mileageLogs || [])].sort(
-    (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
-  );
+  // Distance only between logs; one log says nothing about km driven in the window.
   const distanceTrackedKm =
     sortedLogs.length >= 2
       ? Math.max(0, sortedLogs[sortedLogs.length - 1].reading - sortedLogs[0].reading)
-      : sortedLogs.length === 1
-        ? sortedLogs[0].reading
-        : 0;
+      : 0;
 
   const costPerKm =
     distanceTrackedKm > 0 ? safeRound(totalCostOfOwnership / distanceTrackedKm, 2) : null;
@@ -1645,6 +1683,7 @@ export function computeVehicleTcoMetrics(
     totalCostOfOwnership,
     distanceTrackedKm,
     costPerKm,
+    windowStart,
   };
 }
 
