@@ -30,11 +30,11 @@ export const LicensePlateNew: React.FC<{
 }> = ({ plate, countryCode = 'BE', className }) => (
   <span
     className={cn(
-      'inline-flex h-6 items-center overflow-hidden rounded border border-nv-line bg-nv-surface text-[11px] font-bold tracking-wider text-nv-ink nv-tabular',
+      'inline-flex h-6 items-center overflow-hidden rounded border border-nv-line bg-nv-surface text-xs font-bold tracking-wider text-nv-ink nv-tabular',
       className
     )}
   >
-    <span className="flex h-full items-center justify-center bg-nv-violet px-1.5 text-[11px] font-bold text-nv-on-violet">
+    <span className="flex h-full items-center justify-center bg-nv-violet px-1.5 text-xs font-bold text-nv-on-violet">
       {countryCode.slice(0, 3).toUpperCase()}
     </span>
     <span className="px-2">{plate}</span>
@@ -136,7 +136,7 @@ const AccountActionMenu: React.FC<{
       <Menu.Trigger
         onClick={(e) => e.stopPropagation()}
         aria-label={`Actions for ${account.name}`}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-nv-muted transition-colors hover:bg-nv-inset hover:text-nv-ink"
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-nv-muted transition-colors hover:bg-nv-inset hover:text-nv-ink"
       >
         <NvIcon name="more" size={18} />
       </Menu.Trigger>
@@ -144,7 +144,7 @@ const AccountActionMenu: React.FC<{
         <Menu.Positioner sideOffset={6} align="end" className="pointer-events-auto z-popover">
           <Menu.Popup
             onClick={(e) => e.stopPropagation()}
-            className="crystal-new min-w-48 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 shadow-nv-float transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
+            className="crystal-new min-w-48 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
           >
             <Menu.Item
               onClick={(e) => {
@@ -154,7 +154,7 @@ const AccountActionMenu: React.FC<{
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="arrowUpRight" size={16} className="text-nv-muted" />
-              Open Full Cockpit
+              Open full cockpit
             </Menu.Item>
             <Menu.Item
               onClick={(e) => {
@@ -164,7 +164,7 @@ const AccountActionMenu: React.FC<{
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="view" size={16} className="text-nv-muted" />
-              Quick Overview
+              Quick overview
             </Menu.Item>
             <Menu.Item
               onClick={(e) => {
@@ -174,7 +174,7 @@ const AccountActionMenu: React.FC<{
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="refresh" size={16} className="text-nv-muted" />
-              Reconcile Balance
+              Reconcile balance
             </Menu.Item>
             <Menu.Item
               onClick={(e) => {
@@ -184,7 +184,7 @@ const AccountActionMenu: React.FC<{
               className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
             >
               <NvIcon name="edit" size={16} className="text-nv-muted" />
-              Edit Account
+              Edit account
             </Menu.Item>
             {(onMoveUp || onMoveDown) && (
               <>
@@ -198,7 +198,7 @@ const AccountActionMenu: React.FC<{
                     className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
                   >
                     <NvIcon name="sort" size={16} className="text-nv-muted" />
-                    Move Up in Order
+                    Move up in order
                   </Menu.Item>
                 )}
                 {onMoveDown && (
@@ -210,7 +210,7 @@ const AccountActionMenu: React.FC<{
                     className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
                   >
                     <NvIcon name="arrowDown" size={16} className="text-nv-muted" />
-                    Move Down in Order
+                    Move down in order
                   </Menu.Item>
                 )}
               </>
@@ -511,7 +511,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
           {account.isPrimary && <Badge tone="violet">Primary</Badge>}
           {isLinkedBank && (
             <Badge tone="sky" icon="refresh">
-              Bank Synced
+              Bank synced
             </Badge>
           )}
           {account.apy !== undefined && account.apy > 0 && (
@@ -567,7 +567,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
         {creditUtilPct !== null ? (
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <span>Credit Utilization</span>
+              <span>Credit utilization</span>
               <span className="nv-tabular font-semibold text-nv-ink">{creditUtilPct}%</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-nv-inset">
@@ -587,7 +587,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
         ) : loanPaidPct !== null ? (
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <span>Principal Repaid</span>
+              <span>Principal repaid</span>
               <span className="nv-tabular font-semibold text-nv-ink">{loanPaidPct}%</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-nv-inset">
@@ -599,12 +599,12 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
           </div>
         ) : linkedLoan ? (
           <div className="flex items-center justify-between">
-            <span>Linked Loan</span>
+            <span>Linked loan</span>
             <span className="font-medium text-nv-ink">{linkedLoan.name}</span>
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <span>90d Trend</span>
+            <span>90d trend</span>
             <span
               className={cn(
                 'nv-tabular font-medium',
@@ -743,7 +743,7 @@ export const BalanceSheetSplitView: React.FC<{
               <button
                 type="button"
                 onClick={() => onAddAccount('Credit Card')}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-nv-surface px-4 text-xs font-medium text-nv-ink hover:bg-nv-inset"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-nv-surface px-4 text-xs font-medium text-nv-ink hover:bg-nv-inset"
               >
                 <NvIcon name="add" size={14} />
                 Add credit card or loan

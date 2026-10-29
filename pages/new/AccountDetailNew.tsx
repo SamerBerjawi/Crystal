@@ -78,12 +78,12 @@ export const AccountDetailNew: React.FC<{
             body="This account may have been deleted or moved."
             action={
               <Button
-                variant="cta"
+                variant="primary"
                 size="md"
                 icon="arrowLeft"
                 onClick={() => navigate('/accounts-new')}
               >
-                Back to Accounts
+                Back to accounts
               </Button>
             }
           />

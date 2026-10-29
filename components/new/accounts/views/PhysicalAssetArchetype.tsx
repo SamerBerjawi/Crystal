@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatShortDate } from '../../../../utils/dateFormat';
 import { cn } from '../../../../lib/utils';
 import type { Account } from '../../../../types';
 import type { AccountDetailData } from '../../../../hooks/useAccountDetailData';
@@ -83,7 +84,7 @@ export const PhysicalAssetArchetype: React.FC<{
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
-                  Capital Structure & Equity
+                  Capital structure & equity
                 </h2>
                 <p className="text-xs text-nv-muted">
                   {account.propertyType || 'Property'}
@@ -91,7 +92,7 @@ export const PhysicalAssetArchetype: React.FC<{
                 </p>
               </div>
               <Button variant="secondary" size="sm" icon="investments" onClick={onOpenValuation}>
-                Appraise Value
+                Appraise value
               </Button>
             </div>
 
@@ -103,19 +104,19 @@ export const PhysicalAssetArchetype: React.FC<{
 
             <div className="grid grid-cols-2 gap-3 rounded-nv-sub bg-nv-surface p-4 text-xs">
               <div>
-                <p className="text-nv-muted">Current Market Valuation</p>
+                <p className="text-nv-muted">Current market valuation</p>
                 <div className="mt-0.5">
                   <Money amount={propertyMetrics.currentValue} currency={account.currency} />
                 </div>
               </div>
               <div>
-                <p className="text-nv-muted">Purchase Price</p>
+                <p className="text-nv-muted">Purchase price</p>
                 <div className="mt-0.5">
                   <Money amount={propertyMetrics.purchasePrice} currency={account.currency} />
                 </div>
               </div>
               <div>
-                <p className="text-nv-muted">Net Equity Owned</p>
+                <p className="text-nv-muted">Net equity owned</p>
                 <div className="mt-0.5">
                   <Money
                     amount={propertyMetrics.netEquity}
@@ -157,7 +158,7 @@ export const PhysicalAssetArchetype: React.FC<{
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] text-nv-muted">Remaining Principal</p>
+                  <p className="text-xs text-nv-muted">Remaining principal</p>
                   <Money amount={propertyMetrics.loanBalance} currency={account.currency} />
                 </div>
               </button>
@@ -169,11 +170,8 @@ export const PhysicalAssetArchetype: React.FC<{
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
-                  Holding Cashflow & Rental Yield
+                  Holding cashflow & rental yield
                 </h2>
-                <p className="text-xs text-nv-muted">
-                  Recurring rental income vs property tax, insurance & HOA costs
-                </p>
               </div>
               {propertyCashflow.grossRentalYieldPct > 0 && (
                 <Badge tone="green">
@@ -184,7 +182,7 @@ export const PhysicalAssetArchetype: React.FC<{
 
             <div className="space-y-2.5 rounded-nv-sub bg-nv-surface p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Monthly Rental Income</span>
+                <span className="text-nv-muted">Monthly rental income</span>
                 <Money
                   amount={propertyCashflow.monthlyRentalIncome}
                   currency={account.currency}
@@ -192,26 +190,26 @@ export const PhysicalAssetArchetype: React.FC<{
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Annual Property Tax</span>
+                <span className="text-nv-muted">Annual property tax</span>
                 <Money
                   amount={-propertyCashflow.annualPropertyTax}
                   currency={account.currency}
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Annual Property Insurance</span>
+                <span className="text-nv-muted">Annual property insurance</span>
                 <Money
                   amount={-propertyCashflow.annualInsurance}
                   currency={account.currency}
                 />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Monthly HOA / Syndicate</span>
+                <span className="text-nv-muted">Monthly HOA / syndicate</span>
                 <Money amount={-propertyCashflow.monthlyHoa} currency={account.currency} />
               </div>
               <div className="h-px bg-nv-line" />
               <div className="flex items-center justify-between font-semibold">
-                <span className="text-nv-ink">Net Monthly Holding Cashflow</span>
+                <span className="text-nv-ink">Net monthly holding cashflow</span>
                 <Money
                   amount={propertyCashflow.monthlyNetCashflow}
                   currency={account.currency}
@@ -220,7 +218,7 @@ export const PhysicalAssetArchetype: React.FC<{
                 />
               </div>
               <div className="flex items-center justify-between text-xs text-nv-muted">
-                <span>Net Annual Holding Cashflow</span>
+                <span>Net annual holding cashflow</span>
                 <Money
                   amount={propertyCashflow.annualNetCashflow}
                   currency={account.currency}
@@ -231,7 +229,7 @@ export const PhysicalAssetArchetype: React.FC<{
 
             <div className="flex justify-end">
               <Button size="sm" variant="secondary" icon="edit" onClick={onEditAccount}>
-                Configure Property Economics
+                Configure property economics
               </Button>
             </div>
           </Card>
@@ -259,7 +257,7 @@ export const PhysicalAssetArchetype: React.FC<{
       }
       const res = addMileageLogs([{ date: logDate, reading }]);
       if (res?.undo) {
-        toast.undo(`Logged ${reading.toLocaleString()} km on ${logDate}`, res.undo);
+        toast.undo(`Logged ${reading.toLocaleString()} km on ${formatShortDate(logDate)}`, res.undo);
       }
       setReadingStr('');
     };
@@ -337,25 +335,25 @@ export const PhysicalAssetArchetype: React.FC<{
 
                 <div className="grid grid-cols-2 gap-3 rounded-nv-sub bg-nv-surface p-4 text-xs">
                   <div>
-                    <p className="text-nv-muted">Driven During Lease</p>
+                    <p className="text-nv-muted">Driven during lease</p>
                     <p className="nv-tabular mt-0.5 text-base font-semibold text-nv-ink">
                       {Math.round(leaseStats.leaseDrivenMileage).toLocaleString()} km
                     </p>
                   </div>
                   <div>
-                    <p className="text-nv-muted">Pro-Rata Expected Today</p>
+                    <p className="text-nv-muted">Pro-rata expected today</p>
                     <p className="nv-tabular mt-0.5 text-base font-semibold text-nv-ink">
                       {Math.round(leaseStats.proRataExpectedMileage).toLocaleString()} km
                     </p>
                   </div>
                   <div>
-                    <p className="text-nv-muted">Total Contract Allowance</p>
+                    <p className="text-nv-muted">Total contract allowance</p>
                     <p className="nv-tabular mt-0.5 text-base font-semibold text-nv-ink">
                       {Math.round(leaseStats.totalMileageAllowance).toLocaleString()} km
                     </p>
                   </div>
                   <div>
-                    <p className="text-nv-muted">Pace Variance</p>
+                    <p className="text-nv-muted">Pace variance</p>
                     <p
                       className={cn(
                         'nv-tabular mt-0.5 text-base font-semibold',
@@ -372,19 +370,19 @@ export const PhysicalAssetArchetype: React.FC<{
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 rounded-nv-sub bg-nv-surface p-4 text-xs">
                   <div>
-                    <p className="text-nv-muted">Current Market Value</p>
+                    <p className="text-nv-muted">Current market value</p>
                     <div className="mt-0.5">
                       <Money amount={ownedStats.currentValue} currency={account.currency} />
                     </div>
                   </div>
                   <div>
-                    <p className="text-nv-muted">Purchase Price</p>
+                    <p className="text-nv-muted">Purchase price</p>
                     <div className="mt-0.5">
                       <Money amount={ownedStats.purchasePrice} currency={account.currency} />
                     </div>
                   </div>
                   <div>
-                    <p className="text-nv-muted">Depreciation / Change</p>
+                    <p className="text-nv-muted">Depreciation / change</p>
                     <div className="mt-0.5">
                       <Money
                         amount={ownedStats.depreciation}
@@ -394,7 +392,7 @@ export const PhysicalAssetArchetype: React.FC<{
                     </div>
                   </div>
                   <div>
-                    <p className="text-nv-muted">Net Vehicle Equity</p>
+                    <p className="text-nv-muted">Net vehicle equity</p>
                     <div className="mt-0.5">
                       <Money
                         amount={ownedStats.netEquity}
@@ -414,7 +412,7 @@ export const PhysicalAssetArchetype: React.FC<{
                     <div className="flex items-center gap-3">
                       <NvIcon name="invoice" size={18} className="text-nv-violet-text" />
                       <div>
-                        <p className="text-xs text-nv-muted">Linked Auto Loan</p>
+                        <p className="text-xs text-nv-muted">Linked auto loan</p>
                         <p className="text-sm font-semibold text-nv-ink">{linkedLoan.name}</p>
                       </div>
                     </div>
@@ -430,11 +428,8 @@ export const PhysicalAssetArchetype: React.FC<{
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
-                  Total Cost of Ownership (TCO)
+                  Total cost of ownership (TCO)
                 </h2>
-                <p className="text-xs text-nv-muted">
-                  Operating expenses + depreciation across {vehicleTco.distanceTrackedKm.toLocaleString()} tracked km
-                </p>
               </div>
               {vehicleTco.costPerKm !== null && (
                 <Badge tone="violet">
@@ -445,24 +440,24 @@ export const PhysicalAssetArchetype: React.FC<{
 
             <div className="space-y-2.5 rounded-nv-sub bg-nv-surface p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Fuel & EV Charging</span>
+                <span className="text-nv-muted">Fuel & EV charging</span>
                 <Money amount={vehicleTco.fuelSpend} currency={account.currency} />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Maintenance, Tires & Service</span>
+                <span className="text-nv-muted">Maintenance, tires & service</span>
                 <Money amount={vehicleTco.maintenanceSpend} currency={account.currency} />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Insurance, Tax & Registration</span>
+                <span className="text-nv-muted">Insurance, tax & registration</span>
                 <Money amount={vehicleTco.insuranceTaxSpend} currency={account.currency} />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-nv-muted">Capital Depreciation</span>
+                <span className="text-nv-muted">Capital depreciation</span>
                 <Money amount={vehicleTco.depreciation} currency={account.currency} />
               </div>
               <div className="h-px bg-nv-line" />
               <div className="flex items-center justify-between font-semibold">
-                <span className="text-nv-ink">All-In Total Cost of Ownership</span>
+                <span className="text-nv-ink">All-in total cost of ownership</span>
                 <Money
                   amount={vehicleTco.totalCostOfOwnership}
                   currency={account.currency}
@@ -479,9 +474,6 @@ export const PhysicalAssetArchetype: React.FC<{
               <h2 className="text-lg font-semibold text-nv-ink">
                 Odometer Mileage Log ({enrichedMileageLogs.length})
               </h2>
-              <p className="text-xs text-nv-muted">
-                Chronologically validated odometer readings with daily pace (km/day)
-              </p>
             </div>
             <SegmentedTabs<MileageInputMode>
               label="Mileage entry mode"
@@ -489,8 +481,8 @@ export const PhysicalAssetArchetype: React.FC<{
               value={mileageMode}
               onChange={setMileageMode}
               items={[
-                { id: 'single', label: 'Single Reading' },
-                { id: 'batch', label: 'Batch Import' },
+                { id: 'single', label: 'Single reading' },
+                { id: 'batch', label: 'Batch import' },
               ]}
             />
           </div>
@@ -499,7 +491,7 @@ export const PhysicalAssetArchetype: React.FC<{
             <div className="flex flex-wrap items-end gap-3 rounded-nv-sub bg-nv-surface p-4">
               <div className="min-w-40 flex-1">
                 <label className="mb-1 block text-xs font-medium text-nv-muted">
-                  Reading Date
+                  Reading date
                 </label>
                 <input
                   type="date"
@@ -510,7 +502,7 @@ export const PhysicalAssetArchetype: React.FC<{
               </div>
               <div className="min-w-44 flex-1">
                 <label className="mb-1 block text-xs font-medium text-nv-muted">
-                  Odometer Reading (km)
+                  Odometer reading (km)
                 </label>
                 <input
                   type="number"
@@ -521,13 +513,13 @@ export const PhysicalAssetArchetype: React.FC<{
                 />
               </div>
               <Button
-                variant="cta"
+                variant="primary"
                 size="sm"
                 icon="add"
                 onClick={handleAddSingleMileage}
                 disabled={!readingStr.trim()}
               >
-                Log Odometer
+                Log odometer
               </Button>
             </div>
           ) : (
@@ -548,12 +540,12 @@ export const PhysicalAssetArchetype: React.FC<{
                   {parsedBatch.filter((r) => r.valid).length} valid / {parsedBatch.length} lines
                 </span>
                 <Button
-                  variant="cta"
+                  variant="primary"
                   size="sm"
                   onClick={handleImportBatch}
                   disabled={parsedBatch.filter((r) => r.valid).length === 0}
                 >
-                  Import Readings
+                  Import readings
                 </Button>
               </div>
             </div>
@@ -576,7 +568,7 @@ export const PhysicalAssetArchetype: React.FC<{
                     <span className="nv-tabular font-semibold text-nv-ink">
                       {log.reading.toLocaleString()} km
                     </span>
-                    <span className="ml-2 text-xs text-nv-muted">on {log.date}</span>
+                    <span className="ml-2 text-xs text-nv-muted">on {formatShortDate(log.date)}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     {log.deltaKm > 0 && (
@@ -586,13 +578,13 @@ export const PhysicalAssetArchetype: React.FC<{
                     )}
                     <IconButton
                       icon="delete"
-                      label={`Delete reading on ${log.date}`}
-                      size={32}
+                      label={`Delete reading on ${formatShortDate(log.date)}`}
+                      size={44}
                       tone="plain"
                       onClick={() => {
                         const res = deleteMileageLog(log.id);
                         if (res?.undo) {
-                          toast.undo(`Deleted reading from ${log.date}`, res.undo);
+                          toast.undo(`Deleted reading from ${formatShortDate(log.date)}`, res.undo);
                         }
                       }}
                     />

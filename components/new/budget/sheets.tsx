@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../../lib/utils';
+import { currencySign, formatCurrency } from '../../../utils';
 import type { Budget, Currency } from '../../../types';
 import type { BudgetData } from '../../../hooks/useBudgetData';
 import type { Month, Suggestion } from '../../../utils/budgetModel';
@@ -19,31 +20,6 @@ import { CategoryDisc } from './parts';
  * 3. SuggestionsSheet: Review and apply smart adjustments based on spending trends.
  * 4. UnbudgetedSheet: Review spending in categories without a budget.
  */
-
-const currencySign = (currency: string = ''): string => {
-  const parenMatch = currency.match(/\((.*?)\)/);
-  if (parenMatch && parenMatch[1]) {
-    const inside = parenMatch[1].trim();
-    if (inside === '€' || inside === '$' || inside === '£' || inside === '¥' || inside === '₹' || inside === '₿') {
-      return inside;
-    }
-  }
-  const code = (currency.split(/[\s(]/)[0] || currency).trim().toUpperCase();
-  const map: Record<string, string> = {
-    EUR: '€',
-    USD: '$',
-    GBP: '£',
-    BTC: '₿',
-    RON: 'lei',
-    JPY: '¥',
-    CNY: '¥',
-    INR: '₹',
-    CAD: '$',
-    AUD: '$',
-    CHF: 'CHF',
-  };
-  return map[code] ?? (parenMatch?.[1]?.trim() || code);
-};
 
 /* ── 1. Add / Edit Budget Sheet ─────────────────────────────────────────── */
 
@@ -124,12 +100,12 @@ export const BudgetSheet: React.FC<{
     const res = data.save(draft);
     if (res.undo) {
       toast.undo(
-        `Updated ${selectedCategory} budget to ${currencySign(draft.currency)}${draft.amount}`,
+        `Updated ${selectedCategory} budget to ${formatCurrency(draft.amount, draft.currency)}`,
         res.undo
       );
     } else {
       toast.success(
-        `Created ${selectedCategory} budget of ${currencySign(draft.currency)}${draft.amount}`
+        `Created ${selectedCategory} budget of ${formatCurrency(draft.amount, draft.currency)}`
       );
     }
 
@@ -223,7 +199,7 @@ export const BudgetSheet: React.FC<{
                       {hasBudget && (
                         <p
                           className={cn(
-                            'text-[10px]',
+                            'text-xs',
                             isSelected ? 'opacity-80' : 'text-nv-muted'
                           )}
                         >
@@ -241,7 +217,7 @@ export const BudgetSheet: React.FC<{
         {/* Amount Input */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-[13px] font-medium text-nv-muted">Monthly Limit</label>
+            <label className="text-[13px] font-medium text-nv-muted">Monthly limit</label>
             {categoryAverage > 0 && (
               <button
                 type="button"
@@ -273,7 +249,7 @@ export const BudgetSheet: React.FC<{
                 key={val}
                 type="button"
                 onClick={() => setAmountStr(String(val))}
-                className="h-8 rounded-full border border-nv-line bg-nv-surface px-3 text-[12px] font-medium text-nv-ink hover:bg-nv-inset"
+                className="h-11 rounded-full border border-nv-line bg-nv-surface px-3 text-[12px] font-medium text-nv-ink hover:bg-nv-inset"
               >
                 +{val}
               </button>
@@ -336,7 +312,6 @@ export const AutofillSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title="Auto-fill budgets"
-      description="Calculate budgets automatically from your past spending patterns"
       footer={
         <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={() => onOpenChange(false)} className="flex-1">
@@ -404,7 +379,7 @@ export const AutofillSheet: React.FC<{
               No spending history found in the selected period.
             </div>
           ) : (
-            <ul className="divide-y divide-nv-line rounded-nv-tile border border-nv-line bg-nv-surface">
+            <ul className="divide-y divide-nv-line rounded-nv-sub bg-nv-inset">
               {previewAverages.map(item => {
                 const look = data.lookOf(item.categoryName);
                 return (
@@ -418,7 +393,7 @@ export const AutofillSheet: React.FC<{
                       />
                       <div>
                         <p className="text-[14px] font-medium text-nv-ink">{item.categoryName}</p>
-                        <p className="text-[11px] text-nv-muted">
+                        <p className="text-xs text-nv-muted">
                           Avg: <Money amount={item.avg} currency={data.displayCurrency} />
                           {item.current !== undefined && (
                             <span> · Current: <Money amount={item.current} currency={data.displayCurrency} /></span>
@@ -430,7 +405,7 @@ export const AutofillSheet: React.FC<{
                       <p className="text-[15px] font-semibold text-nv-ink">
                         <Money amount={item.proposed} currency={data.displayCurrency} />
                       </p>
-                      <span className="text-[11px] text-nv-muted">proposed</span>
+                      <span className="text-xs text-nv-muted">proposed</span>
                     </div>
                   </li>
                 );
@@ -469,7 +444,7 @@ export const SuggestionsSheet: React.FC<{
     <Drawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Budget Recommendations"
+      title="Budget recommendations"
       description={`Based on your spending over the last ${data.suggestionMonths} months`}
       footer={
         <div className="flex items-center gap-3">
@@ -497,7 +472,7 @@ export const SuggestionsSheet: React.FC<{
             return (
               <div
                 key={s.categoryName}
-                className="flex items-center justify-between rounded-nv-tile border border-nv-line bg-nv-surface p-4"
+                className="flex items-center justify-between rounded-nv-sub bg-nv-inset p-4"
               >
                 <div className="flex items-center gap-3">
                   <CategoryDisc
@@ -511,7 +486,7 @@ export const SuggestionsSheet: React.FC<{
                       <p className="text-[15px] font-medium text-nv-ink">{s.categoryName}</p>
                       <span
                         className={cn(
-                          'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                          'rounded-full px-2 py-0.5 text-[11px] font-semibold',
                           isNew
                             ? 'bg-nv-sky-soft text-nv-sky-text'
                             : isRaise
@@ -536,7 +511,7 @@ export const SuggestionsSheet: React.FC<{
                     <p className="text-[15px] font-semibold text-nv-ink">
                       <Money amount={s.suggested} currency={data.displayCurrency} />
                     </p>
-                    <span className="text-[11px] text-nv-muted">recommended</span>
+                    <span className="text-xs text-nv-muted">recommended</span>
                   </div>
                   <Button size="sm" variant="secondary" onClick={() => handleApplySingle(s)}>
                     Apply
@@ -565,7 +540,6 @@ export const UnbudgetedSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title="Unbudgeted spending"
-      description="Categories that had expenses this month but do not have an active budget limit"
     >
       <div className="space-y-3">
         {unbudgetedList.length === 0 ? (
@@ -578,7 +552,7 @@ export const UnbudgetedSheet: React.FC<{
             return (
               <div
                 key={item.name}
-                className="flex items-center justify-between rounded-nv-tile border border-nv-line bg-nv-surface p-3.5"
+                className="flex items-center justify-between rounded-nv-sub bg-nv-inset p-3.5"
               >
                 <div className="flex items-center gap-3">
                   <CategoryDisc

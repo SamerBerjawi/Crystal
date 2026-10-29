@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { formatShortDate } from '../../../utils/dateFormat';
 import { cn } from '../../../lib/utils';
 import type {
   Account,
@@ -12,6 +13,7 @@ import type { EnableBankingLinkInfo } from '../../../contexts/DomainProviders';
 import { usePreferencesContextOptional } from '../../../contexts/DomainProviders';
 import { useCategoryContextOptional } from '../../../contexts/FinancialDataContext';
 import {
+  currencySign,
   formatCurrency,
   normalizeCurrency,
   parseLocalDate,
@@ -26,7 +28,6 @@ import { AccountLogo, accountTypeIcon } from '../EntityIcon';
 import { NvIcon } from '../NvIcon';
 import { toast } from '../toast';
 import { Badge, Button, IconButton, Money, SegmentedTabs, Switch } from '../ui';
-import { currencySign } from './AccountFormSheet';
 import { TxLedgerAvatar } from './detailShared';
 import { LicensePlateNew } from './parts';
 import { AccountCard, accountHasCard } from './AccountCard';
@@ -355,7 +356,7 @@ export const AccountOverviewSheet: React.FC<{
     // 2. VEHICLE ACCOUNTS: Digital Cockpit & European License Plate HUD
     if (isVehicle) {
       return (
-        <div className="relative w-full max-w-[340px] h-[160px] rounded-2xl bg-gradient-to-br from-nv-surface/90 via-nv-tile/80 to-nv-surface/70 backdrop-blur-2xl border border-nv-line/80 p-4 shadow-nv-float flex flex-col justify-between overflow-hidden">
+        <div className="relative w-full max-w-[340px] h-[160px] rounded-nv-sub bg-nv-inset p-4 flex flex-col justify-between overflow-hidden">
           {/* Header Row: Vehicle Make & Model Title + Ownership */}
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -367,13 +368,13 @@ export const AccountOverviewSheet: React.FC<{
                   {[targetAccount.year, targetAccount.make, targetAccount.model].filter(Boolean).join(' ') ||
                     targetAccount.name}
                 </p>
-                <p className="text-[11px] text-nv-muted capitalize">
+                <p className="text-xs text-nv-muted capitalize">
                   {targetAccount.ownership || 'Vehicle'} {targetAccount.fuelType ? `• ${targetAccount.fuelType}` : ''}
                 </p>
               </div>
             </div>
 
-            <span className="rounded-full bg-nv-inset px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-nv-muted shrink-0">
+            <span className="rounded-full bg-nv-inset px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-nv-muted shrink-0">
               {targetAccount.ownership === 'Leased' ? 'Lease' : 'Owned'}
             </span>
           </div>
@@ -383,19 +384,19 @@ export const AccountOverviewSheet: React.FC<{
             <LicensePlateNew
               plate={targetAccount.licensePlate || '1-CRY-911'}
               countryCode={targetAccount.registrationCountryCode || 'EU'}
-              className="h-8 text-sm shadow-xs"
+              className="h-8 text-sm"
             />
           </div>
 
           {/* Bottom Telematics Grid */}
-          <div className="relative flex items-center justify-between text-[11px] font-semibold text-nv-muted pt-1 border-t border-nv-line font-mono">
+          <div className="relative flex items-center justify-between text-xs font-semibold text-nv-muted pt-1 border-t border-nv-line font-mono">
             <div className="flex items-center gap-1 text-nv-ink">
               <NvIcon name="sparkles" size={13} className="text-nv-sky-text" />
-              <span>{latestMileageLog ? `${latestMileageLog.reading.toLocaleString()} km` : 'Active Odo'}</span>
+              <span>{latestMileageLog ? `${latestMileageLog.reading.toLocaleString()} km` : 'Active odo'}</span>
             </div>
 
             {targetAccount.vin && (
-              <span className="text-nv-muted text-[11px]">
+              <span className="text-nv-muted text-xs">
                 VIN •••• {targetAccount.vin.slice(-5)}
               </span>
             )}
@@ -407,7 +408,7 @@ export const AccountOverviewSheet: React.FC<{
     // 3. PROPERTY ACCOUNTS: Architectural Blueprint & Estate Specs HUD
     if (isProperty) {
       return (
-        <div className="relative w-full max-w-[340px] h-[160px] rounded-2xl bg-gradient-to-br from-nv-surface/90 via-nv-tile/80 to-nv-surface/70 backdrop-blur-2xl border border-nv-line/80 p-4 shadow-nv-float flex flex-col justify-between overflow-hidden">
+        <div className="relative w-full max-w-[340px] h-[160px] rounded-nv-sub bg-nv-inset p-4 flex flex-col justify-between overflow-hidden">
           {/* Blueprint Grid Lines Overlay */}
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none text-nv-ink" />
 
@@ -421,13 +422,13 @@ export const AccountOverviewSheet: React.FC<{
                 <p className="text-xs font-bold text-nv-ink truncate leading-tight">
                   {targetAccount.propertyType || 'Real Estate Asset'}
                 </p>
-                <p className="text-[11px] text-nv-muted truncate">
-                  {targetAccount.address || 'Property Valuation'}
+                <p className="text-xs text-nv-muted truncate">
+                  {targetAccount.address || 'Property valuation'}
                 </p>
               </div>
             </div>
 
-            <span className="rounded-full bg-nv-orange-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-nv-orange-text shrink-0">
+            <span className="rounded-full bg-nv-orange-soft px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-nv-orange-text shrink-0">
               Estate
             </span>
           </div>
@@ -435,25 +436,25 @@ export const AccountOverviewSheet: React.FC<{
           {/* Center 4-Spec Blueprint Grid */}
           <div className="relative grid grid-cols-4 gap-1.5 py-1">
             <div className="rounded-xl bg-nv-inset/70 p-1.5 text-center">
-              <span className="text-[10px] font-bold text-nv-muted block">Area</span>
+              <span className="text-xs font-bold text-nv-muted block">Area</span>
               <span className="font-mono text-xs font-bold text-nv-orange-text">
                 {targetAccount.propertySize ? `${targetAccount.propertySize}m²` : '—'}
               </span>
             </div>
             <div className="rounded-xl bg-nv-inset/70 p-1.5 text-center">
-              <span className="text-[10px] font-bold text-nv-muted block">Beds</span>
+              <span className="text-xs font-bold text-nv-muted block">Beds</span>
               <span className="font-mono text-xs font-bold text-nv-ink">
                 {targetAccount.bedrooms ?? '—'}
               </span>
             </div>
             <div className="rounded-xl bg-nv-inset/70 p-1.5 text-center">
-              <span className="text-[10px] font-bold text-nv-muted block">Baths</span>
+              <span className="text-xs font-bold text-nv-muted block">Baths</span>
               <span className="font-mono text-xs font-bold text-nv-ink">
                 {targetAccount.bathrooms ?? '—'}
               </span>
             </div>
             <div className="rounded-xl bg-nv-inset/70 p-1.5 text-center">
-              <span className="text-[10px] font-bold text-nv-muted block">Built</span>
+              <span className="text-xs font-bold text-nv-muted block">Built</span>
               <span className="font-mono text-xs font-bold text-nv-ink">
                 {targetAccount.yearBuilt ?? '—'}
               </span>
@@ -461,11 +462,11 @@ export const AccountOverviewSheet: React.FC<{
           </div>
 
           {/* Bottom Row: Purchase vs Valuation Info */}
-          <div className="relative flex items-center justify-between text-[11px] text-nv-muted pt-1 border-t border-nv-line font-mono">
+          <div className="relative flex items-center justify-between text-xs text-nv-muted pt-1 border-t border-nv-line font-mono">
             <span>
               {targetAccount.purchasePrice
                 ? `Acquired: ${formatCurrency(targetAccount.purchasePrice, targetAccount.currency)}`
-                : 'Primary Residence'}
+                : 'Primary residence'}
             </span>
             {targetAccount.linkedLoanId && (
               <span className="font-bold text-nv-orange-text">Mortgaged</span>
@@ -480,7 +481,7 @@ export const AccountOverviewSheet: React.FC<{
       const isLending = targetAccount.type === 'Lending';
 
       return (
-        <div className="relative w-full max-w-[340px] h-[160px] rounded-2xl bg-gradient-to-br from-nv-surface/90 via-nv-tile/80 to-nv-surface/70 backdrop-blur-2xl border border-nv-line/80 p-4 shadow-nv-float flex flex-col justify-between overflow-hidden">
+        <div className="relative w-full max-w-[340px] h-[160px] rounded-nv-sub bg-nv-inset p-4 flex flex-col justify-between overflow-hidden">
           {/* Header Row */}
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -491,15 +492,15 @@ export const AccountOverviewSheet: React.FC<{
                 <p className="text-xs font-bold text-nv-ink truncate leading-tight">
                   {targetAccount.name}
                 </p>
-                <p className="text-[11px] text-nv-muted truncate">
-                  {targetAccount.financialInstitution || (isLending ? 'Private Lending' : 'Credit Agreement')}
+                <p className="text-xs text-nv-muted truncate">
+                  {targetAccount.financialInstitution || (isLending ? 'Private lending' : 'Credit agreement')}
                 </p>
               </div>
             </div>
 
             <span
               className={cn(
-                'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0',
+                'rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider shrink-0',
                 isLending ? 'bg-nv-sky-soft text-nv-sky-text' : 'bg-nv-red-soft text-nv-red-text'
               )}
             >
@@ -509,9 +510,9 @@ export const AccountOverviewSheet: React.FC<{
 
           {/* Centerpiece: Debt Payoff Progress */}
           <div className="relative rounded-xl bg-nv-inset/70 p-2.5 space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-bold">
+            <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-nv-muted">
-                {isLending ? 'Collection Progress' : 'Payoff Progress'}
+                {isLending ? 'Collection progress' : 'Payoff progress'}
               </span>
               <span className="font-mono font-bold text-nv-green-text">
                 {totalLoanPrincipal > 0 ? `${loanPaidPct}% Repaid` : `${targetAccount.interestRate || 0}% APR`}
@@ -524,7 +525,7 @@ export const AccountOverviewSheet: React.FC<{
               />
             </div>
             {totalLoanPrincipal > 0 && (
-              <div className="flex items-center justify-between text-[10px] font-mono text-nv-muted">
+              <div className="flex items-center justify-between text-xs font-mono text-nv-muted">
                 <span>Paid: {formatCurrency(paidLoanPrincipal, targetAccount.currency)}</span>
                 <span>Left: {formatCurrency(outstandingLoanBalance, targetAccount.currency)}</span>
               </div>
@@ -532,7 +533,7 @@ export const AccountOverviewSheet: React.FC<{
           </div>
 
           {/* Bottom Agreement Terms */}
-          <div className="relative flex items-center justify-between text-[11px] text-nv-muted pt-1 border-t border-nv-line font-mono">
+          <div className="relative flex items-center justify-between text-xs text-nv-muted pt-1 border-t border-nv-line font-mono">
             <span>
               {targetAccount.monthlyPayment
                 ? `${formatCurrency(targetAccount.monthlyPayment, targetAccount.currency)} / mo`
@@ -551,7 +552,7 @@ export const AccountOverviewSheet: React.FC<{
     // 5. INVESTMENT ACCOUNTS: Trading Terminal HUD
     if (targetAccount.type === 'Investment') {
       return (
-        <div className="relative w-full max-w-[340px] h-[160px] rounded-2xl bg-gradient-to-br from-nv-surface/90 via-nv-tile/80 to-nv-surface/70 backdrop-blur-2xl border border-nv-line/80 p-4 shadow-nv-float flex flex-col justify-between overflow-hidden">
+        <div className="relative w-full max-w-[340px] h-[160px] rounded-nv-sub bg-nv-inset p-4 flex flex-col justify-between overflow-hidden">
           {/* Header Row */}
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -562,13 +563,13 @@ export const AccountOverviewSheet: React.FC<{
                 <p className="text-xs font-bold text-nv-ink truncate leading-tight">
                   {targetAccount.symbol ? `${targetAccount.symbol} · ` : ''}{targetAccount.name}
                 </p>
-                <p className="text-[11px] text-nv-muted truncate">
+                <p className="text-xs text-nv-muted truncate">
                   {targetAccount.subType || 'Investment Portfolio'}
                 </p>
               </div>
             </div>
 
-            <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-nv-violet-text shrink-0">
+            <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-nv-violet-text shrink-0">
               {targetAccount.symbol || 'ASSET'}
             </span>
           </div>
@@ -586,9 +587,9 @@ export const AccountOverviewSheet: React.FC<{
                 />
                 <circle cx="62" cy="2" r="3" fill="currentColor" />
               </svg>
-              <div className="text-[11px] font-bold text-nv-ink leading-tight">
-                <span className="block font-mono text-nv-green-text">Market Position</span>
-                <span className="text-[10px] text-nv-muted font-normal">Active Portfolio</span>
+              <div className="text-xs font-bold text-nv-ink leading-tight">
+                <span className="block font-mono text-nv-green-text">Market position</span>
+                <span className="text-xs text-nv-muted font-normal">Active portfolio</span>
               </div>
             </div>
 
@@ -604,8 +605,8 @@ export const AccountOverviewSheet: React.FC<{
           </div>
 
           {/* Bottom Terminal Row */}
-          <div className="relative flex items-center justify-between text-[11px] text-nv-muted pt-1 border-t border-nv-line font-mono">
-            <span>{targetAccount.financialInstitution || 'Brokerage Asset'}</span>
+          <div className="relative flex items-center justify-between text-xs text-nv-muted pt-1 border-t border-nv-line font-mono">
+            <span>{targetAccount.financialInstitution || 'Brokerage asset'}</span>
             <span className="font-bold text-nv-violet-text">{targetAccount.currency} Base</span>
           </div>
         </div>
@@ -614,7 +615,7 @@ export const AccountOverviewSheet: React.FC<{
 
     // 6. OTHER ASSETS & OTHER LIABILITIES: Vault Certificate Seal HUD
     return (
-      <div className="relative w-full max-w-[340px] h-[160px] rounded-2xl bg-gradient-to-br from-nv-surface/90 via-nv-tile/80 to-nv-surface/70 backdrop-blur-2xl border border-nv-line/80 p-4 shadow-nv-float flex flex-col justify-between overflow-hidden">
+      <div className="relative w-full max-w-[340px] h-[160px] rounded-nv-sub bg-nv-inset p-4 flex flex-col justify-between overflow-hidden">
         {/* Header Row */}
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -625,13 +626,13 @@ export const AccountOverviewSheet: React.FC<{
               <p className="text-xs font-bold text-nv-ink truncate leading-tight">
                 {targetAccount.name}
               </p>
-              <p className="text-[11px] text-nv-muted truncate">
+              <p className="text-xs text-nv-muted truncate">
                 {targetAccount.otherSubType || targetAccount.type}
               </p>
             </div>
           </div>
 
-          <span className="rounded-full bg-nv-inset px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-nv-muted shrink-0">
+          <span className="rounded-full bg-nv-inset px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-nv-muted shrink-0">
             {targetAccount.type}
           </span>
         </div>
@@ -642,23 +643,23 @@ export const AccountOverviewSheet: React.FC<{
             <div className="w-7 h-7 rounded-full bg-nv-violet-soft flex items-center justify-center text-xs">
               💎
             </div>
-            <div className="text-[11px] font-bold text-nv-ink leading-tight">
+            <div className="text-xs font-bold text-nv-ink leading-tight">
               <span className="block font-mono text-nv-violet-text">
-                {targetAccount.assetCondition || 'Verified Valuation'}
+                {targetAccount.assetCondition || 'Verified valuation'}
               </span>
-              <span className="text-[10px] text-nv-muted font-normal">Physical Asset</span>
+              <span className="text-xs text-nv-muted font-normal">Physical asset</span>
             </div>
           </div>
 
           {targetAccount.location && (
-            <span className="font-mono text-[11px] text-nv-muted truncate max-w-[120px]">
+            <span className="font-mono text-xs text-nv-muted truncate max-w-[120px]">
               📍 {targetAccount.location}
             </span>
           )}
         </div>
 
         {/* Bottom Row */}
-        <div className="relative flex items-center justify-between text-[11px] text-nv-muted pt-1 border-t border-nv-line font-mono">
+        <div className="relative flex items-center justify-between text-xs text-nv-muted pt-1 border-t border-nv-line font-mono">
           <span>{targetAccount.counterparty ? `Party: ${targetAccount.counterparty}` : 'Self-Custody'}</span>
           <span className="font-bold text-nv-ink">{targetAccount.currency}</span>
         </div>
@@ -668,7 +669,7 @@ export const AccountOverviewSheet: React.FC<{
 
   // Build the complete Hero Banner for Drawer
   const heroBanner = (
-    <div className="relative w-full overflow-hidden bg-gradient-to-b from-nv-tile via-nv-surface/60 to-nv-surface border-b border-nv-line">
+    <div className="relative w-full overflow-hidden bg-nv-tile">
       {/* Ambient background aura glow */}
       <div
         className="absolute -top-16 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-3xl opacity-25 pointer-events-none transition-colors duration-500"
@@ -679,12 +680,10 @@ export const AccountOverviewSheet: React.FC<{
       <div className="absolute inset-0 opacity-15 bg-[radial-gradient(currentColor_1px,transparent_1px)] [background-size:18px_18px] pointer-events-none text-nv-muted" />
 
       {/* Decorative concentric rings */}
-      <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full border border-nv-line/40 pointer-events-none" />
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full border border-nv-line/30 pointer-events-none" />
 
       {/* Top Status Strip (Clear of the floating close button) */}
       <div className="relative flex items-center justify-between px-6 pt-5 sm:pt-6 pr-16 mb-2">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-nv-surface/80 backdrop-blur-md border border-nv-line text-xs font-semibold shadow-xs">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-nv-line bg-nv-surface text-xs font-semibold">
           <NvIcon
             name={isClosed ? 'archive' : isLinkedBank ? 'refresh' : 'wallet'}
             size={13}
@@ -694,9 +693,9 @@ export const AccountOverviewSheet: React.FC<{
           />
           <span className="truncate max-w-[200px] text-nv-ink">
             {isClosed
-              ? 'Archived Account'
+              ? 'Archived account'
               : isLinkedBank
-              ? 'Live Banking Sync'
+              ? 'Live bank sync'
               : `${targetAccount.type} Account`}
           </span>
         </div>
@@ -724,7 +723,7 @@ export const AccountOverviewSheet: React.FC<{
         </div>
 
         {/* Big Bold Title */}
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-nv-ink truncate leading-tight drop-shadow-xs">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-nv-ink truncate leading-tight">
           {targetAccount.name}
         </h2>
 
@@ -732,7 +731,7 @@ export const AccountOverviewSheet: React.FC<{
         <div className="flex items-baseline gap-2 pt-1 font-mono">
           <span
             className={cn(
-              'text-3xl sm:text-4xl font-black tracking-tight nv-tabular privacy-blur drop-shadow-sm',
+              'text-3xl sm:text-4xl font-black tracking-tight nv-tabular privacy-blur',
               isDebt ? 'text-nv-red-text' : 'text-nv-green-text'
             )}
           >
@@ -795,7 +794,7 @@ export const AccountOverviewSheet: React.FC<{
             icon="arrowUpRight"
             className="flex-1"
           >
-            Open Full Cockpit
+            Open full cockpit
           </Button>
         </div>
       }
@@ -806,7 +805,7 @@ export const AccountOverviewSheet: React.FC<{
           <div className="flex items-center gap-1.5 shrink-0">
             <NvIcon name={accountTypeIcon(targetAccount)} size={16} className="text-nv-violet-text shrink-0" />
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">Classification</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-nv-muted">Classification</span>
               <span className="font-semibold text-nv-ink text-xs">{typeLabel}</span>
             </div>
           </div>
@@ -816,7 +815,7 @@ export const AccountOverviewSheet: React.FC<{
           <div className="flex items-center gap-1.5 shrink-0">
             <NvIcon name="bank" size={16} className="text-nv-sky-text shrink-0" />
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">Institution</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-nv-muted">Institution</span>
               <span className="font-semibold text-nv-ink text-xs truncate max-w-[120px]">
                 {targetAccount.financialInstitution || 'Direct'}
               </span>
@@ -832,9 +831,9 @@ export const AccountOverviewSheet: React.FC<{
               className={cn('shrink-0', isLinkedBank ? 'text-nv-green-text' : 'text-nv-orange-text')}
             />
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">Feed Sync</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-nv-muted">Feed sync</span>
               <span className="font-semibold text-nv-ink text-xs">
-                {isLinkedBank ? 'Live Banking' : 'Manual Ledger'}
+                {isLinkedBank ? 'Live bank sync' : 'Manual ledger'}
               </span>
             </div>
           </div>
@@ -845,7 +844,7 @@ export const AccountOverviewSheet: React.FC<{
               <div className="flex items-center gap-1.5 shrink-0">
                 <NvIcon name="sparkles" size={16} className="text-nv-green-text shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">Yield</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-nv-muted">Yield</span>
                   <span className="font-semibold text-nv-ink text-xs font-mono">{targetAccount.apy}% APY</span>
                 </div>
               </div>
@@ -858,7 +857,7 @@ export const AccountOverviewSheet: React.FC<{
               <div className="flex items-center gap-1.5 shrink-0">
                 <NvIcon name="info" size={16} className="text-nv-orange-text shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">Rate</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-nv-muted">Rate</span>
                   <span className="font-semibold text-nv-ink text-xs font-mono">{targetAccount.interestRate}% APR</span>
                 </div>
               </div>
@@ -870,7 +869,7 @@ export const AccountOverviewSheet: React.FC<{
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold tracking-tight text-nv-ink">
-              Account Intelligence
+              Account intelligence
             </h3>
             <button
               type="button"
@@ -880,7 +879,7 @@ export const AccountOverviewSheet: React.FC<{
               }}
               className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-nv-violet-text transition-colors hover:bg-nv-inset"
             >
-              <span>Full View</span>
+              <span>Full view</span>
               <NvIcon name="arrowRight" size={13} />
             </button>
           </div>
@@ -889,8 +888,8 @@ export const AccountOverviewSheet: React.FC<{
             <div className="grid grid-cols-2 gap-4">
               {/* Metric 1: 30-Day Activity */}
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">
-                  30-Day Activity
+                <p className="text-xs font-bold uppercase tracking-wider text-nv-muted">
+                  30-day activity
                 </p>
                 <p className="font-mono text-base font-bold text-nv-orange-text leading-tight">
                   {metrics.txCount30d} {metrics.txCount30d === 1 ? 'Event' : 'Events'}
@@ -902,8 +901,8 @@ export const AccountOverviewSheet: React.FC<{
 
               {/* Metric 2: 30D Net Flow */}
               <div className="space-y-1 text-right">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">
-                  30D Net Flow
+                <p className="text-xs font-bold uppercase tracking-wider text-nv-muted">
+                  30-day net flow
                 </p>
                 <p
                   className={cn(
@@ -914,7 +913,7 @@ export const AccountOverviewSheet: React.FC<{
                   {metrics.netFlow30d >= 0 ? '+' : ''}
                   {formatCurrency(metrics.netFlow30d, targetAccount.currency)}
                 </p>
-                <p className="font-mono text-[11px] text-nv-muted">
+                <p className="font-mono text-xs text-nv-muted">
                   +{formatCurrency(metrics.inflows30d, targetAccount.currency, { compact: true })} in / -
                   {formatCurrency(metrics.outflows30d, targetAccount.currency, { compact: true })} out
                 </p>
@@ -922,29 +921,29 @@ export const AccountOverviewSheet: React.FC<{
 
               {/* Metric 3: Average Ticket */}
               <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">
-                  Average Ticket
+                <p className="text-xs font-bold uppercase tracking-wider text-nv-muted">
+                  Average ticket
                 </p>
                 <p className="font-mono text-base font-bold text-nv-sky-text leading-tight">
                   {formatCurrency(metrics.avgTicket, targetAccount.currency)}
                 </p>
                 <p className="font-mono text-xs text-nv-muted">
-                  Per Event (30d)
+                  Per event (30d)
                 </p>
               </div>
 
               {/* Metric 4: Highlights */}
               <div className="space-y-1 text-right">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-nv-muted">
+                <p className="text-xs font-bold uppercase tracking-wider text-nv-muted">
                   {isCredit
-                    ? 'Available Limit'
+                    ? 'Available limit'
                     : targetAccount.type === 'Loan' && targetAccount.interestRate !== undefined
-                    ? 'Interest Rate'
+                    ? 'Interest rate'
                     : isVehicle && latestMileageLog
                     ? 'Odometer'
                     : isProperty && targetAccount.propertySize
-                    ? 'Floor Area'
-                    : 'Last Activity'}
+                    ? 'Floor area'
+                    : 'Last activity'}
                 </p>
                 <p className="font-mono text-base font-bold text-nv-violet-text leading-tight">
                   {isCredit
@@ -960,9 +959,9 @@ export const AccountOverviewSheet: React.FC<{
                         month: 'short',
                         day: 'numeric',
                       })
-                    : 'No Events'}
+                    : 'No events'}
                 </p>
-                <p className="font-mono text-[11px] text-nv-muted">
+                <p className="font-mono text-xs text-nv-muted">
                   {isCredit && creditLimit > 0
                     ? `Limit: ${formatCurrency(creditLimit, targetAccount.currency, { compact: true })}`
                     : targetAccount.type === 'Loan' && targetAccount.duration
@@ -971,7 +970,7 @@ export const AccountOverviewSheet: React.FC<{
                     ? `Ownership: ${targetAccount.ownership || 'Owned'}`
                     : isProperty
                     ? `Equity: ${formatCurrency(propertyEquity, targetAccount.currency, { compact: true })}`
-                    : 'Observed State'}
+                    : 'Observed state'}
                 </p>
               </div>
             </div>
@@ -980,7 +979,7 @@ export const AccountOverviewSheet: React.FC<{
             {isCredit && creditLimit > 0 && (
               <div className="border-t border-nv-line/50 pt-3 space-y-1.5">
                 <div className="flex justify-between text-xs font-medium">
-                  <span className="text-nv-muted">Credit Utilization</span>
+                  <span className="text-nv-muted">Credit utilization</span>
                   <span
                     className={cn(
                       creditUtilPct > 80
@@ -1015,7 +1014,7 @@ export const AccountOverviewSheet: React.FC<{
         <div className="space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold tracking-tight text-nv-ink">
-              Recent Activity
+              Recent activity
             </h3>
             {onNavigateToTransactions && accountTxs.length > 0 && (
               <button
@@ -1068,7 +1067,7 @@ export const AccountOverviewSheet: React.FC<{
                         <p className="truncate text-xs font-semibold text-nv-ink">
                           {tx.merchant || tx.description}
                         </p>
-                        <p className="truncate text-[11px] text-nv-muted">
+                        <p className="truncate text-xs text-nv-muted">
                           {txDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           {tx.category ? ` · ${tx.category}` : ''}
                         </p>
@@ -1092,16 +1091,16 @@ export const AccountOverviewSheet: React.FC<{
 
         {/* 4. Copyable Identifiers & Details */}
         {hasBankingIdentifiers && (
-          <div className="space-y-2.5 rounded-nv-tile border border-nv-line/50 bg-nv-surface p-4">
+          <div className="space-y-2.5 rounded-nv-sub bg-nv-inset p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-nv-muted">
-              Account Identifiers & Details
+              Account identifiers & details
             </p>
 
             <div className="space-y-2">
               {targetAccount.accountNumber && (
                 <div className="flex items-center justify-between rounded-xl bg-nv-inset p-2.5">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-[10px] uppercase tracking-wider text-nv-muted">
+                    <p className="text-xs uppercase tracking-wider text-nv-muted">
                       Account / IBAN
                     </p>
                     <p className="truncate font-mono text-xs font-semibold text-nv-ink">
@@ -1112,7 +1111,7 @@ export const AccountOverviewSheet: React.FC<{
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      handleCopy(targetAccount.accountNumber!, 'accountNumber', 'Account Number')
+                      handleCopy(targetAccount.accountNumber!, 'accountNumber', 'Account number')
                     }
                     icon={copiedField === 'accountNumber' ? 'check' : 'copy'}
                   >
@@ -1124,8 +1123,8 @@ export const AccountOverviewSheet: React.FC<{
               {targetAccount.routingNumber && (
                 <div className="flex items-center justify-between rounded-xl bg-nv-inset p-2.5">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-[10px] uppercase tracking-wider text-nv-muted">
-                      BIC / SWIFT / Routing Code
+                    <p className="text-xs uppercase tracking-wider text-nv-muted">
+                      BIC / SWIFT / routing code
                     </p>
                     <p className="truncate font-mono text-xs font-semibold text-nv-ink">
                       {targetAccount.routingNumber}
@@ -1135,7 +1134,7 @@ export const AccountOverviewSheet: React.FC<{
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      handleCopy(targetAccount.routingNumber!, 'routingNumber', 'Routing Code')
+                      handleCopy(targetAccount.routingNumber!, 'routingNumber', 'Routing code')
                     }
                     icon={copiedField === 'routingNumber' ? 'check' : 'copy'}
                   >
@@ -1147,14 +1146,14 @@ export const AccountOverviewSheet: React.FC<{
               {(targetAccount.last4 || targetAccount.cardholderName || targetAccount.expirationDate) && (
                 <div className="flex items-center justify-between rounded-xl bg-nv-inset p-2.5">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-[10px] uppercase tracking-wider text-nv-muted">
+                    <p className="text-xs uppercase tracking-wider text-nv-muted">
                       Card Details {targetAccount.cardNetwork ? `(${targetAccount.cardNetwork})` : ''}
                     </p>
                     <p className="font-mono text-xs font-semibold text-nv-ink">
                       {targetAccount.last4 ? `•••• •••• •••• ${targetAccount.last4}` : 'Card active'}
                     </p>
                     {(targetAccount.cardholderName || targetAccount.expirationDate) && (
-                      <p className="mt-0.5 text-[11px] text-nv-muted">
+                      <p className="mt-0.5 text-xs text-nv-muted">
                         {[
                           targetAccount.cardholderName,
                           targetAccount.expirationDate ? `Exp: ${targetAccount.expirationDate}` : undefined,
@@ -1168,7 +1167,7 @@ export const AccountOverviewSheet: React.FC<{
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleCopy(targetAccount.last4!, 'last4', 'Card Number')}
+                      onClick={() => handleCopy(targetAccount.last4!, 'last4', 'Card number')}
                       icon={copiedField === 'last4' ? 'check' : 'copy'}
                     >
                       {copiedField === 'last4' ? 'Copied' : 'Copy'}
@@ -1180,7 +1179,7 @@ export const AccountOverviewSheet: React.FC<{
               {targetAccount.vin && (
                 <div className="flex items-center justify-between rounded-xl bg-nv-inset p-2.5">
                   <div className="min-w-0 flex-1 pr-2">
-                    <p className="text-[10px] uppercase tracking-wider text-nv-muted">
+                    <p className="text-xs uppercase tracking-wider text-nv-muted">
                       Vehicle VIN
                     </p>
                     <p className="truncate font-mono text-xs font-semibold text-nv-ink">
@@ -1212,7 +1211,7 @@ export const AccountOverviewSheet: React.FC<{
             className="flex items-center gap-2.5 rounded-nv-control border border-nv-line bg-nv-surface p-3 text-left text-sm font-medium text-nv-ink transition-colors hover:bg-nv-inset"
           >
             <NvIcon name="refresh" size={18} className="text-nv-violet-text" />
-            <span>Reconcile Balance</span>
+            <span>Reconcile balance</span>
           </button>
 
           <button
@@ -1224,7 +1223,7 @@ export const AccountOverviewSheet: React.FC<{
             className="flex items-center gap-2.5 rounded-nv-control border border-nv-line bg-nv-surface p-3 text-left text-sm font-medium text-nv-ink transition-colors hover:bg-nv-inset"
           >
             <NvIcon name="archive" size={18} className="text-nv-muted" />
-            <span>{isClosed ? 'Reopen Account' : 'Archive Account'}</span>
+            <span>{isClosed ? 'Reopen account' : 'Archive account'}</span>
           </button>
         </div>
 
@@ -1233,10 +1232,10 @@ export const AccountOverviewSheet: React.FC<{
           <button
             type="button"
             onClick={handleConfirmDelete}
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full text-xs font-medium text-nv-red-text transition-colors hover:bg-nv-red-soft"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-medium text-nv-red-text transition-colors hover:bg-nv-red-soft"
           >
             <NvIcon name="delete" size={15} />
-            <span>Permanently Delete Account</span>
+            <span>Permanently delete account</span>
           </button>
         </div>
       </div>
@@ -1304,7 +1303,7 @@ export const BalanceAdjustmentSheet: React.FC<{
     const res = onAdjust(account, targetBalance, dateStr, note);
     if (res.undo) {
       toast.undo(
-        `Reconciled ${account.name} (${delta >= 0 ? '+' : ''}${currencySign(account.currency)}${delta})`,
+        `Reconciled ${account.name} (${formatCurrency(delta, account.currency, { showPlusSign: true })})`,
         res.undo
       );
     } else {
@@ -1318,7 +1317,6 @@ export const BalanceAdjustmentSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title={`Reconcile ${account.name}`}
-      description="Enter the actual statement or bank balance. Crystal will post a reconciliation entry for the difference."
       width={460}
       footer={
         <div className="flex items-center gap-3">
@@ -1331,7 +1329,7 @@ export const BalanceAdjustmentSheet: React.FC<{
             disabled={unsupported || Math.abs(delta) < 0.000001}
             className="flex-1"
           >
-            Post Adjustment
+            Post adjustment
           </Button>
         </div>
       }
@@ -1339,7 +1337,7 @@ export const BalanceAdjustmentSheet: React.FC<{
       <div className="space-y-5">
         <div className="rounded-nv-tile bg-nv-inset p-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-nv-muted">New Verified Balance</span>
+            <span className="text-xs font-medium text-nv-muted">New verified balance</span>
             <button
               type="button"
               onClick={() => setIsNegative((v) => !v)}
@@ -1369,13 +1367,13 @@ export const BalanceAdjustmentSheet: React.FC<{
         {/* Delta Comparison Card */}
         <div className="grid grid-cols-3 gap-2 rounded-nv-tile bg-nv-inset p-4 text-center">
           <div>
-            <p className="text-[11px] text-nv-muted">Current Book</p>
+            <p className="text-xs text-nv-muted">Current book</p>
             <div className="mt-1">
               <Money amount={balanceOnDate ?? account.balance} currency={account.currency} />
             </div>
           </div>
           <div>
-            <p className="text-[11px] text-nv-muted">Adjustment</p>
+            <p className="text-xs text-nv-muted">Adjustment</p>
             <div className="mt-1">
               <Money
                 amount={delta}
@@ -1386,7 +1384,7 @@ export const BalanceAdjustmentSheet: React.FC<{
             </div>
           </div>
           <div>
-            <p className="text-[11px] text-nv-muted">New Balance</p>
+            <p className="text-xs text-nv-muted">New balance</p>
             <div className="mt-1">
               <Money amount={targetBalance} currency={account.currency} />
             </div>
@@ -1396,7 +1394,7 @@ export const BalanceAdjustmentSheet: React.FC<{
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Effective Date
+              Effective date
             </label>
             <input
               type="date"
@@ -1407,7 +1405,7 @@ export const BalanceAdjustmentSheet: React.FC<{
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Reason / Note
+              Reason / note
             </label>
             <input
               type="text"
@@ -1460,7 +1458,7 @@ export const ValuationSheet: React.FC<{
     const res = onRecordValuation(numPrice, dateStr);
     if (res?.undo) {
       toast.undo(
-        `Updated ${account.name} valuation to ${currencySign(account.currency)}${numPrice.toLocaleString()}`,
+        `Updated ${account.name} valuation to ${formatCurrency(numPrice, account.currency)}`,
         res.undo
       );
     } else {
@@ -1474,7 +1472,6 @@ export const ValuationSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title={`Appraise ${account.name}`}
-      description="Log a market valuation point to update net worth, equity, LTV, and historical appreciation."
       width={480}
       footer={
         <div className="flex items-center gap-3">
@@ -1487,14 +1484,14 @@ export const ValuationSheet: React.FC<{
             disabled={numPrice <= 0}
             className="flex-1"
           >
-            Save Valuation
+            Save valuation
           </Button>
         </div>
       }
     >
       <div className="space-y-5">
         <div className="rounded-nv-tile bg-nv-inset p-4">
-          <p className="mb-1 text-xs font-medium text-nv-muted">Estimated Market Value</p>
+          <p className="mb-1 text-xs font-medium text-nv-muted">Estimated market value</p>
           <AmountPad
             value={priceStr}
             onChange={setPriceStr}
@@ -1507,7 +1504,7 @@ export const ValuationSheet: React.FC<{
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Valuation Date
+              Valuation date
             </label>
             <input
               type="date"
@@ -1518,7 +1515,7 @@ export const ValuationSheet: React.FC<{
           </div>
           {deltaVsPurchase !== null && (
             <div className="flex flex-col justify-center rounded-nv-control bg-nv-inset px-3.5 py-2">
-              <span className="text-[11px] text-nv-muted">vs. Purchase Price</span>
+              <span className="text-xs text-nv-muted">vs. Purchase price</span>
               <Money
                 amount={deltaVsPurchase}
                 currency={account.currency}
@@ -1540,19 +1537,19 @@ export const ValuationSheet: React.FC<{
                   key={entry.date}
                   className="flex items-center justify-between gap-3 py-2.5"
                 >
-                  <span className="nv-tabular text-sm text-nv-ink">{entry.date}</span>
+                  <span className="nv-tabular text-sm text-nv-ink">{formatShortDate(entry.date)}</span>
                   <div className="flex items-center gap-2">
                     <Money amount={entry.price} currency={account.currency} />
                     {onDeleteValuation && (
                       <IconButton
                         icon="delete"
-                        label={`Delete valuation from ${entry.date}`}
-                        size={32}
+                        label={`Delete valuation from ${formatShortDate(entry.date)}`}
+                        size={44}
                         tone="plain"
                         onClick={() => {
                           const res = onDeleteValuation(entry.date);
                           if (res?.undo) {
-                            toast.undo(`Removed valuation on ${entry.date}`, res.undo);
+                            toast.undo(`Removed valuation on ${formatShortDate(entry.date)}`, res.undo);
                           }
                         }}
                       />
@@ -1627,7 +1624,6 @@ export const CloseAssetSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title={`Close or Sell ${account.name}`}
-      description="Mark this asset as sold, returned, or retired. If sold, proceeds can be deposited directly into a bank account."
       width={480}
       footer={
         <div className="flex items-center gap-3">
@@ -1635,7 +1631,7 @@ export const CloseAssetSheet: React.FC<{
             Cancel
           </Button>
           <Button variant="cta" onClick={handleConfirm} className="flex-1">
-            Confirm Disposition
+            Confirm disposition
           </Button>
         </div>
       }
@@ -1643,10 +1639,10 @@ export const CloseAssetSheet: React.FC<{
       <div className="space-y-5">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-            Disposition Reason
+            Disposition reason
           </label>
           <SegmentedTabs<AssetClosureDetails['closureType']>
-            label="Disposition Type"
+            label="Disposition type"
             size="sm"
             className="w-full"
             value={closureType}
@@ -1654,7 +1650,7 @@ export const CloseAssetSheet: React.FC<{
             items={[
               { id: 'Sold', label: 'Sold' },
               { id: 'Returned', label: 'Returned' },
-              { id: 'Written Off', label: 'Written Off' },
+              { id: 'Written Off', label: 'Written off' },
               { id: 'Retired', label: 'Retired' },
             ]}
           />
@@ -1663,7 +1659,7 @@ export const CloseAssetSheet: React.FC<{
         {closureType === 'Sold' && (
           <>
             <div className="rounded-nv-tile bg-nv-inset p-4">
-              <p className="mb-1 text-xs font-medium text-nv-muted">Net Sale Proceeds</p>
+              <p className="mb-1 text-xs font-medium text-nv-muted">Net sale proceeds</p>
               <AmountPad
                 value={valueStr}
                 onChange={setValueStr}
@@ -1675,7 +1671,7 @@ export const CloseAssetSheet: React.FC<{
 
             <div>
               <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-                Deposit Proceeds Into
+                Deposit proceeds into
               </label>
               <select
                 value={incomeAccountId}
@@ -1696,7 +1692,7 @@ export const CloseAssetSheet: React.FC<{
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Disposition Date
+              Disposition date
             </label>
             <input
               type="date"
@@ -1779,7 +1775,7 @@ export const EnableBankingSyncSheet: React.FC<{
             onClick={handleRunSync}
             className="flex-1"
           >
-            {isSyncing ? 'Syncing…' : 'Sync Now'}
+            {isSyncing ? 'Syncing…' : 'Sync now'}
           </Button>
         </div>
       }
@@ -1806,18 +1802,18 @@ export const EnableBankingSyncSheet: React.FC<{
 
         <div>
           <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-            Transaction Fetch Scope
+            Transaction fetch scope
           </label>
           <SegmentedTabs<NonNullable<EnableBankingSyncOptions['transactionMode']>>
-            label="Transaction Sync Mode"
+            label="Transaction sync mode"
             size="sm"
             className="w-full"
             value={mode}
             onChange={setMode}
             items={[
-              { id: 'incremental', label: 'New Since Last Sync' },
-              { id: 'full', label: 'Full History' },
-              { id: 'none', label: 'Balance Only' },
+              { id: 'incremental', label: 'New since last sync' },
+              { id: 'full', label: 'Full history' },
+              { id: 'none', label: 'Balance only' },
             ]}
           />
         </div>
@@ -1825,7 +1821,7 @@ export const EnableBankingSyncSheet: React.FC<{
         {mode === 'full' && (
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Fetch History From Date
+              Fetch history from date
             </label>
             <input
               type="date"
@@ -1838,7 +1834,7 @@ export const EnableBankingSyncSheet: React.FC<{
 
         <div className="flex items-center justify-between gap-4 rounded-nv-tile bg-nv-inset p-4">
           <div>
-            <p className="text-sm font-medium text-nv-ink">Update Account Balance</p>
+            <p className="text-sm font-medium text-nv-ink">Update account balance</p>
             <p className="text-xs text-nv-muted">
               Overwrite local book balance with the bank’s closing booked balance
             </p>

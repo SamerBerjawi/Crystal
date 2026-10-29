@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatShortDate } from '../../../../utils/dateFormat';
 import { cn } from '../../../../lib/utils';
 import type { Account, ScheduledPayment } from '../../../../types';
 import type { AccountDetailData } from '../../../../hooks/useAccountDetailData';
@@ -114,11 +115,11 @@ export const LoanArchetype: React.FC<{
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
-                {isLending ? 'Repayment Progress' : 'Principal Payoff & Equity'}
+                {isLending ? 'Repayment progress' : 'Principal payoff & equity'}
               </h2>
               <p className="text-xs text-nv-muted">
                 {loanMetrics.payoffDate
-                  ? `Scheduled payoff date: ${toLocalISOString(loanMetrics.payoffDate)}`
+                  ? `Paid off ${formatShortDate(toLocalISOString(loanMetrics.payoffDate))}`
                   : 'Amortization breakdown'}
               </p>
             </div>
@@ -133,13 +134,13 @@ export const LoanArchetype: React.FC<{
 
           <div className="grid grid-cols-2 gap-3 rounded-nv-sub bg-nv-surface p-4 text-xs">
             <div>
-              <p className="text-nv-muted">Original Principal</p>
+              <p className="text-nv-muted">Original principal</p>
               <div className="mt-0.5">
                 <Money amount={loanMetrics.totalPrincipal} currency={account.currency} />
               </div>
             </div>
             <div>
-              <p className="text-nv-muted">Total Principal Paid</p>
+              <p className="text-nv-muted">Total principal paid</p>
               <div className="mt-0.5">
                 <Money
                   amount={loanMetrics.totalPaidPrincipal}
@@ -149,13 +150,13 @@ export const LoanArchetype: React.FC<{
               </div>
             </div>
             <div>
-              <p className="text-nv-muted">Total Interest Paid</p>
+              <p className="text-nv-muted">Total interest paid</p>
               <div className="mt-0.5">
                 <Money amount={loanMetrics.totalPaidInterest} currency={account.currency} />
               </div>
             </div>
             <div>
-              <p className="text-nv-muted">Remaining Scheduled Interest</p>
+              <p className="text-nv-muted">Remaining scheduled interest</p>
               <div className="mt-0.5">
                 <Money
                   amount={loanMetrics.outstandingInterest}
@@ -189,7 +190,7 @@ export const LoanArchetype: React.FC<{
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[11px] text-nv-muted">Market Equity</p>
+                <p className="text-xs text-nv-muted">Market equity</p>
                 <Money amount={loanMetrics.marketEquity} currency={account.currency} />
               </div>
             </button>
@@ -200,11 +201,8 @@ export const LoanArchetype: React.FC<{
         <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
           <div>
             <h2 className="text-lg font-semibold text-nv-ink">
-              Early-Payoff & Interest Saver Simulator
+              Early-payoff & interest saver simulator
             </h2>
-            <p className="text-xs text-nv-muted">
-              Model the impact of extra monthly principal or a one-time lump sum
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -238,13 +236,13 @@ export const LoanArchetype: React.FC<{
             <div className="space-y-3 rounded-nv-sub bg-nv-surface p-4">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-nv-control bg-nv-inset p-3">
-                  <p className="text-[11px] text-nv-muted">Time Saved</p>
+                  <p className="text-xs text-nv-muted">Time saved</p>
                   <p className="nv-tabular mt-1 text-lg font-semibold text-nv-violet-text">
                     {simulation.monthsSaved} mo
                   </p>
                 </div>
                 <div className="rounded-nv-control bg-nv-inset p-3">
-                  <p className="text-[11px] text-nv-muted">Interest Saved</p>
+                  <p className="text-xs text-nv-muted">Interest saved</p>
                   <div className="mt-1">
                     <Money
                       amount={simulation.interestSaved}
@@ -254,7 +252,7 @@ export const LoanArchetype: React.FC<{
                   </div>
                 </div>
                 <div className="rounded-nv-control bg-nv-inset p-3">
-                  <p className="text-[11px] text-nv-muted">New Payoff</p>
+                  <p className="text-xs text-nv-muted">New payoff</p>
                   <p className="nv-tabular mt-1 text-sm font-semibold text-nv-ink">
                     {simulation.newPayoffDate || '—'}
                   </p>
@@ -290,9 +288,6 @@ export const LoanArchetype: React.FC<{
               <h2 className="text-lg font-semibold text-nv-ink">
                 Amortization Schedule ({filteredSchedule.length} installments)
               </h2>
-              <p className="text-xs text-nv-muted">
-                Click &ldquo;Extra Principal&rdquo; on any upcoming installment to model custom principal reductions
-              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -344,7 +339,7 @@ export const LoanArchetype: React.FC<{
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="nv-tabular font-semibold text-nv-ink">
-                            {pmt.date}
+                            {formatShortDate(pmt.date)}
                           </span>
                           <Badge
                             tone={
@@ -384,7 +379,7 @@ export const LoanArchetype: React.FC<{
                           />
                           <Button
                             size="sm"
-                            variant="cta"
+                            variant="primary"
                             onClick={() => handleSaveExtraOverride(pmt.paymentNumber)}
                           >
                             Save
@@ -416,7 +411,7 @@ export const LoanArchetype: React.FC<{
                                 onClick={() => handleRecordInstallment(pmt)}
                                 className="rounded-full bg-nv-violet-soft px-3 py-1 text-xs font-medium text-nv-violet-text hover:opacity-90"
                               >
-                                Mark Paid
+                                Mark paid
                               </button>
                             </>
                           )}

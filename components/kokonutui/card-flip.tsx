@@ -147,7 +147,7 @@ export const CardFlip: React.FC<CardFlipProps> = ({
         aria-pressed={isFlipped}
         title={isFlipped ? 'Show card front' : 'Flip for specs & cycles'}
         onClick={toggleFlip}
-        className="absolute right-3.5 top-3.5 z-dropdown inline-flex h-9 w-9 items-center justify-center rounded-full bg-nv-surface/85 text-nv-ink backdrop-blur-md transition-transform hover:bg-nv-surface active:scale-95"
+        className="absolute right-3.5 top-3.5 z-dropdown inline-flex h-9 w-9 items-center justify-center rounded-full bg-nv-surface text-nv-ink transition-transform after:absolute after:-inset-1 after:content-[''] hover:bg-nv-inset active:scale-95"
       >
         <NvIcon name="repeat" size={16} />
       </button>

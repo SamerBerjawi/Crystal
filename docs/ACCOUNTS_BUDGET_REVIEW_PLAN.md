@@ -202,6 +202,15 @@ L-A6, L-A7, L-D4–L-D8, L-H2, L-H3, L-B4–L-B8. Compounding helper shared by s
 ### Phase 3: Reference compliance (mechanical, P1)
 X3 copy, X4 CTAs, X5 accent fills, X6 surfaces, X7 type floor and targets, X8 Money/date helpers, delete `currencySign`, replace `nv-teal-*`. Extend `tests/unit/new-tokens.test.ts` with: no `text-[9|10|11px]` outside chips, no `shadow-*` in `pages/new` and `components/new`, no `variant="cta"` in `pages/new` page bodies.
 
+**Status (2026-10-29): done, not committed.** Built on `feat/new-accounts-card-and-header` (the fork's card, header and text-size work, committed first). Notes:
+- X7: informational text is 12 px+, chips and counters 11 px. Small `Button`s keep their 36 px look with a 44 px hit area (pseudo-element in `ui.tsx`); `smooth-tab`, `momentum-rail` arrows and the `card-flip` button got the same, so every New page benefits. The allocation bar's segments are now decorative; the legend buttons below do the filtering.
+- X6: outlined white cards on the page are white sub-cards without outlines; panels inside sheets are inset (D7); the overview sheet's glass card graphics are inset panels. Thin row dividers inside lists are kept. `shadow-nv-float` stays on menus and popups only.
+- X4/X5: body CTAs are ink; attention chips, the recommendations pill and the utilization pill are neutral with the accent on the icon; selected tiles use an ink ring; header tabs lost their accent tints; the voucher badge is a neutral `Badge` with the tag icon (Q6).
+- X3: about 300 labels to sentence case (stored values such as property and asset types untouched); explanation lines under headings and long sheet descriptions removed.
+- X8: the duplicate `currencySign` in `budget/sheets.tsx` is gone; toasts use `formatCurrency` (privacy-masked); displayed dates use the new `formatShortDate`. The credit card line no longer invents a statement day 1 / due day 15.
+- `tests/unit/new-tokens.test.ts` now also checks the Accounts and Budget files: type floor, 11 px only on chips, shadows, body CTAs, glass and `nv-teal`. Verified it fails on planted violations.
+- Browser (demo data): Accounts, Budget, card and vehicle detail at desktop, 768 (light) and 375 (dark): no text under 11 px, no control under 44 px, no sideways scroll, no console errors.
+
 ### Phase 4: Page structure (P1)
 - Accounts list: A1–A9 (hero simplification with Trajectory / Allocation / Attention modes, two-sided allocation, filters into one pill, N7 Sync, Base UI context menu, row semantics, wallet fixes, remembered layout).
 - Account detail: D2–D5 (archetype tabs, header tools and per-archetype action, delete in form).

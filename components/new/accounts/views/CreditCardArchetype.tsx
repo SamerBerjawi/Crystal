@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatShortDate } from '../../../../utils/dateFormat';
 import { cn } from '../../../../lib/utils';
 import type { Account } from '../../../../types';
 import type { AccountDetailData } from '../../../../hooks/useAccountDetailData';
@@ -45,15 +46,15 @@ export const CreditCardArchetype: React.FC<{
         <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold text-nv-ink">
-              Card & Statement Cycle
+              Card & statement cycle
             </h2>
             <p className="text-xs text-nv-muted">
-              Active cycle: {toLocalISOString(creditCardMetrics.activeWindowStart)} →{' '}
-              {toLocalISOString(creditCardMetrics.activeWindowEnd)}
+              Active cycle: {formatShortDate(toLocalISOString(creditCardMetrics.activeWindowStart))} –{' '}
+              {formatShortDate(toLocalISOString(creditCardMetrics.activeWindowEnd))}
             </p>
           </div>
-          <Button variant="cta" size="sm" icon="card" onClick={onPayStatement}>
-            Pay Statement
+          <Button variant="primary" size="sm" icon="card" onClick={onPayStatement}>
+            Pay statement
           </Button>
         </div>
 
@@ -77,8 +78,8 @@ export const CreditCardArchetype: React.FC<{
               <div>
                 <p className="text-xs opacity-70">
                   {creditCardMetrics.creditSurplus > 0
-                    ? 'Positive Credit Surplus'
-                    : 'Current Balance Owed'}
+                    ? 'Positive credit surplus'
+                    : 'Current balance owed'}
                 </p>
                 <div className="mt-0.5">
                   <Money
@@ -105,33 +106,33 @@ export const CreditCardArchetype: React.FC<{
             </div>
           }
           back={
-            <div className="flex h-full w-full flex-col justify-between rounded-nv-card border border-nv-line bg-nv-surface p-5 text-nv-ink">
+            <div className="flex h-full w-full flex-col justify-between rounded-nv-card bg-nv-surface p-5 text-nv-ink">
               <div className="pr-10">
                 <p className="text-sm font-semibold">{account.name}</p>
-                <p className="text-xs text-nv-muted">Statement & Limit Specifications</p>
+                <p className="text-xs text-nv-muted">Statement & limit specifications</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-nv-control bg-nv-inset p-2.5">
-                  <p className="text-[10px] text-nv-muted">Statement Day</p>
+                  <p className="text-xs text-nv-muted">Statement day</p>
                   <p className="nv-tabular font-semibold">
                     Day {account.statementStartDate || 1} of month
                   </p>
                 </div>
                 <div className="rounded-nv-control bg-nv-inset p-2.5">
-                  <p className="text-[10px] text-nv-muted">Payment Due Day</p>
+                  <p className="text-xs text-nv-muted">Payment due day</p>
                   <p className="nv-tabular font-semibold">
                     Day {account.paymentDate || 15} of month
                   </p>
                 </div>
                 <div className="rounded-nv-control bg-nv-inset p-2.5">
-                  <p className="text-[10px] text-nv-muted">APR Interest Rate</p>
+                  <p className="text-xs text-nv-muted">APR interest rate</p>
                   <p className="nv-tabular font-semibold">
                     {account.interestRate !== undefined ? `${account.interestRate}%` : '0%'}
                   </p>
                 </div>
                 <div className="rounded-nv-control bg-nv-inset p-2.5">
-                  <p className="text-[10px] text-nv-muted">Available Credit</p>
+                  <p className="text-xs text-nv-muted">Available credit</p>
                   <Money
                     amount={creditCardMetrics.availableCredit}
                     currency={account.currency}
@@ -145,7 +146,7 @@ export const CreditCardArchetype: React.FC<{
         {/* Utilization Bar */}
         <div className="space-y-2 rounded-nv-sub bg-nv-surface p-4">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-nv-ink">Credit Limit Utilization</span>
+            <span className="font-medium text-nv-ink">Credit limit utilization</span>
             <Badge tone={utilTone}>
               {creditCardMetrics.utilization < 30
                 ? 'Optimal (<30%)'
@@ -184,7 +185,7 @@ export const CreditCardArchetype: React.FC<{
             <div className="flex items-center gap-3">
               <NvIcon name="bank" size={18} className="text-nv-violet-text" />
               <div>
-                <p className="text-xs text-nv-muted">Linked Settlement Account</p>
+                <p className="text-xs text-nv-muted">Linked settlement account</p>
                 <p className="text-sm font-semibold text-nv-ink">{settlementAcc.name}</p>
               </div>
             </div>
@@ -197,11 +198,8 @@ export const CreditCardArchetype: React.FC<{
       <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
         <div>
           <h2 className="text-lg font-semibold text-nv-ink">
-            6-Month Statement Spend History
+            6-month statement spend history
           </h2>
-          <p className="text-xs text-nv-muted">
-            Net card purchases per calendar month (net of refunds)
-          </p>
         </div>
 
         <div className="flex-1 flex flex-col justify-between rounded-nv-sub bg-nv-surface p-5">
@@ -217,7 +215,7 @@ export const CreditCardArchetype: React.FC<{
                     />
                   </div>
                   <span className="mt-2 text-xs font-medium text-nv-ink">{m.name}</span>
-                  <span className="nv-tabular text-[11px] text-nv-muted">
+                  <span className="nv-tabular text-xs text-nv-muted">
                     <Money amount={m.value} currency={account.currency} compact />
                   </span>
                 </div>

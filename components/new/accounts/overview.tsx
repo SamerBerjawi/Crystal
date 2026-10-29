@@ -108,7 +108,7 @@ const NetWorth90dChart: React.FC<{
     <div className="flex flex-col justify-between rounded-nv-tile bg-nv-inset p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-nv-muted">
-          90-Day Net Worth Trajectory
+          90-day net worth trajectory
         </span>
         {latestPoint && (
           <Money amount={latestPoint.netWorth} currency={currency} size="md" />
@@ -230,7 +230,7 @@ const AccountsSparkKpiCard: React.FC<AccountsSparkKpiCardProps> = ({
       className={cn(
         'group flex flex-col justify-between rounded-nv-tile bg-nv-inset p-3.5 text-left transition-all',
         onClick && 'cursor-pointer hover:bg-nv-inset/80',
-        active && 'ring-1.5 ring-nv-violet'
+        active && 'ring-1.5 ring-nv-ink'
       )}
     >
       <div>
@@ -310,8 +310,8 @@ export const AccountsHeroCard: React.FC<{
               <div className="flex flex-wrap items-center gap-2.5">
                 <TwoToneTitle
                   as="h2"
-                  first="Balance Sheet"
-                  second="Net Worth"
+                  first="Balance sheet"
+                  second="net worth"
                   className="text-base"
                 />
                 <Badge
@@ -343,7 +343,7 @@ export const AccountsHeroCard: React.FC<{
             {/* 3-Column Balance Sheet Summary Strip: bklit AreaSparkline KPI Cards */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <AccountsSparkKpiCard
-                label="Total Assets"
+                label="Total assets"
                 icon="wallet"
                 iconColor="text-nv-green-text"
                 chartColor="var(--nv-green)"
@@ -357,7 +357,7 @@ export const AccountsHeroCard: React.FC<{
               />
 
               <AccountsSparkKpiCard
-                label="Total Liabilities"
+                label="Total liabilities"
                 icon="invoice"
                 iconColor="text-nv-orange-text"
                 chartColor="var(--nv-orange)"
@@ -371,7 +371,7 @@ export const AccountsHeroCard: React.FC<{
               />
 
               <AccountsSparkKpiCard
-                label="Liquid Cash"
+                label="Liquid cash"
                 icon="bank"
                 iconColor="text-nv-grad-from"
                 chartColor="var(--nv-grad-from)"
@@ -412,23 +412,18 @@ export const AccountsHeroCard: React.FC<{
         {/* Stacked Allocation Bar */}
         <div>
           <div className="mb-2 flex items-center justify-between text-xs text-nv-muted">
-            <span className="font-medium text-nv-ink">Capital & Debt Allocation</span>
-            <span>Click a bucket to filter segment</span>
+            <span className="font-medium text-nv-ink">Capital & debt allocation</span>
           </div>
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-nv-inset p-0.5 gap-0.5">
+          {/* The bar is a picture of the shares; the buttons below filter (one target per bucket, 44px+). */}
+          <div aria-hidden className="flex h-3 w-full overflow-hidden rounded-full bg-nv-inset p-0.5 gap-0.5">
             {hero.allocationItems
               .filter((item) => item.pct > 0)
               .map((item) => (
-                <button
+                <span
                   key={item.id}
-                  type="button"
                   title={`${item.label}: ${item.pct}%`}
-                  onClick={() => onSelectSegment?.(BUCKET_SEGMENT_MAP[item.id])}
                   style={{ width: `${Math.max(3, item.pct)}%` }}
-                  className={cn(
-                    'h-full first:rounded-l-full last:rounded-r-full transition-opacity hover:opacity-80',
-                    BUCKET_DOT_CLASSES[item.id]
-                  )}
+                  className={cn('h-full first:rounded-l-full last:rounded-r-full', BUCKET_DOT_CLASSES[item.id])}
                 />
               ))}
           </div>
@@ -445,8 +440,8 @@ export const AccountsHeroCard: React.FC<{
                   className={cn(
                     'group flex flex-col rounded-nv-control p-2.5 text-left transition-all',
                     isActive
-                      ? 'bg-nv-surface ring-1.5 ring-nv-violet shadow-xs'
-                      : 'bg-nv-surface/70 hover:bg-nv-surface hover:shadow-2xs'
+                      ? 'bg-nv-surface ring-1.5 ring-nv-ink'
+                      : 'bg-nv-surface/70 hover:bg-nv-surface'
                   )}
                 >
                   <div className="flex items-center justify-between gap-1.5">
@@ -487,16 +482,16 @@ export const AccountsHeroCard: React.FC<{
                   key={alert.id}
                   type="button"
                   onClick={() => onSelectAttentionAccount?.(alert.accountId)}
-                  className={cn(
-                    'inline-flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 text-left text-xs transition-colors',
-                    alert.severity === 'danger'
-                      ? 'border-nv-red/40 bg-nv-red-soft text-nv-red-text'
-                      : alert.severity === 'warn'
-                        ? 'border-nv-orange/50 bg-nv-orange-soft text-nv-orange-text'
-                        : 'border-nv-line bg-nv-surface text-nv-ink hover:bg-nv-inset'
-                  )}
+                  className="inline-flex min-h-11 items-center gap-2.5 rounded-full border border-nv-line bg-nv-surface px-3.5 py-1.5 text-left text-xs text-nv-ink transition-colors hover:bg-nv-inset"
                 >
                   <NvIcon
+                    className={
+                      alert.severity === 'danger'
+                        ? 'text-nv-red-text'
+                        : alert.severity === 'warn'
+                          ? 'text-nv-orange-text'
+                          : 'text-nv-muted'
+                    }
                     name={
                       alert.severity === 'danger'
                         ? 'alert'
@@ -508,7 +503,7 @@ export const AccountsHeroCard: React.FC<{
                   />
                   <span className="font-semibold">{alert.accountName}:</span>
                   <span>{alert.title}</span>
-                  <span className="nv-tabular rounded-full bg-nv-surface/80 px-2 py-0.5 text-[11px] font-medium text-nv-ink">
+                  <span className="nv-tabular rounded-full bg-nv-inset px-2 py-0.5 text-[11px] font-medium text-nv-ink">
                     {alert.metricLabel}
                   </span>
                 </button>
@@ -571,7 +566,7 @@ export const CardWalletRail: React.FC<{
           : acc.accountNumber
             ? `•••• ${acc.accountNumber.slice(-4)}`
             : isMealVoucher
-              ? 'Voucher Card'
+              ? 'Voucher card'
               : acc.type;
 
         return (
@@ -633,9 +628,9 @@ export const CardWalletRail: React.FC<{
                       </span>
                     )}
                     {isMealVoucher && !acc.isPrimary && (
-                      <span className="rounded-full bg-nv-teal-soft px-2 py-0.5 text-[11px] font-semibold text-nv-teal-text">
+                      <Badge tone="neutral" icon="tag">
                         Voucher
-                      </span>
+                      </Badge>
                     )}
                     {isSynced && (
                       <span
@@ -656,16 +651,8 @@ export const CardWalletRail: React.FC<{
                       </span>
                     )}
                     {isCredit && limit > 0 && (
-                      <span
-                        className={cn(
-                          'nv-tabular rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
-                          utilPct >= 80
-                            ? 'bg-nv-red text-nv-on-violet'
-                            : utilPct >= 30
-                              ? 'bg-nv-orange text-nv-on-orange'
-                              : 'bg-nv-surface/20 text-nv-on-ink'
-                        )}
-                      >
+                      <span className="nv-tabular inline-flex items-center gap-1 rounded-full bg-nv-surface/20 px-2.5 py-0.5 text-[11px] font-semibold text-nv-on-ink">
+                        {utilPct >= 30 && <NvIcon name={utilPct >= 80 ? 'alert' : 'warning'} size={12} />}
                         {utilPct}% used
                       </span>
                     )}
@@ -684,17 +671,17 @@ export const CardWalletRail: React.FC<{
               </div>
             }
             back={
-              <div className="flex h-full w-full flex-col justify-between rounded-nv-card border border-nv-line bg-nv-surface p-5 text-nv-ink">
+              <div className="flex h-full w-full flex-col justify-between rounded-nv-card bg-nv-surface p-5 text-nv-ink">
                 <div className="pr-10">
                   <p className="truncate text-sm font-semibold text-nv-ink">{acc.name}</p>
-                  <p className="text-xs text-nv-muted">Account Specifications</p>
+                  <p className="text-xs text-nv-muted">Account specifications</p>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   {acc.accountNumber ? (
                     <div className="flex items-center justify-between gap-2 rounded-nv-control bg-nv-inset px-3 py-2">
                       <div className="min-w-0">
-                        <p className="text-xs text-nv-muted">IBAN / Account Number</p>
+                        <p className="text-xs text-nv-muted">IBAN / account number</p>
                         <p className="nv-tabular truncate font-medium text-nv-ink">
                           {acc.accountNumber}
                         </p>
@@ -702,7 +689,7 @@ export const CardWalletRail: React.FC<{
                       <button
                         type="button"
                         onClick={(e) => copyIdentifier(e, acc.accountNumber!, 'IBAN')}
-                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nv-surface text-nv-ink hover:bg-nv-line"
+                        className="relative inline-flex h-7 w-7 after:absolute after:-inset-2 after:content-[''] shrink-0 items-center justify-center rounded-full bg-nv-surface text-nv-ink hover:bg-nv-line"
                         title="Copy IBAN"
                       >
                         <NvIcon name="copy" size={14} />
@@ -716,20 +703,20 @@ export const CardWalletRail: React.FC<{
 
                   {isCredit && limit > 0 ? (
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-nv-muted">Available Credit</span>
+                      <span className="text-nv-muted">Available credit</span>
                       <Money amount={availableCredit} currency={acc.currency} />
                     </div>
                   ) : (
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-nv-muted">Settled Today</span>
+                      <span className="text-nv-muted">Settled today</span>
                       <Money amount={realBal} currency={acc.currency} />
                     </div>
                   )}
 
-                  {isCredit && (
+                  {isCredit && (acc.statementStartDate || acc.paymentDate) && (
                     <div className="flex items-center justify-between px-1 text-xs text-nv-muted">
-                      <span>Statement Day: {acc.statementStartDate || 1}</span>
-                      <span>Due Day: {acc.paymentDate || 15}</span>
+                      {acc.statementStartDate && <span>Statement day {acc.statementStartDate}</span>}
+                      {acc.paymentDate && <span>Due day {acc.paymentDate}</span>}
                     </div>
                   )}
                 </div>
@@ -744,7 +731,7 @@ export const CardWalletRail: React.FC<{
                       onOpenAccount(acc);
                     }}
                   >
-                    Open Cockpit
+                    Open cockpit
                   </Button>
                 </div>
               </div>

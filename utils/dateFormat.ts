@@ -114,3 +114,19 @@ export function formatLastUpdated(
 
   return formatted;
 }
+
+/**
+ * A `YYYY-MM-DD` day for display: "12 Mar", or "12 Mar 2025" outside the current year.
+ * Anything that is not an ISO day comes back unchanged.
+ */
+export function formatShortDate(iso?: string | null, today: Date = new Date()): string {
+  if (!iso) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
+}
