@@ -1,4 +1,4 @@
-import type { Account, Currency, RecurrenceFrequency, RecurringTransaction, Transaction, WeekendAdjustment } from '../types';
+import type { Account, Currency, MerchantLocation, MerchantRule, RecurrenceFrequency, RecurringTransaction, Transaction, WeekendAdjustment } from '../types';
 
 /**
  * Pure logic for TransactionsNew (UI_UX_DESIGN_REFERENCE.md §5.0, D13): display rows, filters, day groups,
@@ -436,7 +436,8 @@ export const addressBlock = (
   return lines.length || name ? { name, lines } : null;
 };
 
-export const locationLine = (r: { place?: string; city?: string; country?: string }) => [r.place, r.city, r.country].filter(Boolean).join(', ');
+export const locationLine = (r: { place?: string; city?: string; country?: string }) =>
+  [r.place, r.city, r.country].map(p => p?.trim()).filter((p, i, all): p is string => !!p && all.findIndex(q => q?.toLowerCase() === p.toLowerCase()) === i).join(', ');
 
 /* -------------------------------------------------------- loans, round-ups */
 
@@ -648,6 +649,132 @@ export const topCategories = (transactions: Transaction[], kind: 'expense' | 'in
     counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([c]) => c);
+};
+
+/* ------------------------------------------------------- merchant autofill */
+
+/** The Merchants page key for a name (same as normalizeMerchantKey). */
+const merchantKey = (name: string) => name.trim().toLowerCase();
+
+export interface MerchantSuggestion {
+  name: string;
+  /** Transactions of this kind with the merchant. */
+  count: number;
+  /** Latest of those transactions (ISO date), '' when none. */
+  lastDate: string;
+  /** The category the merchant fills, else the one it was last used with. */
+  category?: string;
+  /** Saved on the Merchants page. */
+  saved: boolean;
+}
+
+const titleCase = (s: string) => s.replace(/\b\p{L}/gu, c => c.toUpperCase());
+
+/**
+ * Every merchant the add form can suggest: those saved on the Merchants page plus those on past transactions of
+ * the kind, most used first, then most recent. Transfers are left out.
+ */
+export const merchantPool = (transactions: Transaction[], rules: Record<string, MerchantRule> = {}, kind?: 'expense' | 'income'): MerchantSuggestion[] => {
+  const map = new Map<string, MerchantSuggestion>();
+  for (const t of transactions) {
+    const name = t.merchant?.trim();
+    if (!name || t.transferId || (kind && t.type !== kind)) continue;
+    const key = merchantKey(name);
+    const g = map.get(key) ?? { name, count: 0, lastDate: '', saved: false };
+    g.count += 1;
+    if (t.date >= g.lastDate) { g.lastDate = t.date; g.name = name; if (!isUncategorized(t.category)) g.category = t.category; }
+    else if (!g.category && !isUncategorized(t.category)) g.category = t.category;
+    map.set(key, g);
+  }
+  for (const [rawKey, rule] of Object.entries(rules)) {
+    const key = merchantKey(rawKey);
+    if (!key || !rule) continue;
+    const g = map.get(key) ?? { name: rule.placeName && merchantKey(rule.placeName) === key ? rule.placeName.trim() : titleCase(rawKey.trim()), count: 0, lastDate: '', saved: true };
+    g.saved = true;
+    if (rule.category) g.category = rule.category;
+    map.set(key, g);
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate) || Number(b.saved) - Number(a.saved) || a.name.localeCompare(b.name));
+};
+
+/**
+ * The suggestions for what is typed: an exact name first, then names starting with it, then a word starting with
+ * it, then names containing it; each group keeps the pool's order. Nothing typed gives the top of the pool.
+ */
+export const matchMerchants = (pool: MerchantSuggestion[], query: string, limit = 6): MerchantSuggestion[] => {
+  const q = merchantKey(query);
+  if (!q) return pool.slice(0, limit);
+  const rank = (name: string) => {
+    const n = name.toLowerCase();
+    if (n === q) return 0;
+    if (n.startsWith(q)) return 1;
+    if (n.split(/[\s\-_.&/]+/).some(w => w.startsWith(q))) return 2;
+    if (n.includes(q)) return 3;
+    return -1;
+  };
+  return pool
+    .map((s, i) => ({ s, i, r: rank(s.name) }))
+    .filter(x => x.r >= 0)
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .slice(0, limit)
+    .map(x => x.s);
+};
+
+/** The Merchants page rule for a name, if any. */
+export const merchantRuleFor = (rules: Record<string, MerchantRule> | undefined, name: string): MerchantRule | undefined => {
+  const key = merchantKey(name);
+  return key ? rules?.[key] : undefined;
+};
+
+/** A merchant's branches, primary first; a rule with only a single address gives that one. */
+export const merchantBranches = (rule?: MerchantRule): MerchantLocation[] => {
+  if (!rule) return [];
+  if (rule.locations?.length) return [...rule.locations].sort((a, b) => Number(!!b.isPrimary) - Number(!!a.isPrimary));
+  if (rule.address) {
+    return [{
+      id: 'main', label: rule.placeName, address: rule.address, placeName: rule.placeName, street: rule.street, city: rule.city,
+      postalCode: rule.postalCode, state: rule.state, country: rule.country, latitude: rule.latitude, longitude: rule.longitude, isPrimary: true,
+    }];
+  }
+  return [];
+};
+
+export const locationFromBranch = (b: MerchantLocation): LocationDraft => ({
+  address: b.address ?? '', placeName: b.placeName ?? '', street: b.street ?? '', city: b.city ?? '', postalCode: b.postalCode ?? '',
+  state: b.state ?? '', country: b.country ?? '', latitude: b.latitude, longitude: b.longitude, label: b.label || b.placeName || '',
+});
+
+/** Whether a draft's location is this branch. */
+export const isBranch = (l: LocationDraft, b: MerchantLocation) => l.address.trim() === (b.address ?? '').trim() && (l.label || '') === (b.label || b.placeName || '');
+
+export type AutofillField = 'category' | 'description' | 'location';
+
+/**
+ * What a merchant fills on the form (category, description, its primary branch), as a patch. Fields the user
+ * edited are never touched. A field filled earlier from another merchant is replaced, or cleared when this one
+ * has nothing for it. `categoryOk` leaves out a category that is not one of the form's kind.
+ */
+export const merchantAutofill = (
+  rule: MerchantRule | undefined,
+  state: { edited: ReadonlySet<AutofillField>; filled: ReadonlySet<AutofillField> },
+  categoryOk: (name: string) => boolean = () => true,
+): { patch: Partial<Pick<TxDraft, 'category' | 'description' | 'location'>>; filled: Set<AutofillField> } => {
+  const branch = merchantBranches(rule)[0];
+  const values: { [K in AutofillField]: TxDraft[K] | undefined } = {
+    category: rule?.category && categoryOk(rule.category) ? rule.category : undefined,
+    description: rule?.defaultDescription?.trim() || undefined,
+    location: branch ? locationFromBranch(branch) : undefined,
+  };
+  const empty: { [K in AutofillField]: TxDraft[K] } = { category: '', description: '', location: emptyLocation() };
+  const patch: Partial<Pick<TxDraft, AutofillField>> = {};
+  const filled = new Set<AutofillField>();
+  for (const f of ['category', 'description', 'location'] as const) {
+    if (state.edited.has(f)) continue;
+    const v = values[f];
+    if (v !== undefined) { (patch as Record<string, unknown>)[f] = v; filled.add(f); }
+    else if (state.filled.has(f)) (patch as Record<string, unknown>)[f] = empty[f];
+  }
+  return { patch, filled };
 };
 
 /* -------------------------------------------------------- split and combine */

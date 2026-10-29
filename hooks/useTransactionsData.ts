@@ -57,6 +57,8 @@ export const useTransactionsData = () => {
     return { ...(preferences.merchantLogoOverrides ?? {}), ...fromRules };
   }, [preferences.merchantLogoOverrides, preferences.merchantRules]);
   const brandfetchId = (preferences.brandfetchClientId || '').trim();
+  /** Everything saved on the Merchants page, by normalized name. */
+  const merchantRules = useMemo(() => preferences.merchantRules ?? {}, [preferences.merchantRules]);
   /** What is saved about a merchant on the Merchants page (its branches, website, notes), if anything. */
   const merchantInfo = useCallback((name?: string) => (name ? preferences.merchantRules?.[normalizeMerchantKey(name) ?? ''] : undefined), [preferences.merchantRules]);
 
@@ -159,7 +161,7 @@ export const useTransactionsData = () => {
 
   return {
     transactions, rows, accounts, openAccounts, accountsById, tags, tagsById, categories, categoryByName, places, merchants,
-    displayCurrency, convert, logoFor, merchantInfo, partsOf, storedOf,
+    displayCurrency, convert, logoFor, merchantInfo, merchantRules, partsOf, storedOf,
     save, remove, bulkEdit, tagIdFor, recategorize, clearLocation, duplicate, split, unsplit, combine, uncombine, makeRecurring,
   };
 };

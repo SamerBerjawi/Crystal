@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../lib/utils';
 import { formatCurrency } from '../../../utils';
-import { hasLocation, loanOf, loanSplit, roundUpAmount, spareAccountFor, topCategories, type TxDraft, type TxKind } from '../../../utils/transactionsModel';
+import {
+  hasLocation, isBranch, loanOf, loanSplit, locationFromBranch, merchantAutofill, merchantBranches, merchantPool, merchantRuleFor, roundUpAmount, spareAccountFor, topCategories,
+  type AutofillField, type LocationDraft, type TxDraft, type TxKind,
+} from '../../../utils/transactionsModel';
 import type { TransactionsData } from '../../../hooks/useTransactionsData';
 import { AmountPad } from '../../kokonutui/amount-pad';
 import { useMediaQuery } from '../Drawer';
@@ -9,13 +12,15 @@ import { EntityGlyph, LogoTile } from '../EntityIcon';
 import { NvIcon } from '../NvIcon';
 import { Switch, SegmentedTabs } from '../ui';
 import { LocationField } from './LocationField';
+import { MerchantField } from './MerchantField';
 import { PickList, PopChip, type PickOption } from './composer';
 import { PickerField, TextField, currencySign } from './parts';
 
 /*
  * The add / edit form (UI_UX_DESIGN_REFERENCE.md §3.1, Q6, R7): kind tabs in their accent, the amount as the
  * hero (Amount Pad keys on phones, typing on desktop), a grid of the most used categories, then account(s),
- * date, merchant, description, note and tags. Saving is the sheet's footer button.
+ * date, merchant, description, note and tags. Saving is the sheet's footer button. The merchant field suggests
+ * saved and past merchants and fills what the Merchants page holds for one (category, description, location).
  */
 
 const isoOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -80,6 +85,28 @@ export const TransactionForm: React.FC<{
     return draft.category && !list.includes(draft.category) ? [draft.category, ...list.slice(0, 5)] : list;
   }, [data.transactions, kindForCategories, options, draft.category]);
 
+  // Merchant autofill: fields the user set are never filled over (those already set when the form opens count as
+  // theirs); fields the last merchant filled are replaced or cleared when the merchant changes.
+  const [autofill] = useState(() => ({
+    edited: new Set<AutofillField>([...(draft.category ? ['category' as const] : []), ...(draft.description.trim() ? ['description' as const] : []), ...(hasLocation(draft.location) ? ['location' as const] : [])]),
+    filled: new Set<AutofillField>(),
+  }));
+  const userSet = <K extends AutofillField>(key: K, value: TxDraft[K]) => {
+    const empty = key === 'location' ? !hasLocation(value as LocationDraft) : !(value as string).trim();
+    if (empty) autofill.edited.delete(key); else autofill.edited.add(key);
+    autofill.filled.delete(key);
+    set(key, value);
+  };
+  const pool = useMemo(() => merchantPool(data.transactions, data.merchantRules, kindForCategories), [data.transactions, data.merchantRules, kindForCategories]);
+  const setMerchant = (merchant: string) => {
+    const categoryOk = (name: string) => options.length === 0 || options.some(c => c.name === name);
+    const { patch, filled } = merchantAutofill(merchantRuleFor(data.merchantRules, merchant), autofill, categoryOk);
+    autofill.filled = filled;
+    if (patch.location && hasLocation(patch.location)) setShow(prev => ({ ...prev, location: true }));
+    onChange(prev => ({ ...prev, merchant, ...patch }));
+  };
+  const branches = draft.kind === 'transfer' ? [] : merchantBranches(merchantRuleFor(data.merchantRules, draft.merchant));
+
   const today = isoOf(new Date());
   const yesterday = isoOf(new Date(Date.now() - 86_400_000));
   // The merchant's logo appears once typing pauses, so each keystroke does not request one.
@@ -105,7 +132,7 @@ export const TransactionForm: React.FC<{
         label="Type"
         className="w-full [&>button]:flex-1"
         value={draft.kind}
-        onChange={kind => onChange(prev => ({ ...prev, kind, category: kind === prev.kind ? prev.category : '' }))}
+        onChange={kind => { if (kind !== draft.kind) { autofill.edited.delete('category'); autofill.filled.delete('category'); } onChange(prev => ({ ...prev, kind, category: kind === prev.kind ? prev.category : '' })); }}
         items={[
           { id: 'expense', label: 'Expense', accent: 'orange', icon: 'money' },
           { id: 'income', label: 'Income', accent: 'green', icon: 'wallet' },
@@ -124,18 +151,46 @@ export const TransactionForm: React.FC<{
       />
 
       {draft.kind !== 'transfer' && (
-        <label className="flex items-center gap-3 rounded-full bg-nv-inset py-2 pl-2 pr-5 focus-within:ring-2 focus-within:ring-nv-violet">
-          <LogoTile url={merchantLogo} label={draft.merchant || '?'} size={40} rounded="full" fallbackIcon={draft.merchant.trim() ? undefined : 'bank'} />
-          <span className="sr-only">{draft.kind === 'income' ? 'From' : 'Merchant'}</span>
-          <input value={draft.merchant} onChange={e => set('merchant', e.target.value)} placeholder={draft.kind === 'income' ? 'Who paid you?' : 'Who was it with?'} className="h-8 min-w-0 flex-1 bg-transparent text-[17px] font-medium text-nv-ink outline-none placeholder:font-normal placeholder:text-nv-muted" />
-        </label>
+        <MerchantField
+          value={draft.merchant}
+          label={draft.kind === 'income' ? 'From' : 'Merchant'}
+          placeholder={draft.kind === 'income' ? 'Who paid you?' : 'Who was it with?'}
+          logoUrl={merchantLogo}
+          pool={pool}
+          logoFor={data.logoFor}
+          onType={setMerchant}
+          onPick={name => { setLogoName(name); setMerchant(name); }}
+        />
       )}
-      <input value={draft.description} onChange={e => set('description', e.target.value)} aria-label="Description" placeholder={draft.kind === 'transfer' ? 'What is it for? (optional)' : 'Add a description (optional)'} className="-mt-2 h-11 w-full border-b border-nv-line bg-transparent px-1 text-[15px] text-nv-ink outline-none placeholder:text-nv-muted focus:border-nv-ink" />
+      {branches.length > 1 && (
+        <div role="group" aria-label={`${draft.merchant.trim()} locations`} className="-mt-2">
+          <p className="mb-2 text-[13px] text-nv-muted">Which location?</p>
+          <div className="flex flex-wrap gap-2">
+            {branches.map(b => {
+              const on = isBranch(draft.location, b);
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={on}
+                  title={b.address}
+                  onClick={() => { autofill.edited.delete('location'); autofill.filled.add('location'); set('location', locationFromBranch(b)); setShow(prev => ({ ...prev, location: true })); }}
+                  className={cn('inline-flex h-11 max-w-full items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-medium', on ? 'border-nv-ink bg-nv-ink text-nv-on-ink' : 'border-nv-line bg-nv-surface text-nv-ink hover:bg-nv-inset')}
+                >
+                  <NvIcon name="pin" size={15} />
+                  <span className="truncate">{b.label || b.city || b.address}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <input value={draft.description} onChange={e => userSet('description', e.target.value)} aria-label="Description" placeholder={draft.kind === 'transfer' ? 'What is it for? (optional)' : 'Add a description (optional)'} className="-mt-2 h-11 w-full border-b border-nv-line bg-transparent px-1 text-[15px] text-nv-ink outline-none placeholder:text-nv-muted focus:border-nv-ink" />
 
       <div className="flex flex-wrap gap-2">
         {draft.kind !== 'transfer' && (
           <PopChip label="Category" value={draft.category} placeholder="Category" visual={draft.category ? <EntityGlyph icon={chosenCategory?.icon} label={draft.category} color={chosenCategory?.color} size={18} /> : <NvIcon name="budget" size={16} />}>
-            {close => <PickList label="Categories" options={categoryPick} value={draft.category} onPick={id => { set('category', id); close(); }} />}
+            {close => <PickList label="Categories" options={categoryPick} value={draft.category} onPick={id => { userSet('category', id); close(); }} />}
           </PopChip>
         )}
         <PopChip label={draft.kind === 'transfer' ? 'From account' : 'Account'} value={account?.name} placeholder="Account" visual={account ? logoOf(account) : <NvIcon name="wallet" size={16} />}>
@@ -172,7 +227,7 @@ export const TransactionForm: React.FC<{
                   key={name}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => set('category', name)}
+                  onClick={() => userSet('category', name)}
                   className={cn('flex h-[72px] w-24 shrink-0 flex-col items-center justify-center gap-1.5 rounded-nv-tile px-2 text-center text-[12px] font-medium transition-colors', active ? 'ring-[1.5px] ring-nv-ink' : 'hover:bg-nv-inset')}
                   style={{ background: `color-mix(in srgb, ${cat?.color || 'var(--nv-violet)'} ${active ? 22 : 12}%, transparent)` }}
                 >
@@ -195,7 +250,7 @@ export const TransactionForm: React.FC<{
         ))}
       </div>
       {show.note && <TextField label="Note" multiline value={draft.notes} onChange={v => set('notes', v)} placeholder="Lunch with the team" />}
-      {show.location && <LocationField value={draft.location} onChange={location => set('location', location)} />}
+      {show.location && <LocationField value={draft.location} onChange={location => userSet('location', location)} />}
       {show.tags && data.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {data.tags.map(tag => {
