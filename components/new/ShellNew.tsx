@@ -2,10 +2,9 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { Popover } from '@base-ui/react/popover';
 import { cn } from '../../lib/utils';
 import type { Theme, User } from '../../types';
-import { NEW_PAGE_TITLES, newNavPageFor, newPathFor, type NewPage } from '../../utils/newRoutes';
+import { NEW_PAGE_SUBTITLES, NEW_PAGE_TITLES, newNavPageFor, newPathFor, type NewPage } from '../../utils/newRoutes';
 import { NvIcon, type NvIconName } from './NvIcon';
 import { Button, IconButton, SegmentedTabs } from './ui';
-import { TwoToneTitle } from './tile';
 import { Drawer, useMediaQuery } from './Drawer';
 import ScrollIndex from '../kokonutui/scroll-index';
 import { ToastHostNew } from './toast';
@@ -248,6 +247,7 @@ export const ShellNew: React.FC<ShellNewProps> = props => {
   const action: PageActionConfig = pageAction ?? { label: 'Add transaction', icon: 'add', onClick: openQuickAdd };
   const activeNav = page ? newNavPageFor(page) : null;
   const heading = title ?? (page ? NEW_PAGE_TITLES[page] : 'Crystal');
+  const subtitle = page ? NEW_PAGE_SUBTITLES[page] : undefined;
   const resolvedTheme = props.theme === 'system' ? (prefersDark ? 'dark' : 'light') : props.theme;
 
   useEffect(() => {
@@ -271,6 +271,8 @@ export const ShellNew: React.FC<ShellNewProps> = props => {
   // A page with its own search keeps the phone field open while it has a query.
   useEffect(() => { if (pageSearch?.value) setPhoneSearchOpen(true); }, [pageSearch?.value]);
   useEffect(() => { setPhoneSearchOpen(false); }, [routeKey]);
+  // The page scrolls with the window, so a new route would otherwise open at the previous page's scroll position.
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [routeKey]);
 
   const go = (p: NewPage) => navigate(newPathFor(p));
 
@@ -288,8 +290,10 @@ export const ShellNew: React.FC<ShellNewProps> = props => {
             <a href={newPathFor('Dashboard')} onClick={onPlainClick(() => go('Dashboard'))} aria-label="Crystal home" className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full bg-nv-ink text-nv-on-ink sm:flex lg:hidden">
               <NvIcon name="sparkles" size={20} />
             </a>
-            <TwoToneTitle first="Crystal" second={heading} stacked className="min-w-0 truncate text-lg leading-tight lg:text-xl" />
-            <div className="flex-1" />
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-xl font-semibold leading-tight tracking-tight text-nv-ink lg:text-2xl">{heading}</h1>
+              {subtitle && <p className="mt-0.5 hidden truncate text-sm text-nv-muted sm:block">{subtitle}</p>}
+            </div>
             <div className="flex items-center gap-2 lg:gap-3">
               <HeaderSearch ref={desktopSearchRef} config={pageSearch} pages={PAGE_TARGETS} onPickPage={id => go(id as NewPage)} className="hidden w-64 lg:block xl:w-80" />
               <IconButton

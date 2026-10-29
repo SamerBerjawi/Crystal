@@ -29,6 +29,7 @@ import { Badge, Button, IconButton, Money, SegmentedTabs, Switch } from '../ui';
 import { currencySign } from './AccountFormSheet';
 import { TxLedgerAvatar } from './detailShared';
 import { LicensePlateNew } from './parts';
+import { AccountCard, accountHasCard } from './AccountCard';
 
 /*
  * Shared Drawers for `/accounts-new` and `/accounts-new/:id`:
@@ -246,7 +247,7 @@ export const AccountOverviewSheet: React.FC<{
   const isClosed = targetAccount.status === 'closed';
   const typeLabel = targetAccount.subType || targetAccount.otherSubType || targetAccount.type;
   const isDebt = ['Credit Card', 'Loan', 'Other Liabilities'].includes(targetAccount.type);
-  const isBankCard = ['Checking', 'Savings', 'Credit Card'].includes(targetAccount.type);
+  const isBankCard = accountHasCard(targetAccount);
 
   const handleCopy = (text: string, fieldId: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -347,75 +348,7 @@ export const AccountOverviewSheet: React.FC<{
     // 1. BANK / CARD ACCOUNTS: 3D Frosted Glass Payment / Banking Card
     if (isBankCard) {
       return (
-        <div className="relative w-full max-w-[340px] h-[160px] rounded-2xl bg-gradient-to-br from-nv-surface/90 via-nv-tile/80 to-nv-surface/70 backdrop-blur-2xl border border-nv-line/80 p-4 sm:p-5 shadow-nv-float flex flex-col justify-between overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-          {/* Holographic Sheen Reflection */}
-          <div className="absolute -inset-full bg-gradient-to-tr from-transparent via-white/10 to-transparent rotate-12 pointer-events-none" />
-
-          {/* Card Top Row: Chip, Contactless Waves & Logo */}
-          <div className="relative flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              {/* Golden EMV Smart Chip */}
-              <div className="flex h-7 w-10 flex-col justify-around rounded-md border border-nv-orange/80 bg-nv-orange p-0.5 shadow-xs">
-                <div className="h-px w-full bg-nv-ink/30" />
-                <div className="flex justify-between px-1">
-                  <div className="h-2 w-2 rounded-full border border-nv-ink/30" />
-                  <div className="h-2 w-2 rounded-full border border-nv-ink/30" />
-                </div>
-                <div className="h-px w-full bg-nv-ink/30" />
-              </div>
-
-              {/* Contactless Waves Icon */}
-              <svg
-                className="w-5 h-5 text-nv-ink/60 dark:text-white/70"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M8.5 16.5a5 5 0 0 1 0-9" />
-                <path d="M12 19a8.5 8.5 0 0 0 0-14" />
-                <path d="M15.5 21.5a12 12 0 0 0 0-19" />
-              </svg>
-            </div>
-
-            {/* Institution Monogram or Logo Tile */}
-            <div className="w-9 h-9 rounded-xl bg-white shadow-xs border border-nv-line/50 flex items-center justify-center overflow-hidden">
-              <AccountLogo account={targetAccount} size={36} rounded="xl" />
-            </div>
-          </div>
-
-          {/* Card Bottom Row: Masked Number, Cardholder / Account Name & Network / Currency */}
-          <div className="relative space-y-1.5">
-            <div className="flex items-center justify-between">
-              <p className="font-mono text-sm sm:text-base font-bold tracking-[0.2em] text-nv-ink drop-shadow-xs">
-                {targetAccount.last4
-                  ? `•••• •••• •••• ${targetAccount.last4}`
-                  : targetAccount.accountNumber
-                  ? `•••• ${targetAccount.accountNumber.slice(-4)}`
-                  : `${targetAccount.type.toUpperCase()}`}
-              </p>
-
-              {targetAccount.cardNetwork ? (
-                <span className="rounded bg-nv-inset px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wider text-nv-ink">
-                  {targetAccount.cardNetwork.toUpperCase()}
-                </span>
-              ) : targetAccount.currency ? (
-                <span className="rounded bg-nv-inset px-1.5 py-0.5 font-mono text-[10px] font-bold text-nv-muted">
-                  {targetAccount.currency}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] font-medium text-nv-muted">
-              <span className="truncate max-w-[190px] uppercase tracking-wider font-semibold text-nv-ink">
-                {targetAccount.cardholderName || targetAccount.name}
-              </span>
-              {targetAccount.expirationDate && (
-                <span className="font-mono text-nv-ink font-semibold">EXP {targetAccount.expirationDate}</span>
-              )}
-            </div>
-          </div>
-        </div>
+        <AccountCard account={targetAccount} />
       );
     }
 

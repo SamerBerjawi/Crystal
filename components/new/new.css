@@ -11,6 +11,30 @@
 @import '@fontsource-variable/outfit';
 
 .crystal-new {
+  /* The bank card drawing is a physical object: it stays dark slate in both themes. */
+  --nv-card-from: #1f4b47;
+  --nv-card-ink: #ffffff;
+  /* One pair per account type (see accounts/AccountCard.tsx). */
+  --nv-card-checking-from: #1f4b47;
+  --nv-card-checking-to: #0d1f1e;
+  --nv-card-savings-from: #1f5a3a;
+  --nv-card-savings-to: #0b2316;
+  --nv-card-credit-from: #3a3a44;
+  --nv-card-credit-to: #101014;
+  --nv-card-invest-from: #4a3c8f;
+  --nv-card-invest-to: #1a1440;
+  --nv-card-cash-from: #7a4a1c;
+  --nv-card-cash-to: #2b1808;
+  --nv-card-loan-from: #1f4a6e;
+  --nv-card-loan-to: #0b1c2e;
+  --nv-card-other-from: #5c2a3a;
+  --nv-card-other-to: #220d15;
+  /* Network logos */
+  --nv-mc-red: #eb001b;
+  --nv-mc-orange: #f79e1b;
+  --nv-mc-overlap: #ff5f00;
+  --nv-card-chip-from: #e9c46a;
+  --nv-card-chip-to: #b8893a;
   --nv-canvas: #ffffff;
   --nv-tile: #f4f4f6;
   --nv-surface: #ffffff;
@@ -207,6 +231,11 @@
 }
 :root [data-sileo-viewport][data-theme='dark'] [data-sileo-description] {
   color: rgb(0 0 0 / 0.7);
+}
+
+/* index.html scales the classic UI to 95%, which turns 12px (text-xs) into 11.4px. The New pages keep the reference's real sizes (D14: informational text 12px+). */
+html:has(.crystal-new) {
+  font-size: 100%;
 }
 
 /* Phone and tablet: no visible scrollbars, in the page or in any panel (the content still scrolls). */

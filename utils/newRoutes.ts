@@ -35,6 +35,25 @@ export const NEW_PAGE_TITLES: Record<NewPage, string> = {
   'Quotes & Invoices': 'Invoices', Tasks: 'Tasks', Challenges: 'Challenges', Settings: 'Settings',
 };
 
+/** One line under the shell header title (carried over from the classic page headers). */
+export const NEW_PAGE_SUBTITLES: Record<NewPage, string> = {
+  Dashboard: 'Real-time financial pulse across accounts, investments, and commitments.',
+  Accounts: 'Track cash, property, debt and investments to see your real-time net worth.',
+  AccountDetail: 'Balance, activity and forecast for this account.',
+  Transactions: 'Every inflow and outflow, with filters, splits and tags.',
+  Reports: 'Dive into spending habits, budget performance and automated insights.',
+  Budget: 'Set envelopes, guardrails and spending alerts that adapt to your cash flow.',
+  Forecasting: 'Projected cash, income and obligations to plan weeks and months ahead.',
+  'Schedule & Bills': 'Track subscriptions, insurance, salary, loan payments and billing cycles.',
+  Investments: 'Track equities, ETFs, crypto and warrants, with yield metrics in real time.',
+  HoldingDetail: 'Position, performance and transactions for this holding.',
+  Subscriptions: 'Track digital products, contracts, memberships and loyalty cards in one place.',
+  'Quotes & Invoices': 'Track invoices and quotes through their full lifecycle.',
+  Tasks: 'Keep track of your financial to-dos.',
+  Challenges: 'Complete challenges, unlock badges and beat your personal bests.',
+  Settings: 'Preferences, security, categories and integrations.',
+};
+
 /** Dev-only token and primitive gallery. */
 export const NEW_GALLERY_PATH = '/design-new';
 

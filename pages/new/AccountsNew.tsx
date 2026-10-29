@@ -456,7 +456,7 @@ export const AccountsNew: React.FC = () => {
           onSelectSegment={(targetSeg) => setSegment(targetSeg)}
           onSelectAttentionAccount={(accId) => {
             const acc = data.visibleAccounts.find((a) => a.id === accId);
-            if (acc) openAccountDetail(acc);
+            if (acc) setPeekAccountId(acc.id);
           }}
         />
       )}
@@ -469,6 +469,7 @@ export const AccountsNew: React.FC = () => {
           realTodayBalancesById={data.realTodayBalancesById}
           linkedEnableBankingIds={data.linkedEnableBankingAccountIds}
           onOpenAccount={openAccountDetail}
+          onPeekAccount={(acc) => setPeekAccountId(acc.id)}
         />
       )}
 
