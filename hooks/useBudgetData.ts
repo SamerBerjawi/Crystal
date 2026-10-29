@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Budget, Category, Currency } from '../types';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext } from '../contexts/FinancialDataContext';
-import { convertCurrency, normalizeCurrency } from '../utils';
+import { convertCurrency, normalizeCurrency, resolveRates } from '../utils';
 import {
   autofillPlan, averageMonthlySpend, budgetAccountIds, budgetSuggestions, goalViews, monthBounds, spendByCategory,
   type BudgetDraft, type Month,
@@ -25,7 +25,9 @@ export const useBudgetData = () => {
   const { expenseCategories } = useCategoryContext();
 
   const displayCurrency = normalizeCurrency(preferences.displayCurrency || preferences.currency || 'EUR');
-  const convert = useCallback((amount: number, currency: Currency) => convertCurrency(amount, currency, displayCurrency), [displayCurrency]);
+  // Same FX table as the Accounts pages (Q1): defaults overridden by saved rates.
+  const rates = useMemo(() => resolveRates(preferences.conversionRates), [preferences.conversionRates]);
+  const convert = useCallback((amount: number, currency: Currency) => convertCurrency(amount, currency, displayCurrency, rates), [displayCurrency, rates]);
   const accountIds = useMemo(() => budgetAccountIds(accounts), [accounts]);
   const options = useMemo(() => ({ accountIds, categories: expenseCategories, convert }), [accountIds, expenseCategories, convert]);
 

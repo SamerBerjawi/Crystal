@@ -2033,7 +2033,8 @@ const App: React.FC = () => {
         action: {
           label: 'Undo',
           onClick: () => {
-            setBudgets(prev => [...prev, item]);
+            // Idempotent: a second click (or a second Undo elsewhere) must not duplicate it.
+            setBudgets(prev => prev.some(b => b.id === item.id) ? prev : [...prev, item]);
             toast.info('Restored budget');
           }
         }

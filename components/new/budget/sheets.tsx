@@ -77,6 +77,12 @@ export const BudgetSheet: React.FC<{
     return data.parents.find(p => p.name === selectedCategory);
   }, [data.parents, selectedCategory]);
 
+  // Amounts are typed in the budget's own currency; only new budgets use the display currency.
+  const budgetCurrency =
+    editingBudget?.currency ??
+    data.budgets.find(b => b.categoryName === selectedCategory)?.currency ??
+    data.displayCurrency;
+
   const categoryAverage = useMemo(() => {
     if (!selectedCategory) return 0;
     const avgMap = data.averageFor(month, 3);
@@ -109,18 +115,19 @@ export const BudgetSheet: React.FC<{
       categoryName: selectedCategory,
       amount: Math.round(num * 100) / 100,
       period: 'monthly' as const,
-      currency: data.displayCurrency,
+      // The amount is typed in the budget's own currency (shown in the field), so keep it.
+      currency: budgetCurrency,
     };
 
     const res = data.save(draft);
     if (res.undo) {
       toast.undo(
-        `Updated ${selectedCategory} budget to ${currencySign(data.displayCurrency)}${draft.amount}`,
+        `Updated ${selectedCategory} budget to ${currencySign(draft.currency)}${draft.amount}`,
         res.undo
       );
     } else {
       toast.success(
-        `Created ${selectedCategory} budget of ${currencySign(data.displayCurrency)}${draft.amount}`
+        `Created ${selectedCategory} budget of ${currencySign(draft.currency)}${draft.amount}`
       );
     }
 
@@ -130,16 +137,8 @@ export const BudgetSheet: React.FC<{
 
   const handleDelete = () => {
     if (!editingBudget) return;
-    const budgetToDelete = editingBudget;
-    data.remove(budgetToDelete);
-    toast.undo(`Deleted ${budgetToDelete.categoryName} budget`, () => {
-      data.save({
-        categoryName: budgetToDelete.categoryName,
-        amount: budgetToDelete.amount,
-        period: budgetToDelete.period,
-        currency: budgetToDelete.currency,
-      });
-    });
+    // The app's delete handler shows the one Undo toast; a second one here restored the budget twice.
+    data.remove(editingBudget);
     onOpenChange(false);
     onSaved?.();
   };
@@ -258,7 +257,7 @@ export const BudgetSheet: React.FC<{
             <AmountPad
               value={amountStr}
               onChange={setAmountStr}
-              currency={currencySign(data.displayCurrency)}
+              currency={currencySign(budgetCurrency)}
               keypad={phone}
               label="Budget amount"
               autoFocus={!phone}
