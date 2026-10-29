@@ -1,6 +1,23 @@
 # ScheduleNew plan (`/schedule-new`)
 
-Written 2026-10-29. Planning only. Shared rules, the shared engines (step 0) and the library inventory are in [NEW_PAGES_PLAN_INDEX.md](NEW_PAGES_PLAN_INDEX.md); this file does not repeat them.
+Written 2026-10-29. Shared rules, the shared engines (step 0) and the library inventory are in [NEW_PAGES_PLAN_INDEX.md](NEW_PAGES_PLAN_INDEX.md); this file does not repeat them.
+
+## Status (2026-10-29, branch `feat/schedule-new`, not committed)
+
+Phases S1–S4 built; S5 partly (migration notes are `UI_UX_DESIGN_REFERENCE.md` §23). What differs from the plan below:
+
+| Item | Status |
+|---|---|
+| S1 engine (`utils/scheduleModel.ts`, strict-typed) | Built for Schedule only. Forecasting, Dashboard and classic pages still use their own copies; moving them onto it is part of ForecastingNew phase F1 |
+| E-06, E-09, E-10, E-11 (for this page), S-01…S-10 | Built. Posting stores `recurringOccurrenceDate` on the transaction (new optional field) so a payment made early pays the right occurrence; bills keep `dueDate` and get `paidDate` (Q-S4) |
+| E-07 overdue | **Changed**: recurring payments stay overdue for 31 days, not forever. Bank-synced payments are often not linked to their series, so an unlimited look-back would list every month since a series began. Unpaid bills are listed however late (they have Expire) |
+| C1 chart | Built as planned: the line is the net so far (in minus out). Bklit's `SeriesBar` got a Crystal patch so bars grow from the zero line when the net goes below zero |
+| C3 year heatmap, Calendar → Year | **Not built** |
+| Upcoming rail (This month, Fixed costs) | **Not built**: the hero's figures and the Series tab's ring cover it |
+| Right-click menu on rows | **Not built**: the ⋯ menu only |
+| Accounts and Categories in Filters | Chips (`ChoiceChips`) instead of `FilterList` with presets |
+| Q-S3 "Already in my transactions" | **Not built** |
+| N4 warrant tax badge | Built |
 
 | | |
 |---|---|

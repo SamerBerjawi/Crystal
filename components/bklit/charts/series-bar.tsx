@@ -27,6 +27,8 @@ function computeSeriesBarLayout(input: {
   barHeight: number;
   effectiveRadius: number;
   valueY: number;
+  /** Where the bar grows from (Crystal patch). */
+  baselineY?: number;
 } {
   const {
     stacked,
@@ -68,12 +70,17 @@ function computeSeriesBarLayout(input: {
 
   const groupWidth =
     seriesCount * barWidth + (seriesCount > 1 ? (seriesCount - 1) * gap : 0);
-  const valueY = yScale(value) ?? innerHeight;
+  // Crystal patch: bars grow from the zero line, not the bottom edge, so a chart whose y domain goes below zero
+  // (a line that turns negative) still draws its bars from 0.
+  const zeroY = Math.min(innerHeight, Math.max(0, yScale(0) ?? innerHeight));
+  const valuePos = yScale(value) ?? zeroY;
+  const valueY = Math.min(valuePos, zeroY);
   return {
     barLeft: xCenter - groupWidth / 2 + seriesIndex * (barWidth + gap),
-    barHeight: innerHeight - valueY,
+    barHeight: Math.abs(zeroY - valuePos),
     effectiveRadius: radius,
     valueY,
+    baselineY: zeroY,
   };
 }
 
@@ -196,7 +203,7 @@ export function SeriesBar({
 
         const xCenter = xScale(xAccessor(d)) ?? 0;
 
-        const { barLeft, valueY, barHeight, effectiveRadius } =
+        const { barLeft, valueY, barHeight, effectiveRadius, baselineY } =
           computeSeriesBarLayout({
             stacked,
             composedStackOffsets,
@@ -229,7 +236,7 @@ export function SeriesBar({
               fadedOpacity={fadedOpacity}
               fill={fill}
               index={i}
-              innerHeight={innerHeight}
+              innerHeight={baselineY ?? innerHeight}
               isFaded={isFaded}
               key={`${dataKey}-${categoryLabel}-${revealEpoch}`}
               radius={effectiveRadius}

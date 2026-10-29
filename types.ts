@@ -284,6 +284,8 @@ export interface Transaction {
   currency: Currency;
   transferId?: string;
   recurringSourceId?: string;
+  /** The occurrence of `recurringSourceId` this transaction paid (its original date), set when posted from the Schedule page. */
+  recurringOccurrenceDate?: string;
   importId?: string;
   sureId?: string;
   principalAmount?: number;
@@ -673,6 +675,8 @@ export interface BillPayment {
   status: BillPaymentStatus;
   accountId?: string; // The account it was paid from/to
   warrantId?: string;
+  /** When it was paid (the due date stays as it was, so a late payment still shows). */
+  paidDate?: string;
 }
 
 export interface AccountDetailProps {

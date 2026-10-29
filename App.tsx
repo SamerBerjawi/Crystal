@@ -58,6 +58,7 @@ const AccountsNew = lazyWithRetry(() => import('./pages/new/AccountsNew').then(m
 const AccountDetailNew = lazyWithRetry(() => import('./pages/new/AccountDetailNew').then(m => ({ default: m.AccountDetailNew })));
 const TransactionsNew = lazyWithRetry(() => import('./pages/new/TransactionsNew').then(m => ({ default: m.TransactionsNew })));
 const BudgetNew = lazyWithRetry(() => import('./pages/new/BudgetNew').then(m => ({ default: m.BudgetNew })));
+const ScheduleNew = lazyWithRetry(() => import('./pages/new/ScheduleNew').then(m => ({ default: m.ScheduleNew })));
 const SignUp = lazyWithRetry(() => import('./pages/SignUp'));
 const pageRegistry = {
   Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
@@ -3222,6 +3223,7 @@ const App: React.FC = () => {
               : newRoute.page === 'AccountDetail' && newRoute.id ? <AccountDetailNew accountId={newRoute.id} />
               : newRoute.page === 'Transactions' ? <TransactionsNew user={currentUser!} initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />
               : newRoute.page === 'Budget' ? <BudgetNew />
+              : newRoute.page === 'Schedule & Bills' ? <ScheduleNew />
               : <PlaceholderNew title={NEW_PAGE_TITLES[newRoute.page]} classicPath={classicPath} />}
           </ShellNew>
         </Suspense>

@@ -16,6 +16,7 @@
     "utils/brandfetch.ts",
     "utils/investments.ts",
     "utils/newRoutes.ts",
-    "utils/transactionsModel.ts"
+    "utils/transactionsModel.ts",
+    "utils/scheduleModel.ts"
   ]
 }
