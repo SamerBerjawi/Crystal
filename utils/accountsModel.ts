@@ -588,35 +588,35 @@ export const computeAccountsHeroModel = (
   const rawBuckets: Omit<AccountsAllocationItem, 'pct'>[] = [
     {
       id: 'cash',
-      label: 'Liquid Cash',
+      label: 'Liquid cash',
       value: toPref(sumBucketEur(bucketCashAccounts, false)),
       kind: 'asset',
       count: bucketCashAccounts.length,
     },
     {
       id: 'savings_pension',
-      label: 'Savings & Pension',
+      label: 'Savings & pension',
       value: toPref(sumBucketEur(bucketSavingsAccounts, false)),
       kind: 'asset',
       count: bucketSavingsAccounts.length,
     },
     {
       id: 'property_assets',
-      label: 'Property & Physical',
+      label: 'Property & physical',
       value: toPref(sumBucketEur(bucketPhysicalAccounts, false)),
       kind: 'asset',
       count: bucketPhysicalAccounts.length,
     },
     {
       id: 'credit_cards',
-      label: 'Credit Cards',
+      label: 'Credit cards',
       value: toPref(sumBucketEur(bucketCcAccounts, true)),
       kind: 'liability',
       count: bucketCcAccounts.length,
     },
     {
       id: 'loans_debt',
-      label: 'Loans & Mortgages',
+      label: 'Loans & mortgages',
       value: toPref(sumBucketEur(bucketLoanAccounts, true)),
       kind: 'liability',
       count: bucketLoanAccounts.length,
@@ -867,35 +867,35 @@ interface AccountGroupDefinition {
 export const ACCOUNT_GROUP_DEFINITIONS: AccountGroupDefinition[] = [
   {
     key: 'checking',
-    label: 'Checking Accounts',
+    label: 'Checking accounts',
     icon: 'bank',
     category: 'asset',
     matcher: (acc) => !isMealVoucherAccount(acc) && acc.type === 'Checking',
   },
   {
     key: 'credit_card',
-    label: 'Credit Cards',
+    label: 'Credit cards',
     icon: 'card',
     category: 'liability',
     matcher: (acc) => !isMealVoucherAccount(acc) && acc.type === 'Credit Card',
   },
   {
     key: 'savings',
-    label: 'Savings Accounts',
+    label: 'Savings accounts',
     icon: 'piggy',
     category: 'asset',
     matcher: (acc) => !isMealVoucherAccount(acc) && acc.type === 'Savings',
   },
   {
     key: 'meal_voucher',
-    label: 'Meal Vouchers',
+    label: 'Meal vouchers',
     icon: 'card',
     category: 'asset',
     matcher: (acc) => isMealVoucherAccount(acc),
   },
   {
     key: 'loan',
-    label: 'Loans & Mortgages',
+    label: 'Loans & mortgages',
     icon: 'invoice',
     category: 'liability',
     matcher: (acc) => !isMealVoucherAccount(acc) && acc.type === 'Loan',
@@ -916,7 +916,7 @@ export const ACCOUNT_GROUP_DEFINITIONS: AccountGroupDefinition[] = [
   },
   {
     key: 'property',
-    label: 'Property & Real Estate',
+    label: 'Property & real estate',
     icon: 'home',
     category: 'asset',
     matcher: (acc) => !isMealVoucherAccount(acc) && acc.type === 'Property',
@@ -930,7 +930,7 @@ export const ACCOUNT_GROUP_DEFINITIONS: AccountGroupDefinition[] = [
   },
   {
     key: 'other_assets',
-    label: 'Other Assets',
+    label: 'Other assets',
     icon: 'wallet',
     category: 'asset',
     matcher: (acc) =>
@@ -946,7 +946,7 @@ export const ACCOUNT_GROUP_DEFINITIONS: AccountGroupDefinition[] = [
   },
   {
     key: 'other_liabilities',
-    label: 'Other Liabilities',
+    label: 'Other liabilities',
     icon: 'warning',
     category: 'liability',
     matcher: (acc) =>

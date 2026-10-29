@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../../lib/utils';
+import type { Account } from '../../../types';
 import type { AccountDetailData } from '../../../hooks/useAccountDetailData';
 import { normalizeCurrency, parseLocalDate } from '../../../utils';
 import {
@@ -17,6 +18,7 @@ import { Badge, Button, Card, Money, SegmentedTabs } from '../ui';
 import { safeImageSrcAttr } from '../../../utils/safeImageUrl';
 import { AccountCard, accountHasCard, accountPicture } from './AccountCard';
 import { AccountLogo, LicensePlateNew } from './parts';
+import { AccountSwitcher } from './detailTabs';
 
 /*
  * AccountDetailHero: Unified Split Hero Card (`Card top={...}`) for `/accounts-new/:id`.
@@ -30,6 +32,8 @@ type ForecastHorizon = '30' | '90' | '180' | '365';
 export const AccountDetailHero: React.FC<{
   data: AccountDetailData;
   onBack: () => void;
+  /** Opens another account from the switcher on the title. */
+  onSwitchAccount?: (account: Account) => void;
   onEdit: () => void;
   onAdjustBalance: () => void;
   onRecordTx: () => void;
@@ -39,6 +43,7 @@ export const AccountDetailHero: React.FC<{
 }> = ({
   data,
   onBack,
+  onSwitchAccount,
   onEdit,
   onAdjustBalance,
   onRecordTx,
@@ -126,7 +131,13 @@ export const AccountDetailHero: React.FC<{
                 {!hasMedia && <AccountLogo account={account} size={52} />}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                    <h1 className="min-w-0 truncate text-2xl font-semibold text-nv-ink">{account.name}</h1>
+                    <h1 className="min-w-0 max-w-full">
+                      {onSwitchAccount ? (
+                        <AccountSwitcher account={account} accounts={data.accounts} onSelect={onSwitchAccount} />
+                      ) : (
+                        <span className="block truncate text-2xl font-semibold text-nv-ink">{account.name}</span>
+                      )}
+                    </h1>
                     {account.isPrimary && <Badge tone="violet">Primary</Badge>}
                     {isClosed && (
                       <Badge tone="neutral" icon="archive">
@@ -612,7 +623,7 @@ export const AccountDetailHero: React.FC<{
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
               <p className="text-xs text-nv-muted">
-                {isLeasedVehicle ? 'Remaining Lease Allowance' : 'Net Vehicle Equity'}
+                {isLeasedVehicle ? 'Remaining lease allowance' : 'Net vehicle equity'}
               </p>
               <div className="mt-1">
                 {isLeasedVehicle && data.vehicleMetrics.leaseStats ? (

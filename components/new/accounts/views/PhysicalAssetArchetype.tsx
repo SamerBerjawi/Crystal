@@ -38,7 +38,9 @@ export const PhysicalAssetArchetype: React.FC<{
   onOpenValuation: () => void;
   onEditAccount: () => void;
   onNavigateToAccount?: (account: Account) => void;
-}> = ({ data, onOpenValuation, onEditAccount, onNavigateToAccount }) => {
+  /** Overview tab, or the Valuations (& logs) tab. */
+  section?: 'overview' | 'valuations';
+}> = ({ data, onOpenValuation, onEditAccount, onNavigateToAccount, section = 'overview' }) => {
   const {
     account,
     propertyMetrics,
@@ -64,6 +66,10 @@ export const PhysicalAssetArchetype: React.FC<{
   if (!account) return null;
 
   /* ── Case A: Property Account ─────────────────────────────────────────── */
+  if (account.type === 'Property' && section === 'valuations') {
+    return <ValuationHistoryCard data={data} onAdd={onOpenValuation} />;
+  }
+
   if (account.type === 'Property' && propertyMetrics && propertyCashflow) {
     const equitySharePct =
       propertyMetrics.currentValue > 0
@@ -290,13 +296,15 @@ export const PhysicalAssetArchetype: React.FC<{
 
     return (
       <div className="space-y-5">
+        {section === 'valuations' && !isLeased && <ValuationHistoryCard data={data} onAdd={onOpenValuation} />}
+        {section === 'overview' && (
         <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
           {/* Left 6 Cols: Lease Pace Tracker OR Owned Equity & Depreciation */}
           <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
-                  {isLeased ? 'Lease Contract & Mileage Pace' : 'Vehicle Valuation & Equity'}
+                  {isLeased ? 'Lease contract & mileage pace' : 'Vehicle valuation & equity'}
                 </h2>
                 <p className="text-xs text-nv-muted">
                   {[account.year, account.make, account.model].filter(Boolean).join(' ') ||
@@ -466,8 +474,10 @@ export const PhysicalAssetArchetype: React.FC<{
             </div>
           </Card>
         </div>
+        )}
 
         {/* Odometer Mileage Log & Batch Importer */}
+        {section === 'valuations' && (
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -594,9 +604,66 @@ export const PhysicalAssetArchetype: React.FC<{
             </div>
           )}
         </Card>
+        )}
       </div>
     );
   }
 
   return null;
+};
+
+/* ── Valuation history (Valuations tab, property and owned vehicles) ─────── */
+
+const ValuationHistoryCard: React.FC<{ data: AccountDetailData; onAdd: () => void }> = ({ data, onAdd }) => {
+  const { account, deleteValuation } = data;
+  const entries = useMemo(
+    () => [...(account?.priceHistory || [])].sort((a, b) => b.date.localeCompare(a.date)),
+    [account?.priceHistory]
+  );
+  if (!account) return null;
+  return (
+    <Card className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-nv-ink">Valuation history</h2>
+        <Button variant="primary" size="sm" icon="add" onClick={onAdd}>
+          Add valuation
+        </Button>
+      </div>
+      {entries.length === 0 ? (
+        <p className="rounded-nv-sub bg-nv-surface p-4 text-sm text-nv-muted">No valuations yet.</p>
+      ) : (
+        <div className="divide-y divide-nv-line rounded-nv-sub bg-nv-surface px-4">
+          {entries.map((entry, i) => {
+            const previous = entries[i + 1];
+            const change = previous ? entry.price - previous.price : null;
+            return (
+              <div key={entry.date} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-nv-ink">{formatShortDate(entry.date)}</p>
+                  {change !== null && (
+                    <p className="text-xs text-nv-muted">
+                      <Money amount={change} currency={account.currency} signed tone={change >= 0 ? 'income' : 'ink'} /> vs previous
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Money amount={entry.price} currency={account.currency} />
+                  <IconButton
+                    icon="delete"
+                    label={`Delete valuation from ${formatShortDate(entry.date)}`}
+                    size={44}
+                    tone="plain"
+                    onClick={() => {
+                      const res = deleteValuation(entry.date);
+                      if (res?.undo) toast.undo(`Removed valuation on ${formatShortDate(entry.date)}`, res.undo);
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
 };

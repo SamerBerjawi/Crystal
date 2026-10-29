@@ -393,102 +393,25 @@ export const OperatingAccountArchetype: React.FC<{
         </Card>
       </div>
 
-      {/* Bottom Row: Upcoming 14-Day Scheduled Bills & Linked Cards / Goals */}
-      {(operatingMetrics.upcomingPayments.length > 0 ||
-        operatingMetrics.linkedCreditCards.length > 0 ||
-        operatingMetrics.linkedGoals.length > 0) && (
-        <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
-          {/* Upcoming 14-Day Scheduled Outflows */}
-          <Card className="flex flex-col h-full space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-nv-ink">
-                  Upcoming 14-day obligations
-                </h3>
-              </div>
-              <Badge tone="violet">
-                {operatingMetrics.upcomingPayments.length} scheduled
-              </Badge>
-            </div>
-
-            {operatingMetrics.upcomingPayments.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center rounded-nv-sub bg-nv-surface p-4">
-                <p className="text-xs text-nv-muted">
-                  No scheduled outflows due in the next 14 days.
-                </p>
-              </div>
-            ) : (
-              <div className="flex-1 divide-y divide-nv-line rounded-nv-sub bg-nv-surface px-4">
-                {operatingMetrics.upcomingPayments.map((pmt, idx) => (
-                  <div
-                    key={`${pmt.date}-${idx}`}
-                    className="flex items-center justify-between gap-3 py-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-nv-ink">{pmt.description}</p>
-                      <p className="text-xs text-nv-muted">Due {formatShortDate(pmt.date)}</p>
-                    </div>
-                    <Money amount={-pmt.amount} currency={account.currency} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Linked Credit Cards & Savings Goals */}
-          <Card className="flex flex-col h-full space-y-3">
-            <div>
-              <h3 className="text-base font-semibold text-nv-ink">
-                Connected settlement cards & goals
-              </h3>
-            </div>
-
-            <div className="flex-1 space-y-2 flex flex-col justify-start">
-              {operatingMetrics.linkedCreditCards.map((cc) => (
-                <button
-                  key={cc.id}
-                  type="button"
-                  onClick={() => onNavigateToAccount?.(cc)}
-                  className="flex w-full items-center justify-between rounded-nv-sub bg-nv-surface px-4 py-3 text-left transition-colors hover:bg-nv-inset"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <NvIcon name="card" size={18} className="text-nv-violet-text" />
-                    <div>
-                      <p className="text-sm font-medium text-nv-ink">{cc.name}</p>
-                      <p className="text-xs text-nv-muted">Auto-debit settlement card</p>
-                    </div>
-                  </div>
-                  <Money amount={cc.balance} currency={cc.currency} />
-                </button>
-              ))}
-
-              {operatingMetrics.linkedGoals.map((goal) => (
-                <div
-                  key={goal.id}
-                  className="flex items-center justify-between rounded-nv-sub bg-nv-surface px-4 py-3"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <NvIcon name="piggy" size={18} className="text-nv-green-text" />
-                    <div>
-                      <p className="text-sm font-medium text-nv-ink">{goal.name}</p>
-                      <p className="text-xs text-nv-muted">Funded savings goal</p>
-                    </div>
-                  </div>
-                  <Money amount={goal.currentAmount} currency={account.currency} />
+      {/* Upcoming 14-day scheduled outflows (linked cards and goals live on the Details tab) */}
+      {operatingMetrics.upcomingPayments.length > 0 && (
+        <Card className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-nv-ink">Upcoming 14-day obligations</h3>
+            <Badge tone="violet">{operatingMetrics.upcomingPayments.length} scheduled</Badge>
+          </div>
+          <div className="divide-y divide-nv-line rounded-nv-sub bg-nv-surface px-4">
+            {operatingMetrics.upcomingPayments.map((pmt, idx) => (
+              <div key={`${pmt.date}-${idx}`} className="flex items-center justify-between gap-3 py-3">
+                <div>
+                  <p className="text-sm font-medium text-nv-ink">{pmt.description}</p>
+                  <p className="text-xs text-nv-muted">Due {formatShortDate(pmt.date)}</p>
                 </div>
-              ))}
-
-              {operatingMetrics.linkedCreditCards.length === 0 &&
-                operatingMetrics.linkedGoals.length === 0 && (
-                  <div className="flex-1 flex items-center justify-center rounded-nv-sub bg-nv-surface p-4">
-                    <p className="text-xs text-nv-muted">
-                      No credit cards or savings goals are linked to this account yet.
-                    </p>
-                  </div>
-                )}
-            </div>
-          </Card>
-        </div>
+                <Money amount={-pmt.amount} currency={account.currency} />
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
     </div>
   );

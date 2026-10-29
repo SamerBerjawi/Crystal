@@ -31,7 +31,9 @@ type ScheduleFilter = 'all' | 'upcoming' | 'paid' | 'overdue';
 export const LoanArchetype: React.FC<{
   data: AccountDetailData;
   onNavigateToAccount?: (account: Account) => void;
-}> = ({ data, onNavigateToAccount }) => {
+  /** Overview tab: progress and simulator. Payment plan tab: the schedule. */
+  section?: 'overview' | 'plan';
+}> = ({ data, onNavigateToAccount, section = 'overview' }) => {
   const {
     account,
     loanMetrics,
@@ -109,6 +111,7 @@ export const LoanArchetype: React.FC<{
   return (
     <div className="space-y-5">
       {/* Top Row: Payoff Progress + Early-Payoff Simulator */}
+      {section === 'overview' && (
       <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-12">
         {/* Left 6 Cols: Principal & Interest Breakdown + Linked Asset */}
         <Card className="flex flex-col h-full space-y-4 lg:col-span-6">
@@ -279,9 +282,10 @@ export const LoanArchetype: React.FC<{
           )}
         </Card>
       </div>
+      )}
 
       {/* Amortization Schedule Ledger */}
-      {schedule.length > 0 && (
+      {section === 'plan' && schedule.length > 0 && (
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

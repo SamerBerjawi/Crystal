@@ -665,7 +665,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             Cancel
           </Button>
           <Button variant="cta" onClick={handleSave} disabled={!name.trim()} className="flex-1">
-            {isEditing ? 'Save Changes' : 'Create Account'}
+            {isEditing ? 'Save changes' : 'Create Account'}
           </Button>
         </div>
       }
@@ -1112,7 +1112,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
               </div>
               <div>
                 <FieldLabel hint={solveTarget === 'durationMonths' ? 'Auto-solved' : undefined}>
-                  Duration (Months)
+                  Duration (months)
                 </FieldLabel>
                 <TextInput
                   type="number"
@@ -1128,7 +1128,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
               </div>
               <div>
                 <FieldLabel hint={solveTarget === 'monthlyPayment' ? 'Auto-solved' : undefined}>
-                  Monthly Payment ({currencySign(currency)})
+                  Monthly payment ({currencySign(currency)})
                 </FieldLabel>
                 <TextInput
                   type="number"

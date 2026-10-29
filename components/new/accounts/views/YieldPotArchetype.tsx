@@ -231,7 +231,7 @@ export const YieldPotArchetype: React.FC<{
                       <div key={pt.monthKey} className="flex flex-col items-center">
                         <div className="flex h-32 w-full items-end justify-center rounded-lg bg-nv-inset/50 p-1">
                           <div
-                            title={`${pt.name}: ${pt.value} (${pt.isProjected ? 'Accrued / Projected' : 'Recorded Payout'})`}
+                            title={`${pt.name}: ${pt.value} (${pt.isProjected ? 'Accrued / Projected' : 'Recorded payout'})`}
                             style={{ height: `${Math.max(6, hPct)}%` }}
                             className={cn(
                               'w-full rounded-t-md transition-all',

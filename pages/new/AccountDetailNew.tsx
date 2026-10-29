@@ -2,6 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { AccountFormSheet } from '../../components/new/accounts/AccountFormSheet';
 import { AccountDetailHero } from '../../components/new/accounts/detailHero';
 import {
+  AccountDetailsTab,
+  AccountDetailTabBar,
+  useAccountDetailTab,
+} from '../../components/new/accounts/detailTabs';
+import {
   AccountActivitySection,
   RecordAccountTxSheet,
 } from '../../components/new/accounts/detailShared';
@@ -37,6 +42,7 @@ export const AccountDetailNew: React.FC<{
   const { navigate } = useShellNew();
   const data = useAccountDetailData(accountId);
   const { account, archetype } = data;
+  const { tabs, tab, setTab } = useAccountDetailTab(account, archetype);
 
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [adjustSheetOpen, setAdjustSheetOpen] = useState(false);
@@ -98,6 +104,7 @@ export const AccountDetailNew: React.FC<{
       <AccountDetailHero
         data={data}
         onBack={() => navigate('/accounts-new')}
+        onSwitchAccount={handleNavigateToAccount}
         onEdit={() => setEditSheetOpen(true)}
         onAdjustBalance={() => setAdjustSheetOpen(true)}
         onRecordTx={() => setRecordTxMode('expense')}
@@ -108,15 +115,14 @@ export const AccountDetailNew: React.FC<{
         onOpenCloseAsset={() => setCloseAssetSheetOpen(true)}
       />
 
-      {/* 2. Specialized Archetype Workspace */}
-      {archetype === 'operating' && (
-        <OperatingAccountArchetype
-          data={data}
-          onNavigateToAccount={handleNavigateToAccount}
-        />
+      {/* 2. Workspace tabs, directly above what they switch (N21) */}
+      <AccountDetailTabBar tabs={tabs} value={tab} onChange={setTab} />
+
+      {tab === 'overview' && archetype === 'operating' && (
+        <OperatingAccountArchetype data={data} onNavigateToAccount={handleNavigateToAccount} />
       )}
 
-      {archetype === 'yield_pot' && (
+      {tab === 'overview' && archetype === 'yield_pot' && (
         <YieldPotArchetype
           data={data}
           onLogInterest={() => setRecordTxMode('interest')}
@@ -125,7 +131,7 @@ export const AccountDetailNew: React.FC<{
         />
       )}
 
-      {archetype === 'credit_card' && (
+      {tab === 'overview' && archetype === 'credit_card' && (
         <CreditCardArchetype
           data={data}
           onPayStatement={() => setRecordTxMode('card_payment')}
@@ -133,42 +139,46 @@ export const AccountDetailNew: React.FC<{
         />
       )}
 
-      {archetype === 'loan' && (
-        <LoanArchetype
-          data={data}
-          onNavigateToAccount={handleNavigateToAccount}
-        />
+      {(tab === 'overview' || tab === 'plan') && archetype === 'loan' && (
+        <LoanArchetype data={data} onNavigateToAccount={handleNavigateToAccount} section={tab === 'plan' ? 'plan' : 'overview'} />
       )}
 
-      {archetype === 'physical_asset' && (
+      {(tab === 'overview' || tab === 'valuations') && archetype === 'physical_asset' && (
         <PhysicalAssetArchetype
           data={data}
           onOpenValuation={() => setValuationSheetOpen(true)}
           onEditAccount={() => setEditSheetOpen(true)}
           onNavigateToAccount={handleNavigateToAccount}
+          section={tab === 'valuations' ? 'valuations' : 'overview'}
         />
       )}
 
-      {/* 3. Shared Account Ledger Activity Section */}
-      <AccountActivitySection
-        account={account}
-        normalizedTransactions={data.normalizedTransactions}
-        allCategories={data.allCategories}
-        showBalanceAdjustments={data.showBalanceAdjustments}
-        onToggleBalanceAdjustments={data.setShowBalanceAdjustments}
-        onOpenRecordTx={() => setRecordTxMode('expense')}
-        brandfetchClientId={data.brandfetchClientId}
-        merchantLogoOverrides={data.merchantLogoOverrides}
-        accounts={data.accounts}
-        onNavigateToFullTransactions={
-          data.navigateToTransactions
-            ? () => {
-                data.navigateToTransactions?.({ accountName: account.name });
-                navigate('/transactions-new');
-              }
-            : undefined
-        }
-      />
+      {/* 3. Ledger */}
+      {tab === 'activity' && (
+        <AccountActivitySection
+          account={account}
+          normalizedTransactions={data.normalizedTransactions}
+          allCategories={data.allCategories}
+          showBalanceAdjustments={data.showBalanceAdjustments}
+          onToggleBalanceAdjustments={data.setShowBalanceAdjustments}
+          onOpenRecordTx={() => setRecordTxMode('expense')}
+          brandfetchClientId={data.brandfetchClientId}
+          merchantLogoOverrides={data.merchantLogoOverrides}
+          accounts={data.accounts}
+          onNavigateToFullTransactions={
+            data.navigateToTransactions
+              ? () => {
+                  data.navigateToTransactions?.({ accountName: account.name });
+                  navigate('/transactions-new');
+                }
+              : undefined
+          }
+        />
+      )}
+
+      {tab === 'details' && (
+        <AccountDetailsTab data={data} onEdit={() => setEditSheetOpen(true)} onNavigateToAccount={handleNavigateToAccount} />
+      )}
 
       {/* 4. Sheets & Drawers */}
       <AccountFormSheet

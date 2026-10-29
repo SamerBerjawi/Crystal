@@ -219,6 +219,48 @@ X3 copy, X4 CTAs, X5 accent fills, X6 surfaces, X7 type floor and targets, X8 Mo
 
 **Status (2026-10-29): partly done, on `feat/new-ui-mobile-header-toolbar`.** The header, filters and layouts were reworked first because the phone header was unusable (decisions N20 to N24, `UI_UX_DESIGN_REFERENCE.md` §21): one-row header, tabs and one Filters button above the list, multi-select institutions, green Sync, split sheet only, wallet removed, the same on Transactions and Budget. This covers A2 (filters in one pill), A3 and part of B2/B3 (the Budget header chips, the body Add budget button). The migration notes planned for §21 and §22 are now §21.1 (header and toolbar) and still to write for Accounts and Budget as pages. Not yet done: the hero simplification, Base UI context menu, row semantics and phone row layout (account names truncate to "Everyday …" because the balance sits beside the name), per-archetype detail tabs.
 
+### Phase 4 (Accounts): detail workspace, decided items, list fixes
+
+Planned 2026-10-29 after the audit of the New Accounts pages on `feat/new-ui-mobile-header-toolbar` (PR #282). Budget items B1–B6 stay for a later pass. One branch off #282; one commit per step; each step ends with `npm run lint`, the unit tests and a browser check on demo data (375 / 768 / 1440, light and dark).
+
+**4.1 Detail page tabs and switcher (Q10, D2, N21).** Body tabs directly under the hero, per archetype, remembered per account type (localStorage, try/catch):
+- Operating, card, savings, pension, round-ups: **Overview · Activity · Details**.
+- Loan / Lending: **Overview · Payment plan · Activity · Details**.
+- Property / Vehicle: **Overview · Valuations & logs · Activity · Details**.
+- *Overview* = today's archetype view; *Activity* = the ledger; *Details* = identifiers (copyable), linked accounts and goals, lifecycle (archive, reopen, delete).
+- Quick account switcher: the account name in the hero opens a menu of all accounts (grouped as on the list), Base UI `Menu`, arrow keys.
+- Files: `pages/new/AccountDetailNew.tsx`, `components/new/accounts/detailHero.tsx`, new `components/new/accounts/detailTabs.tsx`; the archetype views lose the parts that move to other tabs.
+- Done when each archetype shows its tabs, the hash (`#plan`, `#activity`…) opens a tab directly, and the switcher moves between accounts without the list.
+
+*Status 4.1 (2026-10-29): done on `feat/new-account-detail-tabs`, not committed.* Tabs from `detailTabsFor` / `resolveDetailTab` (`utils/accountDetailModel.ts`, tested in `tests/unit/accountDetailTabs.test.ts`); UI in `components/new/accounts/detailTabs.tsx` (tab hook, switcher, Details tab). Payment plan only appears for loans with a schedule (the demo mortgage has none; checked by giving it one). Loan schedule, vehicle mileage log and a new valuation history moved out of Overview; the everyday account's "connected cards & goals" became the Details tab's Connections. The hero still has its back pill and buttons (4.3, D3).
+
+**4.2 Classic parity, inside the tabs** (the four gaps from the audit):
+- *Activity*: rows open the existing New transaction detail sheet (`components/new/transactions/detail.tsx`) with edit and delete (Undo toast, D6). Reuse, don't fork.
+- *Payment plan*: full schedule (filter pills All / Paid / Upcoming / Overdue / Changed), per-row actions **Defer** (full holiday or interest-only), **Edit payment** (total, principal, interest), **Extra principal**, **Mark paid**, and **Reset changes**, all through `saveLoanPaymentOverrides` with Undo. Port the logic of `LoanDeferPaymentModal` / `LoanPaymentBulkEditModal`, not their UI.
+- *Details*: **Reopen** a sold or retired asset (`revertClosure`) and **Hold to delete** the account (D5), through `AccountFormSheet`'s unused `onDelete` or a Details-tab row. Archive / reopen for ordinary accounts here too.
+- Vehicle mileage chart in *Valuations & logs* (`AreaChart` of readings with the pro-rata allowance line for leases).
+- Tests: a model test for each override kind (defer full, defer interest-only, edited payment, reset) against `generateAmortizationSchedule`.
+
+**4.3 Decided, not built.**
+- **Q5 leased vehicles:** new optional `residualValue` on `Account` (form field for leased vehicles; `types.ts`, `demoData.ts`; the zod schema passes it through). A leased vehicle counts in assets only when `residualValue` is set, at that value; the hero shows months left and the monthly payment. Change in `classifyAccountBalanceEur` / `resolveAccountBalance` (shared, so classic follows), with tests.
+- **Q2 future interest:** the loan *Overview* shows "Interest still to pay" from `computeLoanBalanceBreakdown().futureInterest`, next to the balance (principal + accrued).
+- **Q4 chart curve:** `curveMonotoneX` for every money series in the New pages (`detailHero`, `overview`, `YieldPotArchetype`); drop the decorative `TrendLine` and dotted background on single-series balance charts (X9); amend §20.4 in the reference.
+- **D3 chrome:** remove the in-body "All accounts" pill and repeated title (the shell header has them); Reconcile / Edit / Sync / Appraise go to a `PageToolbar` row under the tabs (`ToolButton`, overflow in `ToolMenu`); the header action follows the archetype (operating: Add transaction; card: Pay statement; loan: Record payment; property / vehicle: Add valuation / Log mileage; savings: Log interest).
+
+**4.4 Accounts list (open from §3).**
+- A1: each hero total opens the segment it adds up (liabilities → a debts filter that includes cards), or the totals stop being links.
+- A2 (allocation): two bars, assets and liabilities, each summing to 100 %; widths from the real shares (no `Math.max(3, …)`).
+- A3: hero down to net worth + 90-day change, three figures (assets, liabilities, liquid cash), the chart and the attention chips; "Solvency %" goes.
+- A7: replace the hand-made right-click menu with the row's Base UI `Menu` (open at the pointer); keyboard and `role="menu"` come with it.
+- A8: the row is one link (Enter opens the page, Space the quick overview); menu and peek sit beside it, not inside.
+- A10: groups longer than 8 show 8 and a "Show all N" `MoreButton` (D11).
+- A11: sort value `change90d`, label "Change (90 days)"; L-A8: rate sort ranks APY within assets and APR within debts.
+- Leftovers after #282: delete `AccountSparklineSvg` (or put the sparkline back on rows: decide in review); `isMealVoucherAccount` either drives a "Meal vouchers" group or goes.
+
+**4.5 Docs.** §22 Accounts migration notes (D13: kept, moved, dropped, where the logic lives, keyboard route, verified / not verified), and mark each item of `docs/ACCOUNTS_NEW_REDESIGN_PLAN.md` built or dropped.
+
+Order: 4.1 → 4.2 (needs the tabs) → 4.3 → 4.4 → 4.5. 4.3's Q5 and Q4 and all of 4.4 don't depend on 4.1 and could run in parallel in their own worktrees if wanted. Not in Phase 4: L-D9–L-D12, L-H4, L-H5, X10 (Phase 5).
+
 ### Phase 5: Polish and docs (P2)
 A10, A11, B7, B8, L-A8, L-A9, L-D9–L-D12, L-H4, L-H5, L-B9–L-B12, X10 performance. Write §21 Accounts and §22 Budget migration notes (X11), fix the §9 file name, fix §20's internal contradictions (§20.4 vs monotone sparklines in §20.8; "ink ring" written as `ring-nv-violet`; Base UI tooltip classes `bg-white/80 dark:bg-zinc-900/80` that the token test forbids), and mark the redesign plan's unbuilt items as built or dropped.
 
