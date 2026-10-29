@@ -17,6 +17,7 @@ import {
   toLocalISOString,
 } from '../utils';
 import { computeVehicleAccountMetrics } from './accountDetailModel';
+import { formatShortDate } from './dateFormat';
 
 export interface AccountsModelOptions {
   conversionRates?: Partial<Record<Currency, number>>;
@@ -662,7 +663,7 @@ export const computeAccountsHeroModel = (
           severity: 'danger',
           title: acc.type === 'Lending' ? 'Overdue repayment to you' : 'Overdue Loan Installment',
           subtitle: `${overdue.length} scheduled payment${overdue.length > 1 ? 's' : ''} past due`,
-          metricLabel: `Due ${overdue[0].date}`,
+          metricLabel: `Due ${formatShortDate(overdue[0].date)}`,
         });
       }
     } else if (acc.type === 'Vehicle' && acc.ownership === 'Leased') {
@@ -712,7 +713,7 @@ export const computeAccountsHeroModel = (
           severity: days <= 2 ? 'danger' : 'warn',
           title: 'Card payment due soon',
           subtitle: days === 0 ? 'Due today' : `Due in ${days} day${days > 1 ? 's' : ''}`,
-          metricLabel: `Due ${toLocalISOString(due)}`,
+          metricLabel: `Due ${formatShortDate(toLocalISOString(due))}`,
         });
       }
     }

@@ -51,7 +51,8 @@ type ButtonVariant = 'primary' | 'cta' | 'success' | 'secondary' | 'ghost' | 'da
 
 const buttonClass = (variant: ButtonVariant, size: 'sm' | 'md' | 'lg') => cn(
   'inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[background-color,color,box-shadow,transform] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
-  size === 'sm' && 'h-9 px-4 text-sm',
+  // 36px to look at, 44px to tap (D14): the pseudo-element extends the hit area 4px on every side.
+  size === 'sm' && "relative h-9 px-4 text-sm after:absolute after:-inset-1 after:content-['']",
   size === 'md' && 'h-11 px-5 text-[15px]',
   size === 'lg' && 'h-14 px-6 text-base',
   variant === 'primary' && 'bg-nv-ink text-nv-on-ink hover:opacity-90',

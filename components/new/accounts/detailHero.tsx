@@ -89,21 +89,21 @@ export const AccountDetailHero: React.FC<{
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-nv-inset px-4 text-sm font-medium text-nv-ink transition-colors hover:bg-nv-line"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-nv-inset px-4 text-sm font-medium text-nv-ink transition-colors hover:bg-nv-line"
             >
               <NvIcon name="arrowLeft" size={16} />
-              <span>All Accounts</span>
+              <span>All accounts</span>
             </button>
 
             <div className="flex flex-wrap items-center gap-2">
               {data.enableBankingLink && onOpenBankSync && (
                 <Button variant="secondary" size="sm" icon="refresh" onClick={onOpenBankSync}>
-                  Bank Sync
+                  Bank sync
                 </Button>
               )}
               {isPhysicalAsset && !isLeasedVehicle && onOpenValuation && (
                 <Button variant="secondary" size="sm" icon="investments" onClick={onOpenValuation}>
-                  Appraise Value
+                  Appraise value
                 </Button>
               )}
               <Button variant="secondary" size="sm" icon="refresh" onClick={onAdjustBalance}>
@@ -112,8 +112,8 @@ export const AccountDetailHero: React.FC<{
               <Button variant="secondary" size="sm" icon="edit" onClick={onEdit}>
                 Edit
               </Button>
-              <Button variant="cta" size="sm" icon="add" onClick={onRecordTx}>
-                Record Activity
+              <Button variant="primary" size="sm" icon="add" onClick={onRecordTx}>
+                Record activity
               </Button>
             </div>
           </div>
@@ -201,7 +201,7 @@ export const AccountDetailHero: React.FC<{
                     value={chartMode}
                     onChange={setChartMode}
                     items={[
-                      { id: 'history', label: '90d History' },
+                      { id: 'history', label: '90d history' },
                       { id: 'forecast', label: 'Forecast' },
                     ]}
                   />
@@ -276,7 +276,7 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'operating' && data.operatingMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Safe to Spend (After 14d Bills)</p>
+              <p className="text-xs text-nv-muted">Safe to spend (after 14d bills)</p>
               <div className="mt-1">
                 <Money
                   amount={data.operatingMetrics.safeToSpend}
@@ -286,7 +286,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">14-Day Scheduled Outflows</p>
+              <p className="text-xs text-nv-muted">14-day scheduled outflows</p>
               <div className="mt-1">
                 <Money
                   amount={data.operatingMetrics.upcomingOutflows14d}
@@ -296,7 +296,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">30-Day Lowest Projected</p>
+              <p className="text-xs text-nv-muted">30-day lowest projected</p>
               <div className="mt-1">
                 <Money
                   amount={data.operatingMetrics.lowestBalanceForecast}
@@ -306,7 +306,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">3-Month Avg Monthly Spend</p>
+              <p className="text-xs text-nv-muted">3-month avg monthly spend</p>
               <div className="mt-1">
                 <Money
                   amount={data.operatingMetrics.avgMonthlySpend}
@@ -321,13 +321,13 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'yield_pot' && data.savingsMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Annual Yield Rate (APY)</p>
+              <p className="text-xs text-nv-muted">Annual yield rate (APY)</p>
               <p className="nv-tabular mt-1 text-xl font-semibold text-nv-green-text">
                 {data.savingsMetrics.apy.toFixed(2)}%
               </p>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">YTD Interest Earned / Accrued</p>
+              <p className="text-xs text-nv-muted">YTD interest earned / accrued</p>
               <div className="mt-1">
                 <Money
                   amount={data.savingsMetrics.totalInterestYTD}
@@ -338,7 +338,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Projected Monthly Interest</p>
+              <p className="text-xs text-nv-muted">Projected monthly interest</p>
               <div className="mt-1">
                 <Money
                   amount={data.savingsMetrics.projectedMonthlyInterest}
@@ -348,7 +348,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Projected Annual Interest</p>
+              <p className="text-xs text-nv-muted">Projected annual interest</p>
               <div className="mt-1">
                 <Money
                   amount={data.savingsMetrics.projectedAnnualInterest}
@@ -363,7 +363,7 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'yield_pot' && data.pensionMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Total Contributions</p>
+              <p className="text-xs text-nv-muted">Total contributions</p>
               <div className="mt-1">
                 <Money
                   amount={data.pensionMetrics.totalInvested}
@@ -373,7 +373,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Total Investment Gain</p>
+              <p className="text-xs text-nv-muted">Total investment gain</p>
               <div className="mt-1">
                 <Money
                   amount={data.pensionMetrics.totalReturn}
@@ -425,7 +425,7 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'yield_pot' && data.spareChangeMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Round-Up Total Saved</p>
+              <p className="text-xs text-nv-muted">Round-up total saved</p>
               <div className="mt-1">
                 <Money
                   amount={data.spareChangeMetrics.totalSaved}
@@ -436,13 +436,13 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Captured Round-Ups</p>
+              <p className="text-xs text-nv-muted">Captured round-ups</p>
               <p className="nv-tabular mt-1 text-xl font-semibold text-nv-ink">
                 {data.spareChangeMetrics.totalRoundUps}
               </p>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Average Round-Up</p>
+              <p className="text-xs text-nv-muted">Average round-up</p>
               <div className="mt-1">
                 <Money
                   amount={data.spareChangeMetrics.avgRoundUp}
@@ -452,7 +452,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Saved This Month</p>
+              <p className="text-xs text-nv-muted">Saved this month</p>
               <div className="mt-1">
                 <Money
                   amount={data.spareChangeMetrics.thisMonthSaved}
@@ -467,7 +467,7 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'credit_card' && data.creditCardMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Available Credit</p>
+              <p className="text-xs text-nv-muted">Available credit</p>
               <div className="mt-1">
                 <Money
                   amount={data.creditCardMetrics.availableCredit}
@@ -477,7 +477,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Credit Limit</p>
+              <p className="text-xs text-nv-muted">Credit limit</p>
               <div className="mt-1">
                 <Money
                   amount={data.creditCardMetrics.creditLimit}
@@ -487,7 +487,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Credit Utilization</p>
+              <p className="text-xs text-nv-muted">Credit utilization</p>
               <p
                 className={cn(
                   'nv-tabular mt-1 text-xl font-semibold',
@@ -502,7 +502,7 @@ export const AccountDetailHero: React.FC<{
               </p>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Current Cycle Spend</p>
+              <p className="text-xs text-nv-muted">Current cycle spend</p>
               <div className="mt-1">
                 <Money
                   amount={data.creditCardMetrics.totalSpent}
@@ -517,7 +517,7 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'loan' && data.loanMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Remaining Principal</p>
+              <p className="text-xs text-nv-muted">Remaining principal</p>
               <div className="mt-1">
                 <Money
                   amount={data.loanMetrics.outstandingPrincipal}
@@ -527,7 +527,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Principal Repaid</p>
+              <p className="text-xs text-nv-muted">Principal repaid</p>
               <div className="mt-1 flex items-baseline gap-2">
                 <Money
                   amount={data.loanMetrics.totalPaidPrincipal}
@@ -540,13 +540,13 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Interest Rate (APR)</p>
+              <p className="text-xs text-nv-muted">Interest rate (APR)</p>
               <p className="nv-tabular mt-1 text-xl font-semibold text-nv-ink">
                 {(account.interestRate || 0).toFixed(2)}%
               </p>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Next Scheduled Installment</p>
+              <p className="text-xs text-nv-muted">Next scheduled installment</p>
               <div className="mt-1">
                 {data.loanMetrics.nextScheduledPayment ? (
                   <Money
@@ -555,7 +555,7 @@ export const AccountDetailHero: React.FC<{
                     size="lg"
                   />
                 ) : (
-                  <span className="text-lg font-semibold text-nv-green-text">Paid in Full</span>
+                  <span className="text-lg font-semibold text-nv-green-text">Paid in full</span>
                 )}
               </div>
             </div>
@@ -565,7 +565,7 @@ export const AccountDetailHero: React.FC<{
         {archetype === 'physical_asset' && data.propertyMetrics && (
           <>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Net Property Equity</p>
+              <p className="text-xs text-nv-muted">Net property equity</p>
               <div className="mt-1">
                 <Money
                   amount={data.propertyMetrics.netEquity}
@@ -575,7 +575,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Appreciation vs Purchase</p>
+              <p className="text-xs text-nv-muted">Appreciation vs purchase</p>
               <div className="mt-1 flex items-baseline gap-1.5">
                 <Money
                   amount={data.propertyMetrics.appreciation}
@@ -590,7 +590,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Linked Mortgage Debt</p>
+              <p className="text-xs text-nv-muted">Linked mortgage debt</p>
               <div className="mt-1">
                 <Money
                   amount={data.propertyMetrics.loanBalance}
@@ -600,7 +600,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Loan-to-Value (LTV)</p>
+              <p className="text-xs text-nv-muted">Loan-to-value (LTV)</p>
               <p className="nv-tabular mt-1 text-xl font-semibold text-nv-ink">
                 {data.propertyMetrics.ltv.toFixed(1)}%
               </p>
@@ -629,13 +629,13 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Latest Odometer</p>
+              <p className="text-xs text-nv-muted">Latest odometer</p>
               <p className="nv-tabular mt-1 text-xl font-semibold text-nv-ink">
                 {data.vehicleMetrics.currentMileage.toLocaleString()} km
               </p>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Total Operating Cost (TCO)</p>
+              <p className="text-xs text-nv-muted">Total operating cost (TCO)</p>
               <div className="mt-1">
                 <Money
                   amount={data.vehicleTco?.totalCostOfOwnership ?? 0}
@@ -645,7 +645,7 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">All-In Cost per km</p>
+              <p className="text-xs text-nv-muted">All-in cost per km</p>
               <div className="mt-1">
                 {data.vehicleTco?.costPerKm !== null && data.vehicleTco?.costPerKm !== undefined ? (
                   <Money amount={data.vehicleTco.costPerKm} currency={account.currency} size="lg" />
@@ -664,7 +664,7 @@ export const AccountDetailHero: React.FC<{
           <button
             type="button"
             onClick={onOpenCloseAsset}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-nv-muted hover:text-nv-ink"
+            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-nv-muted hover:text-nv-ink"
           >
             <NvIcon name="archive" size={14} />
             <span>Sell, return, or retire this {account.type.toLowerCase()}…</span>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatShortDate } from '../../../../utils/dateFormat';
 import { cn } from '../../../../lib/utils';
 import type { Account, Currency } from '../../../../types';
 import type { AccountDetailData } from '../../../../hooks/useAccountDetailData';
@@ -66,7 +67,7 @@ function TxScatterTooltip({
   });
 
   const title = point.txDate
-    ? `${point.txDate} · ${point.description || (point.inflow !== undefined ? 'Inflow' : 'Outflow')}`
+    ? `${formatShortDate(String(point.txDate))} · ${point.description || (point.inflow !== undefined ? 'Inflow' : 'Outflow')}`
     : point.date instanceof Date
       ? monthYearFmt.format(point.date)
       : 'Transaction';
@@ -203,7 +204,7 @@ export const OperatingAccountArchetype: React.FC<{
       {isPhysicalCash && cashMetrics && (
         <Card className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="flex flex-col justify-between rounded-nv-sub bg-nv-surface p-4 h-full">
-            <p className="text-xs text-nv-muted">30-Day Cash Outflow</p>
+            <p className="text-xs text-nv-muted">30-day cash outflow</p>
             <div className="mt-1">
               <Money
                 amount={cashMetrics.rolling30dOutflow}
@@ -213,7 +214,7 @@ export const OperatingAccountArchetype: React.FC<{
             </div>
           </div>
           <div className="flex flex-col justify-between rounded-nv-sub bg-nv-surface p-4 h-full">
-            <p className="text-xs text-nv-muted">Avg Daily Cash Burn</p>
+            <p className="text-xs text-nv-muted">Avg daily cash burn</p>
             <div className="mt-1">
               <Money
                 amount={cashMetrics.avgDailySpend}
@@ -223,13 +224,13 @@ export const OperatingAccountArchetype: React.FC<{
             </div>
           </div>
           <div className="flex flex-col justify-between rounded-nv-sub bg-nv-surface p-4 h-full">
-            <p className="text-xs text-nv-muted">Estimated Cash Runway</p>
+            <p className="text-xs text-nv-muted">Estimated cash runway</p>
             <p className="nv-tabular mt-1 text-xl font-semibold text-nv-ink">
               {cashMetrics.runwayDays !== null ? `${cashMetrics.runwayDays} days` : 'Unlimited'}
             </p>
           </div>
           <div className="flex flex-col justify-between rounded-nv-sub bg-nv-surface p-4 h-full">
-            <p className="text-xs text-nv-muted">Reserve Status</p>
+            <p className="text-xs text-nv-muted">Reserve status</p>
             <p className="mt-1 text-sm font-semibold text-nv-violet-text">
               {cashMetrics.burnRateMessage}
             </p>
@@ -244,11 +245,8 @@ export const OperatingAccountArchetype: React.FC<{
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
-                6-Month Inflow vs. Outflow
+                6-month inflow vs. outflow
               </h2>
-              <p className="text-xs text-nv-muted">
-                Transaction distribution & cashflow velocity in {account.currency}
-              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs text-nv-muted">
               <span className="flex items-center gap-1.5">
@@ -267,12 +265,12 @@ export const OperatingAccountArchetype: React.FC<{
                     return curr === 'linear' ? 'log' : 'auto';
                   });
                 }}
-                className="flex items-center gap-1 rounded-full border border-nv-line bg-nv-base px-2 py-0.5 text-[10px] font-medium text-nv-muted transition hover:border-nv-ink/30 hover:text-nv-ink focus:outline-none"
+                className="flex items-center gap-1 rounded-full border border-nv-line bg-nv-base px-2 py-0.5 text-[11px] font-medium text-nv-muted transition hover:border-nv-ink/30 hover:text-nv-ink focus:outline-none"
                 title={`Y-Axis Scale: ${activeScaleType === 'symlog' ? 'Logarithmic' : 'Linear'} (${userScaleMode === 'auto' ? 'Auto-detected' : 'Manual'}). Click to toggle.`}
               >
                 <span>{activeScaleType === 'symlog' ? 'Log' : 'Linear'}</span>
                 {userScaleMode === 'auto' && (
-                  <span className="text-[9px] text-nv-muted/70">(auto)</span>
+                  <span className="text-xs text-nv-muted/70">(auto)</span>
                 )}
               </button>
             </div>
@@ -337,7 +335,7 @@ export const OperatingAccountArchetype: React.FC<{
                     key={m.name}
                     className="flex flex-col items-center justify-center px-0.5 min-w-0"
                   >
-                    <span className="text-[10px] sm:text-[11px] font-medium text-nv-muted truncate">
+                    <span className="text-xs font-medium text-nv-muted truncate">
                       {m.name}
                     </span>
                     <span className="truncate">
@@ -347,7 +345,7 @@ export const OperatingAccountArchetype: React.FC<{
                         signed
                         compact
                         tone={isNegative ? 'expense' : 'income'}
-                        className="text-[10px] sm:text-[11px] font-semibold"
+                        className="text-xs font-semibold"
                       />
                     </span>
                   </div>
@@ -360,10 +358,7 @@ export const OperatingAccountArchetype: React.FC<{
         {/* Right 5 Cols: Top 90-Day Spending Categories */}
         <Card className="flex flex-col h-full space-y-4 lg:col-span-5">
           <div>
-            <h2 className="text-lg font-semibold text-nv-ink">Top Outflow Categories (90d)</h2>
-            <p className="text-xs text-nv-muted">
-              Non-transfer spending distribution over the past 90 days
-            </p>
+            <h2 className="text-lg font-semibold text-nv-ink">Top outflow categories (90d)</h2>
           </div>
 
           {operatingMetrics.topCategories90d.length === 0 ? (
@@ -408,11 +403,8 @@ export const OperatingAccountArchetype: React.FC<{
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-semibold text-nv-ink">
-                  Upcoming 14-Day Obligations
+                  Upcoming 14-day obligations
                 </h3>
-                <p className="text-xs text-nv-muted">
-                  Scheduled bills, loan installments & card settlements reserved in Safe-to-Spend
-                </p>
               </div>
               <Badge tone="violet">
                 {operatingMetrics.upcomingPayments.length} scheduled
@@ -434,7 +426,7 @@ export const OperatingAccountArchetype: React.FC<{
                   >
                     <div>
                       <p className="text-sm font-medium text-nv-ink">{pmt.description}</p>
-                      <p className="text-xs text-nv-muted">Due {pmt.date}</p>
+                      <p className="text-xs text-nv-muted">Due {formatShortDate(pmt.date)}</p>
                     </div>
                     <Money amount={-pmt.amount} currency={account.currency} />
                   </div>
@@ -447,11 +439,8 @@ export const OperatingAccountArchetype: React.FC<{
           <Card className="flex flex-col h-full space-y-3">
             <div>
               <h3 className="text-base font-semibold text-nv-ink">
-                Connected Settlement Cards & Goals
+                Connected settlement cards & goals
               </h3>
-              <p className="text-xs text-nv-muted">
-                Credit cards and savings goals funded by {account.name}
-              </p>
             </div>
 
             <div className="flex-1 space-y-2 flex flex-col justify-start">

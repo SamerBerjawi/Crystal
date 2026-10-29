@@ -180,7 +180,7 @@ export const AccountCard: React.FC<{ account: Account; className?: string }> = (
   return (
     <div
       className={cn(
-        'relative aspect-[1.586] w-full max-w-[340px] overflow-hidden rounded-[22px] shadow-nv-float transition-transform duration-300 hover:scale-[1.02] [container-type:inline-size]',
+        'relative aspect-[1.586] w-full max-w-[340px] overflow-hidden rounded-[22px] transition-transform duration-300 hover:scale-[1.02] [container-type:inline-size]',
         className
       )}
       style={{

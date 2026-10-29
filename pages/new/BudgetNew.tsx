@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatShortDate } from '../../utils/dateFormat';
 import { cn } from '../../lib/utils';
 import type { Account, AppPreferences, Budget, Category, Transaction } from '../../types';
 import { useBudgetData } from '../../hooks/useBudgetData';
@@ -27,7 +28,7 @@ import {
   usePageTabs,
 } from '../../components/new/shellContext';
 import { FilterChip, PeriodPill, TwoToneTitle } from '../../components/new/tile';
-import { Button, Card, EmptyState, IconButton, Money, MoreButton, ProgressBar } from '../../components/new/ui';
+import { Badge, Button, Card, EmptyState, IconButton, Money, MoreButton, ProgressBar } from '../../components/new/ui';
 import { NvIcon } from '../../components/new/NvIcon';
 import {
   AllocationRing,
@@ -181,7 +182,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
     value: tab,
     onChange: setTab,
     items: [
-      { id: 'budgets', label: 'Monthly Budget' },
+      { id: 'budgets', label: 'Monthly budget' },
       { id: 'goals', label: `Savings Goals (${data.goals.length})` },
     ],
   });
@@ -278,9 +279,9 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                 <button
                   type="button"
                   onClick={() => setSuggestionsOpen(true)}
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-nv-violet/40 bg-nv-violet-soft px-4 text-sm font-medium text-nv-violet-text transition-colors hover:bg-nv-violet/10"
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-nv-line bg-nv-surface px-4 text-sm font-medium text-nv-ink transition-colors hover:bg-nv-inset"
                 >
-                  <NvIcon name="sparkles" size={16} />
+                  <NvIcon name="sparkles" size={16} className="text-nv-violet-text" />
                   <span>{suggestions.length} recommendations</span>
                 </button>
               )}
@@ -316,7 +317,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                       <NvIcon name="budget" size={16} />
                     </span>
                     <TwoToneTitle
-                      first="Monthly Budget"
+                      first="Monthly budget"
                       second={`· ${monthLabel}`}
                       as="h1"
                       className="text-lg font-semibold"
@@ -375,7 +376,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
               <FigureCell
                 icon="wallet"
                 accent="green"
-                label="Daily Safe Spend"
+                label="Daily safe spend"
                 note={pace.when === 'current' ? `${pace.left} days left` : undefined}
               >
                 <Money amount={dailySafe} currency={data.displayCurrency} size="lg" />
@@ -384,7 +385,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
               <FigureCell
                 icon="forecast"
                 accent="sky"
-                label="Month-End Forecast"
+                label="Month-end forecast"
                 note={pace.when === 'current' ? (projected === null ? 'From day 5' : 'Based on current pace') : undefined}
               >
                 {projected === null ? (
@@ -397,7 +398,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
               <FigureCell
                 icon="checkCircle"
                 accent={summary.counts.over > 0 ? 'orange' : 'violet'}
-                label="Budget Health"
+                label="Budget health"
                 note={
                   summary.counts.over > 0
                     ? `${summary.counts.over} over limit`
@@ -412,7 +413,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
               <FigureCell
                 icon="money"
                 accent="orange"
-                label="Outside Budget"
+                label="Outside budget"
                 note={
                   unbudgetedList.length > 0
                     ? `${unbudgetedList.length} unbudgeted categories`
@@ -428,17 +429,17 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             {/* Left Column: Budget List (8 cols) */}
             <div className="space-y-4 lg:col-span-8">
-              <Card tone="surface">
+              <Card>
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-nv-ink">Category Budgets</h2>
+                    <h2 className="text-lg font-semibold text-nv-ink">Category budgets</h2>
                     <span className="nv-tabular rounded-full bg-nv-inset px-2.5 py-0.5 text-xs font-semibold text-nv-muted">
                       {filteredLines.length}
                     </span>
                   </div>
 
                   <Button
-                    variant="cta"
+                    variant="primary"
                     size="sm"
                     icon="add"
                     onClick={() => {
@@ -528,9 +529,6 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                       <h3 className="text-[15px] font-semibold text-nv-ink">
                         Spending without a budget
                       </h3>
-                      <p className="text-[12px] text-nv-muted">
-                        Expenses recorded this month in categories without a limit
-                      </p>
                     </div>
                     <Button
                       size="sm"
@@ -547,7 +545,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                       return (
                         <div
                           key={item.name}
-                          className="flex items-center justify-between rounded-nv-tile border border-nv-line bg-nv-surface p-3"
+                          className="flex items-center justify-between rounded-nv-sub bg-nv-surface p-3"
                         >
                           <div className="flex items-center gap-2.5">
                             <CategoryDisc
@@ -568,7 +566,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                           <button
                             type="button"
                             onClick={() => openCreateFor(item.name)}
-                            className="inline-flex h-8 items-center gap-1 rounded-full border border-nv-line px-2.5 text-[12px] font-medium text-nv-ink hover:bg-nv-inset"
+                            className="inline-flex h-11 items-center gap-1 rounded-full border border-nv-line px-2.5 text-[12px] font-medium text-nv-ink hover:bg-nv-inset"
                           >
                             <NvIcon name="add" size={14} />
                             <span>Budget</span>
@@ -584,8 +582,8 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
             {/* Right Column: Allocation & Insights Rail (4 cols) */}
             <div className="space-y-4 lg:col-span-4">
               {/* Allocation Donut */}
-              <Card tone="surface">
-                <h2 className="mb-4 text-base font-semibold text-nv-ink">Budget Allocation</h2>
+              <Card>
+                <h2 className="mb-4 text-base font-semibold text-nv-ink">Budget allocation</h2>
                 {slices.length === 0 ? (
                   <p className="py-6 text-center text-sm text-nv-muted">
                     No active budget limits to display.
@@ -645,9 +643,6 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                         <h3 className="text-[14px] font-semibold text-nv-ink">
                           {suggestions.length} Budget Adjustments
                         </h3>
-                        <p className="text-[12px] text-nv-muted">
-                          Trends diverge from your limits
-                        </p>
                       </div>
                     </div>
 
@@ -660,7 +655,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                     </Button>
                   </div>
 
-                  <div className="mt-3 divide-y divide-nv-line rounded-nv-tile border border-nv-line bg-nv-surface">
+                  <div className="mt-3 divide-y divide-nv-line rounded-nv-sub bg-nv-surface">
                     {suggestions.slice(0, 2).map(s => (
                       <div key={s.categoryName} className="p-3 text-[13px]">
                         <div className="flex items-center justify-between">
@@ -669,7 +664,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                             → <Money amount={s.suggested} currency={data.displayCurrency} />
                           </span>
                         </div>
-                        <p className="mt-0.5 text-[11px] text-nv-muted">
+                        <p className="mt-0.5 text-xs text-nv-muted">
                           Avg: <Money amount={s.average} currency={data.displayCurrency} />
                           {s.current !== undefined && (
                             <span> (currently <Money amount={s.current} currency={data.displayCurrency} />)</span>
@@ -687,11 +682,8 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                   <NvIcon name="refresh" size={20} />
                 </div>
                 <h3 className="mt-2.5 text-[15px] font-semibold text-nv-ink">
-                  Auto-generate Budgets
+                  Auto-generate budgets
                 </h3>
-                <p className="mt-1 text-[12px] text-nv-muted">
-                  Use your actual 1 to 12 month spending history to quickly set smart targets.
-                </p>
                 <div className="mt-4">
                   <Button
                     variant="secondary"
@@ -699,7 +691,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                     className="w-full"
                     onClick={() => setAutofillOpen(true)}
                   >
-                    Open Auto-fill
+                    Open auto-fill
                   </Button>
                 </div>
               </Card>
@@ -722,7 +714,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                       <NvIcon name="award" size={16} />
                     </span>
                     <TwoToneTitle
-                      first="Savings Goals"
+                      first="Savings goals"
                       second="· Progress overview"
                       as="h1"
                       className="text-lg font-semibold"
@@ -772,7 +764,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
               <FigureCell
                 icon="wallet"
                 accent="green"
-                label="Active Goals"
+                label="Active goals"
                 note={`${data.goals.filter(g => g.recurring).length} recurring`}
               >
                 <span className="nv-tabular text-xl font-semibold text-nv-ink">
@@ -794,7 +786,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
               <FigureCell
                 icon="calendar"
                 accent="sky"
-                label="Monthly Contributions"
+                label="Monthly contributions"
                 note="Planned per month"
               >
                 <Money
@@ -831,7 +823,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
             <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
               {displayedGoals.length === 0 ? (
                 <div className="col-span-full">
-                  <Card tone="surface">
+                  <Card>
                     <EmptyState
                       icon="award"
                       title={searchQuery ? 'No goals match your search' : 'No savings goals set'}
@@ -849,7 +841,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                   const hasSub = (g.subGoals && g.subGoals.length > 0) || g.parts > 0;
                   const isExpanded = expandedGoalIds.has(g.id);
                   return (
-                    <Card key={g.id} tone="surface" className="flex flex-col justify-between">
+                    <Card key={g.id} className="flex flex-col justify-between">
                       <div>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
@@ -862,7 +854,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                                   aria-expanded={isExpanded}
                                   aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${g.name} sub-goals`}
                                   className={cn(
-                                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
+                                    "relative inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']",
                                     isExpanded
                                       ? 'border-nv-ink bg-nv-ink text-nv-on-ink'
                                       : 'border-nv-line bg-nv-inset text-nv-ink hover:bg-nv-tile'
@@ -881,14 +873,12 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                               )}
                             </div>
                             {g.due && (
-                              <p className="mt-0.5 text-[12px] text-nv-muted">Target: {g.due}</p>
+                              <p className="mt-0.5 text-[12px] text-nv-muted">Target: {formatShortDate(g.due)}</p>
                             )}
                           </div>
 
                           {g.done ? (
-                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-nv-green/40 bg-nv-green-soft px-2.5 py-0.5 text-xs font-semibold text-nv-green-text">
-                              <NvIcon name="check" size={14} /> Completed
-                            </span>
+                            <Badge tone="green" icon="check" className="shrink-0">Completed</Badge>
                           ) : (
                             <span className="nv-tabular shrink-0 text-sm font-semibold text-nv-ink">
                               {Math.round(g.pct)}%
@@ -924,8 +914,8 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
 
                       {/* Expandable sub-goals tray */}
                       {hasSub && isExpanded && (
-                        <div className="mt-3.5 space-y-2 rounded-nv-tile border border-nv-line bg-nv-tile/60 p-3">
-                          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-nv-muted">
+                        <div className="mt-3.5 space-y-2 rounded-nv-sub bg-nv-surface p-3">
+                          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-nv-muted">
                             <span>Sub-goal</span>
                             <span>Progress</span>
                           </div>
@@ -939,7 +929,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                                     </span>
                                     <div className="flex shrink-0 items-center gap-1.5">
                                       {sg.done ? (
-                                        <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-nv-green-text">
+                                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-nv-green-text">
                                           <NvIcon name="check" size={12} /> Reached
                                         </span>
                                       ) : (
@@ -960,15 +950,15 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                                         className="h-1.5"
                                       />
                                     </div>
-                                    <span className="shrink-0 text-[11px] text-nv-muted">
+                                    <span className="shrink-0 text-xs text-nv-muted">
                                       <Money amount={sg.saved} currency={data.displayCurrency} /> /{' '}
                                       <Money amount={sg.target} currency={data.displayCurrency} />
                                     </span>
                                   </div>
 
                                   {sg.due && (
-                                    <p className="mt-1 text-[11px] text-nv-muted">
-                                      Target: {sg.due}
+                                    <p className="mt-1 text-xs text-nv-muted">
+                                      Target: {formatShortDate(sg.due)}
                                     </p>
                                   )}
                                 </div>

@@ -12,7 +12,7 @@ import type {
   VehicleOwnership,
 } from '../../../types';
 import { solveLoanParameter } from '../../../utils/accountDetailModel';
-import { currencySign, normalizeCurrency, toLocalISOString } from '../../../utils';
+import { currencySign, formatCurrency, normalizeCurrency, toLocalISOString } from '../../../utils';
 import { AmountPad } from '../../kokonutui/amount-pad';
 import { Drawer, useMediaQuery } from '../Drawer';
 import { NvIcon, type NvIconName } from '../NvIcon';
@@ -36,14 +36,14 @@ const ACCOUNT_TYPE_OPTIONS: {
 }[] = [
   { type: 'Checking', label: 'Checking', subtitle: 'Everyday bank & debit', icon: 'bank', group: 'liquid' },
   { type: 'Savings', label: 'Savings', subtitle: 'APY reserve & emergency', icon: 'piggy', group: 'liquid' },
-  { type: 'Credit Card', label: 'Credit Card', subtitle: 'Revolving limit & cycle', icon: 'card', group: 'credit_debt' },
-  { type: 'Loan', label: 'Loan / Mortgage', subtitle: 'Amortized or fixed debt', icon: 'invoice', group: 'credit_debt' },
+  { type: 'Credit Card', label: 'Credit card', subtitle: 'Revolving limit & cycle', icon: 'card', group: 'credit_debt' },
+  { type: 'Loan', label: 'Loan / mortgage', subtitle: 'Amortized or fixed debt', icon: 'invoice', group: 'credit_debt' },
   { type: 'Lending', label: 'Lending', subtitle: 'Money owed to you', icon: 'transactions', group: 'credit_debt' },
   { type: 'Property', label: 'Property', subtitle: 'Real estate & equity', icon: 'home', group: 'wealth_physical' },
   { type: 'Vehicle', label: 'Vehicle', subtitle: 'Owned or leased', icon: 'pin', group: 'wealth_physical' },
-  { type: 'Investment', label: 'Pension / Round-Up', subtitle: 'Pension fund or spare change', icon: 'investments', group: 'wealth_physical' },
-  { type: 'Other Assets', label: 'Other Asset', subtitle: 'Physical cash, metals, etc.', icon: 'wallet', group: 'wealth_physical' },
-  { type: 'Other Liabilities', label: 'Other Liability', subtitle: 'Informal debt or tax', icon: 'warning', group: 'credit_debt' },
+  { type: 'Investment', label: 'Pension / round-up', subtitle: 'Pension fund or spare change', icon: 'investments', group: 'wealth_physical' },
+  { type: 'Other Assets', label: 'Other asset', subtitle: 'Physical cash, metals, etc.', icon: 'wallet', group: 'wealth_physical' },
+  { type: 'Other Liabilities', label: 'Other liability', subtitle: 'Informal debt or tax', icon: 'warning', group: 'credit_debt' },
 ];
 
 const CARD_NETWORKS: string[] = ['Visa', 'Mastercard', 'Amex', 'Discover', 'Other'];
@@ -78,12 +78,11 @@ const OTHER_LIABILITY_SUBTYPES: OtherLiabilitySubType[] = [
   'Other',
 ];
 
-export { currencySign };
 
 const FieldLabel: React.FC<{ children: React.ReactNode; hint?: string }> = ({ children, hint }) => (
   <div className="mb-1.5 flex items-center justify-between gap-2">
     <label className="text-[13px] font-medium text-nv-muted">{children}</label>
-    {hint && <span className="text-[11px] text-nv-faint">{hint}</span>}
+    {hint && <span className="text-xs text-nv-faint">{hint}</span>}
   </div>
 );
 
@@ -674,7 +673,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
       <div className="space-y-6">
         {/* 1. Account Type Grid */}
         <div>
-          <FieldLabel>Account Category</FieldLabel>
+          <FieldLabel>Account category</FieldLabel>
           <div className="grid grid-cols-2 gap-2">
             {ACCOUNT_TYPE_OPTIONS.map((opt) => {
               const selected = type === opt.type;
@@ -709,7 +708,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                     <p className="truncate text-[13px] font-semibold">{opt.label}</p>
                     <p
                       className={cn(
-                        'truncate text-[11px]',
+                        'truncate text-xs',
                         selected ? 'opacity-75' : 'text-nv-muted'
                       )}
                     >
@@ -725,16 +724,16 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {/* 2. Investment Sub-Type Selector (Pension Fund vs Spare Change) */}
         {type === 'Investment' && (
           <div className="rounded-nv-tile bg-nv-inset p-4">
-            <FieldLabel>Accumulation Vehicle</FieldLabel>
+            <FieldLabel>Accumulation vehicle</FieldLabel>
             <SegmentedTabs<InvestmentSubType>
-              label="Investment Subtype"
+              label="Investment subtype"
               size="sm"
               className="w-full"
               value={subType}
               onChange={setSubType}
               items={[
-                { id: 'Pension Fund', label: 'Pension Fund' },
-                { id: 'Spare Change', label: 'Spare Change Round-Ups' },
+                { id: 'Pension Fund', label: 'Pension fund' },
+                { id: 'Spare Change', label: 'Spare change round-ups' },
               ]}
             />
           </div>
@@ -779,7 +778,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {/* 4. Core Identity Fields */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
-            <FieldLabel>Account Name</FieldLabel>
+            <FieldLabel>Account name</FieldLabel>
             <TextInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -809,7 +808,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <FieldLabel>Financial Institution / Provider</FieldLabel>
+            <FieldLabel>Financial institution / provider</FieldLabel>
             <TextInput
               value={institution}
               onChange={(e) => setInstitution(e.target.value)}
@@ -817,7 +816,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             />
           </div>
           <div>
-            <FieldLabel hint="Domain or URL">Website / Portal</FieldLabel>
+            <FieldLabel hint="Domain or URL">Website / portal</FieldLabel>
             <TextInput
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
@@ -825,7 +824,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             />
           </div>
           <div>
-            <FieldLabel hint="Upload or URL">Image / Logo</FieldLabel>
+            <FieldLabel hint="Upload or URL">Image / logo</FieldLabel>
             <input
               type="file"
               ref={fileInputRef}
@@ -866,12 +865,12 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 <img
                   src={imageUrl}
                   alt="Preview"
-                  className="h-8 w-8 rounded-lg border border-nv-line object-cover bg-nv-inset"
+                  className="h-8 w-8 rounded-lg object-cover bg-nv-inset"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).style.display = 'none';
                   }}
                 />
-                <span className="text-[11px] text-nv-muted">Image preview</span>
+                <span className="text-xs text-nv-muted">Image preview</span>
               </div>
             )}
           </div>
@@ -882,10 +881,10 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {/* Checking / Savings / Card Identifiers */}
         {(type === 'Checking' || type === 'Savings' || type === 'Credit Card') && (
           <div className="space-y-4 rounded-nv-tile bg-nv-inset p-4">
-            <p className="text-sm font-semibold text-nv-ink">Card & Banking Identifiers</p>
+            <p className="text-sm font-semibold text-nv-ink">Card & banking identifiers</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="sm:col-span-2">
-                <FieldLabel hint="IBAN or Account #">Account Number / IBAN</FieldLabel>
+                <FieldLabel hint="IBAN or Account #">Account number / IBAN</FieldLabel>
                 <TextInput
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
@@ -893,7 +892,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Card Last 4</FieldLabel>
+                <FieldLabel>Card last 4</FieldLabel>
                 <TextInput
                   maxLength={4}
                   value={last4}
@@ -905,7 +904,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <FieldLabel hint="BIC / SWIFT">Routing Number / BIC</FieldLabel>
+                <FieldLabel hint="BIC / SWIFT">Routing number / BIC</FieldLabel>
                 <TextInput
                   value={routingNumber}
                   onChange={(e) => setRoutingNumber(e.target.value.toUpperCase())}
@@ -913,7 +912,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Account Opening Date</FieldLabel>
+                <FieldLabel>Account opening date</FieldLabel>
                 <TextInput
                   type="date"
                   value={openingDate}
@@ -924,7 +923,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <FieldLabel>Card Network</FieldLabel>
+                <FieldLabel>Card network</FieldLabel>
                 <SelectInput
                   value={cardNetwork}
                   onChange={(e) => setCardNetwork(e.target.value)}
@@ -937,7 +936,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 </SelectInput>
               </div>
               <div>
-                <FieldLabel>Cardholder Name</FieldLabel>
+                <FieldLabel>Cardholder name</FieldLabel>
                 <TextInput
                   value={cardholderName}
                   onChange={(e) => setCardholderName(e.target.value)}
@@ -945,7 +944,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel hint="MM/YY">Card Expiration</FieldLabel>
+                <FieldLabel hint="MM/YY">Card expiration</FieldLabel>
                 <TextInput
                   maxLength={5}
                   value={expirationDate}
@@ -973,7 +972,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {/* Credit Card Statement & Cycle */}
         {type === 'Credit Card' && (
           <div className="space-y-4 rounded-nv-tile bg-nv-inset p-4">
-            <p className="text-sm font-semibold text-nv-ink">Credit Limit & Statement Cycle</p>
+            <p className="text-sm font-semibold text-nv-ink">Credit limit & statement cycle</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="col-span-2">
                 <FieldLabel>Credit Limit ({currencySign(currency)})</FieldLabel>
@@ -996,7 +995,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Stmt Day (1–31)</FieldLabel>
+                <FieldLabel>Stmt day (1–31)</FieldLabel>
                 <TextInput
                   type="number"
                   min={1}
@@ -1008,7 +1007,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <FieldLabel>Payment Due Day (1–31)</FieldLabel>
+                <FieldLabel>Payment due day (1–31)</FieldLabel>
                 <TextInput
                   type="number"
                   min={1}
@@ -1018,12 +1017,12 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Auto-Debit Settlement Account</FieldLabel>
+                <FieldLabel>Auto-debit settlement account</FieldLabel>
                 <SelectInput
                   value={settlementAccountId}
                   onChange={(e) => setSettlementAccountId(e.target.value)}
                 >
-                  <option value="">None (Manual Payment)</option>
+                  <option value="">None (manual payment)</option>
                   {bankAccounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
                       {acc.name} ({acc.currency})
@@ -1040,7 +1039,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
           <div className="space-y-4 rounded-nv-tile bg-nv-inset p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold text-nv-ink">3-of-4 Amortization Calculator</p>
+                <p className="text-sm font-semibold text-nv-ink">3-of-4 amortization calculator</p>
                 <p className="text-xs text-nv-muted">
                   Choose which parameter Crystal solves automatically from the other three
                 </p>
@@ -1049,7 +1048,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 <button
                   type="button"
                   onClick={applySolvedLoanValue}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-nv-violet px-3 py-1 text-xs font-medium text-nv-on-violet"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-nv-ink px-4 text-xs font-medium text-nv-on-ink"
                 >
                   <NvIcon name="sparkles" size={13} />
                   <span>
@@ -1058,23 +1057,23 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                       ? `${solvedLoanValue} mo`
                       : solveTarget === 'annualRate'
                         ? `${solvedLoanValue}%`
-                        : `${currencySign(currency)}${solvedLoanValue}`}
+                        : formatCurrency(Number(solvedLoanValue), currency)}
                   </span>
                 </button>
               )}
             </div>
 
             <SegmentedTabs<LoanSolveTarget>
-              label="Solve Target"
+              label="Solve target"
               size="sm"
               className="w-full"
               value={solveTarget}
               onChange={setSolveTarget}
               items={[
-                { id: 'monthlyPayment', label: 'Solve Monthly' },
-                { id: 'principal', label: 'Solve Principal' },
-                { id: 'durationMonths', label: 'Solve Term' },
-                { id: 'annualRate', label: 'Solve Rate' },
+                { id: 'monthlyPayment', label: 'Solve monthly' },
+                { id: 'principal', label: 'Solve principal' },
+                { id: 'durationMonths', label: 'Solve term' },
+                { id: 'annualRate', label: 'Solve rate' },
               ]}
             />
 
@@ -1097,7 +1096,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
               </div>
               <div>
                 <FieldLabel hint={solveTarget === 'annualRate' ? 'Auto-solved' : undefined}>
-                  Interest Rate (% APR)
+                  Interest rate (% APR)
                 </FieldLabel>
                 <TextInput
                   type="number"
@@ -1147,7 +1146,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <FieldLabel>Start Date</FieldLabel>
+                <FieldLabel>Start date</FieldLabel>
                 <TextInput
                   type="date"
                   value={loanStartDate}
@@ -1155,7 +1154,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Payment Day (1–31)</FieldLabel>
+                <FieldLabel>Payment day (1–31)</FieldLabel>
                 <TextInput
                   type="number"
                   min={1}
@@ -1165,7 +1164,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Down Payment</FieldLabel>
+                <FieldLabel>Down payment</FieldLabel>
                 <TextInput
                   type="number"
                   step="100"
@@ -1178,7 +1177,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             {type === 'Loan' && physicalAssets.length > 0 && (
               <div>
-                <FieldLabel>Linked Financed Asset (Property / Vehicle)</FieldLabel>
+                <FieldLabel>Linked financed asset (property / vehicle)</FieldLabel>
                 <SelectInput
                   value={linkedAssetId}
                   onChange={(e) => setLinkedAssetId(e.target.value)}
@@ -1198,10 +1197,10 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {/* Property Fields */}
         {type === 'Property' && (
           <div className="space-y-4 rounded-nv-tile bg-nv-inset p-4">
-            <p className="text-sm font-semibold text-nv-ink">Property & Operating Economics</p>
+            <p className="text-sm font-semibold text-nv-ink">Property & operating economics</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <FieldLabel>Property Type</FieldLabel>
+                <FieldLabel>Property type</FieldLabel>
                 <SelectInput
                   value={propertyType}
                   onChange={(e) => setPropertyType(e.target.value as PropertyType)}
@@ -1214,7 +1213,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 </SelectInput>
               </div>
               <div className="sm:col-span-2">
-                <FieldLabel>Street Address / City</FieldLabel>
+                <FieldLabel>Street address / city</FieldLabel>
                 <TextInput
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
@@ -1225,7 +1224,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <FieldLabel>Purchase Price</FieldLabel>
+                <FieldLabel>Purchase price</FieldLabel>
                 <TextInput
                   type="number"
                   value={purchasePriceStr}
@@ -1234,7 +1233,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Purchase Date</FieldLabel>
+                <FieldLabel>Purchase date</FieldLabel>
                 <TextInput
                   type="date"
                   value={purchaseDate}
@@ -1254,7 +1253,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div>
-                <FieldLabel hint="Monthly">Rental Income</FieldLabel>
+                <FieldLabel hint="Monthly">Rental income</FieldLabel>
                 <TextInput
                   type="number"
                   value={rentalIncomeStr}
@@ -1263,7 +1262,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel hint="Yearly">Property Tax</FieldLabel>
+                <FieldLabel hint="Yearly">Property tax</FieldLabel>
                 <TextInput
                   type="number"
                   value={propertyTaxStr}
@@ -1281,7 +1280,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel hint="Monthly">HOA / Syndicate</FieldLabel>
+                <FieldLabel hint="Monthly">HOA / syndicate</FieldLabel>
                 <TextInput
                   type="number"
                   value={hoaFeeStr}
@@ -1293,7 +1292,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             {loanAccounts.length > 0 && (
               <div>
-                <FieldLabel>Linked Mortgage Loan</FieldLabel>
+                <FieldLabel>Linked mortgage loan</FieldLabel>
                 <SelectInput
                   value={linkedLoanId}
                   onChange={(e) => setLinkedLoanId(e.target.value)}
@@ -1313,9 +1312,9 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {/* Vehicle Fields */}
         {type === 'Vehicle' && (
           <div className="space-y-4 rounded-nv-tile bg-nv-inset p-4">
-            <p className="text-sm font-semibold text-nv-ink">Vehicle Specifications & Ownership</p>
+            <p className="text-sm font-semibold text-nv-ink">Vehicle specifications & ownership</p>
             <SegmentedTabs<VehicleOwnership>
-              label="Vehicle Ownership"
+              label="Vehicle ownership"
               size="sm"
               className="w-full"
               value={ownership}
@@ -1341,7 +1340,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Model Year</FieldLabel>
+                <FieldLabel>Model year</FieldLabel>
                 <TextInput
                   type="number"
                   value={yearStr}
@@ -1353,7 +1352,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="sm:col-span-2">
-                <FieldLabel>License Plate</FieldLabel>
+                <FieldLabel>License plate</FieldLabel>
                 <TextInput
                   value={licensePlate}
                   onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
@@ -1361,7 +1360,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Country Code</FieldLabel>
+                <FieldLabel>Country code</FieldLabel>
                 <TextInput
                   maxLength={3}
                   value={registrationCountryCode}
@@ -1382,7 +1381,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 />
               </div>
               <div>
-                <FieldLabel>Fuel / Powertrain</FieldLabel>
+                <FieldLabel>Fuel / powertrain</FieldLabel>
                 <SelectInput
                   value={fuelType}
                   onChange={(e) => setFuelType(e.target.value as FuelType)}
@@ -1395,7 +1394,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                 </SelectInput>
               </div>
               <div>
-                <FieldLabel hint="km">Odometer Reading</FieldLabel>
+                <FieldLabel hint="km">Odometer reading</FieldLabel>
                 <TextInput
                   type="number"
                   value={currentMileageStr}
@@ -1408,7 +1407,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             {ownership === 'Leased' ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div>
-                  <FieldLabel>Lease Start</FieldLabel>
+                  <FieldLabel>Lease start</FieldLabel>
                   <TextInput
                     type="date"
                     value={leaseStartDate}
@@ -1416,7 +1415,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                   />
                 </div>
                 <div>
-                  <FieldLabel>Lease End</FieldLabel>
+                  <FieldLabel>Lease end</FieldLabel>
                   <TextInput
                     type="date"
                     value={leaseEndDate}
@@ -1424,7 +1423,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                   />
                 </div>
                 <div>
-                  <FieldLabel>Monthly Lease</FieldLabel>
+                  <FieldLabel>Monthly lease</FieldLabel>
                   <TextInput
                     type="number"
                     value={leasePaymentStr}
@@ -1433,7 +1432,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                   />
                 </div>
                 <div>
-                  <FieldLabel>Annual km Limit</FieldLabel>
+                  <FieldLabel>Annual km limit</FieldLabel>
                   <TextInput
                     type="number"
                     value={annualMileageAllowanceStr}
@@ -1445,7 +1444,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <FieldLabel>Purchase Price</FieldLabel>
+                  <FieldLabel>Purchase price</FieldLabel>
                   <TextInput
                     type="number"
                     value={purchasePriceStr}
@@ -1454,7 +1453,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                   />
                 </div>
                 <div>
-                  <FieldLabel>Purchase Date</FieldLabel>
+                  <FieldLabel>Purchase date</FieldLabel>
                   <TextInput
                     type="date"
                     value={purchaseDate}
@@ -1466,7 +1465,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
 
             {ownership === 'Owned' && loanAccounts.length > 0 && (
               <div>
-                <FieldLabel>Linked Auto Loan</FieldLabel>
+                <FieldLabel>Linked auto loan</FieldLabel>
                 <SelectInput
                   value={linkedLoanId}
                   onChange={(e) => setLinkedLoanId(e.target.value)}
@@ -1488,10 +1487,10 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
           <div className="space-y-4 rounded-nv-tile bg-nv-inset p-4">
             {subType === 'Pension Fund' ? (
               <>
-                <p className="text-sm font-semibold text-nv-ink">Pension Horizon & Yield</p>
+                <p className="text-sm font-semibold text-nv-ink">Pension horizon & yield</p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <FieldLabel>Expected Annual Return / APY (%)</FieldLabel>
+                    <FieldLabel>Expected annual return / APY (%)</FieldLabel>
                     <TextInput
                       type="number"
                       step="0.1"
@@ -1501,7 +1500,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
                     />
                   </div>
                   <div>
-                    <FieldLabel>Target Retirement Year</FieldLabel>
+                    <FieldLabel>Target retirement year</FieldLabel>
                     <TextInput
                       type="number"
                       value={retirementTargetYearStr}
@@ -1513,7 +1512,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
               </>
             ) : (
               <>
-                <p className="text-sm font-semibold text-nv-ink">Round-Up Source Account</p>
+                <p className="text-sm font-semibold text-nv-ink">Round-up source account</p>
                 <p className="text-xs text-nv-muted">
                   Every outgoing purchase on the linked account automatically transfers the spare change to €1.00 into this pot.
                 </p>
@@ -1537,7 +1536,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         {(type === 'Other Assets' || type === 'Other Liabilities') && (
           <div className="grid grid-cols-1 gap-3 rounded-nv-tile bg-nv-inset p-4 sm:grid-cols-2">
             <div>
-              <FieldLabel>Sub-Category</FieldLabel>
+              <FieldLabel>Sub-category</FieldLabel>
               {type === 'Other Assets' ? (
                 <SelectInput
                   value={otherAssetSubType}
@@ -1563,7 +1562,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
               )}
             </div>
             <div>
-              <FieldLabel>Counterparty / Custodian</FieldLabel>
+              <FieldLabel>Counterparty / custodian</FieldLabel>
               <TextInput
                 value={counterparty}
                 onChange={(e) => setCounterparty(e.target.value)}
@@ -1577,7 +1576,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
         <div className="space-y-2 rounded-nv-tile bg-nv-inset p-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[14px] font-medium text-nv-ink">Include in Net Worth & Analytics</p>
+              <p className="text-[14px] font-medium text-nv-ink">Include in net worth & analytics</p>
               <p className="text-xs text-nv-muted">
                 Count this account toward portfolio net worth, burn runway, and reports
               </p>
@@ -1591,7 +1590,7 @@ export const AccountFormSheet: React.FC<AccountFormSheetProps> = ({
           <div className="h-px bg-nv-line" />
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[14px] font-medium text-nv-ink">Pin as Primary Account</p>
+              <p className="text-[14px] font-medium text-nv-ink">Pin as primary account</p>
               <p className="text-xs text-nv-muted">
                 Prioritize at the top of lists and default quick-add selectors
               </p>

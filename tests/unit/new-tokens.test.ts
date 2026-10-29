@@ -36,3 +36,49 @@ test('New UI files use only nv-* colour tokens and the named z-index scale', () 
   }
   assert.deepEqual(offenders, []);
 });
+
+/**
+ * Reference-compliance guardrails for the pages that have had the pass (Accounts, Account detail, Budget;
+ * docs/ACCOUNTS_BUDGET_REVIEW_PLAN.md Phase 3). Add a page's files here once it has been through it.
+ */
+const COMPLIANT = [
+  'pages/new/AccountsNew.tsx',
+  'pages/new/AccountDetailNew.tsx',
+  'pages/new/BudgetNew.tsx',
+  ...walk('components/new/accounts'),
+  ...walk('components/new/budget'),
+];
+// Files that only render inside a sheet may keep the sheet's one call to action (R7).
+const SHEET_FILES = /(?:sheets|AccountFormSheet|detailShared)\.tsx$/;
+const isChip = (line: string) => /rounded-(?:full|md|lg)\b|\brounded\b/.test(line) && /\bpx-\d/.test(line);
+
+const COMPLIANCE_RULES: { name: string; applies?: (file: string) => boolean; offends: (line: string) => boolean }[] = [
+  // D14: 11px is the floor, and only for chips and counters; information is 12px+.
+  { name: 'type below 11px', offends: line => /\btext-\[(?:[0-9]|10)(?:\.\d+)?px\]/.test(line) },
+  { name: '11px outside a chip', offends: line => /\btext-\[11px\]/.test(line) && !isChip(line) },
+  // R2: tiles carry no shadows; only floating overlays (menus, popups, dialogs) use the float token.
+  {
+    name: 'shadow on a tile',
+    offends: line =>
+      /\b(?:hover:)?(?:drop-)?shadow-(?!none\b|nv-thumb\b|nv-float\b)[a-z0-9]/.test(line) ||
+      (/\bshadow-nv-float\b/.test(line) && !/Popup|z-popover|z-modal|z-dropdown/.test(line)),
+  },
+  // R7 / N4: the header holds the page's one violet call to action; page bodies use ink.
+  { name: 'violet CTA in a page body', applies: file => !SHEET_FILES.test(file), offends: line => /variant="cta"/.test(line) },
+  // R9: no glass and no accent-filled surfaces.
+  { name: 'glass surface', offends: line => /\bbackdrop-blur/.test(line) },
+  { name: 'undefined teal token', offends: line => /\bnv-teal\b|nv-teal-/.test(line) },
+];
+
+test('Accounts and Budget follow the type floor, surface, CTA and accent rules', () => {
+  const offenders: string[] = [];
+  for (const file of COMPLIANT) {
+    readFileSync(join(ROOT, file), 'utf8').split('\n').forEach((line, i) => {
+      for (const rule of COMPLIANCE_RULES) {
+        if (rule.applies && !rule.applies(file)) continue;
+        if (rule.offends(line)) offenders.push(`${file}:${i + 1} ${rule.name}: ${line.trim().slice(0, 120)}`);
+      }
+    });
+  }
+  assert.deepEqual(offenders, []);
+});

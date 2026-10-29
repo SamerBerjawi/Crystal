@@ -46,9 +46,9 @@ type ViewMode = 'split' | 'list' | 'bento';
 type SortMode = 'manual' | 'balance' | 'name' | 'change30d' | 'apy_apr';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
-  { value: 'manual', label: 'Custom Order' },
-  { value: 'balance', label: 'Highest Balance' },
-  { value: 'change30d', label: '90d Momentum' },
+  { value: 'manual', label: 'Custom order' },
+  { value: 'balance', label: 'Highest balance' },
+  { value: 'change30d', label: '90d momentum' },
   { value: 'apy_apr', label: 'Highest APY / APR' },
   { value: 'name', label: 'Alphabetical (A–Z)' },
 ];
@@ -219,10 +219,10 @@ export const AccountsNew: React.FC = () => {
     },
     items: [
       { id: 'all', label: `All (${segmentCounts.all})`, icon: 'wallet' },
-      { id: 'cash_cards', label: `Cash & Cards (${segmentCounts.cash_cards})`, icon: 'card', accent: 'violet' },
-      { id: 'savings_yield', label: `Savings & Yield (${segmentCounts.savings_yield})`, icon: 'piggy', accent: 'green' },
-      { id: 'loans_debt', label: `Loans & Debt (${segmentCounts.loans_debt})`, icon: 'invoice', accent: 'orange' },
-      { id: 'property_vehicles', label: `Property & Vehicles (${segmentCounts.property_vehicles})`, icon: 'home', accent: 'sky' },
+      { id: 'cash_cards', label: `Cash & cards (${segmentCounts.cash_cards})`, icon: 'card' },
+      { id: 'savings_yield', label: `Savings & yield (${segmentCounts.savings_yield})`, icon: 'piggy' },
+      { id: 'loans_debt', label: `Loans & debt (${segmentCounts.loans_debt})`, icon: 'invoice' },
+      { id: 'property_vehicles', label: `Property & vehicles (${segmentCounts.property_vehicles})`, icon: 'home' },
       ...(segmentCounts.archived > 0
         ? [{ id: 'archived' as const, label: `Archived (${segmentCounts.archived})`, icon: 'archive' as const }]
         : []),
@@ -364,7 +364,7 @@ export const AccountsNew: React.FC = () => {
               disabled={data.isSyncingBanks}
               onClick={() => void data.syncAllBanks?.()}
             >
-              {data.isSyncingBanks ? 'Syncing…' : 'Sync Banks'}
+              {data.isSyncingBanks ? 'Syncing…' : 'Sync banks'}
             </Button>
           )}
           <Button
@@ -395,7 +395,7 @@ export const AccountsNew: React.FC = () => {
                 value={currencyFilter}
                 onChange={setCurrencyFilter}
                 options={[
-                  { value: 'ALL', label: 'All Currencies' },
+                  { value: 'ALL', label: 'All currencies' },
                   ...data.currencies.map((c) => ({ value: c, label: c })),
                 ]}
               />
@@ -407,7 +407,7 @@ export const AccountsNew: React.FC = () => {
                 value={institutionFilter}
                 onChange={setInstitutionFilter}
                 options={[
-                  { value: 'ALL', label: 'All Institutions' },
+                  { value: 'ALL', label: 'All institutions' },
                   ...data.institutions.map((inst) => ({ value: inst, label: inst })),
                 ]}
               />
@@ -415,7 +415,7 @@ export const AccountsNew: React.FC = () => {
 
             {data.linkedEnableBankingAccountIds.size > 0 && (
               <FilterChip
-                label="Bank Synced"
+                label="Bank synced"
                 icon="refresh"
                 active={linkedOnly}
                 onClick={() => setLinkedOnly((v) => !v)}
@@ -423,7 +423,7 @@ export const AccountsNew: React.FC = () => {
             )}
 
             <FilterChip
-              label="Analytics Included"
+              label="Analytics included"
               active={analyticsOnly}
               onClick={() => setAnalyticsOnly((v) => !v)}
             />
@@ -439,9 +439,9 @@ export const AccountsNew: React.FC = () => {
             value={viewMode}
             onChange={setViewMode}
             items={[
-              { id: 'split', label: 'Split Sheet', icon: 'columns' },
+              { id: 'split', label: 'Split sheet', icon: 'columns' },
               { id: 'list', label: 'List', icon: 'list' },
-              { id: 'bento', label: 'Bento Grid', icon: 'grid' },
+              { id: 'bento', label: 'Bento grid', icon: 'grid' },
             ]}
           />
         </div>
@@ -487,11 +487,11 @@ export const AccountsNew: React.FC = () => {
             action={
               hasActiveFilters ? (
                 <Button variant="secondary" onClick={clearFilters}>
-                  Reset Filters
+                  Reset filters
                 </Button>
               ) : (
-                <Button variant="cta" icon="add" onClick={() => openCreateSheet('Checking')}>
-                  Add Account
+                <Button variant="primary" icon="add" onClick={() => openCreateSheet('Checking')}>
+                  Add account
                 </Button>
               )
             }
@@ -519,12 +519,12 @@ export const AccountsNew: React.FC = () => {
               {/* Group Header */}
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-nv-surface text-nv-ink shadow-sm">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-nv-surface text-nv-ink">
                     <NvIcon name={group.icon} size={15} />
                   </span>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-semibold text-nv-ink">{group.label}</h3>
-                    <span className="rounded-full bg-nv-surface px-2.5 py-0.5 text-xs font-medium text-nv-muted shadow-sm">
+                    <span className="rounded-full bg-nv-surface px-2.5 py-0.5 text-xs font-medium text-nv-muted">
                       {group.accounts.length}
                     </span>
                   </div>
@@ -592,7 +592,7 @@ export const AccountsNew: React.FC = () => {
                 ? Math.max(12, Math.min(contextMenu.y, window.innerHeight - 380))
                 : contextMenu.y,
           }}
-          className="crystal-new fixed z-popover min-w-56 rounded-nv-tile border border-nv-line/60 bg-nv-surface p-1.5 shadow-nv-float animate-in fade-in zoom-in-95 duration-100 select-none"
+          className="crystal-new fixed z-popover min-w-56 rounded-nv-sub bg-nv-surface p-1.5 shadow-nv-float animate-in fade-in zoom-in-95 duration-100 select-none"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-2.5 px-3 py-2 border-b border-nv-line/50">
@@ -619,7 +619,7 @@ export const AccountsNew: React.FC = () => {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
             >
               <NvIcon name="view" size={15} className="text-nv-muted" />
-              <span>Quick Overview</span>
+              <span>Quick overview</span>
             </button>
 
             <button
@@ -631,7 +631,7 @@ export const AccountsNew: React.FC = () => {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
             >
               <NvIcon name="arrowUpRight" size={15} className="text-nv-muted" />
-              <span>Open Full Cockpit</span>
+              <span>Open full cockpit</span>
             </button>
 
             <button
@@ -643,7 +643,7 @@ export const AccountsNew: React.FC = () => {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
             >
               <NvIcon name="invoice" size={15} className="text-nv-muted" />
-              <span>Filter Transactions</span>
+              <span>Filter transactions</span>
             </button>
 
             <button
@@ -655,7 +655,7 @@ export const AccountsNew: React.FC = () => {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
             >
               <NvIcon name="refresh" size={15} className="text-nv-muted" />
-              <span>Reconcile Balance</span>
+              <span>Reconcile balance</span>
             </button>
 
             <button
@@ -668,7 +668,7 @@ export const AccountsNew: React.FC = () => {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
             >
               <NvIcon name="edit" size={15} className="text-nv-muted" />
-              <span>Edit Account</span>
+              <span>Edit account</span>
             </button>
 
             {sortBy === 'manual' && (
@@ -683,7 +683,7 @@ export const AccountsNew: React.FC = () => {
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
                 >
                   <NvIcon name="sort" size={15} className="text-nv-muted" />
-                  <span>Move Up in Order</span>
+                  <span>Move up in order</span>
                 </button>
                 <button
                   type="button"
@@ -694,7 +694,7 @@ export const AccountsNew: React.FC = () => {
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-ink transition-colors hover:bg-nv-inset cursor-pointer"
                 >
                   <NvIcon name="arrowDown" size={15} className="text-nv-muted" />
-                  <span>Move Down in Order</span>
+                  <span>Move down in order</span>
                 </button>
               </>
             )}
@@ -725,7 +725,7 @@ export const AccountsNew: React.FC = () => {
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-medium text-nv-red-text transition-colors hover:bg-nv-red-soft cursor-pointer"
             >
               <NvIcon name="delete" size={15} />
-              <span>Delete Account</span>
+              <span>Delete account</span>
             </button>
           </div>
         </div>

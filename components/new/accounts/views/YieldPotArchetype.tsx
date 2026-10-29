@@ -64,11 +64,8 @@ export const YieldPotArchetype: React.FC<{
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
-                6-Month Round-Up Velocity
+                6-month round-up velocity
               </h2>
-              <p className="text-xs text-nv-muted">
-                Automatic spare-change captures excluding manual lump-sum deposits
-              </p>
             </div>
             <Badge tone="green" icon="sparkles">
               {spareChangeMetrics.totalRoundUps} round-ups
@@ -88,7 +85,7 @@ export const YieldPotArchetype: React.FC<{
                       />
                     </div>
                     <span className="mt-2 text-xs font-medium text-nv-ink">{m.name}</span>
-                    <span className="nv-tabular text-[11px] text-nv-muted">
+                    <span className="nv-tabular text-xs text-nv-muted">
                       <Money amount={m.value} currency={account.currency} />
                     </span>
                   </div>
@@ -100,15 +97,12 @@ export const YieldPotArchetype: React.FC<{
 
         <Card className="flex flex-col h-full space-y-4 lg:col-span-5">
           <div>
-            <h2 className="text-lg font-semibold text-nv-ink">Round-Up Diagnostics</h2>
-            <p className="text-xs text-nv-muted">
-              Breakdown of micro-savings vs manual deposits
-            </p>
+            <h2 className="text-lg font-semibold text-nv-ink">Round-up diagnostics</h2>
           </div>
 
           <div className="flex-1 space-y-2.5 rounded-nv-sub bg-nv-surface p-4 text-sm flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-nv-muted">Pure Round-Up Captures</span>
+              <span className="text-nv-muted">Pure round-up captures</span>
               <Money
                 amount={spareChangeMetrics.totalRoundUpSaved}
                 currency={account.currency}
@@ -116,15 +110,15 @@ export const YieldPotArchetype: React.FC<{
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-nv-muted">Manual Lump-Sum Deposits</span>
+              <span className="text-nv-muted">Manual lump-sum deposits</span>
               <Money amount={spareChangeMetrics.manualDeposits} currency={account.currency} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-nv-muted">Biggest Single Round-Up</span>
+              <span className="text-nv-muted">Biggest single round-up</span>
               <Money amount={spareChangeMetrics.biggestRoundUp} currency={account.currency} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-nv-muted">Coffee Equivalent (~€4.50)</span>
+              <span className="text-nv-muted">Coffee equivalent (~€4.50)</span>
               <span className="nv-tabular font-semibold text-nv-ink">
                 {spareChangeMetrics.coffeesSaved} coffees
               </span>
@@ -141,7 +135,7 @@ export const YieldPotArchetype: React.FC<{
               className="flex w-full items-center justify-between rounded-nv-sub bg-nv-surface p-4 text-left transition-colors hover:bg-nv-inset"
             >
               <div>
-                <p className="text-xs text-nv-muted">Linked Round-Up Source Account</p>
+                <p className="text-xs text-nv-muted">Linked round-up source account</p>
                 <p className="text-sm font-semibold text-nv-ink">
                   {spareChangeMetrics.sourceAccount.name}
                 </p>
@@ -159,7 +153,7 @@ export const YieldPotArchetype: React.FC<{
                 className="mt-2.5"
                 onClick={onEditAccount}
               >
-                Link Source Account
+                Link source account
               </Button>
             </div>
           )}
@@ -200,15 +194,12 @@ export const YieldPotArchetype: React.FC<{
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
-                  12-Month Interest & Yield Ledger
+                  12-month interest & yield ledger
                 </h2>
-                <p className="text-xs text-nv-muted">
-                  Combines recorded interest payouts with daily-balance APY accrual ({savingsMetrics.apy}% APY)
-                </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="secondary" icon="add" onClick={onLogInterest}>
-                  Log Interest Payout
+                  Log interest payout
                 </Button>
               </div>
             </div>
@@ -223,12 +214,12 @@ export const YieldPotArchetype: React.FC<{
                 </p>
                 <Button
                   size="sm"
-                  variant="cta"
+                  variant="primary"
                   icon="edit"
                   className="mt-3"
                   onClick={onEditAccount}
                 >
-                  Set APY Rate
+                  Set APY rate
                 </Button>
               </div>
             ) : (
@@ -248,10 +239,10 @@ export const YieldPotArchetype: React.FC<{
                             )}
                           />
                         </div>
-                        <span className="mt-1.5 text-[10px] font-medium text-nv-muted">
+                        <span className="mt-1.5 text-xs font-medium text-nv-muted">
                           {pt.name}
                         </span>
-                        <span className="nv-tabular text-[10px] text-nv-ink">
+                        <span className="nv-tabular text-xs text-nv-ink">
                           <Money amount={pt.value} currency={account.currency} compact />
                         </span>
                       </div>
@@ -288,13 +279,8 @@ export const YieldPotArchetype: React.FC<{
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-nv-ink">
-                  Pension Retirement Trajectory
+                  Pension retirement trajectory
                 </h2>
-                <p className="text-xs text-nv-muted">
-                  {pensionMetrics.projectedValueAtRetirement !== null
-                    ? `Historical balance and projected compounding toward ${pensionMetrics.retirementYear}`
-                    : 'Historical balance'}
-                </p>
               </div>
               {pensionMetrics.retirementYear && <Badge tone="violet">Target {pensionMetrics.retirementYear}</Badge>}
             </div>
@@ -339,11 +325,8 @@ export const YieldPotArchetype: React.FC<{
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
-                Interactive Compounding Simulator
+                Interactive compounding simulator
               </h2>
-              <p className="text-xs text-nv-muted">
-                Simulate future value with recurring monthly deposits
-              </p>
             </div>
             <SegmentedTabs<HorizonYears>
               label="Compounding horizon"
@@ -400,7 +383,7 @@ export const YieldPotArchetype: React.FC<{
 
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-nv-line pt-3 text-xs">
               <div>
-                <p className="text-nv-muted">Principal Contributed</p>
+                <p className="text-nv-muted">Principal contributed</p>
                 <div className="mt-0.5">
                   <Money
                     amount={compounding.totalPrincipal}
@@ -409,7 +392,7 @@ export const YieldPotArchetype: React.FC<{
                 </div>
               </div>
               <div>
-                <p className="text-nv-muted">Compound Interest Earned</p>
+                <p className="text-nv-muted">Compound interest earned</p>
                 <div className="mt-0.5">
                   <Money
                     amount={compounding.totalInterestEarned}

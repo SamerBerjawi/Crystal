@@ -101,7 +101,7 @@ export const MomentumRail: React.FC<MomentumRailProps> = ({
                 <IconButton
                   icon="arrowLeft"
                   label="Scroll cards left"
-                  size={38}
+                  size={44}
                   tone="chip"
                   disabled={!canPrev}
                   onClick={() => scrollByStep(-1)}
@@ -110,7 +110,7 @@ export const MomentumRail: React.FC<MomentumRailProps> = ({
                 <IconButton
                   icon="arrowRight"
                   label="Scroll cards right"
-                  size={38}
+                  size={44}
                   tone="chip"
                   disabled={!canNext}
                   onClick={() => scrollByStep(1)}

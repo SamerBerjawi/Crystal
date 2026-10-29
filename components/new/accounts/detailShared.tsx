@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../lib/utils';
 import type { Account, Category, Currency, Transaction } from '../../../types';
-import { normalizeCurrency, toLocalISOString } from '../../../utils';
+import { currencySign, formatCurrency, normalizeCurrency, toLocalISOString } from '../../../utils';
 import { getMerchantLogoUrl } from '../../../utils/brandfetch';
 import { usePreferencesContextOptional } from '../../../contexts/DomainProviders';
 import { AmountPad } from '../../kokonutui/amount-pad';
@@ -20,7 +20,6 @@ import {
   SegmentedTabs,
   Switch,
 } from '../ui';
-import { currencySign } from './AccountFormSheet';
 
 /*
  * Shared Detail Components for `/accounts-new/:id`:
@@ -247,9 +246,6 @@ export const AccountActivitySection: React.FC<{
           <h2 className="text-lg font-semibold text-nv-ink">
             Account Ledger ({filtered.length})
           </h2>
-          <p className="text-xs text-nv-muted">
-            Chronological transactions normalized to {account.currency}
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -260,11 +256,11 @@ export const AccountActivitySection: React.FC<{
               icon="external"
               onClick={onNavigateToFullTransactions}
             >
-              Open in Transactions
+              Open in transactions
             </Button>
           )}
-          <Button variant="cta" size="sm" icon="add" onClick={onOpenRecordTx}>
-            Add Entry
+          <Button variant="primary" size="sm" icon="add" onClick={onOpenRecordTx}>
+            Add entry
           </Button>
         </div>
       </div>
@@ -306,7 +302,7 @@ export const AccountActivitySection: React.FC<{
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search ledger…"
-              className="h-10 rounded-full border border-nv-line bg-nv-surface pl-9 pr-4 text-sm text-nv-ink placeholder:text-nv-faint outline-none focus:border-nv-violet"
+              className="h-11 rounded-full border border-nv-line bg-nv-surface pl-9 pr-4 text-sm text-nv-ink placeholder:text-nv-faint outline-none focus:border-nv-violet"
             />
           </div>
 
@@ -375,7 +371,7 @@ export const AccountActivitySection: React.FC<{
                     tone={isIncome ? 'income' : 'ink'}
                   />
                   {tx.currency && normalizeCurrency(tx.currency) !== normalizeCurrency(account.currency) && (
-                    <p className="text-[11px] text-nv-muted">
+                    <p className="text-xs text-nv-muted">
                       Orig: <Money amount={tx.amount} currency={tx.currency} />
                     </p>
                   )}
@@ -487,10 +483,10 @@ export const RecordAccountTxSheet: React.FC<{
     { id: 'income', label: 'Income' },
     ...(account.type === 'Savings' ||
     (account.type === 'Investment' && account.subType === 'Pension Fund')
-      ? [{ id: 'interest' as const, label: 'Interest Payout' }]
+      ? [{ id: 'interest' as const, label: 'Interest payout' }]
       : []),
     ...(account.type === 'Credit Card'
-      ? [{ id: 'card_payment' as const, label: 'Pay Statement' }]
+      ? [{ id: 'card_payment' as const, label: 'Pay statement' }]
       : []),
   ];
 
@@ -504,7 +500,7 @@ export const RecordAccountTxSheet: React.FC<{
       const res = onRecordInterest(numAmount, dateStr, description || 'Interest Payout');
       if (res?.undo) {
         toast.undo(
-          `Logged ${currencySign(account.currency)}${numAmount} interest on ${account.name}`,
+          `Logged ${formatCurrency(numAmount, account.currency)} interest on ${account.name}`,
           res.undo
         );
       }
@@ -523,7 +519,7 @@ export const RecordAccountTxSheet: React.FC<{
         return;
       }
       toast.undo(
-        `Recorded ${currencySign(account.currency)}${numAmount} card payment`,
+        `Recorded ${formatCurrency(numAmount, account.currency)} card payment`,
         res.undo
       );
       onOpenChange(false);
@@ -541,7 +537,7 @@ export const RecordAccountTxSheet: React.FC<{
 
     if (res?.undo) {
       toast.undo(
-        `Recorded ${currencySign(account.currency)}${numAmount} on ${account.name}`,
+        `Recorded ${formatCurrency(numAmount, account.currency)} on ${account.name}`,
         res.undo
       );
     }
@@ -553,7 +549,6 @@ export const RecordAccountTxSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title={`Record Activity · ${account.name}`}
-      description="Post a transaction, interest payout, or statement payment to this account."
       width={460}
       footer={
         <div className="flex items-center gap-3">
@@ -566,14 +561,14 @@ export const RecordAccountTxSheet: React.FC<{
             disabled={numAmount <= 0}
             className="flex-1"
           >
-            Save Entry
+            Save entry
           </Button>
         </div>
       }
     >
       <div className="space-y-5">
         <SegmentedTabs<EntryKind>
-          label="Entry Type"
+          label="Entry type"
           size="sm"
           className="w-full"
           value={kind}
@@ -603,7 +598,7 @@ export const RecordAccountTxSheet: React.FC<{
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Description / Merchant
+              Description / merchant
             </label>
             <input
               type="text"
@@ -613,7 +608,7 @@ export const RecordAccountTxSheet: React.FC<{
                 kind === 'interest'
                   ? 'Monthly APY Interest'
                   : kind === 'card_payment'
-                    ? 'Statement Settlement'
+                    ? 'Statement settlement'
                     : 'e.g. Delhaize / Fuel / Rent'
               }
               className="h-11 w-full rounded-nv-control border border-nv-line bg-nv-surface px-3.5 text-sm text-nv-ink outline-none focus:border-nv-violet"
@@ -624,7 +619,7 @@ export const RecordAccountTxSheet: React.FC<{
         {kind === 'card_payment' && (
           <div>
             <label className="mb-1.5 block text-xs font-medium text-nv-muted">
-              Pay From Checking / Bank Account
+              Pay from checking / bank account
             </label>
             <select
               value={fromAccountId}

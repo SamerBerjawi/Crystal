@@ -132,7 +132,9 @@ export function SmoothTab<T extends string>({ items, value, onChange, label, siz
     onChange(items[next].id);
   };
 
-  const pad = cn(size === 'md' ? 'h-9 px-4 text-sm' : 'h-8 px-3 text-[13px]', fill ? 'flex-1' : 'shrink-0');
+  // 36px tabs in a 44px track; each tab's hit area reaches the track edges (D14: 44px targets).
+  const pad = cn(size === 'md' ? 'h-9 px-4 text-sm' : 'h-9 px-3 text-[13px]', fill ? 'flex-1' : 'shrink-0');
+  const hit = "after:absolute after:-inset-y-1 after:inset-x-0 after:content-['']";
   return (
     <div role="tablist" aria-label={label} ref={tablistRef} className={cn(fill ? 'relative flex' : 'relative inline-flex', 'max-w-full overflow-x-auto rounded-full bg-nv-inset p-1 [scrollbar-width:none]', className)}>
       {items.map((item, i) => (
@@ -148,6 +150,7 @@ export function SmoothTab<T extends string>({ items, value, onChange, label, siz
           className={cn(
             'relative inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium leading-none text-nv-muted outline-none transition-colors duration-150 hover:text-nv-ink focus-visible:ring-2 focus-visible:ring-nv-violet',
             pad,
+            hit,
           )}
         >
           {item.icon && <NvIcon name={item.icon} size={16} className={item.iconClass} />}

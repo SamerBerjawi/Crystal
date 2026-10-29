@@ -262,7 +262,7 @@ export const AllocationRing: React.FC<{
         <PieCenter defaultLabel="TOTAL">
           {({ value, label, isHovered }) => (
             <div className="flex flex-col items-center justify-center text-center px-1">
-              <span className="truncate max-w-[130px] text-[11px] font-semibold uppercase tracking-wider text-nv-muted mb-0.5">
+              <span className="truncate max-w-[130px] text-xs font-semibold uppercase tracking-wider text-nv-muted mb-0.5">
                 {isHovered ? label : 'TOTAL'}
               </span>
               <span className="privacy-blur nv-tabular text-xl sm:text-2xl font-bold tracking-tight text-nv-ink">
@@ -330,7 +330,7 @@ export const GoalRings: React.FC<{ goals: GoalView[]; size?: number; withLegend?
         })}
       </svg>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-nv-muted">Top Goals</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-nv-muted">Top goals</span>
         <span className="nv-tabular text-xs font-bold text-nv-ink">{shown.length} Rings</span>
       </div>
     </div>
