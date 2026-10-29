@@ -1,6 +1,6 @@
 
 
-import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, WeekendAdjustment } from './types';
+import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, WeekendAdjustment, RecurrenceFrequency } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import Big from 'big.js';
@@ -122,11 +122,41 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
     }
 
     // Handle both "EUR" and "EUR (€)" formats
-    const cleanCurrency = currency.split(' ')[0] as Currency;
+    const cleanCurrency = normalizeCurrency(currency);
     const symbol = symbolMap[cleanCurrency] || cleanCurrency;
 
     return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;
 }
+
+export const normalizeCurrency = (currency?: string | null): Currency => {
+    if (!currency) return 'EUR';
+    const clean = currency.trim().split(/[\s(]/)[0].toUpperCase();
+    return (clean as Currency) || 'EUR';
+};
+
+export const currencySign = (currency?: string | null): string => {
+    if (!currency) return '€';
+    const parenMatch = currency.match(/\((.*?)\)/);
+    if (parenMatch && parenMatch[1]) {
+        const inside = parenMatch[1].trim();
+        if (['€', '$', '£', '¥', '₹', '₿', '₣', 'lei', 'C$', 'A$'].includes(inside)) {
+            return inside;
+        }
+    }
+    const clean = normalizeCurrency(currency);
+    const map: Record<string, string> = {
+        EUR: '€',
+        USD: '$',
+        GBP: '£',
+        BTC: '₿',
+        RON: 'lei',
+        CHF: '₣',
+        JPY: '¥',
+        CAD: 'C$',
+        AUD: 'A$',
+    };
+    return map[clean] || clean;
+};
 
 export const CONVERSION_RATES: { [key in Currency]?: number } = {
     'USD': 0.93, 'GBP': 1.18, 'BTC': 65000, 'EUR': 1, 'RON': 0.20
@@ -140,26 +170,38 @@ export const updateConversionRates = (rates: Record<string, number>) => {
 
 // A currency without a rate is converted 1:1 so totals still render, but that is a guess: say so once per currency.
 const rateFor = (activeRates: Record<string, number>, currency: string): number => {
-    const rate = activeRates[currency];
+    const clean = normalizeCurrency(currency);
+    const rate = activeRates[clean] ?? activeRates[currency];
     if (typeof rate === 'number' && Number.isFinite(rate) && rate > 0) return rate;
-    if (currency !== 'EUR') warnIgnored(`exchange rate for ${currency} (treated as 1:1)`, new Error('missing rate'));
+    if (clean !== 'EUR') warnIgnored(`exchange rate for ${clean} (treated as 1:1)`, new Error('missing rate'));
     return 1;
 };
 
+/**
+ * The one FX table every figure should use: the built-in defaults, overridden by the
+ * rates saved in preferences (fetched live, or set by hand). Pass the result as `rates`.
+ */
+export const resolveRates = (preferenceRates?: Record<string, number>): Record<string, number> => ({
+    ...(CONVERSION_RATES as Record<string, number>),
+    ...(preferenceRates || {}),
+});
+
 export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    return safeMultiply(balance, rateFor(activeRates, currency));
+    return safeMultiply(balance, rateFor(activeRates, normalizeCurrency(currency)));
 }
 
 export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
     const activeRates = rates || dynamicRates;
-    if (from === to) return amount;
+    const cleanFrom = normalizeCurrency(from);
+    const cleanTo = normalizeCurrency(to);
+    if (cleanFrom === cleanTo) return amount;
 
     // Convert from 'from' to EUR
-    const amountInEur = safeMultiply(amount, rateFor(activeRates, from));
+    const amountInEur = safeMultiply(amount, rateFor(activeRates, cleanFrom));
 
     // Convert from EUR to 'to'
-    const rateTo = rateFor(activeRates, to);
+    const rateTo = rateFor(activeRates, cleanTo);
     return safeDivide(amountInEur, rateTo);
 }
 
@@ -430,90 +472,174 @@ export const formatDateKey = (date: Date, timeZone?: string): string => {
     return toLocalISOString(date);
 };
 
+export interface BalanceOptions {
+    rates?: Record<string, number>;
+    referenceDate?: Date;
+}
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const hasAmortizationSchedule = (acc: Account) =>
+    !!(acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined);
+
+export interface LoanBalanceBreakdown {
+    /** Principal not yet repaid as of the reference date. */
+    outstandingPrincipal: number;
+    /** Interest owed as of the reference date: unpaid past periods plus the current period pro rata. */
+    accruedInterest: number;
+    /** Scheduled interest that has not accrued yet. Not part of the balance. */
+    futureInterest: number;
+}
+
+/**
+ * What is owed on an amortised loan (or lent on a Lending account) on `referenceDate`.
+ * Only payments dated on or before that day count. Returns null without a schedule.
+ */
+export function computeLoanBalanceBreakdown(
+    account: Account,
+    accountTransactions: Transaction[],
+    overrides: Record<number, Partial<ScheduledPayment>> = {},
+    referenceDate: Date = new Date()
+): LoanBalanceBreakdown | null {
+    if (!hasAmortizationSchedule(account)) return null;
+    const asOf = startOfDay(referenceDate);
+    const asOfStr = toLocalISOString(asOf);
+    const pastTxs = accountTransactions.filter(tx => tx.accountId === account.id && tx.date <= asOfStr);
+    const schedule = generateAmortizationSchedule(account, pastTxs, overrides);
+
+    let outstandingPrincipal = 0;
+    let accruedInterest = 0;
+    let unpaidInterest = 0;
+    let currentPeriodCounted = false;
+    let previousDate = parseLocalDate(account.loanStartDate!);
+
+    for (const row of schedule) {
+        const rowDate = parseLocalDate(row.date);
+        if (row.status !== 'Paid') {
+            outstandingPrincipal = safeAdd(outstandingPrincipal, row.principal);
+            unpaidInterest = safeAdd(unpaidInterest, row.interest);
+            if (row.date <= asOfStr) {
+                accruedInterest = safeAdd(accruedInterest, row.interest);
+            } else if (!currentPeriodCounted) {
+                currentPeriodCounted = true;
+                const periodDays = Math.max(1, Math.round((rowDate.getTime() - previousDate.getTime()) / DAY_MS));
+                const elapsedDays = Math.min(periodDays, Math.max(0, Math.round((asOf.getTime() - previousDate.getTime()) / DAY_MS)));
+                accruedInterest = safeAdd(accruedInterest, safeDivide(safeMultiply(row.interest, elapsedDays), periodDays));
+            }
+        }
+        previousDate = rowDate;
+    }
+
+    accruedInterest = safeRound(accruedInterest, 2);
+    return {
+        outstandingPrincipal: safeRound(outstandingPrincipal, 2),
+        accruedInterest,
+        futureInterest: safeRound(Math.max(0, safeSubtract(unpaidInterest, accruedInterest)), 2),
+    };
+}
+
+/**
+ * The balance of one account on `referenceDate` (default today), signed, in the account's currency.
+ * - Amortised Loan/Lending: outstanding principal + accrued interest (Loan negative).
+ * - Loan/Lending with only a total amount: total minus payments made so far.
+ * - Leased vehicle: its residual value when set, else 0 (Q5).
+ * - Everything else: `account.balance` minus transactions dated after the reference date.
+ * Every balance figure on Accounts, Dashboard and the account pages should come from here.
+ */
+export function resolveAccountBalance(
+    account: Account,
+    accountTransactions: Transaction[] = [],
+    loanPaymentOverrides: LoanPaymentOverrides = {},
+    options: BalanceOptions = {}
+): number {
+    const asOf = startOfDay(options.referenceDate ?? new Date());
+    const asOfStr = toLocalISOString(asOf);
+    const own = accountTransactions.filter(tx => tx.accountId === account.id);
+
+    // Q5: a leased car is not yours. It counts at its residual value when one is set, else not at all.
+    if (account.type === 'Vehicle' && account.ownership === 'Leased') {
+        return safeRound(account.residualValue ?? 0, 2);
+    }
+
+    if (account.type === 'Loan' || account.type === 'Lending') {
+        const breakdown = computeLoanBalanceBreakdown(account, own, loanPaymentOverrides[account.id] || {}, asOf);
+        if (breakdown) {
+            const owed = safeAdd(breakdown.outstandingPrincipal, breakdown.accruedInterest);
+            return account.type === 'Loan' ? -owed : owed;
+        }
+        if (account.totalAmount) {
+            const isLending = account.type === 'Lending';
+            const totalPaid = own
+                .filter(tx => tx.date <= asOfStr && !tx.isBalanceAdjustment && tx.type === (isLending ? 'expense' : 'income'))
+                .reduce((s, tx) => {
+                    const split = safeAdd(tx.principalAmount || 0, tx.interestAmount || 0);
+                    const paid = split > 0 ? split : Math.abs(convertCurrency(tx.amount, tx.currency || account.currency, account.currency, options.rates));
+                    return safeAdd(s, paid);
+                }, 0);
+            const outstanding = Math.max(0, safeSubtract(account.totalAmount, totalPaid));
+            return isLending ? outstanding : -outstanding;
+        }
+    }
+
+    let balance = account.balance;
+    for (const tx of own) {
+        if (tx.date > asOfStr) {
+            balance = safeSubtract(balance, convertCurrency(tx.amount, tx.currency || account.currency, account.currency, options.rates));
+        }
+    }
+    return safeRound(balance, 2);
+}
+
+/**
+ * The debt a liability balance represents, in the same currency as `value`. A card in credit
+ * gives negative debt. A loan without schedule or total is owed whatever sign it was entered with.
+ */
+export function debtFromBalance(account: Account, value: number): number {
+    if (account.type === 'Loan' && !hasAmortizationSchedule(account) && !account.totalAmount) return Math.abs(value);
+    return -value;
+}
+
+/**
+ * How a signed native balance counts toward the balance sheet, in EUR.
+ * Assets count signed (an overdrawn account lowers assets); debts count as `-balance`
+ * (a card in credit lowers debt). So assets − debt always equals the sum of balances.
+ */
+export function classifyAccountBalanceEur(
+    account: Account,
+    nativeBalance: number,
+    rates?: Record<string, number>
+): { asset: number; debt: number } {
+    const eur = convertToEur(nativeBalance, account.currency, rates);
+    if (DEBT_TYPES.includes(account.type)) return { asset: 0, debt: debtFromBalance(account, eur) };
+    if (ASSET_TYPES.includes(account.type)) return { asset: eur, debt: 0 };
+    return { asset: 0, debt: 0 };
+}
+
 export function calculateAccountTotals(
     accounts: Account[],
     transactions: Transaction[] = [],
-    loanPaymentOverrides: LoanPaymentOverrides = {}
+    loanPaymentOverrides: LoanPaymentOverrides = {},
+    options: BalanceOptions = {}
 ) {
     const analyticsAccounts = accounts.filter(acc => acc.includeInAnalytics ?? true);
+    const txsByAccount = new Map<string, Transaction[]>();
+    for (const tx of transactions) {
+        const list = txsByAccount.get(tx.accountId);
+        if (list) list.push(tx);
+        else txsByAccount.set(tx.accountId, [tx]);
+    }
 
     let totalAssets = 0;
     let totalDebt = 0;
     let creditCardDebt = 0;
 
     analyticsAccounts.forEach(acc => {
-        const valueEur = convertToEur(acc.balance, acc.currency);
-
-        if (ASSET_TYPES.includes(acc.type)) {
-            let assetValue = convertToEur(acc.balance, acc.currency);
-
-            if (acc.type === 'Lending') {
-                if (acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
-                    const overrides = loanPaymentOverrides[acc.id] || {};
-                    const schedule = generateAmortizationSchedule(acc, transactions, overrides);
-
-                    const totalScheduledPrincipal = schedule.reduce((s, p) => safeAdd(s, p.principal), 0);
-                    const totalScheduledInterest = schedule.reduce((s, p) => safeAdd(s, p.interest), 0);
-
-                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.principal) : a, 0);
-                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.interest) : a, 0);
-
-                    const outstandingPrincipal = Math.max(0, safeSubtract(totalScheduledPrincipal, totalPaidPrincipal));
-                    const outstandingInterest = Math.max(0, safeSubtract(totalScheduledInterest, totalPaidInterest));
-
-                    assetValue = convertToEur(safeAdd(outstandingPrincipal, outstandingInterest), acc.currency);
-                } else if (acc.totalAmount) {
-                    const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'expense');
-                    const totalPaid = loanPayments.reduce((s, tx) => {
-                        const totalPayment = safeAdd((tx.principalAmount || 0), (tx.interestAmount || 0));
-                        return safeAdd(s, (totalPayment > 0 ? totalPayment : tx.amount));
-                    }, 0);
-                    const outstanding = Math.max(0, safeSubtract(acc.totalAmount, totalPaid));
-                    assetValue = convertToEur(outstanding, acc.currency);
-                }
-            }
-
-            totalAssets = safeAdd(totalAssets, assetValue);
-        } else if (DEBT_TYPES.includes(acc.type)) {
-            let debtValue = 0;
-            if (acc.type === 'Loan') {
-                if (acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
-                    const overrides = loanPaymentOverrides[acc.id] || {};
-                    const schedule = generateAmortizationSchedule(acc, transactions, overrides);
-
-                    const totalScheduledPrincipal = schedule.reduce((s, p) => safeAdd(s, p.principal), 0);
-                    const totalScheduledInterest = schedule.reduce((s, p) => safeAdd(s, p.interest), 0);
-
-                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.principal) : a, 0);
-                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? safeAdd(a, p.interest) : a, 0);
-
-                    const outstandingPrincipal = Math.max(0, safeSubtract(totalScheduledPrincipal, totalPaidPrincipal));
-                    const outstandingInterest = Math.max(0, safeSubtract(totalScheduledInterest, totalPaidInterest));
-
-                    debtValue = convertToEur(safeAdd(outstandingPrincipal, outstandingInterest), acc.currency);
-                } else if (acc.totalAmount) {
-                    const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'income');
-                    const totalPaid = loanPayments.reduce((s, tx) => {
-                        const totalPayment = safeAdd((tx.principalAmount || 0), (tx.interestAmount || 0));
-                        return safeAdd(s, (totalPayment > 0 ? totalPayment : tx.amount));
-                    }, 0);
-                    const outstanding = Math.max(0, safeSubtract(acc.totalAmount, totalPaid));
-                    debtValue = convertToEur(outstanding, acc.currency);
-                } else {
-                    debtValue = Math.abs(valueEur);
-                }
-            } else {
-                // For Credit Cards and Other Liabilities:
-                // Negative balance means user owes money (positive debt)
-                // Positive balance means user has surplus (negative debt)
-                debtValue = -valueEur;
-
-                if (acc.type === 'Credit Card') {
-                    creditCardDebt = safeAdd(creditCardDebt, debtValue);
-                }
-            }
-            totalDebt = safeAdd(totalDebt, debtValue);
-        }
+        const native = resolveAccountBalance(acc, txsByAccount.get(acc.id) || [], loanPaymentOverrides, options);
+        const { asset, debt } = classifyAccountBalanceEur(acc, native, options.rates);
+        totalAssets = safeAdd(totalAssets, asset);
+        totalDebt = safeAdd(totalDebt, debt);
+        if (acc.type === 'Credit Card') creditCardDebt = safeAdd(creditCardDebt, debt);
     });
 
     const netWorth = safeSubtract(totalAssets, totalDebt);
@@ -975,6 +1101,90 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
     return syntheticItems;
 }
 
+/**
+ * The next occurrence of a recurring item. Handles every `RecurrenceFrequency` (biweekly
+ * included) and clamps month-ends: the 31st becomes the 28th/29th in February, then the 31st again.
+ * `dayOfMonth` is the anchor day for monthly/yearly items (defaults to `date`'s day).
+ */
+export function advanceRecurrenceDate(
+    date: Date,
+    frequency: RecurrenceFrequency,
+    interval: number = 1,
+    dayOfMonth?: number
+): Date {
+    const step = Math.max(1, interval || 1);
+    const d = new Date(date);
+    const clampToMonth = (year: number, month: number) => {
+        const day = dayOfMonth ?? date.getDate();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return new Date(year, month, Math.min(day, lastDay));
+    };
+    switch (frequency) {
+        case 'daily':
+            d.setDate(d.getDate() + step);
+            return d;
+        case 'weekly':
+            d.setDate(d.getDate() + 7 * step);
+            return d;
+        case 'biweekly':
+            d.setDate(d.getDate() + 14 * step);
+            return d;
+        case 'yearly':
+            return clampToMonth(d.getFullYear() + step, d.getMonth());
+        case 'monthly':
+        default:
+            // Unknown frequencies advance monthly so callers' loops always terminate.
+            return clampToMonth(d.getFullYear(), d.getMonth() + step);
+    }
+}
+
+/**
+ * Occurrences of one recurring item between `from` and `to` (inclusive, by effective date),
+ * with weekend adjustment, end date and per-occurrence overrides applied. Skipped
+ * occurrences are left out. Amounts are positive, in `rt.currency`.
+ */
+export function expandRecurringOccurrences(
+    rt: RecurringTransaction,
+    from: Date,
+    to: Date,
+    overrides: RecurringTransactionOverride[] = []
+): { originalDate: string; date: string; amount: number; description: string }[] {
+    const fromStr = toLocalISOString(from);
+    const toStr = toLocalISOString(to);
+    const endStr = rt.endDate || null;
+    const anchorDay = rt.dueDateOfMonth || parseLocalDate(rt.startDate || rt.nextDueDate).getDate();
+    const overrideByDate = new Map(
+        overrides.filter(o => o.recurringTransactionId === rt.id).map(o => [o.originalDate, o])
+    );
+    const result: { originalDate: string; date: string; amount: number; description: string }[] = [];
+
+    let next = parseLocalDate(rt.nextDueDate);
+    // Look a week back so an occurrence moved forward by a weekend rule is still found.
+    const scanStart = new Date(from);
+    scanStart.setDate(scanStart.getDate() - 7);
+    let guard = 0;
+    while (next < scanStart && guard++ < 10000) {
+        next = advanceRecurrenceDate(next, rt.frequency, rt.frequencyInterval, anchorDay);
+    }
+    guard = 0;
+    while (guard++ < 10000) {
+        const rawStr = toLocalISOString(next);
+        if (rawStr > toStr || (endStr && rawStr > endStr)) break;
+        const override = overrideByDate.get(rawStr);
+        const date = override?.date || adjustDateForWeekend(rawStr, rt.weekendAdjustment);
+        if (!override?.isSkipped && date >= fromStr && date <= toStr) {
+            result.push({
+                originalDate: rawStr,
+                date,
+                amount: Math.abs(override?.amount ?? rt.amount),
+                description: override?.description || rt.description,
+            });
+        }
+        next = advanceRecurrenceDate(next, rt.frequency, rt.frequencyInterval, anchorDay);
+    }
+    return result;
+}
+
 export function generateBalanceForecast(
     accounts: Account[],
     recurringTransactions: RecurringTransaction[],
@@ -1047,16 +1257,7 @@ export function generateBalanceForecast(
 
         while (nextDate < startDate && (!endDateLocal || nextDate < endDateLocal)) {
             // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
-            const interval = rt.frequencyInterval || 1;
-            const d = new Date(nextDate);
-            if (rt.frequency === 'monthly') {
-                d.setMonth(d.getMonth() + interval);
-                // Keep original day
-            }
-            else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-            else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-            else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
-            nextDate = d;
+            nextDate = advanceRecurrenceDate(nextDate, rt.frequency, rt.frequencyInterval, rt.dueDateOfMonth || startDateLocal.getDate());
         }
 
         while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
@@ -1181,20 +1382,8 @@ export function generateBalanceForecast(
             }
 
 
-            const interval = rt.frequencyInterval || 1;
-            const d = new Date(nextDate); // Base logic on unadjusted date
-            if (rt.frequency === 'monthly') {
-                const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
-                d.setMonth(d.getMonth() + interval);
-                const year = d.getFullYear();
-                const month = d.getMonth();
-                const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-                d.setDate(Math.min(targetDay, lastDayOfMonth));
-            }
-            else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-            else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-            else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
-            nextDate = d;
+            // Base logic on unadjusted date
+            nextDate = advanceRecurrenceDate(nextDate, rt.frequency, rt.frequencyInterval, rt.dueDateOfMonth || startDateLocal.getDate());
         }
     });
 
@@ -1295,16 +1484,22 @@ export function generateBalanceForecast(
         const dateStr = toLocalISOString(currentDate);
         const eventsForDay = dailyEvents.get(dateStr) || [];
 
-        // Apply Market Return to Investment Accounts
-        if (dailyMarketRate !== 0) {
-            accounts.forEach(acc => {
-                if (acc.type === 'Investment' && currentBalances[acc.id] !== undefined) {
-                    const growth = safeRound(currentBalances[acc.id] * dailyMarketRate, 2);
+        // Apply Market Return to Investment Accounts and APY to Savings / Pension Accounts
+        accounts.forEach(acc => {
+            if (currentBalances[acc.id] === undefined || currentBalances[acc.id] <= 0) return;
+            if (acc.type === 'Investment' && dailyMarketRate !== 0) {
+                const growth = safeRound(currentBalances[acc.id] * dailyMarketRate, 2);
+                currentBalances[acc.id] = safeRound(currentBalances[acc.id] + growth, 2);
+                runningTotalBalance = safeRound(runningTotalBalance + growth, 2);
+            } else if ((acc.type === 'Savings' || (acc.type === 'Investment' && acc.subType === 'Pension Fund')) && acc.apy && acc.apy > 0) {
+                const dailyApyRate = Math.pow(1 + acc.apy / 100, 1 / 365) - 1;
+                const growth = safeRound(currentBalances[acc.id] * dailyApyRate, 2);
+                if (growth !== 0) {
                     currentBalances[acc.id] = safeRound(currentBalances[acc.id] + growth, 2);
                     runningTotalBalance = safeRound(runningTotalBalance + growth, 2);
                 }
-            });
-        }
+            }
+        });
 
         // Sort same-day events: income first (highest to lowest), then expenses (highest to lowest)
         eventsForDay.sort((a, b) => {
@@ -1418,14 +1613,44 @@ export function generateAmortizationSchedule(
 
     const paymentTransactions = transactions.filter(tx =>
         tx.accountId === account.id &&
-        tx.transferId &&
+        !tx.isBalanceAdjustment &&
         ((account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense'))
     ).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
 
-    const paymentMap = new Map<string, Transaction>();
+    interface AggregatedPeriodPayment {
+        id: string;
+        principalAmount: number;
+        interestAmount: number;
+        rawAmount: number;
+        hasBreakdown: boolean;
+    }
+
+    const paymentMap = new Map<string, AggregatedPeriodPayment>();
     paymentTransactions.forEach(p => {
         const monthYear = toLocalISOYearMonth(parseLocalDate(p.date));
-        paymentMap.set(monthYear, p);
+        const existing = paymentMap.get(monthYear);
+        const txPrincipal = p.principalAmount !== undefined ? convertCurrency(p.principalAmount, p.currency || account.currency, account.currency) : 0;
+        const txInterest = p.interestAmount !== undefined ? convertCurrency(p.interestAmount, p.currency || account.currency, account.currency) : 0;
+        const txRaw = Math.abs(convertCurrency(p.amount, p.currency || account.currency, account.currency));
+        const txHasBreakdown = p.principalAmount !== undefined || p.interestAmount !== undefined;
+
+        if (!existing) {
+            paymentMap.set(monthYear, {
+                id: p.id,
+                principalAmount: txPrincipal,
+                interestAmount: txInterest,
+                rawAmount: txRaw,
+                hasBreakdown: txHasBreakdown,
+            });
+        } else {
+            paymentMap.set(monthYear, {
+                id: p.id,
+                principalAmount: safeAdd(existing.principalAmount, txPrincipal),
+                interestAmount: safeAdd(existing.interestAmount, txInterest),
+                rawAmount: safeAdd(existing.rawAmount, txRaw),
+                hasBreakdown: existing.hasBreakdown || txHasBreakdown,
+            });
+        }
     });
 
     const schedule: ScheduledPayment[] = [];
@@ -1486,8 +1711,9 @@ export function generateAmortizationSchedule(
                 principal = 0;
                 totalPayment = 0;
             }
-        } else if (outstandingBalance <= 0 && !realPaymentForPeriod && !override?.totalPayment && !override?.principal) {
-            if (i > duration) {
+        } else if (outstandingBalance <= 0.005 && !realPaymentForPeriod && !override?.totalPayment && !override?.principal) {
+            const hasExtraPrincipal = Object.values(overrides).some(o => (o?.extraPrincipal ?? 0) > 0);
+            if (i > duration || hasExtraPrincipal) {
                 break;
             }
             // Loan is paid off, generate a zero-value entry to maintain schedule length
@@ -1498,8 +1724,17 @@ export function generateAmortizationSchedule(
             status = 'Paid';
             transactionId = realPaymentForPeriod.id;
 
-            principal = realPaymentForPeriod.principalAmount || 0;
-            interest = realPaymentForPeriod.interestAmount || 0;
+            if (realPaymentForPeriod.hasBreakdown && (realPaymentForPeriod.principalAmount > 0 || realPaymentForPeriod.interestAmount > 0)) {
+                principal = realPaymentForPeriod.principalAmount;
+                interest = realPaymentForPeriod.interestAmount;
+            } else {
+                interest = Math.min(realPaymentForPeriod.rawAmount, calculatedInterest);
+                principal = Math.max(0, realPaymentForPeriod.rawAmount - interest);
+            }
+            if (override?.extraPrincipal && override.extraPrincipal > 0) {
+                const extra = Math.min(override.extraPrincipal, Math.max(0, outstandingBalance - principal));
+                principal += extra;
+            }
             totalPayment = principal + interest;
 
         } else {
@@ -1546,6 +1781,15 @@ export function generateAmortizationSchedule(
                 principal = totalPayment - interest;
             }
 
+            if (override?.extraPrincipal && override.extraPrincipal > 0) {
+                const extra = Math.min(override.extraPrincipal, Math.max(0, outstandingBalance - principal));
+                principal += extra;
+                totalPayment = principal + interest;
+                if (outstandingBalance - principal <= 0.005) {
+                    isFinalScheduledPayment = true;
+                }
+            }
+
             if (scheduledDate < today) {
                 status = 'Overdue';
             }
@@ -1557,12 +1801,12 @@ export function generateAmortizationSchedule(
         let roundedInterest = roundToTwo(interest);
         let roundedTotalPayment = roundToTwo(totalPayment);
 
+        const hasAnyExtraPrincipal = Object.values(overrides).some(o => (o?.extraPrincipal ?? 0) > 0);
         if (isFinalScheduledPayment && !realPaymentForPeriod && !hasExplicitBreakdown) {
             const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
-            roundedPrincipal = remainingPrincipal;
-            roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
+            roundedPrincipal = Math.max(0, remainingPrincipal);
             roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
-            if (typeof targetTotalInterest === 'number') {
+            if (typeof targetTotalInterest === 'number' && !hasAnyExtraPrincipal && i === duration) {
                 const remainingInterest = roundToTwo(targetTotalInterest - roundedInterestTotal);
                 roundedInterest = Math.max(0, remainingInterest);
                 roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);

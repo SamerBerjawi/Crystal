@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
 import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions, AssetClosureDetails } from '../types';
-import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
+import { convertCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
@@ -42,6 +42,7 @@ const AccountDetail: React.FC<{
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
     const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
     const ninetyDaysAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), []);
     const todayStr = useMemo(() => toLocalISOString(new Date()), []);
@@ -59,7 +60,10 @@ const AccountDetail: React.FC<{
       [ninetyDaysAgoStr, todayStr]
     );
 
-    const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [expenseCategories, incomeCategories]);
+    const allCategories = useMemo(
+        () => [...incomeCategories, ...expenseCategories],
+        [expenseCategories, incomeCategories]
+    );
     
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -291,9 +295,9 @@ const AccountDetail: React.FC<{
             .map(tx => ({
                 tx,
                 parsedDate: parseLocalDate(tx.date),
-                convertedAmount: convertToEur(tx.amount, tx.currency)
+                convertedAmount: convertCurrency(tx.amount, tx.currency, account.currency, conversionRates)
             }));
-    }, [transactions, account.id, showBalanceAdjustments]);
+    }, [transactions, account.id, account.currency, showBalanceAdjustments, conversionRates]);
 
     const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
         const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, 50);

@@ -12,3 +12,6 @@ server/dist
 tests/e2e/results
 tests/e2e/.stack
 test-results
+
+# Personal backup exports (financial data): never commit
+crystal-export-*.json

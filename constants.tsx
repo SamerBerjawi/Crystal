@@ -334,6 +334,7 @@ export const OTHER_ASSET_SUB_TYPE_STYLES: { [key in OtherAssetSubType]: { icon: 
   'Private Loan': { icon: 'receipt_check', color: 'text-teal-500' },
   'Electronics': { icon: 'devices', color: 'text-gray-500' },
   'Furniture': { icon: 'home', color: 'text-orange-500' },
+  'Meal Voucher': { icon: 'credit_card', color: 'text-emerald-500' },
   'Other': { icon: 'Box', color: 'text-slate-500' },
 };
 

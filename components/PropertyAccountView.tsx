@@ -1,6 +1,8 @@
 import React from 'react';
 import { Account, Transaction, LoanPaymentOverrides } from '../types';
-import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
+import { computePropertyAccountMetrics } from '../utils/accountDetailModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { motion } from 'motion/react';
@@ -79,38 +81,23 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   showBalanceAdjustments = true,
 }) => {
   const isClosed = account.status === 'closed';
-  const linkedLoan = accounts.find(a => a.id === account.linkedLoanId) || accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
-  
-  const currentMarketValue = account.balance;
-  let outstandingLoanBalance = 0;
-  let principalPaidViaLoan = 0;
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
-  if (linkedLoan) {
-      const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
-      if (linkedLoan.principalAmount && linkedLoan.duration && linkedLoan.loanStartDate && linkedLoan.interestRate !== undefined) {
-          const overrides = loanPaymentOverrides[linkedLoan.id] || {};
-          const schedule = generateAmortizationSchedule(linkedLoan, filteredTxs, overrides);
-          const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
-          const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
-          outstandingLoanBalance = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-          principalPaidViaLoan = totalPaidPrincipal;
-      } else {
-          outstandingLoanBalance = Math.abs(linkedLoan.balance);
-          principalPaidViaLoan = filteredTxs
-            .filter(tx => tx.accountId === linkedLoan.id && tx.type === 'income')
-            .reduce((sum, tx) => sum + (tx.principalAmount || 0), 0);
-      }
-  }
-
-  const purchasePrice = linkedLoan 
-    ? ((linkedLoan.principalAmount || 0) + (linkedLoan.downPayment || 0)) 
-    : (account.purchasePrice || 0);
-
-  const marketEquity = currentMarketValue - outstandingLoanBalance;
-  const investedEquity = linkedLoan ? (principalPaidViaLoan + (linkedLoan.downPayment || 0)) : (account.principalOwned || 0);
-  const appreciation = currentMarketValue - (purchasePrice || 0);
-  const appreciationPercent = purchasePrice ? (appreciation / purchasePrice) * 100 : 0;
-  const ownershipPercent = currentMarketValue > 0 ? (marketEquity / currentMarketValue) * 100 : 0;
+  const {
+      linkedLoan,
+      currentMarketValue,
+      outstandingLoanBalance,
+      principalPaidViaLoan,
+      purchasePrice,
+      marketEquity,
+      investedEquity,
+      appreciation,
+      appreciationPercent,
+      ownershipPercent,
+  } = computePropertyAccountMetrics(account, accounts, transactions, loanPaymentOverrides, {
+      conversionRates,
+      showBalanceAdjustments,
+  });
 
   const features = [
       account.hasBasement ? { label: 'Basement', icon: 'foundation' } : null,

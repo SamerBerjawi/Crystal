@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { intFmt } from "../chart-formatters";
+import { intFmt, toProperCase } from "../chart-formatters";
 
 export interface TooltipRow {
   color: string;
@@ -27,10 +27,7 @@ export function TooltipContent({ title, rows, children }: TooltipContentProps) {
         )}
         <div className="space-y-1.5">
           {rows.map((row) => {
-            const rawLabel = String(row.label || "");
-            const displayLabel = rawLabel
-              ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
-              : rawLabel;
+            const displayLabel = toProperCase(row.label);
             return (
               <div
                 className="flex items-center justify-between gap-4"

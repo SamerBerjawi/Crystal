@@ -66,6 +66,8 @@ export default defineConfig(({ mode }) => {
       react(),
       shouldAnalyze && createBundleAnalyzerPlugin(),
     ].filter(Boolean) as PluginOption[],
+    // MapLibre locates its worker file relative to its own module, which pre-bundling would break.
+    optimizeDeps: { exclude: ['maplibre-gl'] },
     build: {
       sourcemap: false,
       minify: 'esbuild',
@@ -82,6 +84,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
+        '@bklitui/ui/charts': path.resolve(process.cwd(), './components/bklit/charts'),
         '@': path.resolve(process.cwd(), '.'),
       },
     },

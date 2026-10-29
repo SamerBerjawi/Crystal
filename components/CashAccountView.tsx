@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency } from '../utils';
+import { computeCashAccountMetrics } from '../utils/accountDetailModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { BarChart, Bar, Grid, BarXAxis, BarYAxis, ChartTooltip } from '@/src/components/charts';
@@ -75,74 +77,18 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
     isLinkedToEnableBanking,
     showBalanceAdjustments = true,
 }) => {
-    const timeZone = getPreferredTimeZone();
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
+    const rawTransactions = useMemo(() => transactions.map(t => t.tx), [transactions]);
 
-    // --- Metrics ---
-    const { totalInflow, totalOutflow, netChange, lastReplenishment } = useMemo(() => {
-        const today = new Date();
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-        let inflow = 0;
-        let outflow = 0;
-        let lastRep: Date | null = null;
-
-        transactions
-            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-            .forEach(({ tx, parsedDate }) => {
-                if (tx.type === 'income' && (tx.transferId || tx.category === 'Transfer') && (!lastRep || parsedDate > lastRep)) {
-                    lastRep = parsedDate;
-                }
-
-                if (parsedDate >= startOfMonth) {
-                    const val = convertToEur(tx.amount, tx.currency);
-                    if (tx.type === 'income') inflow += val;
-                    else outflow += Math.abs(val);
-                }
-            });
-
-        return {
-            totalInflow: inflow,
-            totalOutflow: outflow,
-            netChange: inflow - outflow,
-            lastReplenishment: lastRep
-        };
-    }, [transactions, showBalanceAdjustments]);
-
-    const flowData = useMemo(() => {
-        const data = [];
-        const today = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthKey = d.toLocaleString('default', { month: 'short' });
-            const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-            const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-
-            let inc = 0;
-            let exp = 0;
-
-            transactions
-                .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth)
-                .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-                .forEach(({ tx }) => {
-                    const val = Math.abs(convertToEur(tx.amount, tx.currency));
-                    if (tx.amount > 0) inc += val;
-                    else exp += val;
-                });
-
-            data.push({ name: monthKey, income: inc, expense: exp });
-        }
-        return data;
-    }, [transactions, showBalanceAdjustments]);
-
-    const burnRateMessage = useMemo(() => {
-        if (account.balance <= 0) return "Reserve depleted";
-        const avgDailySpend = totalOutflow / 30;
-        if (avgDailySpend <= 0) return "Stagnant reserve";
-        const daysLeft = account.balance / avgDailySpend;
-        if (daysLeft < 3) return "Low reserve warning";
-        if (daysLeft > 60) return "Robust liquidity";
-        return `~${Math.floor(daysLeft)} days runway`;
-    }, [account.balance, totalOutflow]);
+    // --- Metrics & Flow Data (BUG-12 & BUG-07 Fixed) ---
+    const { totalInflow, totalOutflow, netChange, lastReplenishment, flowData, burnRateMessage } = useMemo(
+        () =>
+            computeCashAccountMetrics(account, rawTransactions, {
+                conversionRates,
+                showBalanceAdjustments,
+            }),
+        [account, rawTransactions, conversionRates, showBalanceAdjustments]
+    );
 
     return (
         <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">

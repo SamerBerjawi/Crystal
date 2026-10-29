@@ -5,6 +5,7 @@ import {
   formatCurrency,
   convertToEur,
   convertCurrency,
+  normalizeCurrency,
   parseLocalDate,
   generateAmortizationSchedule,
   toLocalISOString,
@@ -1041,7 +1042,7 @@ const AccountOverviewModal: React.FC<AccountOverviewModalProps> = ({
                   {formatCurrency(displayBalance, account.currency)}
                 </span>
 
-                {account.currency !== 'EUR' && (
+                {normalizeCurrency(account.currency) !== 'EUR' && (
                   <span className="text-xs font-bold text-slate-600 dark:text-gray-400 font-mono">
                     ≈ {formatCurrency(eurBalance, 'EUR')}
                   </span>

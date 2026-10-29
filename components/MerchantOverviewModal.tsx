@@ -1,16 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MapContainer, TileLayer, Marker as LeafletMarker, useMap } from 'react-leaflet';
+import { MapContainer, Marker as LeafletMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { MerchantRule, Transaction, Category, MerchantLocation } from '../types';
 
 const MapContainerAny = MapContainer as any;
-const TileLayerAny = TileLayer as any;
 const MarkerAny = LeafletMarker as any;
 import { formatCurrency, parseLocalDate } from '../utils';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { useCartoBasemap } from '../hooks/useCartoBasemap';
+import { VectorBasemap } from './VectorBasemap';
 import Icon from './ui/Icon';
 import { safeImageSrcAttr } from '../utils/safeImageUrl';
 import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
@@ -94,7 +93,6 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const transactionRules = usePreferencesSelector(p => p.transactionRules || []);
   const [logoLoadError, setLogoLoadError] = useState(false);
-  const { tileUrl, attribution, subdomains } = useCartoBasemap(undefined, isDarkMode);
 
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
@@ -279,13 +277,7 @@ const MerchantOverviewModal: React.FC<MerchantOverviewModalProps> = ({
                   touchZoom={false}
                   className="w-full h-full !z-0"
                 >
-                  <TileLayerAny
-                    key={tileUrl}
-                    attribution={attribution}
-                    url={tileUrl}
-                    subdomains={subdomains}
-                    maxZoom={19}
-                  />
+                  <VectorBasemap dark={isDarkMode} />
                   {resolvedLocations.map(loc => (
                     <MarkerAny
                       key={loc.id}

@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
 import {
+  convertCurrency,
   formatCurrency,
-  generateAmortizationSchedule,
   parseLocalDate,
   toLocalISOString,
   calculateTrendLine,
@@ -11,7 +11,10 @@ import {
   generateSyntheticCreditCardPayments,
   generateSyntheticPropertyTransactions,
 } from '../utils';
+import { computeAccountDisplayBalance } from '../utils/accountsModel';
+import { resolveRealTodayBalance } from '../utils/accountDetailModel';
 import { useScheduleContext, useGoalsContext } from '../contexts/FinancialDataContext';
+import { useAccountsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import Icon from './ui/Icon';
 import {
   LineChart,
@@ -33,38 +36,18 @@ interface HistoricalBalanceTrendProps {
 const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account, transactions }) => {
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
   const { financialGoals } = useGoalsContext();
+  const { accounts } = useAccountsContext();
+  const conversionRates = usePreferencesSelector((p) => p.conversionRates);
 
-  const displayBalance = useMemo(() => {
-    if (account.type === 'Loan' || account.type === 'Lending') {
-      if (account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined) {
-        const overrides = loanPaymentOverrides[account.id] || {};
-        const schedule = generateAmortizationSchedule(account, transactions, overrides);
+  const accountTransactions = useMemo(
+    () => transactions.filter((tx) => tx.accountId === account.id),
+    [transactions, account.id]
+  );
 
-        const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
-        const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
-        const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
-        const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
-
-        const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
-        const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
-
-        const totalOutstanding = outstandingPrincipal + outstandingInterest;
-        return account.type === 'Loan' ? -totalOutstanding : totalOutstanding;
-      }
-
-      if (account.totalAmount) {
-        const isLending = account.type === 'Lending';
-        const loanPayments = transactions.filter(tx => tx.type === (isLending ? 'expense' : 'income'));
-        const totalPaid = loanPayments.reduce((sum, tx) => {
-          const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-          return sum + (totalPayment > 0 ? totalPayment : tx.amount);
-        }, 0);
-        const outstanding = account.totalAmount - totalPaid;
-        return isLending ? outstanding : -outstanding;
-      }
-    }
-    return account.balance;
-  }, [account, transactions, loanPaymentOverrides]);
+  const displayBalance = useMemo(
+    () => computeAccountDisplayBalance(account, accountTransactions, loanPaymentOverrides),
+    [account, accountTransactions, loanPaymentOverrides]
+  );
 
   const {
     combinedData,
@@ -80,17 +63,27 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     const NUM_DAYS = 180; // Last 6 months
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayIso = toLocalISOString(endDate);
 
-    const sortedTransactions = [...transactions]
-      .filter(tx => tx.accountId === account.id)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    const currentBal = displayBalance;
+    // BUG-02 Fix: Back out future-dated transactions from today's starting balance.
+    // Amortised loan balances come from the schedule, which already ignores future payments.
+    const isScheduledLoan =
+      (account.type === 'Loan' || account.type === 'Lending') &&
+      !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
+    const currentBal = isScheduledLoan
+      ? displayBalance
+      : resolveRealTodayBalance(
+          displayBalance,
+          account.currency,
+          accountTransactions,
+          { conversionRates, referenceDate: endDate, accountId: account.id }
+        );
 
     const txsByDate: Record<string, number> = {};
-    sortedTransactions.forEach(tx => {
-      const dateStr = tx.date;
-      txsByDate[dateStr] = (txsByDate[dateStr] || 0) + tx.amount;
+    accountTransactions.forEach((tx) => {
+      if (tx.date > todayIso) return; // Future transactions already backed out above
+      const nativeAmount = convertCurrency(tx.amount, tx.currency, account.currency, conversionRates);
+      txsByDate[tx.date] = (txsByDate[tx.date] || 0) + nativeAmount;
     });
 
     const runningDate = new Date(endDate);
@@ -116,9 +109,12 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     const projectionEndDate = new Date(endDate);
     projectionEndDate.setMonth(projectionEndDate.getMonth() + 3);
 
-    const syntheticLoanPayments = generateSyntheticLoanPayments([account], transactions, loanPaymentOverrides);
-    const syntheticCreditCardPayments = generateSyntheticCreditCardPayments([account], transactions);
-    const syntheticPropertyTransactions = generateSyntheticPropertyTransactions([account]);
+    // BUG-06 Fix: Pass the full accounts list so linked Loan, Credit Card, and Property
+    // payments targeting this account are synthesized into the forecast.
+    const allContextAccounts = accounts && accounts.length > 0 ? accounts : [account];
+    const syntheticLoanPayments = generateSyntheticLoanPayments(allContextAccounts, transactions, loanPaymentOverrides);
+    const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(allContextAccounts, transactions);
+    const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(allContextAccounts);
 
     const allRecurring = [
       ...(recurringTransactions || []),
@@ -161,8 +157,15 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
       const currentForecastBase = rawForecastData[0].value;
       rawForecastData.forEach((point) => {
         if (point.date > todayStr) {
-          const predictedChange = point.value - currentForecastBase;
-          const projectedVal = Number((currentBal + predictedChange).toFixed(2));
+          const predictedChangeEur = point.value - currentForecastBase;
+          // BUG-07 Fix: generateBalanceForecast outputs EUR values; convert delta into account.currency
+          const predictedChangeNative = convertCurrency(
+            predictedChangeEur,
+            'EUR',
+            account.currency,
+            conversionRates
+          );
+          const projectedVal = Number((currentBal + predictedChangeNative).toFixed(2));
           combined.push({
             name: point.date,
             date: parseLocalDate(point.date),
@@ -202,8 +205,11 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     };
   }, [
     account,
+    accounts,
     transactions,
+    accountTransactions,
     displayBalance,
+    conversionRates,
     loanPaymentOverrides,
     recurringTransactions,
     recurringTransactionOverrides,

@@ -9,6 +9,18 @@
         "dev"
       ],
       "port": 5173
+    },
+    {
+      "name": "dev-mock",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "env": {
+        "CRYSTAL_MOCK_API": "1"
+      },
+      "port": 5174
     }
   ]
 }

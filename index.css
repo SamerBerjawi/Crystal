@@ -5,6 +5,8 @@
 @import "@fontsource/plus-jakarta-sans/800.css";
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 @variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -43,6 +45,15 @@
   --chart-scale-pattern-color: oklch(0.96 0.005 106);
   --border: rgba(0, 0, 0, 0.08);
   --ring-background: rgba(0, 0, 0, 0.06);
+  --chart-positive: oklch(0.696 0.17 162.48);
+  --chart-negative: oklch(0.637 0.237 25.331);
+  --chart-scale-mix: oklch(1 0 0);
+  --chart-indicator-color: oklch(0.21 0.006 285);
+  --chart-indicator-secondary-color: oklch(0.913 0 0);
+  --chart-marker-badge-background: oklch(0 0 0);
+  --chart-marker-badge-foreground: oklch(0.84 0 0);
+  --chart-segment-background: oklch(0.756 0 0 / 0.06);
+  --chart-segment-line: oklch(0.5 0 0 / 0.25);
 }
 
 .dark {
@@ -56,6 +67,36 @@
   --tooltip-text-secondary: #a1a1aa;
   --tooltip-border: rgba(255, 255, 255, 0.1);
   --ring-background: rgba(255, 255, 255, 0.08);
+  --chart-1: oklch(0.585 0.233 277.117);
+  --chart-2: oklch(0.852 0.199 91.936);
+  --chart-3: oklch(0.667 0.295 322.15);
+  --chart-4: oklch(0.56 0.021 213.5);
+  --chart-5: oklch(1 0 0);
+  --chart-positive: oklch(0.765 0.177 163.223);
+  --chart-negative: oklch(0.704 0.191 22.216);
+  --chart-background: oklch(0.145 0 0);
+  --chart-foreground: oklch(0.45 0 0);
+  --chart-foreground-muted: oklch(0.65 0.01 260);
+  --chart-crosshair: oklch(0.45 0 0);
+  --chart-grid: oklch(0.25 0 0);
+  --chart-brush-border: var(--chart-grid);
+  --chart-marker-background: oklch(0.25 0.01 260);
+  --chart-marker-border: oklch(0.4 0.01 260);
+  --chart-marker-foreground: oklch(0.9 0 0);
+  --chart-label: oklch(0.75 0.01 260);
+  --chart-scale-mix: oklch(0.25 0 0);
+  --chart-scale-01: oklch(0.3 0 0);
+  --chart-scale-02: color-mix(in oklab, var(--chart-1) 35%, var(--chart-scale-mix));
+  --chart-scale-03: color-mix(in oklab, var(--chart-1) 55%, var(--chart-scale-mix));
+  --chart-scale-04: color-mix(in oklab, var(--chart-1) 78%, var(--chart-scale-mix));
+  --chart-scale-05: var(--chart-1);
+  --chart-scale-pattern-color: oklch(0.145 0 0);
+  --chart-indicator-color: oklch(1 0 0);
+  --chart-indicator-secondary-color: oklch(0.145 0 0);
+  --chart-marker-badge-background: oklch(1 0 0);
+  --chart-marker-badge-foreground: oklch(0.15 0 0);
+  --chart-segment-background: oklch(0.41 0.0127 248.14 / 0.25);
+  --chart-segment-line: oklch(1 0 0 / 0.25);
 }
 
 [data-font="plus-jakarta"], [data-font="plus-jakarta-sans"] {
@@ -117,8 +158,9 @@
    without definitions the classes did nothing, which left modals underneath the mobile navigation (AUD-23). */
 @utility z-dropdown { z-index: 50; }
 @utility z-sticky { z-index: 100; }
-@utility z-popover { z-index: 200; }
 @utility z-modal { z-index: 500; }
+/* Popovers and menus open from inside sheets and dialogs, so they sit above them. */
+@utility z-popover { z-index: 600; }
 @utility z-toast { z-index: 1000; }
 @utility z-max { z-index: 9999; }
 
@@ -462,7 +504,6 @@
   }
 }
 
-
 /* ─── Apple HIG Typography Utilities ─── */
 @utility typo-h1 {
   font-size: var(--text-2xl);
@@ -647,7 +688,6 @@ img {
   border-width: 0 !important;
 }
 
-
 :root {
   --chart-1: oklch(0.32 0 none);
   --chart-2: oklch(0.41 0 none);
@@ -734,6 +774,25 @@ img {
   --color-chart-scale-04: var(--chart-scale-04);
   --color-chart-scale-05: var(--chart-scale-05);
   --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
+  --color-chart-line-primary: var(--chart-line-primary);
+  --color-chart-line-secondary: var(--chart-line-secondary);
+  --color-chart-brush-border: var(--chart-brush-border);
+  --color-chart-segment-line: var(--chart-segment-line);
+  --color-chart-segment-background: var(--chart-segment-background);
+  --color-chart-marker-badge-foreground: var(--chart-marker-badge-foreground);
+  --color-chart-marker-badge-background: var(--chart-marker-badge-background);
+  --color-chart-indicator-secondary-color: var(--chart-indicator-secondary-color);
+  --color-chart-indicator-color: var(--chart-indicator-color);
+  --chart-scale-05: var(--chart-scale-05);
+  --chart-scale-04: var(--chart-scale-04);
+  --chart-scale-03: var(--chart-scale-03);
+  --chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-mix: var(--chart-scale-mix);
+  --chart-tooltip-muted: var(--chart-tooltip-muted);
+  --chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --chart-tooltip-background: var(--chart-tooltip-background);
+  --color-chart-negative: var(--chart-negative);
+  --color-chart-positive: var(--chart-positive);
 }
   ::view-transition-old(root), ::view-transition-new(root) {
     animation: none;
@@ -772,7 +831,6 @@ img {
 :root:not(.dark) .bg-white\/80 {
   box-shadow: 0 1px 4px 0 rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
 }
-
 
 /* ─── PWA & Mobile Foundation ─── */
 
@@ -914,3 +972,51 @@ img {
 :root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='success'] { color: #0b5d2e; }
 :root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='warning'] { color: #7a4a00; }
 :root:not(.dark) [data-sonner-toast][data-rich-colors='true'][data-type='error'] { color: #a4121a; }
+
+/* New pages (UI_UX_DESIGN_REFERENCE.md §1, decisions Q1–Q4): `nv-*` utilities only. The values are set on
+   `.crystal-new` in components/new/new.css, which only loads with the New UI, so the classic pages are unaffected. */
+@theme inline {
+  --color-nv-card-from: var(--nv-card-from);
+  --color-nv-canvas: var(--nv-canvas);
+  --color-nv-tile: var(--nv-tile);
+  --color-nv-surface: var(--nv-surface);
+  --color-nv-inset: var(--nv-inset);
+  --color-nv-line: var(--nv-line);
+  --color-nv-ink: var(--nv-ink);
+  --color-nv-muted: var(--nv-muted);
+  --color-nv-faint: var(--nv-faint);
+  --color-nv-violet: var(--nv-violet);
+  --color-nv-violet-strong: var(--nv-violet-strong);
+  --color-nv-violet-soft: var(--nv-violet-soft);
+  --color-nv-violet-text: var(--nv-violet-text);
+  --color-nv-on-violet: var(--nv-on-violet);
+  --color-nv-on-ink: var(--nv-on-ink);
+  --color-nv-orange: var(--nv-orange);
+  --color-nv-orange-text: var(--nv-orange-text);
+  --color-nv-orange-soft: var(--nv-orange-soft);
+  --color-nv-on-orange: var(--nv-on-orange);
+  --color-nv-green: var(--nv-green);
+  --color-nv-green-text: var(--nv-green-text);
+  --color-nv-green-soft: var(--nv-green-soft);
+  --color-nv-on-green: var(--nv-on-green);
+  --color-nv-sky: var(--nv-sky);
+  --color-nv-sky-text: var(--nv-sky-text);
+  --color-nv-sky-soft: var(--nv-sky-soft);
+  --color-nv-on-sky: var(--nv-on-sky);
+  --color-nv-red: var(--nv-red);
+  --color-nv-red-text: var(--nv-red-text);
+  --color-nv-red-soft: var(--nv-red-soft);
+  --color-nv-peach: var(--nv-peach);
+  --color-nv-grad-from: var(--nv-grad-from);
+  --color-nv-grad-to: var(--nv-grad-to);
+  --font-nv: 'Outfit Variable', Outfit, -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius-nv-card: 28px;
+  --radius-nv-sub: 20px;
+  --radius-nv-tile: 16px;
+  --radius-nv-control: 14px;
+  --shadow-nv-card: var(--nv-shadow-card);
+  --shadow-nv-chrome: var(--nv-shadow-chrome);
+  --shadow-nv-float: var(--nv-shadow-float);
+  --shadow-nv-thumb: var(--nv-shadow-thumb);
+  --shadow-nv-violet: var(--nv-shadow-violet);
+}

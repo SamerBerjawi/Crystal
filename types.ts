@@ -39,7 +39,7 @@ export interface Tag {
 
 export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Warrant' | 'Pension Fund' | 'Spare Change' | 'Other';
 export type PropertyType = 'Apartment' | 'Detached House' | 'Semi-Detached House' | 'Terraced House' | 'Land' | 'Commercial' | 'Other';
-export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Other';
+export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Meal Voucher' | 'Other';
 export type OtherLiabilitySubType = 'Tax' | 'Private Debt' | 'Legal Settlement' | 'Business Debt' | 'Other';
 
 // Vehicle Specific Types
@@ -75,6 +75,7 @@ export interface Account {
   icon?: string;
   last4?: string;
   financialInstitution?: string;
+  website?: string; // Website / portal URL for institution/account
   symbol?: string; // Ticker symbol for investments/warrants
 
   // Banking specific
@@ -136,6 +137,8 @@ export interface Account {
   leaseEndDate?: string;
   annualMileageAllowance?: number;
   leasePaymentAmount?: number;
+  /** Leased vehicles: the contract's residual (buy-out) value. Only then does the car count in net worth (Q5). */
+  residualValue?: number;
   leasePaymentDay?: number;
   leasePaymentAccountId?: string;
   // Mileage
@@ -459,7 +462,8 @@ export interface ContributionPlanStep {
 
 export interface Budget {
   id: string;
-  categoryName: string; // Budget by parent category name for simplicity
+  categoryName: string; // Parent category name; kept in step with `categoryId` on load and on rename
+  categoryId?: string; // Parent expense category id (Q8): survives a rename
   amount: number;
   period: 'monthly'; // For now, only monthly
   currency: Currency;
@@ -633,7 +637,6 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
-  cartoApiKey?: string;
   smartPriceBindings?: Record<string, SmartPriceBinding>;
   investmentPriceConfigs?: Record<string, InvestmentPriceConfig>;
   conversionRates?: Record<string, number>;

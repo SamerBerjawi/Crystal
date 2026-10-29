@@ -1,7 +1,9 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
-import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
+import { convertCurrency, formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
+import { findLinkedAssetForLoan } from '../utils/accountDetailModel';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -76,6 +78,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   showBalanceAdjustments = true,
 }) => {
   const isLending = account.type === 'Lending';
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
   const loanDetails = useMemo(() => {
     const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
@@ -94,13 +97,14 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     const totalPrincipal = account.principalAmount || account.totalAmount || totalScheduledPrincipal || 1;
     const progressPercent = Math.min(100, Math.max(0, (totalPaidPrincipal / totalPrincipal) * 100));
 
-    const linkedAsset = accounts.find(a => a.id === account.linkedAssetId) || accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
+    // BUG-10 & BUG-07 Fix: Bidirectional asset lookup (Property or Vehicle) + currency conversion
+    const linkedAsset = findLinkedAssetForLoan(account, accounts);
     
     let ltv = 0;
     let marketEquity = 0;
     
     if (linkedAsset) {
-      const assetValue = linkedAsset.balance;
+      const assetValue = convertCurrency(linkedAsset.balance, linkedAsset.currency, account.currency, conversionRates);
       if (assetValue > 0) ltv = (outstandingPrincipal / assetValue) * 100;
       marketEquity = assetValue - outstandingPrincipal;
     }
@@ -124,7 +128,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         marketEquity, 
         payoffDate 
     };
-  }, [account, transactions, loanPaymentOverrides, accounts, showBalanceAdjustments]);
+  }, [account, transactions, loanPaymentOverrides, accounts, showBalanceAdjustments, conversionRates]);
 
   return (
     <div className="space-y-6 md:space-y-10 animate-fade-in-up pb-10">

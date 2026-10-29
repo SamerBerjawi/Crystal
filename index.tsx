@@ -6,6 +6,10 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import { IconContext } from '@phosphor-icons/react';
 import RootErrorBoundary from './components/RootErrorBoundary';
+import { forgetLegacyCartoKey } from './utils/mapStyle';
+
+// CARTO basemaps are gone; drop the API key an older version stored.
+forgetLegacyCartoKey();
 
 // Unregister any active service worker and clear stale caches in iframe/cloud preview
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
