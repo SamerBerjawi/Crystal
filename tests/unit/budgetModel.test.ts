@@ -48,7 +48,9 @@ test('spend rolls sub-categories into parents and skips what is not spending', (
     tx({ id: 'r', amount: -20, category: 'Restaurants', currency: 'USD' }),
     tx({ id: 'fuel', amount: -30, category: 'Fuel', accountId: 'a2' }),
     tx({ id: 'unknown', amount: -5, category: 'Mystery' }),
-    tx({ id: 'income', amount: 100, type: 'income', category: 'Food' }),
+    tx({ id: 'income', amount: 100, type: 'income', category: 'Salary' }),
+    // A refund in an expense category is netted against it (L-B5).
+    tx({ id: 'refund', amount: 8, type: 'income', category: 'Restaurants' }),
     tx({ id: 'xfer', amount: -200, transferId: 'x1' }),
     tx({ id: 'adj', amount: -9, isBalanceAdjustment: true }),
     tx({ id: 'other-account', amount: -99, accountId: 'inv' }),
@@ -63,7 +65,7 @@ test('spend rolls sub-categories into parents and skips what is not spending', (
     tx({ id: 'cp2', amount: -5, category: 'Fuel', parentTransactionId: 'cp' }),
   ];
   const spend = spendByCategory(data, monthBounds({ year: 2026, month: 9 }), opts);
-  assert.deepEqual(Object.fromEntries(spend), { Food: 40 + 10 + 15, Transport: 30 + 12, Uncategorized: 5, Shopping: 45 });
+  assert.deepEqual(Object.fromEntries(spend), { Food: 40 + 10 + 15 - 8, Transport: 30 + 12, Uncategorized: 5, Shopping: 45 });
 });
 
 test('budget lines, statuses and the summary', () => {
@@ -107,9 +109,14 @@ test('suggestions: new categories and budgets far from the average', () => {
   assert.equal(friendlyAmount(1210), 1250);
 });
 
-test('auto-fill overwrites existing budgets and adds new ones', () => {
-  const plan = autofillPlan(new Map([['Food', 99.6], ['Fun', 0.2]]), [budget('Food', 50)], 'EUR');
-  assert.deepEqual(plan, [{ id: 'b-Food', categoryName: 'Food', amount: 100, period: 'monthly', currency: 'EUR' }]);
+test('auto-fill keeps existing budgets by default and uses the preview\'s friendly amounts', () => {
+  const average = new Map([['Food', 99.6], ['Fun', 0.2], ['Travel', 151]]);
+  const kept = autofillPlan(average, [budget('Food', 50)], 'EUR');
+  assert.deepEqual(kept.map(p => [p.categoryName, p.amount, p.id]), [['Fun', 5, undefined], ['Travel', 155, undefined]]);
+  const overwrite = autofillPlan(average, [budget('Food', 50)], 'EUR', { keepExisting: false });
+  assert.deepEqual(overwrite.find(p => p.categoryName === 'Food'), {
+    id: 'b-Food', categoryId: undefined, categoryName: 'Food', amount: 100, period: 'monthly', currency: 'EUR',
+  });
 });
 
 test('allocation folds small shares into Other', () => {

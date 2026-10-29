@@ -48,6 +48,7 @@ import {
   computeVehicleAccountMetrics,
   computeVehicleTcoMetrics,
   enrichMileageLogsWithDeltas,
+  validateMileageReading,
   findLinkedAssetForLoan,
   findLinkedLoanForAsset,
   normalizeAccountTransactions,
@@ -433,6 +434,9 @@ export const useAccountDetailData = (accountId: string) => {
       dateStr?: string
     ): { undo: () => void } | null => {
       if (!account || amount <= 0) return null;
+      // A missing source account would leave the card leg with a transfer id and no partner.
+      const sourceAcc = fromAccountId ? accounts.find((a) => a.id === fromAccountId) : undefined;
+      if (fromAccountId && !sourceAcc) return null;
       const effectiveDate = dateStr || toLocalISOString(new Date());
       const transferId = `cc-pay-${uuidv4()}`;
       const creditTxId = `txn-${uuidv4()}`;
@@ -452,7 +456,6 @@ export const useAccountDetailData = (accountId: string) => {
       ];
       const createdIds = [creditTxId];
       if (fromAccountId) {
-        const sourceAcc = accounts.find((a) => a.id === fromAccountId);
         if (sourceAcc) {
           const debitTxId = `txn-${uuidv4()}`;
           createdIds.push(debitTxId);
@@ -537,7 +540,13 @@ export const useAccountDetailData = (accountId: string) => {
   );
 
   const addMileageLogs = useCallback(
-    (entries: Array<{ date: string; reading: number }>): { undo: () => void } | null => {
+    (
+      entries: Array<{ date: string; reading: number }>
+    ): {
+      undo?: () => void;
+      added: number;
+      conflicts: Array<{ date: string; reading: number; error: string }>;
+    } | null => {
       if (!account || entries.length === 0) return null;
       const snapshot = {
         ...account,
@@ -547,20 +556,40 @@ export const useAccountDetailData = (accountId: string) => {
       for (const item of account.mileageLogs || []) {
         mapByDate.set(item.date, item);
       }
-      for (const entry of entries) {
+      // Each entry is checked against everything merged so far. A different reading on a date
+      // that already has one is a conflict, not a silent overwrite.
+      const conflicts: Array<{ date: string; reading: number; error: string }> = [];
+      let added = 0;
+      for (const entry of [...entries].sort((a, b) => a.date.localeCompare(b.date))) {
+        const reading = Math.round(entry.reading);
         const existing = mapByDate.get(entry.date);
-        mapByDate.set(entry.date, {
-          id: existing?.id || `ml-${uuidv4()}`,
-          date: entry.date,
-          reading: Math.round(entry.reading),
-        });
+        if (existing) {
+          if (existing.reading !== reading) {
+            conflicts.push({
+              date: entry.date,
+              reading,
+              error: `${entry.date} already has ${existing.reading.toLocaleString()} km`,
+            });
+          }
+          continue;
+        }
+        const check = validateMileageReading(Array.from(mapByDate.values()), entry.date, reading);
+        if (!check.valid) {
+          conflicts.push({ date: entry.date, reading, error: check.error || 'Out of order' });
+          continue;
+        }
+        mapByDate.set(entry.date, { id: `ml-${uuidv4()}`, date: entry.date, reading });
+        added++;
       }
+      if (added === 0) return { added, conflicts };
       const merged = Array.from(mapByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
       rawSaveAccount({
         ...account,
         mileageLogs: merged,
       });
       return {
+        added,
+        conflicts,
         undo: () => rawSaveAccount(snapshot),
       };
     },

@@ -102,6 +102,12 @@ export const useAccountsData = () => {
     return map;
   }, [visibleAccounts, transactionsByAccountId, displayBalancesById, conversionRates, loanPaymentOverrides]);
 
+  const bankConsentExpiry = useMemo(() => {
+    const map = new Map<string, string | undefined>();
+    enableBankingLinkMap?.forEach((link, accountId) => map.set(accountId, link.connection?.sessionExpiresAt));
+    return map;
+  }, [enableBankingLinkMap]);
+
   const heroModel: AccountsHeroModel = useMemo(
     () =>
       computeAccountsHeroModel(
@@ -109,9 +115,9 @@ export const useAccountsData = () => {
         transactions,
         loanPaymentOverrides,
         displayCurrency,
-        { conversionRates }
+        { conversionRates, bankConsentExpiry }
       ),
-    [visibleAccounts, transactions, loanPaymentOverrides, displayCurrency, conversionRates]
+    [visibleAccounts, transactions, loanPaymentOverrides, displayCurrency, conversionRates, bankConsentExpiry]
   );
 
   const cardWalletAccounts = useMemo(

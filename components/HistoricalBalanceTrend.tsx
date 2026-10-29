@@ -65,13 +65,19 @@ const HistoricalBalanceTrend: React.FC<HistoricalBalanceTrendProps> = ({ account
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const todayIso = toLocalISOString(endDate);
 
-    // BUG-02 Fix: Back out future-dated transactions from today's starting balance
-    const currentBal = resolveRealTodayBalance(
-      displayBalance,
-      account.currency,
-      accountTransactions,
-      { conversionRates, referenceDate: endDate }
-    );
+    // BUG-02 Fix: Back out future-dated transactions from today's starting balance.
+    // Amortised loan balances come from the schedule, which already ignores future payments.
+    const isScheduledLoan =
+      (account.type === 'Loan' || account.type === 'Lending') &&
+      !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
+    const currentBal = isScheduledLoan
+      ? displayBalance
+      : resolveRealTodayBalance(
+          displayBalance,
+          account.currency,
+          accountTransactions,
+          { conversionRates, referenceDate: endDate, accountId: account.id }
+        );
 
     const txsByDate: Record<string, number> = {};
     accountTransactions.forEach((tx) => {

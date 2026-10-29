@@ -9,7 +9,7 @@ import {
   LINE_SORTS,
   monthOf,
   monthPace,
-  projectedSpend,
+  forecastMonthEnd,
   sameMonth,
   shiftMonth,
   sortLines,
@@ -92,6 +92,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [initialCategoryName, setInitialCategoryName] = useState<string | undefined>();
+  const [initialAmount, setInitialAmount] = useState<number | undefined>();
   const [autofillOpen, setAutofillOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [unbudgetedOpen, setUnbudgetedOpen] = useState(false);
@@ -143,12 +144,16 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   );
   const summary = useMemo(() => summarize(lines, spend), [lines, spend]);
   const unbudgetedList = useMemo(() => unbudgeted(spend, data.budgets), [spend, data.budgets]);
-  const suggestions = useMemo(() => data.suggestionsFor(selectedMonth, 3), [data, selectedMonth]);
+  const suggestions = useMemo(() => data.suggestionsFor(selectedMonth, data.suggestionMonths), [data, selectedMonth]);
   const slices = useMemo(() => allocation(lines), [lines]);
 
   // Derived metrics
   const dailySafe = useMemo(() => dailyAllowance(summary.remaining, pace), [summary.remaining, pace]);
-  const projected = useMemo(() => projectedSpend(summary.spent, pace), [summary.spent, pace]);
+  // Fixed bills count once; only the rest is extrapolated. Null in the first days of the month.
+  const projected = useMemo(
+    () => forecastMonthEnd(summary.spent, pace, data.recurringFor(selectedMonth, today)),
+    [summary.spent, pace, data, selectedMonth, today]
+  );
 
   // Goals total summary
   const totalGoalsSaved = useMemo(() => data.goals.reduce((s, g) => s + g.saved, 0), [data.goals]);
@@ -193,6 +198,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
     onClick: () => {
       setEditingBudget(null);
       setInitialCategoryName(undefined);
+      setInitialAmount(undefined);
       setBudgetSheetOpen(true);
     },
   });
@@ -200,12 +206,14 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   const openEdit = (b: Budget) => {
     setEditingBudget(b);
     setInitialCategoryName(b.categoryName);
+    setInitialAmount(undefined);
     setBudgetSheetOpen(true);
   };
 
   const openCreateFor = (categoryName: string) => {
     setEditingBudget(null);
     setInitialCategoryName(categoryName);
+    setInitialAmount(undefined);
     setBudgetSheetOpen(true);
   };
 
@@ -386,9 +394,13 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                 icon="forecast"
                 accent="sky"
                 label="Month-End Forecast"
-                note={pace.when === 'current' ? 'Based on current pace' : undefined}
+                note={pace.when === 'current' ? (projected === null ? 'From day 5' : 'Based on current pace') : undefined}
               >
-                <Money amount={projected} currency={data.displayCurrency} size="lg" />
+                {projected === null ? (
+                  <span className="nv-tabular text-lg font-semibold text-nv-muted">—</span>
+                ) : (
+                  <Money amount={projected} currency={data.displayCurrency} size="lg" />
+                )}
               </FigureCell>
 
               <FigureCell
@@ -441,6 +453,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                     onClick={() => {
                       setEditingBudget(null);
                       setInitialCategoryName(undefined);
+                      setInitialAmount(undefined);
                       setBudgetSheetOpen(true);
                     }}
                   >
@@ -462,6 +475,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                             onClick={() => {
                               setEditingBudget(null);
                               setInitialCategoryName(undefined);
+                              setInitialAmount(undefined);
                               setBudgetSheetOpen(true);
                             }}
                           >
@@ -993,6 +1007,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
         month={selectedMonth}
         editingBudget={editingBudget}
         initialCategoryName={initialCategoryName}
+        initialAmount={initialAmount}
       />
 
       <AutofillSheet
@@ -1017,6 +1032,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
         onAddBudget={(cat, amount) => {
           setEditingBudget(null);
           setInitialCategoryName(cat);
+          setInitialAmount(amount);
           setBudgetSheetOpen(true);
         }}
       />

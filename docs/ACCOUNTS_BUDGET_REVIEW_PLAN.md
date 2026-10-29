@@ -190,6 +190,15 @@ Done when: hero net worth = Σ group subtotals = split footer, and the 90-day ch
 ### Phase 2: Remaining logic (P1)
 L-A6, L-A7, L-D4–L-D8, L-H2, L-H3, L-B4–L-B8. Compounding helper shared by savings, pension and the estimator; XIRR for pension; projection that respects recurring items.
 
+**Status (2026-10-29): done, not committed.** Notes from doing it:
+- L-A7: added "card payment due within 7 days" and "bank connection expires within 14 days"; the "safe to spend < 0 in 14 days" rule is **dropped** from the list page (it needs every recurring item per account; the detail page already shows safe to spend).
+- L-D4/L-D5: `monthlyRateFromApy` feeds savings, the estimator and the pension projection; `computeXirr` gives the pension's money-weighted return. Without a retirement year or an expected return the pension shows a "Set …" prompt instead of a projection. The estimator's editable starting rates (3 % / 6 %) stay.
+- L-B4: `forecastMonthEnd` counts recurring items in budgeted categories once and extrapolates the rest; hidden before day 5.
+- L-B5 + Q8: refunds net per category; budgets carry `categoryId`, and App keeps `categoryName` in step on load and on rename (classic Budget benefits too). No schema change: `budgets` is `z.any()`.
+- L-B6/L-B7: one plan for preview and apply, "Keep existing limits" (on by default), Undo removes created budgets (`deleteBudget(id, { silent: true })`); recommendations get an Undo and use the quick-create period.
+- Tests: `tests/unit/phase2Logic.test.ts` (13 cases; the card-due case only runs on days 1–24). Three older tests were updated for the intended changes (APY rate, refund netting, auto-fill default).
+- Browser (demo data): every detail archetype and both list pages render without errors. Auto-fill, recommendations and the mileage import were not exercised in the browser: the demo has no past spending in budgeted accounts and no vehicle logs to conflict with.
+
 ### Phase 3: Reference compliance (mechanical, P1)
 X3 copy, X4 CTAs, X5 accent fills, X6 surfaces, X7 type floor and targets, X8 Money/date helpers, delete `currencySign`, replace `nv-teal-*`. Extend `tests/unit/new-tokens.test.ts` with: no `text-[9|10|11px]` outside chips, no `shadow-*` in `pages/new` and `components/new`, no `variant="cta"` in `pages/new` page bodies.
 

@@ -38,6 +38,8 @@ export interface TxWithMeta {
 
 export interface DetailModelOptions {
   referenceDate?: Date;
+  /** Number overload of `resolveRealTodayBalance`: only this account's future items are backed out. */
+  accountId?: string;
   showBalanceAdjustments?: boolean;
   rates?: Record<string, number>;
   conversionRates?: Record<string, number>;
@@ -97,6 +99,8 @@ export function resolveRealTodayBalance(
   const targetCurrency = isAccountObj
     ? (accountOrBalance as Account).currency
     : (transactionsOrCurrency as Account['currency']);
+  // The number overload filters by `options.accountId`; without it, every future item in the list counts,
+  // so callers must pass only that account's transactions.
   const accountId = isAccountObj ? (accountOrBalance as Account).id : undefined;
   const transactions = isAccountObj
     ? (transactionsOrCurrency as Array<Transaction | TxWithMeta>)
@@ -104,6 +108,7 @@ export function resolveRealTodayBalance(
   const options = isAccountObj
     ? (optionsOrTransactions as DetailModelOptions | undefined)
     : maybeOptions;
+  const filterId = accountId ?? options?.accountId;
 
   const ref = options?.referenceDate ?? new Date();
   const todayStr = toLocalISOString(new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()));
@@ -111,7 +116,7 @@ export function resolveRealTodayBalance(
 
   let realBalance: number = startingBalance;
   for (const { tx, dateStr, amountInAccountCurrency } of normalized) {
-    if (accountId && tx.accountId !== accountId) continue;
+    if (filterId && tx.accountId !== filterId) continue;
     if (dateStr > todayStr) {
       realBalance = safeSubtract(realBalance, amountInAccountCurrency);
     }
@@ -255,6 +260,15 @@ export interface SavingsMonthYieldPoint {
 }
 
 /**
+ * Monthly rate for an APY (effective annual yield, in %): (1 + APY)^(1/12) − 1.
+ * APY / 12 compounded monthly overstates growth (5 % → 5.12 % a year).
+ */
+export function monthlyRateFromApy(apyPct: number): number {
+  const apy = Math.max(0, apyPct || 0) / 100;
+  return apy > 0 ? Math.pow(1 + apy, 1 / 12) - 1 : 0;
+}
+
+/**
  * Comprehensive Savings Interest & Trajectory Calculator.
  * Fixes:
  *  - `referenceDate` freezing in the past when no transaction occurred in the last 30 days
@@ -280,8 +294,19 @@ export function computeSavingsAccountMetrics(
   );
 
   const realTodayBalance = resolveRealTodayBalance(account, transactions, options);
+  const monthlyRate = monthlyRateFromApy(apy);
   const projectedAnnualInterest = safeRound((Math.max(0, realTodayBalance) * apy) / 100, 2);
-  const projectedMonthlyInterest = safeRound(projectedAnnualInterest / 12, 2);
+  const projectedMonthlyInterest = safeRound(Math.max(0, realTodayBalance) * monthlyRate, 2);
+
+  // Estimates only cover months after the last recorded payout; earlier months are what the bank paid.
+  // (A bank that pays quarterly would otherwise get an estimate plus the real payout for the same months.)
+  const lastPayoutMonth = normalized
+    .filter(({ tx, dateStr, amountInAccountCurrency }) =>
+      dateStr <= todayStr && amountInAccountCurrency > 0 && isSavingsInterestTransaction(tx, allCategories))
+    .reduce<string | null>((max, t) => {
+      const key = t.dateStr.slice(0, 7);
+      return max === null || key > max ? key : max;
+    }, null);
 
   // Determine the earliest date the account was active
   const earliestTxDate = normalized.length > 0
@@ -353,7 +378,7 @@ export function computeSavingsAccountMetrics(
       if (effectiveOpenStr && dStr < effectiveOpenStr) continue;
       const bal = dailyBalances.get(dStr) ?? Math.max(0, realTodayBalance);
       if (bal > 0) {
-        sumDailyBal += bal;
+        sumDailyBal = safeAdd(sumDailyBal, bal);
         activeDays++;
       }
     }
@@ -361,7 +386,7 @@ export function computeSavingsAccountMetrics(
     const avgActiveBalance = activeDays > 0 ? sumDailyBal / activeDays : 0;
     const activeMonthFraction = activeDays / daysInMonth;
     const accruedInterest = apy > 0 && activeDays > 0
-      ? safeRound(avgActiveBalance * (apy / 100 / 12) * activeMonthFraction, 2)
+      ? safeRound(avgActiveBalance * monthlyRate * activeMonthFraction, 2)
       : 0;
 
     // Full-month projected interest for the current month (or historical month if active)
@@ -369,12 +394,12 @@ export function computeSavingsAccountMetrics(
     const monthEndBalance = dailyBalances.get(endOfMonthDateStr) ?? Math.max(0, realTodayBalance);
     const isBeforeOpen = effectiveOpenStr ? toLocalISOString(monthEnd) < effectiveOpenStr : false;
     const projectedForMonth = !isBeforeOpen && apy > 0
-      ? safeRound((monthEndBalance * apy) / 100 / 12, 2)
+      ? safeRound(monthEndBalance * monthlyRate, 2)
       : 0;
 
-    const effectiveValue = actualInterest > 0
-      ? actualInterest
-      : (i === 0 ? projectedForMonth : accruedInterest);
+    const canEstimate = lastPayoutMonth === null || monthKey > lastPayoutMonth;
+    const estimate = canEstimate ? (i === 0 ? projectedForMonth : accruedInterest) : 0;
+    const effectiveValue = actualInterest > 0 ? actualInterest : estimate;
 
     interestHistory.push({
       name: monthLabel,
@@ -383,17 +408,15 @@ export function computeSavingsAccountMetrics(
       accrued: accruedInterest,
       projected: projectedForMonth,
       value: effectiveValue,
-      isProjected: actualInterest === 0,
+      isProjected: actualInterest === 0 && estimate > 0,
     });
 
     // Accumulate YTD figures for months in the current calendar year
     if (monthStart.getFullYear() === refDay.getFullYear()) {
       recordedInterestYTD = safeAdd(recordedInterestYTD, actualInterest);
-      accruedInterestYTD = safeAdd(accruedInterestYTD, accruedInterest);
-      totalInterestYTD = safeAdd(
-        totalInterestYTD,
-        actualInterest > 0 ? actualInterest : accruedInterest
-      );
+      const accruedEstimate = actualInterest > 0 || !canEstimate ? 0 : accruedInterest;
+      accruedInterestYTD = safeAdd(accruedInterestYTD, accruedEstimate);
+      totalInterestYTD = safeAdd(totalInterestYTD, actualInterest > 0 ? actualInterest : accruedEstimate);
     }
   }
 
@@ -474,56 +497,50 @@ export function computeCreditCardAccountMetrics(
   const utilization = creditLimit > 0 ? safeRound((balanceOwed / creditLimit) * 100, 1) : 0;
   const availableCredit = safeRound(Math.max(0, creditLimit - balanceOwed) + creditSurplus, 2);
 
-  // Use configured statement period if statementStartDate is set, else current calendar month
-  const activeWindowStart = account.statementStartDate
-    ? calculateStatementPeriods(account.statementStartDate, account.paymentDate || 25).current.start
-    : new Date(today.getFullYear(), today.getMonth(), 1);
-  const activeWindowEnd = account.statementStartDate
-    ? calculateStatementPeriods(account.statementStartDate, account.paymentDate || 25).current.end
-    : new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  // One period computation. Cycles run from the statement day to the day before the next one;
+  // without a statement day, calendar months.
+  const periods = account.statementStartDate
+    ? calculateStatementPeriods(account.statementStartDate, account.paymentDate || 25)
+    : null;
+  const activeWindowStart = periods ? periods.current.start : new Date(today.getFullYear(), today.getMonth(), 1);
+  const activeWindowEnd = periods ? periods.current.end : new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-  let totalSpent = 0;
-  let totalPayments = 0;
+  // A payment is money moved in from another account (a transfer), or income in a
+  // "payment" category for cards paid by hand. Other income (refunds, cashback) lowers spend.
+  const isCardPayment = (tx: Transaction) =>
+    !!tx.transferId || /\bpayments?\b/i.test(tx.category || '');
 
-  for (const { tx, parsedDate, amountInAccountCurrency } of normalized) {
-    if (parsedDate >= activeWindowStart && parsedDate <= activeWindowEnd) {
+  const cycleSpend = (start: Date, end: Date) => {
+    let spent = 0;
+    let payments = 0;
+    for (const { tx, parsedDate, amountInAccountCurrency } of normalized) {
+      if (parsedDate < start || parsedDate > end || tx.isBalanceAdjustment) continue;
       const absVal = Math.abs(amountInAccountCurrency);
-      if (tx.type === 'expense') {
-        totalSpent = safeAdd(totalSpent, absVal);
-      } else if (tx.type === 'income') {
-        const cat = (tx.category || '').toLowerCase();
-        if (tx.transferId || cat.includes('payment') || cat.includes('transfer')) {
-          totalPayments = safeAdd(totalPayments, absVal);
-        } else {
-          // Refund / cashback reduces cycle spend
-          totalSpent = Math.max(0, safeSubtract(totalSpent, absVal));
-        }
-      }
+      if (amountInAccountCurrency < 0) spent = safeAdd(spent, absVal);
+      else if (isCardPayment(tx)) payments = safeAdd(payments, absVal);
+      else spent = Math.max(0, safeSubtract(spent, absVal));
     }
-  }
+    return { spent, payments };
+  };
 
+  const { spent: totalSpent, payments: totalPayments } = cycleSpend(activeWindowStart, activeWindowEnd);
+
+  // Spend per statement cycle (or calendar month), the six cycles ending with the one that holds today.
+  const statementDay = account.statementStartDate || 1;
+  const cycleStartFor = (year: number, month: number) =>
+    new Date(year, month, Math.min(statementDay, new Date(year, month + 1, 0).getDate()));
+  const anchorYear = today.getFullYear();
+  let anchorMonth = today.getMonth();
+  if (today < cycleStartFor(anchorYear, anchorMonth)) {
+    anchorMonth -= 1;
+  }
   const spendingHistory: Array<{ name: string; value: number }> = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    const monthKey = d.toLocaleString('en-US', { month: 'short' });
-    const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-
-    let monthTotal = 0;
-    for (const { tx, parsedDate, amountInAccountCurrency } of normalized) {
-      if (parsedDate >= startOfMonth && parsedDate <= endOfMonth) {
-        const absVal = Math.abs(amountInAccountCurrency);
-        if (tx.type === 'expense') {
-          monthTotal = safeAdd(monthTotal, absVal);
-        } else if (tx.type === 'income') {
-          const cat = (tx.category || '').toLowerCase();
-          if (!(tx.transferId || cat.includes('payment') || cat.includes('transfer'))) {
-            monthTotal = Math.max(0, safeSubtract(monthTotal, absVal));
-          }
-        }
-      }
-    }
-    spendingHistory.push({ name: monthKey, value: safeRound(monthTotal, 2) });
+    const start = cycleStartFor(anchorYear, anchorMonth - i);
+    const nextStart = cycleStartFor(anchorYear, anchorMonth - i + 1);
+    const end = new Date(nextStart.getFullYear(), nextStart.getMonth(), nextStart.getDate() - 1);
+    const name = start.toLocaleString('en-US', { month: 'short' });
+    spendingHistory.push({ name, value: safeRound(cycleSpend(start, end).spent, 2) });
   }
 
   return {
@@ -858,6 +875,35 @@ export function computeVehicleAccountMetrics(
 }
 
 /**
+ * Annual money-weighted return (XIRR) of dated cash flows: negative = money in, positive = money out
+ * (the current value goes last as a positive flow). Null when it can't be solved.
+ */
+export function computeXirr(flows: Array<{ date: Date; amount: number }>): number | null {
+  if (flows.length < 2 || !flows.some((f) => f.amount < 0) || !flows.some((f) => f.amount > 0)) return null;
+  const t0 = flows.reduce((min, f) => (f.date < min ? f.date : min), flows[0].date).getTime();
+  const years = flows.map((f) => (f.date.getTime() - t0) / (365.25 * 24 * 60 * 60 * 1000));
+  if (Math.max(...years) < 30 / 365.25) return null;
+  const npv = (r: number) => flows.reduce((sum, f, i) => sum + f.amount / Math.pow(1 + r, years[i]), 0);
+  // Bisection on (-99 %, 1000 %): NPV falls as the rate rises for these flows.
+  let lo = -0.99;
+  let hi = 10;
+  let fLo = npv(lo);
+  const fHi = npv(hi);
+  if (!Number.isFinite(fLo) || !Number.isFinite(fHi) || fLo * fHi > 0) return null;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2;
+    const fMid = npv(mid);
+    if (Math.abs(fMid) < 1e-7) return mid;
+    if (fLo * fMid < 0) hi = mid;
+    else {
+      lo = mid;
+      fLo = fMid;
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+/**
  * BUG-14 Fix:
  * Pension metrics calculated consistently in `account.currency` with both cumulative return and CAGR.
  */
@@ -869,8 +915,10 @@ export function computePensionAccountMetrics(
   const ref = options?.referenceDate ?? new Date();
   const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
   const currentYear = today.getFullYear();
-  const retirementYear = account.expectedRetirementYear || currentYear + 20;
-  const yearsToRetirement = Math.max(0, retirementYear - currentYear);
+  // No invented defaults: without a retirement year or an expected return there is no projection.
+  const retirementYear: number | null = account.expectedRetirementYear || null;
+  const yearsToRetirement: number | null = retirementYear !== null ? Math.max(0, retirementYear - currentYear) : null;
+  const expectedReturnPct: number | null = account.apy !== undefined && account.apy !== null && account.apy > 0 ? account.apy : null;
 
   const normalized = normalizeAccountTransactions(transactions, account.currency, options).filter(
     t => t.tx.accountId === account.id
@@ -904,19 +952,18 @@ export function computePensionAccountMetrics(
   const totalGrowth = safeRound(safeSubtract(realTodayBalance, contributions), 2);
   const cumulativeReturn = contributions > 0 ? totalGrowth / contributions : 0;
 
-  // Compute years active for true annualized return (CAGR)
-  const earliestDate = account.openingDate
-    ? parseLocalDate(account.openingDate)
-    : normalized.length > 0
-      ? normalized.reduce((min, t) => (t.parsedDate < min ? t.parsedDate : min), normalized[0].parsedDate)
-      : today;
-  const yearsActive = Math.max(1 / 12, (today.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
-  const annualizedReturn =
-    contributions > 0 && realTodayBalance > 0
-      ? yearsActive >= 1
-        ? Math.pow(realTodayBalance / contributions, 1 / yearsActive) - 1
-        : cumulativeReturn
-      : (account.apy ? account.apy / 100 : 0);
+  // Money-weighted return (XIRR): every contribution and withdrawal on its own date, today's value last.
+  const xirrFlows: Array<{ date: Date; amount: number }> = [];
+  for (const { tx, parsedDate, amountInAccountCurrency } of normalized) {
+    if (parsedDate > today || tx.isMarketAdjustment) continue;
+    const cat = (tx.category || '').toLowerCase();
+    if (tx.type === 'income' && (cat.includes('interest') || cat.includes('dividend'))) continue;
+    const absVal = Math.abs(amountInAccountCurrency);
+    if (tx.type === 'income') xirrFlows.push({ date: parsedDate, amount: -absVal });
+    else if (tx.type === 'expense') xirrFlows.push({ date: parsedDate, amount: absVal });
+  }
+  if (realTodayBalance > 0) xirrFlows.push({ date: today, amount: realTodayBalance });
+  const annualizedReturn: number | null = contributions > 0 ? computeXirr(xirrFlows) : null;
 
   const monthlyContributionAvg = safeRound(contributionsLast12Months / 12, 2);
 
@@ -962,14 +1009,15 @@ export function computePensionAccountMetrics(
   const projectionData: Array<{ date: string; balance: number; contributions: number; type: 'Projection' }> = [];
   let projBalance = realTodayBalance;
   let projContrib = effectiveContributions;
-  const monthlyRate = (account.apy || 5) / 100 / 12;
-  const monthsToRetire = yearsToRetirement * 12;
+  const monthlyRate = monthlyRateFromApy(expectedReturnPct ?? 0);
+  const canProject = yearsToRetirement !== null && expectedReturnPct !== null;
+  const monthsToRetire = canProject ? (yearsToRetirement as number) * 12 : 0;
   const step = Math.max(1, Math.floor(monthsToRetire / 24));
   const dProj = new Date(today.getFullYear(), today.getMonth(), 1);
 
   for (let i = 1; i <= monthsToRetire; i++) {
     projBalance = (projBalance + monthlyContributionAvg) * (1 + monthlyRate);
-    projContrib = projContrib + monthlyContributionAvg;
+    projContrib = safeAdd(projContrib, monthlyContributionAvg);
     dProj.setMonth(dProj.getMonth() + 1);
     if (i % step === 0 || i === monthsToRetire) {
       projectionData.push({
@@ -982,7 +1030,8 @@ export function computePensionAccountMetrics(
   }
 
   const chartData = [...historicalData, ...projectionData];
-  const projectedValueAtRetirement = chartData.length > 0 ? chartData[chartData.length - 1].balance : realTodayBalance;
+  const projectedValueAtRetirement: number | null =
+    canProject && projectionData.length > 0 ? projectionData[projectionData.length - 1].balance : null;
   const monthlyHistory = historicalData.slice(-12).map((h) => ({
     name: h.date.slice(5),
     date: h.date,
@@ -999,12 +1048,19 @@ export function computePensionAccountMetrics(
     totalGrowth: safeRound(totalGrowth, 2),
     totalReturn: safeRound(totalGrowth, 2),
     cumulativeReturn,
+    /** Money-weighted (XIRR); null without enough dated contributions. */
     annualizedReturn,
-    annualizedReturnPct: safeRound(annualizedReturn * 100, 2),
+    annualizedReturnPct: annualizedReturn !== null ? safeRound(annualizedReturn * 100, 2) : null,
+    expectedReturnPct,
     monthlyContributionAvg,
     monthlyHistory,
     chartData,
-    projectedValueAtRetirement: safeRound(projectedValueAtRetirement, 2),
+    projectedValueAtRetirement: projectedValueAtRetirement !== null ? safeRound(projectedValueAtRetirement, 2) : null,
+    /** What the user must set before a projection can be shown. */
+    missingForProjection: {
+      retirementYear: retirementYear === null,
+      expectedReturn: expectedReturnPct === null,
+    },
   };
 }
 
@@ -1364,7 +1420,7 @@ export function computeCompoundingProjection(params: {
   const monthly = Math.max(0, params.monthlyDeposit || 0);
   const apy = Math.max(0, params.apy || 0);
   const years = Math.max(1, Math.min(50, Math.round(params.years || 1)));
-  const monthlyRate = apy / 100 / 12;
+  const monthlyRate = monthlyRateFromApy(apy);
 
   let balance = initial;
   let principal = initial;
@@ -1373,7 +1429,7 @@ export function computeCompoundingProjection(params: {
   for (let y = 1; y <= years; y++) {
     for (let m = 1; m <= 12; m++) {
       balance = (balance + monthly) * (1 + monthlyRate);
-      principal += monthly;
+      principal = safeAdd(principal, monthly);
     }
     const balRounded = safeRound(balance, 2);
     const prinRounded = safeRound(principal, 2);

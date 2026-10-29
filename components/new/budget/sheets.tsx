@@ -9,7 +9,7 @@ import { Drawer, useMediaQuery } from '../Drawer';
 import { EntityGlyph } from '../EntityIcon';
 import { NvIcon } from '../NvIcon';
 import { toast } from '../toast';
-import { Button, IconButton, Money } from '../ui';
+import { Button, IconButton, Money, Switch } from '../ui';
 import { CategoryDisc } from './parts';
 
 /*
@@ -54,8 +54,10 @@ export const BudgetSheet: React.FC<{
   month: Month;
   editingBudget?: Budget | null;
   initialCategoryName?: string;
+  /** Pre-filled limit for a new budget (e.g. the suggestion from "Spending without a budget"). */
+  initialAmount?: number;
   onSaved?: () => void;
-}> = ({ open, onOpenChange, data, month, editingBudget, initialCategoryName, onSaved }) => {
+}> = ({ open, onOpenChange, data, month, editingBudget, initialCategoryName, initialAmount, onSaved }) => {
   const phone = !useMediaQuery('(min-width: 768px)');
   const [selectedCategory, setSelectedCategory] = useState<string>(
     editingBudget?.categoryName ?? initialCategoryName ?? data.parents[0]?.name ?? ''
@@ -69,9 +71,9 @@ export const BudgetSheet: React.FC<{
     if (open) {
       const cat = editingBudget?.categoryName ?? initialCategoryName ?? data.parents[0]?.name ?? '';
       setSelectedCategory(cat);
-      setAmountStr(editingBudget ? String(editingBudget.amount) : '');
+      setAmountStr(editingBudget ? String(editingBudget.amount) : initialAmount ? String(initialAmount) : '');
     }
-  }, [open, editingBudget, initialCategoryName, data.parents]);
+  }, [open, editingBudget, initialCategoryName, initialAmount, data.parents]);
 
   const activeCategory = useMemo(() => {
     return data.parents.find(p => p.name === selectedCategory);
@@ -293,29 +295,25 @@ export const AutofillSheet: React.FC<{
   onApplied?: () => void;
 }> = ({ open, onOpenChange, data, month, onApplied }) => {
   const [selectedMonths, setSelectedMonths] = useState<'1' | '3' | '6' | '12'>(data.defaultAutofill);
+  const [keepExisting, setKeepExisting] = useState(true);
 
+  // The same plan the apply writes, so the preview and the result match.
   const previewAverages = useMemo(() => {
     const numMonths = parseInt(selectedMonths, 10);
     const avgMap = data.averageFor(month, numMonths);
-    const list: { categoryName: string; avg: number; current?: number; proposed: number }[] = [];
-
-    const existingMap = new Map<string, Budget>();
-    for (const b of data.budgets) {
-      existingMap.set(b.categoryName, b);
-    }
-
-    for (const [categoryName, avg] of avgMap) {
-      const current = existingMap.get(categoryName)?.amount;
-      list.push({
-        categoryName,
-        avg,
-        current,
-        proposed: friendlyAmount(avg),
-      });
-    }
-
-    return list.sort((a, b) => b.proposed - a.proposed);
-  }, [data, month, selectedMonths]);
+    return data
+      .autofillPreview(month, numMonths, keepExisting)
+      .map(draft => {
+        const current = data.budgets.find(b => b.id === draft.id);
+        return {
+          categoryName: draft.categoryName,
+          avg: avgMap.get(draft.categoryName) ?? 0,
+          current: current ? data.convert(current.amount, current.currency) : undefined,
+          proposed: data.convert(draft.amount, draft.currency),
+        };
+      })
+      .sort((x, y) => y.proposed - x.proposed);
+  }, [data, month, selectedMonths, keepExisting]);
 
   const totalProposed = useMemo(() => {
     return previewAverages.reduce((acc, item) => acc + item.proposed, 0);
@@ -323,13 +321,11 @@ export const AutofillSheet: React.FC<{
 
   const handleApply = () => {
     const numMonths = parseInt(selectedMonths, 10);
-    const res = data.autofill(month, numMonths);
+    const res = data.autofill(month, numMonths, keepExisting);
     if (res.count === 0) {
       toast.info('No historical spending found to create budgets.');
-    } else {
-      toast.success(
-        `Applied ${res.count} budget${res.count === 1 ? '' : 's'} based on ${selectedMonths}-month spending`
-      );
+    } else if (res.undo) {
+      toast.undo(`Applied ${res.count} budget${res.count === 1 ? '' : 's'} from ${selectedMonths}-month spending`, res.undo);
     }
     onOpenChange(false);
     onApplied?.();
@@ -382,6 +378,11 @@ export const AutofillSheet: React.FC<{
           </div>
         </div>
 
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm text-nv-ink">Keep existing limits</span>
+          <Switch checked={keepExisting} onChange={setKeepExisting} label="Keep existing limits" />
+        </div>
+
         {/* Total Summary */}
         <div className="flex items-center justify-between rounded-nv-tile bg-nv-tile p-4">
           <div>
@@ -420,7 +421,7 @@ export const AutofillSheet: React.FC<{
                         <p className="text-[11px] text-nv-muted">
                           Avg: <Money amount={item.avg} currency={data.displayCurrency} />
                           {item.current !== undefined && (
-                            <span> · Current: {currencySign(data.displayCurrency)}{item.current}</span>
+                            <span> · Current: <Money amount={item.current} currency={data.displayCurrency} /></span>
                           )}
                         </p>
                       </div>
@@ -452,28 +453,14 @@ export const SuggestionsSheet: React.FC<{
   onApplied?: () => void;
 }> = ({ open, onOpenChange, suggestions, data, onApplied }) => {
   const handleApplySingle = (s: Suggestion) => {
-    data.save({
-      id: s.budget?.id,
-      categoryName: s.categoryName,
-      amount: s.suggested,
-      period: 'monthly',
-      currency: data.displayCurrency,
-    });
-    toast.success(`Updated ${s.categoryName} budget to ${currencySign(data.displayCurrency)}${s.suggested}`);
+    const res = data.applySuggestions([s]);
+    toast.undo(`Updated ${s.categoryName} budget`, res.undo);
     onApplied?.();
   };
 
   const handleApplyAll = () => {
-    for (const s of suggestions) {
-      data.save({
-        id: s.budget?.id,
-        categoryName: s.categoryName,
-        amount: s.suggested,
-        period: 'monthly',
-        currency: data.displayCurrency,
-      });
-    }
-    toast.success(`Applied ${suggestions.length} recommendations`);
+    const res = data.applySuggestions(suggestions);
+    toast.undo(`Applied ${suggestions.length} recommendations`, res.undo);
     onOpenChange(false);
     onApplied?.();
   };
@@ -483,7 +470,7 @@ export const SuggestionsSheet: React.FC<{
       open={open}
       onOpenChange={onOpenChange}
       title="Budget Recommendations"
-      description="Smart adjustments based on your spending over the last 3 months"
+      description={`Based on your spending over the last ${data.suggestionMonths} months`}
       footer={
         <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={() => onOpenChange(false)} className="flex-1">
@@ -538,7 +525,7 @@ export const SuggestionsSheet: React.FC<{
                     <p className="mt-0.5 text-[12px] text-nv-muted">
                       Avg: <Money amount={s.average} currency={data.displayCurrency} />
                       {s.current !== undefined && (
-                        <span> · Currently: {currencySign(data.displayCurrency)}{s.current}</span>
+                        <span> · Currently: <Money amount={s.current} currency={data.displayCurrency} /></span>
                       )}
                     </p>
                   </div>

@@ -75,6 +75,28 @@ export const monthPace = (m: Month, today: Date): Pace => {
 export const projectedSpend = (spent: number, pace: Pace) =>
   pace.when === 'current' ? (pace.elapsed > 0 ? (spent / pace.elapsed) * pace.days : spent) : spent;
 
+/** Days of history before a month-end forecast is shown: earlier, one payment swings it too much. */
+export const FORECAST_MIN_DAYS = 5;
+
+/**
+ * Month-end forecast that does not extrapolate fixed bills: recurring spending already paid
+ * (`recurringPaid`) and still due this month (`recurringDue`) count once, and only the rest of
+ * the spending is extrapolated at the current daily rate. Rent paid on the 1st is not ×30.
+ * Null for the current month before day `FORECAST_MIN_DAYS`.
+ */
+export const forecastMonthEnd = (
+  spent: number,
+  pace: Pace,
+  recurring: { paid: number; due: number } = { paid: 0, due: 0 },
+): number | null => {
+  if (pace.when !== 'current') return spent;
+  if (pace.elapsed < FORECAST_MIN_DAYS) return null;
+  const paid = Math.min(spent, Math.max(0, recurring.paid));
+  const variable = Math.max(0, spent - paid);
+  const projectedVariable = (variable / pace.elapsed) * pace.days;
+  return safeAdd(safeAdd(paid, Math.max(0, recurring.due)), projectedVariable);
+};
+
 /* ── Spending ───────────────────────────────────────────────────────────── */
 
 /** The top-level expense category a transaction's category belongs to (budgets are set on those). */
@@ -90,8 +112,9 @@ export const budgetAccountIds = (accounts: Pick<Account, 'id' | 'type'>[]) =>
   new Set(accounts.filter(a => BUDGET_ACCOUNT_TYPES.includes(a.type)).map(a => a.id));
 
 /**
- * Expense spending per top-level category in `[from, to]`, in the display currency. Transfers, income, balance
- * adjustments and other accounts are left out. A split counts through its parts (each has its own category); a
+ * Expense spending per top-level category in `[from, to]`, in the display currency. Transfers, balance
+ * adjustments and other accounts are left out. A refund (income booked in an expense category) is netted
+ * against that category, never below 0. A split counts through its parts (each has its own category); a
  * combined transaction counts once through its parent. Spending in no known category is `Uncategorized`.
  */
 export const spendByCategory = (
@@ -101,14 +124,25 @@ export const spendByCategory = (
 ): Map<string, number> => {
   const splitParents = new Set(transactions.filter(t => t.isSplitParent).map(t => t.id));
   const spend = new Map<string, number>();
+  const refunds = new Map<string, number>();
   for (const t of transactions) {
     const day = t.date.slice(0, 10);
     if (day < range.from || day > range.to) continue;
-    if (t.type !== 'expense' || t.transferId || t.isBalanceAdjustment || t.isSplitParent) continue;
+    if (t.transferId || t.isBalanceAdjustment || t.isSplitParent) continue;
     if (t.parentTransactionId && !splitParents.has(t.parentTransactionId)) continue;
     if (!options.accountIds.has(t.accountId)) continue;
-    const key = parentCategoryName(t.category, options.categories) ?? UNCATEGORIZED;
-    spend.set(key, safeAdd(spend.get(key) ?? 0, Math.abs(options.convert(t.amount, t.currency))));
+    const parent = parentCategoryName(t.category, options.categories);
+    const amount = Math.abs(options.convert(t.amount, t.currency));
+    if (t.type === 'expense') {
+      const key = parent ?? UNCATEGORIZED;
+      spend.set(key, safeAdd(spend.get(key) ?? 0, amount));
+    } else if (t.type === 'income' && parent) {
+      refunds.set(parent, safeAdd(refunds.get(parent) ?? 0, amount));
+    }
+  }
+  for (const [name, refunded] of refunds) {
+    const spent = spend.get(name);
+    if (spent !== undefined) spend.set(name, Math.max(0, spent - refunded));
   }
   return spend;
 };
@@ -259,12 +293,53 @@ export const budgetSuggestions = (average: Map<string, number>, budgets: Budget[
 
 export type BudgetDraft = Omit<Budget, 'id'> & { id?: string };
 
-/** Auto-fill (classic parity): one budget per category with history, set to its average; existing ones are overwritten. */
-export const autofillPlan = (average: Map<string, number>, budgets: Budget[], currency: Currency): BudgetDraft[] =>
-  [...average.entries()]
-    .map(([categoryName, avg]) => ({ categoryName, amount: Math.round(avg) }))
-    .filter(item => item.amount > 0)
-    .map(item => ({ id: budgets.find(b => b.categoryName === item.categoryName)?.id, categoryName: item.categoryName, amount: item.amount, period: 'monthly' as const, currency }));
+/**
+ * Auto-fill: one budget per category with history, at the same friendly amount the preview shows.
+ * With `keepExisting` (the default) categories that already have a budget are left alone.
+ */
+export const autofillPlan = (
+  average: Map<string, number>,
+  budgets: Budget[],
+  currency: Currency,
+  options: { keepExisting?: boolean; categories?: Category[] } = {},
+): BudgetDraft[] => {
+  const keepExisting = options.keepExisting ?? true;
+  return [...average.entries()]
+    .map(([categoryName, avg]) => ({ categoryName, amount: friendlyAmount(avg), existing: budgets.find(b => b.categoryName === categoryName) }))
+    .filter(item => item.amount > 0 && !(keepExisting && item.existing))
+    .map(item => ({
+      id: item.existing?.id,
+      categoryId: item.existing?.categoryId ?? options.categories?.find(c => c.name === item.categoryName)?.id,
+      categoryName: item.categoryName,
+      amount: item.amount,
+      period: 'monthly' as const,
+      currency: item.existing?.currency ?? currency,
+    }));
+};
+
+/**
+ * Links budgets to their category by id (Q8) and keeps `categoryName` in step with that category's
+ * current name, so renaming a category no longer orphans its budget. Returns the same array when nothing changed.
+ */
+export const linkBudgetsToCategories = (budgets: Budget[], categories: Category[]): Budget[] => {
+  if (categories.length === 0) return budgets;
+  let changed = false;
+  const next = budgets.map(b => {
+    const byId = b.categoryId ? categories.find(c => c.id === b.categoryId) : undefined;
+    if (byId) {
+      if (byId.name === b.categoryName) return b;
+      changed = true;
+      return { ...b, categoryName: byId.name };
+    }
+    const byName = categories.find(c => c.name === b.categoryName);
+    if (byName && byName.id !== b.categoryId) {
+      changed = true;
+      return { ...b, categoryId: byName.id };
+    }
+    return b;
+  });
+  return changed ? next : budgets;
+};
 
 /**
  * Parses a typed amount in either style: "1,250.50", "1.250,50", "1250,5", "1.250" (= 1250).

@@ -119,6 +119,7 @@ import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, ITEM_COLORS } from './constants';
 import { createDemoUser, emptyFinancialData, defaultPreferences } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
+import { linkBudgetsToCategories } from './utils/budgetModel';
 import { convertCurrency, convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString, safeRound } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { applyTransactionRulesToFields } from './utils/rules';
@@ -1234,6 +1235,11 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('loanPaymentOverrides'); }, [loanPaymentOverrides, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('financialGoals'); }, [financialGoals, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('budgets'); }, [budgets, isDataLoaded, markSliceDirty]);
+  // Budgets follow their category by id (Q8): fills `categoryId` once and renames budgets with their category.
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    setBudgets(prev => linkBudgetsToCategories(prev, expenseCategories));
+  }, [expenseCategories, budgets, isDataLoaded]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('tasks'); }, [tasks, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('warrants'); }, [warrants, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('memberships'); }, [memberships, isDataLoaded, markSliceDirty]);
@@ -2025,10 +2031,10 @@ const App: React.FC = () => {
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
     setBudgets(prev => upsertEntity(prev, budgetData, () => `bud-${uuidv4()}`));
   };
-  const handleDeleteBudget = (id: string) => {
+  const handleDeleteBudget = (id: string, options?: { silent?: boolean }) => {
     const item = budgets.find(b => b.id === id);
     setBudgets(prev => removeEntityById(prev, id));
-    if (item) {
+    if (item && !options?.silent) {
       toast.success(`Deleted budget for "${item.categoryName}"`, {
         action: {
           label: 'Undo',
