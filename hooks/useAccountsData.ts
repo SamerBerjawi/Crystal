@@ -369,12 +369,10 @@ export const useAccountsData = () => {
     navigateToTransactions,
     brandfetchClientId: (preferences.brandfetchClientId || '').trim(),
     merchantLogoOverrides: preferences.merchantLogoOverrides || {},
-    defaultSortBy: (preferences.defaultAccountOrder || 'manual') as
-      | 'manual'
-      | 'balance'
-      | 'name'
-      | 'change30d'
-      | 'apy_apr',
+    // L-H5: map the classic preference explicitly; anything unknown falls back to manual order.
+    defaultSortBy: (['manual', 'balance', 'name'].includes(preferences.defaultAccountOrder)
+      ? preferences.defaultAccountOrder
+      : 'manual') as 'manual' | 'balance' | 'name' | 'change90d' | 'apy_apr',
     saveAccount,
     deleteAccount,
     toggleAccountStatus,

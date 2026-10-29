@@ -1,12 +1,13 @@
-import React, { useId, useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
+import { ContextMenu } from '@base-ui/react/context-menu';
 import { cn } from '../../../lib/utils';
 import type { Account, AccountType, Currency } from '../../../types';
 import { normalizeCurrency } from '../../../utils';
 import { groupAccountsByType, type AccountSparklineResult } from '../../../utils/accountsModel';
 import { AccountLogo, accountTypeIcon, LogoTile } from '../EntityIcon';
 import { NvIcon, type NvIconName } from '../NvIcon';
-import { Badge, Card, EmptyState, IconButton, Money } from '../ui';
+import { Badge, Card, EmptyState, IconButton, MoreButton, Money } from '../ui';
 
 export { AccountLogo, accountTypeIcon };
 
@@ -108,129 +109,55 @@ export const AccountSparklineSvg: React.FC<{
   );
 };
 
-/* ── 3. Account Action Menu ────────────────────────────────────────────── */
+/* ── 3. Account actions: one list for the ⋯ menu and the right-click menu (A7) ── */
 
-const AccountActionMenu: React.FC<{
-  account: Account;
-  onQuickPeek: (account: Account) => void;
-  onOpenDetail: (account: Account) => void;
-  onAdjustBalance: (account: Account) => void;
-  onEdit: (account: Account) => void;
-  onToggleStatus: (account: Account) => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-}> = ({
-  account,
-  onQuickPeek,
-  onOpenDetail,
-  onAdjustBalance,
-  onEdit,
-  onToggleStatus,
-  onMoveUp,
-  onMoveDown,
-}) => {
-  const isClosed = account.status === 'closed';
-  return (
-    <Menu.Root>
-      <Menu.Trigger
-        onClick={(e) => e.stopPropagation()}
-        aria-label={`Actions for ${account.name}`}
-        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-nv-muted transition-colors hover:bg-nv-inset hover:text-nv-ink"
-      >
-        <NvIcon name="more" size={18} />
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner sideOffset={6} align="end" className="pointer-events-auto z-popover">
-          <Menu.Popup
-            onClick={(e) => e.stopPropagation()}
-            className="crystal-new min-w-48 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0"
-          >
-            <Menu.Item
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDetail(account);
-              }}
-              className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-            >
-              <NvIcon name="arrowUpRight" size={16} className="text-nv-muted" />
-              Open full cockpit
-            </Menu.Item>
-            <Menu.Item
-              onClick={(e) => {
-                e.stopPropagation();
-                setTimeout(() => onQuickPeek(account), 50);
-              }}
-              className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-            >
-              <NvIcon name="view" size={16} className="text-nv-muted" />
-              Quick overview
-            </Menu.Item>
-            <Menu.Item
-              onClick={(e) => {
-                e.stopPropagation();
-                setTimeout(() => onAdjustBalance(account), 50);
-              }}
-              className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-            >
-              <NvIcon name="refresh" size={16} className="text-nv-muted" />
-              Reconcile balance
-            </Menu.Item>
-            <Menu.Item
-              onClick={(e) => {
-                e.stopPropagation();
-                setTimeout(() => onEdit(account), 50);
-              }}
-              className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-            >
-              <NvIcon name="edit" size={16} className="text-nv-muted" />
-              Edit account
-            </Menu.Item>
-            {(onMoveUp || onMoveDown) && (
-              <>
-                <div className="my-1 h-px bg-nv-line" />
-                {onMoveUp && (
-                  <Menu.Item
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMoveUp();
-                    }}
-                    className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-                  >
-                    <NvIcon name="sort" size={16} className="text-nv-muted" />
-                    Move up in order
-                  </Menu.Item>
-                )}
-                {onMoveDown && (
-                  <Menu.Item
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMoveDown();
-                    }}
-                    className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-                  >
-                    <NvIcon name="arrowDown" size={16} className="text-nv-muted" />
-                    Move down in order
-                  </Menu.Item>
-                )}
-              </>
-            )}
-            <div className="my-1 h-px bg-nv-line" />
-            <Menu.Item
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleStatus(account);
-              }}
-              className="flex h-10 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm text-nv-ink outline-none data-[highlighted]:bg-nv-inset"
-            >
-              <NvIcon name="archive" size={16} className="text-nv-muted" />
-              {isClosed ? 'Reopen Account' : 'Archive Account'}
-            </Menu.Item>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
-  );
+interface AccountMenuEntry { key: string; label: string; icon: NvIconName; run: () => void; danger?: boolean }
+
+const accountMenuEntries = (p: AccountItemProps): AccountMenuEntry[] => {
+  const isClosed = p.account.status === 'closed';
+  const entries: (AccountMenuEntry | false | undefined)[] = [
+    { key: 'open', label: 'Open account', icon: 'arrowUpRight', run: () => p.onOpenDetail(p.account) },
+    { key: 'peek', label: 'Quick overview', icon: 'view', run: () => p.onQuickPeek(p.account) },
+    p.onFilterTransactions && { key: 'tx', label: 'Show transactions', icon: 'transactions', run: () => p.onFilterTransactions!(p.account) },
+    { key: 'reconcile', label: 'Reconcile balance', icon: 'refresh', run: () => p.onAdjustBalance(p.account) },
+    { key: 'edit', label: 'Edit account', icon: 'edit', run: () => p.onEdit(p.account) },
+    p.onMoveUp && { key: 'up', label: 'Move up', icon: 'sort', run: p.onMoveUp },
+    p.onMoveDown && { key: 'down', label: 'Move down', icon: 'sort', run: p.onMoveDown },
+    { key: 'archive', label: isClosed ? 'Reopen account' : 'Archive account', icon: 'archive', run: () => p.onToggleStatus(p.account) },
+    p.onDelete && { key: 'delete', label: 'Delete account', icon: 'delete', run: () => p.onDelete!(p.account), danger: true },
+  ];
+  return entries.filter((e): e is AccountMenuEntry => !!e);
 };
+
+const menuPopupClass = 'crystal-new min-w-52 origin-[var(--transform-origin)] rounded-nv-tile bg-nv-surface p-1.5 shadow-nv-float transition-[transform,opacity] data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0';
+const MENU_ITEM =
+  'flex min-h-11 cursor-default items-center gap-2.5 rounded-xl px-3 text-sm outline-none data-[highlighted]:bg-nv-inset';
+
+// Opening a sheet from a menu item waits for the menu to close, so focus returns cleanly.
+const runAfterClose = (run: () => void) => setTimeout(run, 50);
+
+const AccountActionMenu: React.FC<AccountItemProps> = (props) => (
+  <Menu.Root>
+    <Menu.Trigger
+      aria-label={`Actions for ${props.account.name}`}
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-nv-muted transition-colors hover:bg-nv-inset hover:text-nv-ink"
+    >
+      <NvIcon name="more" size={18} />
+    </Menu.Trigger>
+    <Menu.Portal>
+      <Menu.Positioner sideOffset={6} align="end" className="pointer-events-auto z-popover">
+        <Menu.Popup className={menuPopupClass}>
+          {accountMenuEntries(props).map((e) => (
+            <Menu.Item key={e.key} onClick={() => runAfterClose(e.run)} className={cn(MENU_ITEM, e.danger ? 'text-nv-red-text' : 'text-nv-ink')}>
+              <NvIcon name={e.icon} size={16} className={e.danger ? 'text-nv-red-text' : 'text-nv-muted'} />
+              {e.label}
+            </Menu.Item>
+          ))}
+        </Menu.Popup>
+      </Menu.Positioner>
+    </Menu.Portal>
+  </Menu.Root>
+);
 
 /* ── 4. AccountRowNew (Scannable Balance Sheet Row) ────────────────────── */
 
@@ -250,10 +177,14 @@ export interface AccountItemProps {
   onToggleStatus: (account: Account) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  onContextMenu?: (e: React.MouseEvent, account: Account) => void;
+  /** Opens Transactions filtered to this account. */
+  onFilterTransactions?: (account: Account) => void;
+  /** Asks to delete the account (hold to confirm). */
+  onDelete?: (account: Account) => void;
 }
 
-export const AccountRowNew: React.FC<AccountItemProps> = ({
+export const AccountRowNew: React.FC<AccountItemProps> = (props) => {
+  const {
   account,
   displayBalance,
   convertedBalance,
@@ -269,8 +200,7 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
   onToggleStatus,
   onMoveUp,
   onMoveDown,
-  onContextMenu,
-}) => {
+  } = props;
   const typeLabel = account.subType || account.otherSubType || account.type;
   const isClosed = account.status === 'closed';
   const isLeasedVehicle = account.type === 'Vehicle' && account.ownership === 'Leased';
@@ -304,28 +234,27 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
     </>
   );
 
+  // A8: the row is one button (click or Space: quick overview; Enter: the account page); the ⋯ menu
+  // sits beside it, not inside it. Right-click opens the same actions as the ⋯ menu (A7).
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <ContextMenu.Root>
+      <ContextMenu.Trigger
+        className={cn(
+          'group flex items-center gap-1 rounded-nv-sub bg-nv-surface pr-1 transition-colors hover:bg-nv-inset/60 sm:pr-2',
+          isClosed && 'opacity-65'
+        )}
+      >
+    <button
+      type="button"
       onClick={() => onQuickPeek(account)}
-      onContextMenu={(e) => {
-        if (onContextMenu) {
-          e.preventDefault();
-          e.stopPropagation();
-          onContextMenu(e, account);
-        }
-      }}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === 'Enter') {
           e.preventDefault();
-          onQuickPeek(account);
+          onOpenDetail(account);
         }
       }}
-      className={cn(
-        'group flex items-start justify-between gap-3 rounded-nv-sub bg-nv-surface px-3 py-3.5 transition-colors sm:items-center sm:px-4 hover:bg-nv-inset/60 outline-none focus-visible:ring-2 focus-visible:ring-nv-violet cursor-pointer',
-        isClosed && 'opacity-65'
-      )}
+      aria-label={`${account.name}. Enter opens the account, Space the quick overview`}
+      className="flex min-w-0 flex-1 cursor-pointer items-start justify-between gap-3 rounded-nv-sub px-3 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-nv-violet sm:items-center sm:px-4"
     >
       {/* Left: Logo / Icon + Name + Meta */}
       <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center sm:gap-3.5">
@@ -402,20 +331,27 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
       <div className="flex items-center gap-2.5">
         <div className="hidden text-right sm:block">{balanceBlock}</div>
 
-        <AccountActionMenu
-          account={account}
-          onQuickPeek={onQuickPeek}
-          onOpenDetail={onOpenDetail}
-          onAdjustBalance={onAdjustBalance}
-          onEdit={onEdit}
-          onToggleStatus={onToggleStatus}
-          onMoveUp={onMoveUp}
-          onMoveDown={onMoveDown}
-        />
       </div>
-    </div>
+    </button>
+        <AccountActionMenu {...props} />
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner className="pointer-events-auto z-popover">
+          <ContextMenu.Popup className={menuPopupClass}>
+            {accountMenuEntries(props).map((e) => (
+              <ContextMenu.Item key={e.key} onClick={() => runAfterClose(e.run)} className={cn(MENU_ITEM, e.danger ? 'text-nv-red-text' : 'text-nv-ink')}>
+                <NvIcon name={e.icon} size={16} className={e.danger ? 'text-nv-red-text' : 'text-nv-muted'} />
+                {e.label}
+              </ContextMenu.Item>
+            ))}
+          </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
   );
 };
+
+const GROUP_CAP = 8;
 
 /* ── 5. BalanceSheetSplitView (2-Column Assets vs Liabilities View) ────── */
 
@@ -443,6 +379,15 @@ export const BalanceSheetSplitView: React.FC<{
   convert,
   hideEmptySides = false,
 }) => {
+  // D11: a group longer than GROUP_CAP shows that many and a "Show all N" button.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (key: string) =>
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const showAssets = !hideEmptySides || assets.length > 0;
   const showLiabilities = !hideEmptySides || liabilities.length > 0;
   const assetGroups = useMemo(
@@ -500,8 +445,18 @@ export const BalanceSheetSplitView: React.FC<{
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {group.accounts.map((acc, idx) => renderRow(acc, idx, group.accounts))}
+                  {(expandedGroups.has(group.key) ? group.accounts : group.accounts.slice(0, GROUP_CAP)).map((acc, idx) =>
+                    renderRow(acc, idx, group.accounts)
+                  )}
                 </div>
+                {group.accounts.length > GROUP_CAP && (
+                  <MoreButton
+                    expanded={expandedGroups.has(group.key)}
+                    total={group.accounts.length}
+                    onToggle={() => toggleGroup(group.key)}
+                    className="mx-auto"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -564,8 +519,18 @@ export const BalanceSheetSplitView: React.FC<{
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {group.accounts.map((acc, idx) => renderRow(acc, idx, group.accounts))}
+                  {(expandedGroups.has(group.key) ? group.accounts : group.accounts.slice(0, GROUP_CAP)).map((acc, idx) =>
+                    renderRow(acc, idx, group.accounts)
+                  )}
                 </div>
+                {group.accounts.length > GROUP_CAP && (
+                  <MoreButton
+                    expanded={expandedGroups.has(group.key)}
+                    total={group.accounts.length}
+                    onToggle={() => toggleGroup(group.key)}
+                    className="mx-auto"
+                  />
+                )}
               </div>
             ))}
           </div>
