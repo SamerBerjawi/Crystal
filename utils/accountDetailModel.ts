@@ -1194,6 +1194,50 @@ export function resolveAccountArchetype(account: Account): AccountArchetypeId {
   return 'operating';
 }
 
+/* ── Loan payment plan changes (Phase 4.2) ──────────────────────────────── */
+
+export type LoanOverrides = Record<number, Partial<ScheduledPayment>>;
+
+/**
+ * One change to one installment, keeping the installment's other changes: a key set to
+ * `undefined` is removed, `'clear'` removes the whole installment's changes, and an installment
+ * left with no changes is dropped. Same shapes as the classic payment plan:
+ * defer = `{ status: 'Deferred', deferralType }`, edit = `{ totalPayment, principal, interest }`.
+ */
+export function applyLoanOverride(
+  overrides: LoanOverrides,
+  paymentNumber: number,
+  patch: Partial<ScheduledPayment> | 'clear'
+): LoanOverrides {
+  const next: LoanOverrides = { ...overrides };
+  if (patch === 'clear') {
+    delete next[paymentNumber];
+    return next;
+  }
+  const merged: Partial<ScheduledPayment> = { ...(next[paymentNumber] || {}) };
+  for (const [key, value] of Object.entries(patch) as [keyof ScheduledPayment, unknown][]) {
+    if (value === undefined) delete merged[key];
+    else (merged as Record<string, unknown>)[key] = value;
+  }
+  // Ending a deferral also ends its kind.
+  if (merged.status !== 'Deferred') delete merged.deferralType;
+  if (Object.keys(merged).length === 0) delete next[paymentNumber];
+  else next[paymentNumber] = merged;
+  return next;
+}
+
+/** What has been changed on an installment, for its badges. */
+export function loanOverrideKinds(override?: Partial<ScheduledPayment>): Array<'skipped' | 'interest_only' | 'edited' | 'extra'> {
+  if (!override) return [];
+  const kinds: Array<'skipped' | 'interest_only' | 'edited' | 'extra'> = [];
+  if (override.status === 'Deferred') kinds.push(override.deferralType === 'interest_only' ? 'interest_only' : 'skipped');
+  if (override.status !== 'Deferred' && (override.totalPayment !== undefined || override.principal !== undefined || override.interest !== undefined)) {
+    kinds.push('edited');
+  }
+  if ((override.extraPrincipal || 0) > 0) kinds.push('extra');
+  return kinds;
+}
+
 /* ── Detail page tabs (Phase 4.1, Q10, N21) ─────────────────────────────── */
 
 export type AccountDetailTabId = 'overview' | 'plan' | 'valuations' | 'activity' | 'details';

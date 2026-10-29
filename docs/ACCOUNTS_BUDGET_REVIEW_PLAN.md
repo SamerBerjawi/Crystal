@@ -241,6 +241,8 @@ Planned 2026-10-29 after the audit of the New Accounts pages on `feat/new-ui-mob
 - Vehicle mileage chart in *Valuations & logs* (`AreaChart` of readings with the pro-rata allowance line for leases).
 - Tests: a model test for each override kind (defer full, defer interest-only, edited payment, reset) against `generateAmortizationSchedule`.
 
+*Status 4.2 (2026-10-29): done on `feat/new-account-detail-parity`, not committed.* Activity rows open the Transactions page's own sheet (`AccountTransactionSheet`, mounted only while open). Payment plan is its own component (`views/PaymentPlan.tsx`): skip, interest only, edit payment, extra principal, mark paid, clear, reset, all with Undo, through the new `applyLoanOverride` (keeps a payment's other changes; the old "clear extra principal" deleted the whole override, deferral included). Details has a Manage card: archive / reopen, reopen a sold asset (`revertClosure`), sell / retire, hold-to-delete. Vehicle mileage chart with the lease allowance line. Tests: `tests/unit/paymentPlan.test.ts`. Browser: each action checked on demo data; the lease allowance line was not seen (the demo vehicle is owned).
+
 **4.3 Decided, not built.**
 - **Q5 leased vehicles:** new optional `residualValue` on `Account` (form field for leased vehicles; `types.ts`, `demoData.ts`; the zod schema passes it through). A leased vehicle counts in assets only when `residualValue` is set, at that value; the hero shows months left and the monthly payment. Change in `classifyAccountBalanceEur` / `resolveAccountBalance` (shared, so classic follows), with tests.
 - **Q2 future interest:** the loan *Overview* shows "Interest still to pay" from `computeLoanBalanceBreakdown().futureInterest`, next to the balance (principal + accrued).

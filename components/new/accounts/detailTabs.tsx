@@ -3,6 +3,7 @@ import { Menu } from '@base-ui/react/menu';
 import type { Account } from '../../../types';
 import type { AccountDetailData } from '../../../hooks/useAccountDetailData';
 import { formatShortDate } from '../../../utils/dateFormat';
+import type { TxRow } from '../../../utils/transactionsModel';
 import { groupAccountsByType, getVisibleAccountsForAccountsPage } from '../../../utils/accountsModel';
 import {
   detailTabsFor,
@@ -12,8 +13,12 @@ import {
 } from '../../../utils/accountDetailModel';
 import { AccountLogo } from '../EntityIcon';
 import { NvIcon, type NvIconName } from '../NvIcon';
+import { confirmNew } from '../ConfirmDialog';
 import { toast } from '../toast';
 import { Button, Card, Money, SegmentedTabs } from '../ui';
+import { useTransactionsData } from '../../../hooks/useTransactionsData';
+import { TransactionSheet } from '../transactions/sheets';
+import { RecurringSheet, SplitSheet } from '../transactions/actions';
 
 /*
  * Account page workspace (docs/ACCOUNTS_BUDGET_REVIEW_PLAN.md Phase 4.1, Q10, N21):
@@ -218,7 +223,11 @@ export const AccountDetailsTab: React.FC<{
   data: AccountDetailData;
   onEdit: () => void;
   onNavigateToAccount: (account: Account) => void;
-}> = ({ data, onEdit, onNavigateToAccount }) => {
+  /** Opens the sell / return / retire sheet (property and vehicles). */
+  onOpenCloseAsset: () => void;
+  /** After a delete: leave the page, it no longer exists. */
+  onDeleted: () => void;
+}> = ({ data, onEdit, onNavigateToAccount, onOpenCloseAsset, onDeleted }) => {
   const { account } = data;
   const connections = useMemo(() => connectionsFor(data), [data]);
   if (!account) return null;
@@ -256,6 +265,8 @@ export const AccountDetailsTab: React.FC<{
           {account.purchaseDate && <DetailRow label="Purchased" value={formatShortDate(account.purchaseDate)} />}
         </div>
       </Card>
+
+      <ManageCard data={data} onOpenCloseAsset={onOpenCloseAsset} onDeleted={onDeleted} />
 
       <Card className="space-y-3">
         <h2 className="text-lg font-semibold text-nv-ink">Connections</h2>
@@ -295,5 +306,95 @@ export const AccountDetailsTab: React.FC<{
         )}
       </Card>
     </div>
+  );
+};
+
+/* ── Activity: open a transaction ────────────────────────────────────────── */
+
+/**
+ * The Transactions page's own detail sheet (view, edit, delete, split, recurring) for one
+ * transaction of this account. Mounted only while a transaction is open, so the account page
+ * doesn't build every transaction row up front.
+ */
+export const AccountTransactionSheet: React.FC<{ txId: string | null; onClose: () => void }> = ({ txId, onClose }) =>
+  txId ? <AccountTransactionSheetInner txId={txId} onClose={onClose} /> : null;
+
+const AccountTransactionSheetInner: React.FC<{ txId: string; onClose: () => void }> = ({ txId, onClose }) => {
+  const data = useTransactionsData();
+  const [splitRow, setSplitRow] = useState<TxRow | null>(null);
+  const [recurringRow, setRecurringRow] = useState<TxRow | null>(null);
+  const row = useMemo(() => data.rows.find((r) => r.id === txId) ?? null, [data.rows, txId]);
+  return (
+    <>
+      <TransactionSheet
+        row={splitRow || recurringRow ? null : row}
+        onClose={onClose}
+        data={data}
+        actions={{ split: (r) => setSplitRow(r), recurring: (r) => setRecurringRow(r) }}
+      />
+      {splitRow && <SplitSheet row={splitRow} data={data} onClose={() => { setSplitRow(null); onClose(); }} />}
+      {recurringRow && <RecurringSheet row={recurringRow} data={data} onClose={() => { setRecurringRow(null); onClose(); }} />}
+    </>
+  );
+};
+
+/* Archive, reopen, sell or delete (D5: permanent actions are held to confirm; the rest has Undo). */
+const ManageCard: React.FC<{ data: AccountDetailData; onOpenCloseAsset: () => void; onDeleted: () => void }> = ({
+  data,
+  onOpenCloseAsset,
+  onDeleted,
+}) => {
+  const { account } = data;
+  if (!account) return null;
+  const isClosed = account.status === 'closed';
+  const isPhysical = account.type === 'Property' || account.type === 'Vehicle';
+  const closure = account.closureDetails;
+
+  const toggleArchive = () => {
+    data.toggleAccountStatus(account.id);
+    toast.undo(isClosed ? `Reopened ${account.name}` : `Archived ${account.name}`, () => data.toggleAccountStatus(account.id));
+  };
+
+  const reopenAsset = () => {
+    if (!closure) return;
+    data.revertClosure(account.id);
+    toast.undo(`Reopened ${account.name}`, () => data.closeAsset(account.id, closure));
+  };
+
+  const remove = async () => {
+    const ok = await confirmNew({
+      title: `Delete "${account.name}" permanently?`,
+      message: 'Its transactions and schedules are deleted too. Archive it instead to keep the history.',
+      confirmLabel: 'Hold to delete',
+      danger: true,
+    });
+    if (!ok) return;
+    data.deleteAccount(account.id);
+    toast.success(`Deleted "${account.name}"`);
+    onDeleted();
+  };
+
+  return (
+    <Card className="space-y-3 lg:col-span-2">
+      <h2 className="text-lg font-semibold text-nv-ink">Manage</h2>
+      <div className="flex flex-wrap gap-2">
+        {isPhysical && isClosed && closure ? (
+          <Button variant="secondary" icon="undo" onClick={reopenAsset}>
+            Reopen {account.type === 'Vehicle' ? 'vehicle' : 'property'}
+          </Button>
+        ) : isPhysical && !isClosed ? (
+          <Button variant="secondary" icon="archive" onClick={onOpenCloseAsset}>
+            Sell, return or retire
+          </Button>
+        ) : (
+          <Button variant="secondary" icon="archive" onClick={toggleArchive}>
+            {isClosed ? 'Reopen account' : 'Archive account'}
+          </Button>
+        )}
+        <Button variant="danger" icon="delete" onClick={remove}>
+          Delete account
+        </Button>
+      </div>
+    </Card>
   );
 };

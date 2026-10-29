@@ -4,6 +4,7 @@ import { AccountDetailHero } from '../../components/new/accounts/detailHero';
 import {
   AccountDetailsTab,
   AccountDetailTabBar,
+  AccountTransactionSheet,
   useAccountDetailTab,
 } from '../../components/new/accounts/detailTabs';
 import {
@@ -49,6 +50,7 @@ export const AccountDetailNew: React.FC<{
   const [valuationSheetOpen, setValuationSheetOpen] = useState(false);
   const [closeAssetSheetOpen, setCloseAssetSheetOpen] = useState(false);
   const [bankSyncSheetOpen, setBankSyncSheetOpen] = useState(false);
+  const [openTxId, setOpenTxId] = useState<string | null>(null);
   const [recordTxMode, setRecordTxMode] = useState<
     'expense' | 'income' | 'interest' | 'card_payment' | null
   >(null);
@@ -165,6 +167,7 @@ export const AccountDetailNew: React.FC<{
           brandfetchClientId={data.brandfetchClientId}
           merchantLogoOverrides={data.merchantLogoOverrides}
           accounts={data.accounts}
+          onOpenTransaction={setOpenTxId}
           onNavigateToFullTransactions={
             data.navigateToTransactions
               ? () => {
@@ -177,10 +180,18 @@ export const AccountDetailNew: React.FC<{
       )}
 
       {tab === 'details' && (
-        <AccountDetailsTab data={data} onEdit={() => setEditSheetOpen(true)} onNavigateToAccount={handleNavigateToAccount} />
+        <AccountDetailsTab
+          data={data}
+          onEdit={() => setEditSheetOpen(true)}
+          onNavigateToAccount={handleNavigateToAccount}
+          onOpenCloseAsset={() => setCloseAssetSheetOpen(true)}
+          onDeleted={() => navigate('/accounts-new')}
+        />
       )}
 
       {/* 4. Sheets & Drawers */}
+      <AccountTransactionSheet txId={openTxId} onClose={() => setOpenTxId(null)} />
+
       <AccountFormSheet
         open={editSheetOpen}
         onOpenChange={setEditSheetOpen}
