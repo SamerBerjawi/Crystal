@@ -1194,6 +1194,48 @@ export function resolveAccountArchetype(account: Account): AccountArchetypeId {
   return 'operating';
 }
 
+/* ── Detail page tabs (Phase 4.1, Q10, N21) ─────────────────────────────── */
+
+export type AccountDetailTabId = 'overview' | 'plan' | 'valuations' | 'activity' | 'details';
+
+export interface AccountDetailTab {
+  id: AccountDetailTabId;
+  label: string;
+  icon: 'dashboard' | 'calendar' | 'chartLine' | 'transactions' | 'info';
+}
+
+/**
+ * The body tabs for an account page. Every archetype gets Overview · Activity · Details;
+ * loans add a Payment plan (only with a schedule), property and vehicles a Valuations tab.
+ */
+export function detailTabsFor(account: Account, archetype: AccountArchetypeId): AccountDetailTab[] {
+  const tabs: AccountDetailTab[] = [{ id: 'overview', label: 'Overview', icon: 'dashboard' }];
+  const hasSchedule = !!(account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined);
+  if (archetype === 'loan' && hasSchedule) tabs.push({ id: 'plan', label: 'Payment plan', icon: 'calendar' });
+  if (archetype === 'physical_asset') {
+    tabs.push({ id: 'valuations', label: account.type === 'Vehicle' ? 'Valuations & logs' : 'Valuations', icon: 'chartLine' });
+  }
+  tabs.push({ id: 'activity', label: 'Activity', icon: 'transactions' });
+  tabs.push({ id: 'details', label: 'Details', icon: 'info' });
+  return tabs;
+}
+
+/**
+ * Which tab to open: the URL hash (`#plan`) wins, then the tab last used on this kind of
+ * account, then Overview. Anything that is not a tab of this account falls through.
+ */
+export function resolveDetailTab(
+  tabs: AccountDetailTab[],
+  hash: string | null | undefined,
+  remembered: string | null | undefined
+): AccountDetailTabId {
+  const ids = new Set(tabs.map((t) => t.id));
+  const fromHash = (hash || '').replace(/^#/, '');
+  if (ids.has(fromHash as AccountDetailTabId)) return fromHash as AccountDetailTabId;
+  if (remembered && ids.has(remembered as AccountDetailTabId)) return remembered as AccountDetailTabId;
+  return 'overview';
+}
+
 export interface OperatingAccountOptions extends DetailModelOptions {
   recurringTransactions?: RecurringTransaction[];
   recurringTransactionOverrides?: RecurringTransactionOverride[];
