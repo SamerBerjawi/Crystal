@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { formatShortDate } from '../../../utils/dateFormat';
 import { cn } from '../../../lib/utils';
 import type { Account, Category, Currency, Transaction } from '../../../types';
 import { currencySign, formatCurrency, normalizeCurrency, toLocalISOString } from '../../../utils';
@@ -100,6 +101,8 @@ export const AccountActivitySection: React.FC<{
   brandfetchClientId?: string;
   merchantLogoOverrides?: Record<string, string>;
   accounts?: Account[];
+  /** Opens a transaction to view, edit or delete it. */
+  onOpenTransaction?: (txId: string) => void;
 }> = ({
   account,
   normalizedTransactions,
@@ -111,6 +114,7 @@ export const AccountActivitySection: React.FC<{
   brandfetchClientId,
   merchantLogoOverrides,
   accounts,
+  onOpenTransaction,
 }) => {
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState<TxFilterKind>('all');
@@ -332,10 +336,17 @@ export const AccountActivitySection: React.FC<{
               categoryMap.get(tx.category || '');
             const isIncome = amountInAccountCurrency >= 0;
 
+            const Row = onOpenTransaction ? 'button' : 'div';
             return (
-              <div
+              <Row
                 key={tx.id}
-                className="flex items-center justify-between gap-3 rounded-nv-sub bg-nv-surface px-4 py-3"
+                {...(onOpenTransaction
+                  ? { type: 'button' as const, onClick: () => onOpenTransaction(tx.id), 'aria-label': `Open ${tx.merchant || tx.description}` }
+                  : {})}
+                className={cn(
+                  'flex w-full items-center justify-between gap-3 rounded-nv-sub bg-nv-surface px-4 py-3 text-left',
+                  onOpenTransaction && 'transition-colors hover:bg-nv-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nv-violet'
+                )}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <TxLedgerAvatar
@@ -355,7 +366,7 @@ export const AccountActivitySection: React.FC<{
                       {tx.transferId && <Badge tone="sky">Transfer</Badge>}
                     </div>
                     <p className="truncate text-xs text-nv-muted">
-                      {dateStr} · {cat?.name || tx.category || 'Uncategorized'}
+                      {formatShortDate(dateStr)} · {cat?.name || tx.category || 'Uncategorized'}
                       {tx.description && tx.merchant && tx.description !== tx.merchant
                         ? ` · ${tx.description}`
                         : ''}
@@ -376,7 +387,7 @@ export const AccountActivitySection: React.FC<{
                     </p>
                   )}
                 </div>
-              </div>
+              </Row>
             );
           })}
         </div>

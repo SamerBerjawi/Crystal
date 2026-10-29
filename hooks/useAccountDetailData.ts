@@ -51,6 +51,7 @@ import {
   validateMileageReading,
   findLinkedAssetForLoan,
   findLinkedLoanForAsset,
+  applyLoanOverride,
   normalizeAccountTransactions,
   resolveAccountArchetype,
   type AccountArchetypeId,
@@ -640,6 +641,25 @@ export const useAccountDetailData = (accountId: string) => {
     [account, loanPaymentOverrides, saveLoanPaymentOverrides]
   );
 
+  /** One change to one installment (see `applyLoanOverride`), with an undo. */
+  const updateLoanInstallment = useCallback(
+    (paymentNumber: number, patch: Partial<ScheduledPayment> | 'clear'): { undo: () => void } | null => {
+      if (!account) return null;
+      const previous = loanPaymentOverrides[account.id] || {};
+      saveLoanPaymentOverrides(account.id, applyLoanOverride(previous, paymentNumber, patch));
+      return { undo: () => saveLoanPaymentOverrides(account.id, previous) };
+    },
+    [account, loanPaymentOverrides, saveLoanPaymentOverrides]
+  );
+
+  /** Drops every change to the payment plan, with an undo. */
+  const resetLoanInstallments = useCallback((): { undo: () => void } | null => {
+    if (!account) return null;
+    const previous = loanPaymentOverrides[account.id] || {};
+    saveLoanPaymentOverrides(account.id, {});
+    return { undo: () => saveLoanPaymentOverrides(account.id, previous) };
+  }, [account, loanPaymentOverrides, saveLoanPaymentOverrides]);
+
   const recordAccountTransaction = useCallback(
     (draft: {
       date: string;
@@ -743,6 +763,8 @@ export const useAccountDetailData = (accountId: string) => {
     addMileageLogs,
     deleteMileageLog,
     saveLoanInstallmentOverride,
+    updateLoanInstallment,
+    resetLoanInstallments,
     recordAccountTransaction,
     triggerBankSync,
     deleteAccount: rawDeleteAccount,

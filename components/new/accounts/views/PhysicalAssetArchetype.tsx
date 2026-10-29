@@ -7,7 +7,8 @@ import {
   parseBatchMileageInput,
   validateMileageReading,
 } from '../../../../utils/accountDetailModel';
-import { toLocalISOString } from '../../../../utils';
+import { parseLocalDate, toLocalISOString } from '../../../../utils';
+import { Area, AreaChart, ChartTooltip, Grid, XAxis, curveMonotoneX } from '../../../bklit/charts';
 import { NvIcon } from '../../NvIcon';
 import { toast } from '../../toast';
 import {
@@ -28,7 +29,7 @@ import { LicensePlateNew } from '../parts';
  * - Property Equity, LTV, Linked Mortgage & Operating Cashflow / Rental Yield (`BUG-10` fixed)
  * - Vehicle Lease Pro-Rata Mileage Pace (`BUG-11` baseline mileage subtracted)
  * - Vehicle Total Cost of Ownership (`TCO / km`)
- * - Monotonically validated Odometer Mileage Log + Batch Importer
+ * - Monotonically validated Odometer log + Batch Importer
  */
 
 type MileageInputMode = 'single' | 'batch';
@@ -476,13 +477,15 @@ export const PhysicalAssetArchetype: React.FC<{
         </div>
         )}
 
-        {/* Odometer Mileage Log & Batch Importer */}
+        {section === 'valuations' && <MileageChart data={data} />}
+
+        {/* Odometer log & Batch Importer */}
         {section === 'valuations' && (
         <Card className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-nv-ink">
-                Odometer Mileage Log ({enrichedMileageLogs.length})
+                Odometer log ({enrichedMileageLogs.length})
               </h2>
             </div>
             <SegmentedTabs<MileageInputMode>
@@ -664,6 +667,55 @@ const ValuationHistoryCard: React.FC<{ data: AccountDetailData; onAdd: () => voi
           })}
         </div>
       )}
+    </Card>
+  );
+};
+
+/* ── Mileage chart (Valuations & logs tab, vehicles) ─────────────────────── */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Odometer readings over time; for a lease, the pro-rata allowance from the first reading as a second line. */
+const MileageChart: React.FC<{ data: AccountDetailData }> = ({ data }) => {
+  const { account } = data;
+  const points = useMemo(() => {
+    const logs = [...(account?.mileageLogs || [])].sort((a, b) => a.date.localeCompare(b.date));
+    if (logs.length < 2 || !account) return [];
+    const first = logs[0];
+    const firstTime = parseLocalDate(first.date).getTime();
+    const perDay = account.ownership === 'Leased' && account.annualMileageAllowance ? account.annualMileageAllowance / 365 : null;
+    return logs.map((log) => {
+      const date = parseLocalDate(log.date);
+      return {
+        date,
+        reading: log.reading,
+        ...(perDay !== null ? { allowance: Math.round(first.reading + perDay * ((date.getTime() - firstTime) / DAY_MS)) } : {}),
+      };
+    });
+  }, [account]);
+
+  if (!account || points.length < 2) return null;
+  const hasAllowance = 'allowance' in points[0];
+  return (
+    <Card className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-nv-ink">Mileage</h2>
+        {hasAllowance && (
+          <div className="flex items-center gap-4 text-xs text-nv-muted">
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-nv-violet" aria-hidden />Odometer</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-nv-sky" aria-hidden />Allowance</span>
+          </div>
+        )}
+      </div>
+      <AreaChart margin={{ top: 8, right: 8, bottom: 32, left: 8 }} data={points} aspectRatio="2.8 / 1">
+        <Grid horizontal />
+        <Area dataKey="reading" curve={curveMonotoneX} fill="var(--chart-line-primary)" stroke="var(--chart-line-primary)" fillOpacity={0.15} strokeWidth={2.5} />
+        {hasAllowance && (
+          <Area dataKey="allowance" curve={curveMonotoneX} fill="var(--nv-sky-text)" stroke="var(--nv-sky-text)" fillOpacity={0} strokeWidth={2} />
+        )}
+        <XAxis />
+        <ChartTooltip />
+      </AreaChart>
     </Card>
   );
 };
