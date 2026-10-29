@@ -227,7 +227,6 @@ Considered and **not planned**: Magic UI `marquee` ticker (repeats the holdings 
 | Delete | `confirmNew` + `hold-button` | exists |
 | Price update progress | KokonutUI `status-island` (port) or a sheet | to port (optional) |
 | Charts | Bklit as §7 | exists |
-| Mango UI | Pending X-Q1 | — |
 
 | File | Contents |
 |---|---|

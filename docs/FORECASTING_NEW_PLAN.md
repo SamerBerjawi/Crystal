@@ -198,7 +198,6 @@ No candlestick, radar or sankey here: none answers a forecasting question (N24).
 | Charts | Bklit `AreaChart`, `ProjectionLine`, `ReferenceArea`, `Band`, markers, `LineChart`, `BarChart` | exists |
 | Occurrence and composer sheets | from `components/new/schedule/sheets.tsx` | Schedule plan |
 | Magic UI | `confetti` when a goal is marked done was considered; **not planned** unless you want it (honours reduced motion; Q-F6) | — |
-| Mango UI | Pending X-Q1 | — |
 
 New files:
 

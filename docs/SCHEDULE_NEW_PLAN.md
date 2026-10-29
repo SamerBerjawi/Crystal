@@ -235,7 +235,6 @@ One sheet for create and edit, D7 sticky footer:
 | Due-soon stack | KokonutUI `notification-stack` — **not on this page** (the list is the page); used by Dashboard and the shell bell | Dashboard plan |
 | Year heatmap alternative | KokonutUI `activity-terrain` — **not planned**: Bklit `HeatmapChart` already has the legend, tooltip and skeleton | — |
 | Magic UI | None needed. `animated-list` for the Upcoming list was considered and rejected (motion on a list you scan, D8 only covers charts and numbers) | — |
-| Mango UI | Pending X-Q1 | — |
 
 New files:
 

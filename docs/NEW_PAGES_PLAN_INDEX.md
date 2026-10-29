@@ -133,10 +133,10 @@ Slugs come from the reference's §4.1 (checked against the registry on 2026-10-2
 | `wheel-picker` | Forecasting (horizon on phones) | Optional; a `PeriodPill` already works |
 | `action-search-bar` | Shell (⌘K), not page-specific | Listed for completeness (reference §8 "not built yet") |
 
-### 4.3 Magic UI and "Mango UI"
+### 4.3 Magic UI
 
 - **Magic UI** roles in the reference (§4.2): `number-ticker`, `animated-list`, `blur-fade`, `marquee`, `confetti`, `animated-circular-progress-bar`. Folder `components/magicui/` does not exist yet. Each plan names where one would fit, but none is required: NumberFlow already rolls numbers (D8), and N24 rules out decoration that repeats information (a ticker marquee on Investments is listed as **not** planned for that reason).
-- **Mango UI:** not found in the repo, `components.json` (registries: `@kokonutui`, `@bklit`) or a web search on 2026-10-29. **Open question X-Q1** below. Until it is answered, the plans leave a "Mango UI" slot empty rather than guessing.
+- The library the brief called "mangoui" is **Magic UI** (answered 2026-10-29, X-Q1). Ports go to `components/magicui/` with the D13 checklist; add the `@magicui` registry to `components.json` with the first port.
 
 ---
 
@@ -144,7 +144,7 @@ Slugs come from the reference's §4.1 (checked against the registry on 2026-10-2
 
 | # | Question | Recommendation |
 |---|---|---|
-| X-Q1 | What is "Mango UI"? A registry URL, a GitHub repo or the npm name settles it. If you meant **Magic UI**, say so and the plans already cover it. | Answer before the first port; add it to `components.json` and §4.1 of the reference with the same porting checklist. |
+| X-Q1 | What is "Mango UI"? | **Answered 2026-10-29: Magic UI.** No separate library; the Magic UI rows in each plan apply. |
 | X-Q2 | Build order: this plan's (Schedule → Forecasting → Investments → Dashboard) or the reference's (Dashboard → Forecasting → Schedule → Investments)? | This plan's order, with step 0 first. |
 | X-Q3 | Should step 0's fixes change classic pages too (as Q2/Q3 did for Accounts)? | Yes: `generateBalanceForecast` becomes a wrapper over the new model, so Classic Dashboard, Forecasting and Account detail show the same projection. Record it in each page's migration notes. |
 | X-Q4 | Goals: they are edited on Forecasting today, read on Budget (Q7) and the Dashboard. Keep Forecasting as their home? | Yes: a Goals tab on ForecastingNew is the one place to create and edit goals. |

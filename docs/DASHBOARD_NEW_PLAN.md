@@ -224,7 +224,6 @@ No dotted backgrounds or decorative trend lines (§20.4). Tooltips per §20.1–
 | Sync status | KokonutUI `status-island` (shared with Investments) — optional; the green button's "Syncing" state is the baseline (N7) | optional |
 | Numbers | NumberFlow on figure changes (D8); Magic UI `number-ticker` **not needed** | exists |
 | Magic UI | `blur-fade` staggered entry of tiles was considered; **not planned** (motion on every visit; D8 limits motion to charts and numbers) | — |
-| Mango UI | Pending X-Q1 | — |
 
 New files:
 
