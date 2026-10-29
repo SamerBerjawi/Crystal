@@ -460,7 +460,8 @@ export interface ContributionPlanStep {
 
 export interface Budget {
   id: string;
-  categoryName: string; // Budget by parent category name for simplicity
+  categoryName: string; // Parent category name; kept in step with `categoryId` on load and on rename
+  categoryId?: string; // Parent expense category id (Q8): survives a rename
   amount: number;
   period: 'monthly'; // For now, only monthly
   currency: Currency;

@@ -3,6 +3,7 @@ import { Account, Currency, LoanPaymentOverrides, Transaction } from '../types';
 import {
   arrayToCSV,
   calculateAccountTotals,
+  calculateStatementPeriods,
   classifyAccountBalanceEur,
   debtFromBalance,
   convertCurrency,
@@ -21,6 +22,8 @@ export interface AccountsModelOptions {
   conversionRates?: Partial<Record<Currency, number>>;
   referenceDate?: Date;
   loanPaymentOverrides?: LoanPaymentOverrides;
+  /** Bank consent per linked account id, for the "consent expires soon" attention rule. */
+  bankConsentExpiry?: Map<string, string | undefined>;
 }
 
 /** Accounts counted as liquid cash: checking, savings, cards (signed) and physical cash. */
@@ -305,13 +308,15 @@ export const computeCashSegmentNetFlow = (
 ): number => {
   const now = options.referenceDate ? new Date(options.referenceDate) : new Date();
   const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  // `days` days including today: today − (days − 1) … today.
   const cutoffStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  cutoffStart.setDate(cutoffStart.getDate() - days);
+  cutoffStart.setDate(cutoffStart.getDate() - (days - 1));
 
   const cashIds = new Set(cashAccounts.map((a) => a.id));
   return allTransactions
     .filter((t) => {
-      if (!cashIds.has(t.accountId) || t.transferId) return false;
+      // Same exclusions as the expense burn next to it: transfers and balance adjustments.
+      if (!cashIds.has(t.accountId) || t.transferId || t.isBalanceAdjustment) return false;
       const txDate = parseLocalDate(t.date);
       return txDate >= cutoffStart && txDate <= todayEnd;
     })
@@ -496,7 +501,7 @@ export const computeAccountsHeroModel = (
   const now = options.referenceDate ? new Date(options.referenceDate) : new Date();
   const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   const cutoff30d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  cutoff30d.setDate(cutoff30d.getDate() - 30);
+  cutoff30d.setDate(cutoff30d.getDate() - 29);
   const liquidIds = new Set(liquidAccounts.map((a) => a.id));
   const monthlyExpenseBurnEur = analyticsTxs
     .filter((t) => {
@@ -642,7 +647,7 @@ export const computeAccountsHeroModel = (
           metricLabel: `${util.toFixed(1)}% used`,
         });
       }
-    } else if (acc.type === 'Loan' && acc.principalAmount && acc.duration && acc.loanStartDate) {
+    } else if ((acc.type === 'Loan' || acc.type === 'Lending') && acc.principalAmount && acc.duration && acc.loanStartDate) {
       const schedule = generateAmortizationSchedule(
         acc,
         accTxs,
@@ -655,7 +660,7 @@ export const computeAccountsHeroModel = (
           accountId: acc.id,
           accountName: acc.name,
           severity: 'danger',
-          title: 'Overdue Loan Installment',
+          title: acc.type === 'Lending' ? 'Overdue repayment to you' : 'Overdue Loan Installment',
           subtitle: `${overdue.length} scheduled payment${overdue.length > 1 ? 's' : ''} past due`,
           metricLabel: `Due ${overdue[0].date}`,
         });
@@ -673,7 +678,12 @@ export const computeAccountsHeroModel = (
           metricLabel: `${vMetrics.leaseStats.daysRemaining}d left`,
         });
       }
-    } else if (acc.type === 'Savings' && acc.balance > 1000 && !(acc.apy && acc.apy > 0)) {
+    } else if (
+      acc.type === 'Savings' &&
+      // Threshold in EUR, so 1,000 RON and 1,000 BTC are not treated alike.
+      convertToEur(todayBalance.get(acc.id) ?? 0, acc.currency, rates) > 1000 &&
+      !(acc.apy && acc.apy > 0)
+    ) {
       attentionItems.push({
         id: `sav-apy-${acc.id}`,
         accountId: acc.id,
@@ -683,6 +693,44 @@ export const computeAccountsHeroModel = (
         subtitle: 'Set an APY rate to track accrued interest and compounding',
         metricLabel: '0% APY',
       });
+    }
+  });
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysUntil = (d: Date) => Math.round((d.getTime() - todayStart.getTime()) / (24 * 60 * 60 * 1000));
+  open.forEach((acc) => {
+    // Card statement due within 7 days while something is owed.
+    if (acc.type === 'Credit Card' && acc.statementStartDate && acc.paymentDate) {
+      const owed = Math.max(0, -(todayBalance.get(acc.id) ?? 0));
+      const due = calculateStatementPeriods(acc.statementStartDate, acc.paymentDate).current.paymentDue;
+      const days = daysUntil(due);
+      if (owed > 0 && days >= 0 && days <= 7) {
+        attentionItems.push({
+          id: `cc-due-${acc.id}`,
+          accountId: acc.id,
+          accountName: acc.name,
+          severity: days <= 2 ? 'danger' : 'warn',
+          title: 'Card payment due soon',
+          subtitle: days === 0 ? 'Due today' : `Due in ${days} day${days > 1 ? 's' : ''}`,
+          metricLabel: `Due ${toLocalISOString(due)}`,
+        });
+      }
+    }
+    // Bank connection consent ending within 14 days.
+    const expiry = options.bankConsentExpiry?.get(acc.id);
+    if (expiry) {
+      const days = daysUntil(new Date(expiry));
+      if (days <= 14) {
+        attentionItems.push({
+          id: `bank-consent-${acc.id}`,
+          accountId: acc.id,
+          accountName: acc.name,
+          severity: days <= 3 ? 'danger' : 'warn',
+          title: days < 0 ? 'Bank connection expired' : 'Bank connection expires soon',
+          subtitle: days < 0 ? 'Reconnect to keep syncing' : `Reconnect within ${days} day${days === 1 ? '' : 's'}`,
+          metricLabel: days < 0 ? 'Expired' : `${days}d left`,
+        });
+      }
     }
   });
 

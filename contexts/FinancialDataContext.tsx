@@ -18,7 +18,8 @@ interface TagsContextValue {
 interface BudgetsContextValue {
   budgets: Budget[];
   saveBudget: (budget: Omit<Budget, 'id'> & { id?: string }) => void;
-  deleteBudget: (budgetId: string) => void;
+  /** `silent` skips the app's own Undo toast (the caller offers its own). */
+  deleteBudget: (budgetId: string, options?: { silent?: boolean }) => void;
 }
 
 interface GoalsContextValue {

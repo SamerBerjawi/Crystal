@@ -56,7 +56,7 @@ test('Savings Interest Fix #1 & #2: computes YTD accrued interest and 12-month h
     name: 'High Yield Vault',
     type: 'Savings',
     balance: 12000,
-    apy: 4.0, // 4% APY -> 480/yr -> 40/mo
+    apy: 4.0, // 4% APY -> 480/yr -> 39.28/mo
     currency: 'EUR',
     openingDate: '2024-01-01',
   };
@@ -79,14 +79,15 @@ test('Savings Interest Fix #1 & #2: computes YTD accrued interest and 12-month h
   });
 
   assertClose(metrics.projectedAnnualInterest, 480);
-  assertClose(metrics.projectedMonthlyInterest, 40);
-  // YTD accrued interest over 5.5 months of 2026 = 5.5 * 40 = 220
+  // APY is an effective annual rate: monthly = 12000 × (1.04^(1/12) − 1) ≈ 39.28, not 480 / 12 (L-D4).
+  assertClose(metrics.projectedMonthlyInterest, 39.28);
+  // YTD accrued interest over 5.5 months of 2026 = 5.5 * 39.28 ≈ 216.05
   assert.equal(metrics.actualInterestYTD, 0);
-  assertClose(metrics.accruedInterestYTD, 220);
-  assertClose(metrics.totalInterestYTD, 220);
+  assertClose(metrics.accruedInterestYTD, 216.05);
+  assertClose(metrics.totalInterestYTD, 216.05);
   // 12-month interest history ends in Jun 2026, not Jun 2024
   assert.equal(metrics.interestHistory.length, 12);
-  assertClose(metrics.interestHistory[11].value, 40);
+  assertClose(metrics.interestHistory[11].value, 39.28);
 });
 
 test('Savings Interest Fix #3, #4, #5 & #6: matches nested interest subcategories, converts foreign currencies to account currency, zeroes pre-openingDate months, and avoids division-by-1 in Growth Index', () => {

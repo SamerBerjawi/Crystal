@@ -392,23 +392,39 @@ export const AccountDetailHero: React.FC<{
               </div>
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
-              <p className="text-xs text-nv-muted">Annualized Return (CAGR)</p>
-              <p className="nv-tabular mt-1 text-xl font-semibold text-nv-green-text">
-                {data.pensionMetrics.annualizedReturnPct >= 0 ? '+' : ''}
-                {data.pensionMetrics.annualizedReturnPct.toFixed(2)}%
-              </p>
+              <p className="text-xs text-nv-muted">Money-weighted return</p>
+              {data.pensionMetrics.annualizedReturnPct !== null ? (
+                <p className="nv-tabular mt-1 text-xl font-semibold text-nv-green-text">
+                  {data.pensionMetrics.annualizedReturnPct >= 0 ? '+' : ''}
+                  {data.pensionMetrics.annualizedReturnPct.toFixed(2)}% a year
+                </p>
+              ) : (
+                <p className="nv-tabular mt-1 text-xl font-semibold text-nv-muted">—</p>
+              )}
             </div>
             <div className="rounded-nv-sub bg-nv-surface p-4">
               <p className="text-xs text-nv-muted">
-                Projected at Retirement ({data.pensionMetrics.retirementYear})
+                {data.pensionMetrics.retirementYear
+                  ? `Projected at retirement (${data.pensionMetrics.retirementYear})`
+                  : 'Projected at retirement'}
               </p>
-              <div className="mt-1">
-                <Money
-                  amount={data.pensionMetrics.projectedValueAtRetirement}
-                  currency={account.currency}
-                  size="lg"
-                />
-              </div>
+              {data.pensionMetrics.projectedValueAtRetirement !== null ? (
+                <div className="mt-1">
+                  <Money
+                    amount={data.pensionMetrics.projectedValueAtRetirement}
+                    currency={account.currency}
+                    size="lg"
+                  />
+                </div>
+              ) : (
+                <button type="button" onClick={onEdit} className="mt-1 min-h-11 text-left text-sm font-medium text-nv-ink underline-offset-2 hover:underline">
+                  {data.pensionMetrics.missingForProjection.retirementYear && data.pensionMetrics.missingForProjection.expectedReturn
+                    ? 'Set retirement year and return'
+                    : data.pensionMetrics.missingForProjection.retirementYear
+                      ? 'Set a retirement year'
+                      : 'Set an expected return'}
+                </button>
+              )}
             </div>
           </>
         )}

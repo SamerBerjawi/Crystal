@@ -291,10 +291,12 @@ export const YieldPotArchetype: React.FC<{
                   Pension Retirement Trajectory
                 </h2>
                 <p className="text-xs text-nv-muted">
-                  Historical balance and projected compounding toward {pensionMetrics.retirementYear}
+                  {pensionMetrics.projectedValueAtRetirement !== null
+                    ? `Historical balance and projected compounding toward ${pensionMetrics.retirementYear}`
+                    : 'Historical balance'}
                 </p>
               </div>
-              <Badge tone="violet">Target {pensionMetrics.retirementYear}</Badge>
+              {pensionMetrics.retirementYear && <Badge tone="violet">Target {pensionMetrics.retirementYear}</Badge>}
             </div>
 
             {pensionChartData.length > 1 && (

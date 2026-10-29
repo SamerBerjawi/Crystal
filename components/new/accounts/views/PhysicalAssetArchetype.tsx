@@ -271,8 +271,18 @@ export const PhysicalAssetArchetype: React.FC<{
         return;
       }
       const res = addMileageLogs(validRows.map((r) => ({ date: r.date, reading: r.reading })));
-      if (res?.undo) {
-        toast.undo(`Imported ${validRows.length} odometer readings`, res.undo);
+      if (!res) return;
+      if (res.conflicts.length > 0) {
+        // Keep the rejected lines in the box so they can be fixed and imported again.
+        setBatchText(res.conflicts.map((c) => `${c.date} ${c.reading}`).join('\n'));
+        toast.error(
+          `${res.conflicts.length} reading${res.conflicts.length > 1 ? 's' : ''} skipped: ${res.conflicts[0].error}`
+        );
+        if (res.undo) toast.undo(`Imported ${res.added} odometer readings`, res.undo);
+        return;
+      }
+      if (res.undo) {
+        toast.undo(`Imported ${res.added} odometer readings`, res.undo);
       }
       setBatchText('');
       setMileageMode('single');

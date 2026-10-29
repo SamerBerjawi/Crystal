@@ -518,12 +518,14 @@ export const RecordAccountTxSheet: React.FC<{
         fromAccountId || undefined,
         dateStr
       );
-      if (res?.undo) {
-        toast.undo(
-          `Recorded ${currencySign(account.currency)}${numAmount} card payment`,
-          res.undo
-        );
+      if (!res) {
+        toast.error(fromAccountId ? 'The paying account no longer exists' : 'Enter an amount above zero');
+        return;
       }
+      toast.undo(
+        `Recorded ${currencySign(account.currency)}${numAmount} card payment`,
+        res.undo
+      );
       onOpenChange(false);
       return;
     }
