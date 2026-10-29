@@ -822,72 +822,6 @@ export const isMealVoucherAccount = (a: {
   return false;
 };
 
-/**
- * Priority ranking for Card & Account Wallet cards:
- * 0. Primary account first
- * 1. Checking accounts
- * 2. Credit cards
- * 3. Savings accounts
- * 4. Meal vouchers
- * 5. Other
- */
-export const getCardWalletPriority = (a: Account): number => {
-  if (a.isPrimary) return 0;
-  if (isMealVoucherAccount(a)) return 4;
-  if (a.type === 'Checking') return 1;
-  if (a.type === 'Credit Card') return 2;
-  if (a.type === 'Savings') return 3;
-  return 5;
-};
-
-/**
- * Returns open card & liquid accounts for the `Card & Account Wallet` rail sorted strictly by priority:
- * 1. Primary account first
- * 2. Checking accounts
- * 3. Credit cards
- * 4. Savings accounts
- * 5. Meal vouchers
- */
-export const getCardWalletAccounts = (
-  accounts: Account[],
-  accountOrder?: string[]
-): Account[] => {
-  const orderIndex = new Map<string, number>();
-  if (accountOrder) {
-    accountOrder.forEach((id, idx) => orderIndex.set(id, idx));
-  }
-
-  const eligible = accounts.filter(
-    (a) =>
-      a.status !== 'closed' &&
-      (Boolean(a.isPrimary) ||
-        a.type === 'Checking' ||
-        a.type === 'Credit Card' ||
-        a.type === 'Savings' ||
-        isMealVoucherAccount(a))
-  );
-
-  return [...eligible].sort((a, b) => {
-    const prioA = getCardWalletPriority(a);
-    const prioB = getCardWalletPriority(b);
-    if (prioA !== prioB) {
-      return prioA - prioB;
-    }
-
-    // Within same priority, respect custom accountOrder if available
-    const idxA = orderIndex.get(a.id);
-    const idxB = orderIndex.get(b.id);
-    if (idxA !== undefined && idxB !== undefined) {
-      return idxA - idxB;
-    }
-    if (idxA !== undefined) return -1;
-    if (idxB !== undefined) return 1;
-
-    // Default stable tie-breaker: keep relative position in accounts
-    return accounts.indexOf(a) - accounts.indexOf(b);
-  });
-};
-
 export type AccountGroupKey =
   | 'checking'
   | 'credit_card'
@@ -1067,7 +1001,8 @@ export const groupAccountsByType = (
 export interface AccountFilterAndSortOptions {
   search?: string;
   currencyFilter?: Currency | 'ALL';
-  institutionFilter?: string | 'ALL';
+  /** Financial institutions to keep (any of them). Empty or missing means all. */
+  institutionFilter?: string[];
   linkedOnly?: boolean;
   linkedAccountIds?: Set<string>;
   analyticsOnly?: boolean;
@@ -1090,12 +1025,9 @@ export const filterAndSortAccounts = (
     if (options.currencyFilter && options.currencyFilter !== 'ALL' && acc.currency !== options.currencyFilter) {
       return false;
     }
-    if (
-      options.institutionFilter &&
-      options.institutionFilter !== 'ALL' &&
-      (acc.financialInstitution || '').toLowerCase() !== options.institutionFilter.toLowerCase()
-    ) {
-      return false;
+    if (options.institutionFilter && options.institutionFilter.length > 0) {
+      const inst = (acc.financialInstitution || '').trim().toLowerCase();
+      if (!options.institutionFilter.some((name) => name.trim().toLowerCase() === inst)) return false;
     }
     if (options.linkedOnly && options.linkedAccountIds && !options.linkedAccountIds.has(acc.id)) {
       return false;

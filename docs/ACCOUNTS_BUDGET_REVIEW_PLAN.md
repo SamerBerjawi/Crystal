@@ -217,6 +217,8 @@ X3 copy, X4 CTAs, X5 accent fills, X6 surfaces, X7 type floor and targets, X8 Mo
 - Budget: B1–B6 (hero label and meta line, de-duplication, goals tab cleanup).
 - Charts: X9 per the Q4 decision.
 
+**Status (2026-10-29): partly done, on `feat/new-ui-mobile-header-toolbar`.** The header, filters and layouts were reworked first because the phone header was unusable (decisions N20 to N24, `UI_UX_DESIGN_REFERENCE.md` §21): one-row header, tabs and one Filters button above the list, multi-select institutions, green Sync, split sheet only, wallet removed, the same on Transactions and Budget. This covers A2 (filters in one pill), A3 and part of B2/B3 (the Budget header chips, the body Add budget button). The migration notes planned for §21 and §22 are now §21.1 (header and toolbar) and still to write for Accounts and Budget as pages. Not yet done: the hero simplification, Base UI context menu, row semantics and phone row layout (account names truncate to "Everyday …" because the balance sits beside the name), per-archetype detail tabs.
+
 ### Phase 5: Polish and docs (P2)
 A10, A11, B7, B8, L-A8, L-A9, L-D9–L-D12, L-H4, L-H5, L-B9–L-B12, X10 performance. Write §21 Accounts and §22 Budget migration notes (X11), fix the §9 file name, fix §20's internal contradictions (§20.4 vs monotone sparklines in §20.8; "ink ring" written as `ring-nv-violet`; Base UI tooltip classes `bg-white/80 dark:bg-zinc-900/80` that the token test forbids), and mark the redesign plan's unbuilt items as built or dropped.
 

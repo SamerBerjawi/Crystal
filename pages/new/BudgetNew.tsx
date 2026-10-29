@@ -20,15 +20,20 @@ import {
   type LineSort,
   type Month,
 } from '../../utils/budgetModel';
+import { usePageAction, usePageSearch } from '../../components/new/shellContext';
+import { TwoToneTitle } from '../../components/new/tile';
 import {
-  HeaderControls,
-  HeaderTools,
-  usePageAction,
-  usePageSearch,
-  usePageTabs,
-} from '../../components/new/shellContext';
-import { FilterChip, PeriodPill, TwoToneTitle } from '../../components/new/tile';
-import { Badge, Button, Card, EmptyState, IconButton, Money, MoreButton, ProgressBar } from '../../components/new/ui';
+  ActiveFilters,
+  ChoiceChips,
+  FilterButton,
+  FilterSection,
+  FilterSheet,
+  PageToolbar,
+  ToolButton,
+  ToolbarSpacer,
+  type ActiveFilter,
+} from '../../components/new/PageToolbar';
+import { Badge, Button, Card, EmptyState, Money, ProgressBar, SegmentedTabs } from '../../components/new/ui';
 import { NvIcon } from '../../components/new/NvIcon';
 import {
   AllocationRing,
@@ -52,7 +57,8 @@ import {
 /*
  * BudgetNew (UI_UX_DESIGN_REFERENCE.md §5.1, §11 Reference 3):
  * - Built completely from scratch following the New design system.
- * - Month navigation in header controls with current-day pace tracking.
+ * - Month navigation and Auto-fill above the hero, with current-day pace tracking. The header keeps only search and
+ *   New budget; the tabs sit at the top of the page and the one Filters button above the category list (§21, N20 to N24).
  * - Split hero tile: dark ring gauge (R8) & dot-matrix days (R8) with daily safe spend & pace projections.
  * - Category budget cards with pace bars, attention badges and inline drill-in.
  * - Dynamic allocation donut breakdown.
@@ -88,6 +94,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sort, setSort] = useState<LineSort>('used');
   const [statusFilter, setStatusFilter] = useState<'all' | 'attention' | 'over'>('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Drawers state
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false);
@@ -177,16 +184,6 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
   }, [lines, searchQuery, statusFilter, sort]);
 
   // Header integration
-  usePageTabs<BudgetTab>({
-    label: 'Budget views',
-    value: tab,
-    onChange: setTab,
-    items: [
-      { id: 'budgets', label: 'Monthly budget' },
-      { id: 'goals', label: `Savings Goals (${data.goals.length})` },
-    ],
-  });
-
   usePageSearch({
     value: searchQuery,
     onChange: setSearchQuery,
@@ -204,6 +201,21 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
     },
   });
 
+  const clearBudgetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+  };
+  const activeFilters: ActiveFilter[] = [
+    ...(searchQuery.trim() !== '' && tab === 'budgets'
+      ? [{ key: 'search', label: `“${searchQuery.trim()}”`, icon: 'search' as const, onRemove: () => setSearchQuery('') }]
+      : []),
+    ...(statusFilter === 'over'
+      ? [{ key: 'over', label: 'Over limit', icon: 'alert' as const, onRemove: () => setStatusFilter('all') }]
+      : statusFilter === 'attention'
+        ? [{ key: 'attention', label: 'Needs review', icon: 'warning' as const, onRemove: () => setStatusFilter('all') }]
+        : []),
+  ];
+
   const openEdit = (b: Budget) => {
     setEditingBudget(b);
     setInitialCategoryName(b.categoryName);
@@ -220,88 +232,60 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-5">
-      {/* ── Top Header Controls & Tools ─────────────────────────────────── */}
-      <HeaderTools>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon="refresh"
-          onClick={() => setAutofillOpen(true)}
-          aria-label="Auto-fill budgets"
-        >
-          Auto-fill
-        </Button>
-      </HeaderTools>
+      {/* ── Tabs, then (on the budgets tab) the month and Auto-fill; alerts only while there are some (N21, N23) ── */}
+      <div className="space-y-3">
+        <SegmentedTabs<BudgetTab>
+          label="Budget views"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: 'budgets', label: 'Monthly budget' },
+            { id: 'goals', label: `Savings goals (${data.goals.length})` },
+          ]}
+        />
 
-      <HeaderControls>
-        <div className="flex flex-wrap items-center gap-2">
-          <MonthNav
-            label={monthLabel}
-            onPrev={() => setSelectedMonth(m => shiftMonth(m, -1))}
-            onNext={() => setSelectedMonth(m => shiftMonth(m, 1))}
-            onToday={!isCurrent ? () => setSelectedMonth(currentMonth) : undefined}
-          />
-
-          {tab === 'budgets' && (
-            <>
-              <PeriodPill<LineSort>
-                label="Sort"
-                value={sort}
-                onChange={setSort}
-                options={LINE_SORTS}
+        {tab === 'budgets' && (
+          <>
+            <PageToolbar>
+              <MonthNav
+                label={monthLabel}
+                onPrev={() => setSelectedMonth(m => shiftMonth(m, -1))}
+                onNext={() => setSelectedMonth(m => shiftMonth(m, 1))}
+                onToday={!isCurrent ? () => setSelectedMonth(currentMonth) : undefined}
               />
+              <ToolbarSpacer />
+              <ToolButton icon="refresh" label="Auto-fill" onClick={() => setAutofillOpen(true)} />
+            </PageToolbar>
 
-              <FilterChip
-                label="All budgets"
-                active={statusFilter === 'all'}
-                onClick={() => setStatusFilter('all')}
-              />
-
-              {summary.counts.over > 0 && (
-                <FilterChip
-                  label={`${summary.counts.over} over limit`}
-                  icon="alert"
-                  active={statusFilter === 'over'}
-                  onClick={() => setStatusFilter(f => (f === 'over' ? 'all' : 'over'))}
-                />
-              )}
-
-              {summary.counts.near > 0 && (
-                <FilterChip
-                  label={`${summary.counts.near + summary.counts.ahead} needs review`}
-                  icon="warning"
-                  active={statusFilter === 'attention'}
-                  onClick={() => setStatusFilter(f => (f === 'attention' ? 'all' : 'attention'))}
-                />
-              )}
-
-              {suggestions.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSuggestionsOpen(true)}
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-nv-line bg-nv-surface px-4 text-sm font-medium text-nv-ink transition-colors hover:bg-nv-inset"
-                >
-                  <NvIcon name="sparkles" size={16} className="text-nv-violet-text" />
-                  <span>{suggestions.length} recommendations</span>
-                </button>
-              )}
-
-              {summary.outside > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setUnbudgetedOpen(true)}
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-nv-line bg-nv-surface px-4 text-sm font-medium text-nv-ink hover:bg-nv-inset"
-                >
-                  <NvIcon name="warning" size={16} className="text-nv-orange-text" />
-                  <span>
-                    Unbudgeted: <Money amount={summary.outside} currency={data.displayCurrency} />
-                  </span>
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </HeaderControls>
+            {(suggestions.length > 0 || summary.outside > 0) && (
+              <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
+                {suggestions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSuggestionsOpen(true)}
+                    className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-nv-line bg-nv-surface px-4 text-sm font-medium text-nv-ink transition-colors hover:bg-nv-inset"
+                  >
+                    <NvIcon name="sparkles" size={16} className="text-nv-violet-text" />
+                    <span>{suggestions.length} recommendations</span>
+                  </button>
+                )}
+                {summary.outside > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setUnbudgetedOpen(true)}
+                    className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-nv-line bg-nv-surface px-4 text-sm font-medium text-nv-ink hover:bg-nv-inset"
+                  >
+                    <NvIcon name="warning" size={16} className="text-nv-orange-text" />
+                    <span>
+                      Unbudgeted: <Money amount={summary.outside} currency={data.displayCurrency} />
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ── Budgets View Tab ────────────────────────────────────────────── */}
       {tab === 'budgets' && (
@@ -430,28 +414,16 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
             {/* Left Column: Budget List (8 cols) */}
             <div className="space-y-4 lg:col-span-8">
               <Card>
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold text-nv-ink">Category budgets</h2>
                     <span className="nv-tabular rounded-full bg-nv-inset px-2.5 py-0.5 text-xs font-semibold text-nv-muted">
                       {filteredLines.length}
                     </span>
                   </div>
-
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    icon="add"
-                    onClick={() => {
-                      setEditingBudget(null);
-                      setInitialCategoryName(undefined);
-                      setInitialAmount(undefined);
-                      setBudgetSheetOpen(true);
-                    }}
-                  >
-                    Add budget
-                  </Button>
+                  <FilterButton count={statusFilter !== 'all' ? 1 : 0} onClick={() => setFiltersOpen(true)} />
                 </div>
+                <ActiveFilters filters={activeFilters} onClearAll={clearBudgetFilters} className="mb-3" />
 
                 {filteredLines.length === 0 ? (
                   lines.length === 0 ? (
@@ -491,10 +463,7 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                       action={
                         <Button
                           variant="secondary"
-                          onClick={() => {
-                            setSearchQuery('');
-                            setStatusFilter('all');
-                          }}
+                          onClick={clearBudgetFilters}
                         >
                           Clear filters
                         </Button>
@@ -990,6 +959,37 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
         initialCategoryName={initialCategoryName}
         initialAmount={initialAmount}
       />
+
+      <FilterSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        resultLabel={`Show ${filteredLines.length} ${filteredLines.length === 1 ? 'budget' : 'budgets'}`}
+        onReset={() => {
+          clearBudgetFilters();
+          setSort('used');
+        }}
+      >
+        <FilterSection title="Sort by">
+          <ChoiceChips
+            label="Sort by"
+            options={LINE_SORTS.map(o => ({ id: o.value, label: o.label }))}
+            selected={[sort]}
+            onChange={([id]) => setSort(id as LineSort)}
+          />
+        </FilterSection>
+        <FilterSection title="Status" count={statusFilter !== 'all' ? 1 : 0}>
+          <ChoiceChips
+            label="Status"
+            options={[
+              { id: 'all', label: 'All budgets' },
+              { id: 'over', label: `Over limit${summary.counts.over ? ` · ${summary.counts.over}` : ''}`, icon: 'alert' },
+              { id: 'attention', label: `Needs review${summary.counts.near + summary.counts.ahead ? ` · ${summary.counts.near + summary.counts.ahead}` : ''}`, icon: 'warning' },
+            ]}
+            selected={[statusFilter]}
+            onChange={([id]) => setStatusFilter(id as 'all' | 'attention' | 'over')}
+          />
+        </FilterSection>
+      </FilterSheet>
 
       <AutofillSheet
         open={autofillOpen}

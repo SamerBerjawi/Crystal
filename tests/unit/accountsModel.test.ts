@@ -9,7 +9,6 @@ import {
   computePortfolio90dNetWorthTrend,
   filterAccountsBySegment,
   filterAndSortAccounts,
-  getCardWalletAccounts,
   getVisibleAccountsForAccountsPage,
   groupAccountsByType,
   splitAssetsAndLiabilities,
@@ -200,7 +199,6 @@ test('Phase 1 Balance-Sheet Cockpit: segments, hero solvency & attention items, 
   const { assets, liabilities } = splitAssetsAndLiabilities(filterAccountsBySegment(visible, 'all'));
   assert.equal(assets.length, 3);
   assert.equal(liabilities.length, 1);
-  assert.equal(getCardWalletAccounts(visible).length, 3);
 
   const sortedByBal = filterAndSortAccounts(
     filterAccountsBySegment(visible, 'all'),
@@ -214,48 +212,21 @@ test('Phase 1 Balance-Sheet Cockpit: segments, hero solvency & attention items, 
   assert.ok(csv.includes('High Util Card'));
 });
 
-test('Card & Account Wallet priority: Primary -> Checking -> Credit -> Savings -> Meal Vouchers', () => {
+test('institution filter keeps accounts from any of the chosen institutions; none chosen means all', () => {
   const accounts: Partial<Account>[] = [
-    { id: 'sav_normal', name: 'Emergency Reserve', type: 'Savings', balance: 5000, currency: 'EUR' },
-    { id: 'chk_sec', name: 'Secondary Checking', type: 'Checking', balance: 1000, currency: 'EUR' },
-    { id: 'voucher_edenred', name: 'Edenred Card', type: 'Other Assets', otherSubType: 'Meal Voucher', balance: 250, currency: 'EUR' },
-    { id: 'cc_visa', name: 'Visa Gold', type: 'Credit Card', balance: -300, currency: 'EUR' },
-    { id: 'chk_main', name: 'Main Daily Checking', type: 'Checking', isPrimary: true, balance: 3500, currency: 'EUR' },
-    { id: 'voucher_sodexo', name: 'Pluxee Meal Vouchers', type: 'Checking', balance: 180, currency: 'EUR' },
-    { id: 'closed_card', name: 'Old Card', type: 'Credit Card', status: 'closed', balance: 0, currency: 'EUR' },
+    { id: 'a', name: 'A', type: 'Checking', balance: 1, currency: 'EUR', financialInstitution: 'KBC' },
+    { id: 'b', name: 'B', type: 'Savings', balance: 2, currency: 'EUR', financialInstitution: 'ING' },
+    { id: 'c', name: 'C', type: 'Checking', balance: 3, currency: 'EUR', financialInstitution: 'Revolut' },
+    { id: 'd', name: 'D', type: 'Checking', balance: 4, currency: 'EUR' },
   ];
-
-  const wallet = getCardWalletAccounts(accounts as Account[]);
-  
-  // Closed accounts are excluded
-  assert.equal(wallet.some(a => a.id === 'closed_card'), false);
-  
-  // Order verification:
-  // 1. Primary account first ('chk_main')
-  // 2. Checking ('chk_sec')
-  // 3. Credit ('cc_visa')
-  // 4. Savings ('sav_normal')
-  // 5. Meal Vouchers ('voucher_edenred', 'voucher_sodexo')
-  const ids = wallet.map(a => a.id);
-  assert.deepEqual(ids, [
-    'chk_main',
-    'chk_sec',
-    'cc_visa',
-    'sav_normal',
-    'voucher_edenred',
-    'voucher_sodexo',
-  ]);
-
-  // Primary account is prioritized first even if it is a Credit Card
-  const accountsWithPrimaryCard: Partial<Account>[] = [
-    { id: 'chk1', name: 'Checking 1', type: 'Checking', balance: 1000, currency: 'EUR' },
-    { id: 'card_primary', name: 'Primary Card', type: 'Credit Card', isPrimary: true, balance: -200, currency: 'EUR' },
-    { id: 'sav1', name: 'Savings 1', type: 'Savings', balance: 8000, currency: 'EUR' },
-  ];
-  const walletWithPrimaryCard = getCardWalletAccounts(accountsWithPrimaryCard as Account[]);
-  assert.equal(walletWithPrimaryCard[0].id, 'card_primary');
-  assert.equal(walletWithPrimaryCard[1].id, 'chk1');
-  assert.equal(walletWithPrimaryCard[2].id, 'sav1');
+  const balances = { a: 1, b: 2, c: 3, d: 4 };
+  const ids = (institutions?: string[]) =>
+    filterAndSortAccounts(accounts as Account[], balances, { institutionFilter: institutions, sortBy: 'name' }).map((x) => x.id);
+  assert.deepEqual(ids(), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(ids([]), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(ids(['KBC']), ['a']);
+  assert.deepEqual(ids(['kbc', ' revolut ']), ['a', 'c'], 'case and spaces do not matter');
+  assert.deepEqual(ids(['KBC', 'ING', 'Revolut']), ['a', 'b', 'c']);
 });
 
 test('groupAccountsByType: groups accounts into ordered type buckets with correct subtotals and modes', () => {

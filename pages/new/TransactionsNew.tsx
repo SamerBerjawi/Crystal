@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { cn } from '../../lib/utils';
 import type { User } from '../../types';
 import { useTransactionsData } from '../../hooks/useTransactionsData';
 import { downloadCSV, formatCurrency } from '../../utils';
@@ -8,9 +7,21 @@ import {
   placeClusters, previousRange, rowsToCsv, sortRows, spendByWeekday, topCategory, totalBalance,
   type PeriodId, type SortId, type TxKind, type TxRow,
 } from '../../utils/transactionsModel';
-import { HeaderControls, HeaderTools, usePageAction, usePageSearch, usePageTabs, useShellNew } from '../../components/new/shellContext';
-import { Button, Card, EmptyState, IconButton, MoreButton, Money } from '../../components/new/ui';
-import { FilterChip, PeriodPill } from '../../components/new/tile';
+import { usePageAction, usePageSearch, useShellNew } from '../../components/new/shellContext';
+import { Button, Card, EmptyState, MoreButton, Money, SegmentedTabs } from '../../components/new/ui';
+import { PeriodPill } from '../../components/new/tile';
+import {
+  ActiveFilters,
+  ChoiceChips,
+  FilterButton,
+  FilterSection,
+  FilterSheet,
+  PageToolbar,
+  ToolButton,
+  ToolMenu,
+  ToolbarSpacer,
+  type ActiveFilter,
+} from '../../components/new/PageToolbar';
 import { Drawer } from '../../components/new/Drawer';
 import { NvIcon, type NvIconName } from '../../components/new/NvIcon';
 import { toast } from '../../components/new/toast';
@@ -24,8 +35,9 @@ import { useMediaQuery } from '../../components/new/Drawer';
 import { TransactionsHeroCard } from '../../components/new/transactions/overview';
 
 /*
- * TransactionsNew (UI_UX_DESIGN_REFERENCE.md §5, migration notes in §12). Tabs Activity / To review and the
- * page's search, period, filters and tools in the band; a balance card with account tiles and four KPI tiles; the hero
+ * TransactionsNew (UI_UX_DESIGN_REFERENCE.md §5, migration notes in §12). The header holds the page's search and its
+ * Add transaction button; the tabs Activity / To review, the period, the one Filters button and the tools sit above
+ * the list (§21, N20 to N24); a balance card with account tiles and four KPI tiles; the hero
  * (spending by weekday beside a map of where you spent, both filtering the list, §17); the list with "Show more"
  * chunks (D11); a detail / edit sheet; multi-select. Same props as the classic page.
  */
@@ -133,13 +145,6 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
   const reviewCount = useMemo(() => inPeriod.filter(needsReview).length, [inPeriod]);
   const periodLabel = PERIODS.find(p => p.value === period)?.label ?? '';
 
-  usePageTabs<Tab>({
-    label: 'Transactions view',
-    value: tab,
-    onChange: changeTab,
-    items: [{ id: 'activity', label: 'Activity' }, { id: 'review', label: reviewCount ? `To review · ${reviewCount}` : 'To review' }],
-  });
-
   // The header search filters this page (§13 N2); the header's violet button adds a transaction (§14 N4).
   usePageSearch({ value: query, onChange: setQuery, placeholder: 'Search transactions' });
   usePageAction({ label: 'Add transaction', icon: 'add', onClick: openQuickAdd });
@@ -178,6 +183,29 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
   const activeFilterCount = (description.trim() ? 1 : 0) + merchants.length + accountIds.length + categories.length + tagIds.length + places.length + weekdays.length + (minAmount.trim() !== '' ? 1 : 0) + (maxAmount.trim() !== '' ? 1 : 0);
   const clearFilters = () => { setAccountIds([]); setCategories([]); setTagIds([]); setDescription(''); setMerchants([]); setPlaces([]); setWeekdays([]); setMinAmount(''); setMaxAmount(''); };
   const clearAll = () => { setQuery(''); setKinds([]); clearFilters(); };
+
+  // The Filters button counts everything the sheet holds except sort: the type chips count too now that they live there (N22).
+  const toolbarFilterCount = activeFilterCount + kinds.length;
+  const tabItems = [
+    { id: 'activity' as const, label: 'Activity' },
+    { id: 'review' as const, label: reviewCount ? `To review · ${reviewCount}` : 'To review' },
+  ];
+  const activeFilters: ActiveFilter[] = [
+    ...(query.trim() !== '' ? [{ key: 'query', label: `“${query.trim()}”`, icon: 'search' as const, onRemove: () => setQuery('') }] : []),
+    ...kinds.map(kind => {
+      const chip = KIND_CHIPS.find(k => k.kind === kind);
+      return { key: `kind-${kind}`, label: chip?.label ?? kind, icon: chip?.icon, onRemove: () => setKinds(k => k.filter(x => x !== kind)) };
+    }),
+    ...(description.trim() !== '' ? [{ key: 'description', label: `Description: ${description}`, onRemove: () => setDescription('') }] : []),
+    ...merchants.map(m => ({ key: `merchant-${m}`, label: m, onRemove: () => setMerchants(ms => ms.filter(x => x !== m)) })),
+    ...(minAmount.trim() !== '' ? [{ key: 'min', label: `From ${minAmount}`, onRemove: () => setMinAmount('') }] : []),
+    ...(maxAmount.trim() !== '' ? [{ key: 'max', label: `Up to ${maxAmount}`, onRemove: () => setMaxAmount('') }] : []),
+    ...places.map(k => ({ key: `place-${k}`, label: data.places.find(p => p.key === k)?.label ?? k, icon: 'pin' as const, onRemove: () => setPlaces(ps => ps.filter(x => x !== k)) })),
+    ...weekdays.map(d => ({ key: `weekday-${d}`, label: DAY_NAMES[d], icon: 'calendar' as const, onRemove: () => setWeekdays(ds => ds.filter(x => x !== d)) })),
+    ...accountIds.map(id => ({ key: `account-${id}`, label: data.accountsById.get(id)?.name ?? 'Account', onRemove: () => setAccountIds(a => a.filter(x => x !== id)) })),
+    ...categories.map(c => ({ key: `category-${c}`, label: c, onRemove: () => setCategories(cs => cs.filter(x => x !== c)) })),
+    ...tagIds.map(id => ({ key: `tag-${id}`, label: data.tagsById.get(id)?.name ?? 'Tag', onRemove: () => setTagIds(t => t.filter(x => x !== id)) })),
+  ];
 
   const subtitleFor = (row: TxRow) => {
     const account = data.accountsById.get(row.accountId)?.name ?? 'Unknown account';
@@ -405,7 +433,8 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
       title: 'Value and type',
       content: (
         <>
-          <FilterGroup compact title="Type" options={KIND_CHIPS.map(k => ({ id: k.kind, label: k.label }))} selected={kinds} onChange={ids => setKinds(ids as TxKind[])} />
+          <p className="mb-1.5 text-[13px] text-nv-muted">Type</p>
+          <div className="mb-4"><ChoiceChips multiple label="Type" options={KIND_CHIPS.map(k => ({ id: k.kind, label: k.label }))} selected={kinds} onChange={ids => setKinds(ids as TxKind[])} /></div>
           <div className="grid grid-cols-2 gap-3">
             <TextField label="From" type="number" value={minAmount} onChange={setMinAmount} placeholder="0" />
             <TextField label="Up to" type="number" value={maxAmount} onChange={setMaxAmount} placeholder="No limit" />
@@ -442,33 +471,24 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
         unplaced={unplaced}
       />
 
-      {/* Controls live in the header band (§14 N5): period, filters, type chips and active filters; the tools are on the tabs row (§15 N6). */}
-      <HeaderTools>
-        <IconButton icon="select" label={selecting ? 'Stop selecting' : 'Select transactions'} tone={selecting ? 'ink' : 'chip'} onClick={() => (selecting ? endSelect() : setSelecting(true))} />
-        <IconButton icon="download" label="Export CSV" tone="chip" onClick={exportCsv} />
-        {onSyncBanks && <Button variant="success" icon="refresh" onClick={onSyncBanks} disabled={isSyncingBanks} aria-label={isSyncingBanks ? 'Syncing banks' : 'Sync banks'}>{isSyncingBanks ? 'Syncing' : 'Sync'}</Button>}
-      </HeaderTools>
-      <HeaderControls>
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Tabs, period, the one Filters button and the tools, above the list they control (N21, N22, N23). */}
+      <div className="space-y-3">
+        <SegmentedTabs<Tab> label="Transactions view" value={tab} onChange={changeTab} items={tabItems} />
+        <PageToolbar>
           <PeriodPill<PeriodId> label="Period" value={period} onChange={p => { setPeriod(p); setAutoAll(false); }} options={PERIODS} />
-          <Button size="md" icon="filter" onClick={() => setFiltersOpen(true)}>Filters{activeFilterCount ? ` · ${activeFilterCount}` : ''}</Button>
-          <PeriodPill<SortId> label="Sort" value={sort} onChange={setSort} options={SORTS} />
-          {KIND_CHIPS.map(({ kind, label, icon }) => (
-            <FilterChip key={kind} label={label} icon={icon} active={kinds.includes(kind)} onClick={() => setKinds(k => (k.includes(kind) ? k.filter(x => x !== kind) : [...k, kind]))} />
-          ))}
-          {description.trim() !== '' && <FilterChip label={`Description: ${description}`} onRemove={() => setDescription('')} />}
-          {merchants.map(m => <FilterChip key={m} label={m} onRemove={() => setMerchants(ms => ms.filter(x => x !== m))} />)}
-          {minAmount.trim() !== '' && <FilterChip label={`From ${minAmount}`} onRemove={() => setMinAmount('')} />}
-          {maxAmount.trim() !== '' && <FilterChip label={`Up to ${maxAmount}`} onRemove={() => setMaxAmount('')} />}
-          {places.map(k => <FilterChip key={k} label={data.places.find(p => p.key === k)?.label ?? k} icon="pin" onRemove={() => setPlaces(ps => ps.filter(x => x !== k))} />)}
-          {weekdays.map(d => <FilterChip key={d} label={DAY_NAMES[d]} icon="calendar" onRemove={() => setWeekdays(ds => ds.filter(x => x !== d))} />)}
-          {accountIds.map(id => <FilterChip key={id} label={data.accountsById.get(id)?.name ?? 'Account'} onRemove={() => setAccountIds(a => a.filter(x => x !== id))} />)}
-          {categories.map(c => <FilterChip key={c} label={c} onRemove={() => setCategories(cs => cs.filter(x => x !== c))} />)}
-          {tagIds.map(id => <FilterChip key={id} label={data.tagsById.get(id)?.name ?? 'Tag'} onRemove={() => setTagIds(t => t.filter(x => x !== id))} />)}
-          {(query || kinds.length > 0 || activeFilterCount > 0) && <Button size="sm" variant="ghost" onClick={clearAll}>Clear all</Button>}
-        </div>
-        {autoAll && <p className="mt-3 text-[13px] text-nv-muted">Nothing this month yet, so this shows all time.</p>}
-      </HeaderControls>
+          <FilterButton count={toolbarFilterCount} onClick={() => setFiltersOpen(true)} />
+          <ToolbarSpacer />
+          {onSyncBanks && <ToolButton variant="success" icon="refresh" label={isSyncingBanks ? 'Syncing…' : 'Sync banks'} disabled={isSyncingBanks} onClick={onSyncBanks} />}
+          <ToolMenu
+            items={[
+              { label: selecting ? 'Stop selecting' : 'Select transactions', icon: 'select', onClick: () => (selecting ? endSelect() : setSelecting(true)) },
+              { label: 'Export CSV', icon: 'download', onClick: exportCsv },
+            ]}
+          />
+        </PageToolbar>
+        <ActiveFilters filters={activeFilters} onClearAll={clearAll} />
+        {autoAll && <p className="text-[13px] text-nv-muted">Nothing this month yet, so this shows all time.</p>}
+      </div>
 
       {/* List */}
       <Card className="px-2 py-3 sm:px-3 sm:py-4">
@@ -563,23 +583,32 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
         </div>
       )}
 
-      {/* Filters */}
-      <Drawer open={filtersOpen} onOpenChange={setFiltersOpen} title="Filters" footer={<div className="flex gap-3"><Button size="lg" onClick={clearFilters}>Reset</Button><Button variant="primary" size="lg" className="flex-1" onClick={() => setFiltersOpen(false)}>Show {shown.length} transactions</Button></div>}>
- <fieldset className="mb-6">
-          <legend className="mb-2 text-[13px] font-medium text-nv-muted">Amount</legend>
+      {/* Filters and sort */}
+      <FilterSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        resultLabel={`Show ${shown.length} transactions`}
+        onReset={() => { clearAll(); setSort('date-desc'); }}
+      >
+        <FilterSection title="Sort by">
+          <ChoiceChips label="Sort by" options={SORTS.map(o => ({ id: o.value, label: o.label }))} selected={[sort]} onChange={([id]) => setSort(id as SortId)} />
+        </FilterSection>
+        <FilterSection title="Type" count={kinds.length}>
+          <ChoiceChips multiple label="Type" options={KIND_CHIPS.map(k => ({ id: k.kind, label: k.label, icon: k.icon }))} selected={kinds} onChange={ids => setKinds(ids as TxKind[])} />
+        </FilterSection>
+        <FilterSection title="Amount" count={(minAmount.trim() !== '' ? 1 : 0) + (maxAmount.trim() !== '' ? 1 : 0)}>
           <div className="grid grid-cols-2 gap-3">
             <TextField label="From" type="number" value={minAmount} onChange={setMinAmount} placeholder="0" />
             <TextField label="Up to" type="number" value={maxAmount} onChange={setMaxAmount} placeholder="No limit" />
           </div>
-        </fieldset>
-        <DrawerSection title="Details"><TextField label="Description" value={description} onChange={setDescription} placeholder="Search description" /></DrawerSection>
-        {merchantOptionList.length > 0 && <DrawerSection title="Merchants" count={merchants.length}><FilterList label="Merchants" options={merchantOptionList} selected={merchants} onChange={setMerchants} /></DrawerSection>}
-        <DrawerSection title="Type"><FilterGroup compact title="" options={KIND_CHIPS.map(k => ({ id: k.kind, label: k.label }))} selected={kinds} onChange={ids => setKinds(ids as TxKind[])} /></DrawerSection>
-        <DrawerSection title="Accounts" count={accountIds.length}><FilterList label="Accounts" quick={accountQuick} options={accountOptions} selected={accountIds} onChange={setAccountIds} /></DrawerSection>
-        <DrawerSection title="Categories" count={categories.length}><FilterList label="Categories" options={categoryOptions} selected={categories} onChange={setCategories} /></DrawerSection>
-        {placeFilterOptions.length > 0 && <DrawerSection title="Locations" count={places.length}><FilterList label="Locations" options={placeFilterOptions} selected={places} onChange={setPlaces} /></DrawerSection>}
-        {tagOptions.length > 0 && <DrawerSection title="Tags" count={tagIds.length}><FilterList label="Tags" options={tagOptions} selected={tagIds} onChange={setTagIds} /></DrawerSection>}
-      </Drawer>
+        </FilterSection>
+        <FilterSection title="Details" count={description.trim() ? 1 : 0}><TextField label="Description" value={description} onChange={setDescription} placeholder="Search description" /></FilterSection>
+        {merchantOptionList.length > 0 && <FilterSection title="Merchants" count={merchants.length}><FilterList label="Merchants" options={merchantOptionList} selected={merchants} onChange={setMerchants} /></FilterSection>}
+        <FilterSection title="Accounts" count={accountIds.length}><FilterList label="Accounts" quick={accountQuick} options={accountOptions} selected={accountIds} onChange={setAccountIds} /></FilterSection>
+        <FilterSection title="Categories" count={categories.length}><FilterList label="Categories" options={categoryOptions} selected={categories} onChange={setCategories} /></FilterSection>
+        {placeFilterOptions.length > 0 && <FilterSection title="Locations" count={places.length}><FilterList label="Locations" options={placeFilterOptions} selected={places} onChange={setPlaces} /></FilterSection>}
+        {tagOptions.length > 0 && <FilterSection title="Tags" count={tagIds.length}><FilterList label="Tags" options={tagOptions} selected={tagIds} onChange={setTagIds} /></FilterSection>}
+      </FilterSheet>
 
       {/* Bulk categorize */}
       <Drawer open={bulkCategory} onOpenChange={setBulkCategory} title="Categorize" description={`${selectedRows.length} transaction${selectedRows.length === 1 ? '' : 's'}. A category of the other kind changes the type, and a transfer becomes an ordinary transaction.`}>
@@ -599,33 +628,3 @@ export const TransactionsNew: React.FC<TransactionsNewProps> = ({ initialAccount
     </div>
   );
 };
-
-const DrawerSection: React.FC<{ title: string; count?: number; children: React.ReactNode }> = ({ title, count, children }) => (
-  <section className="mb-6">
-    <h3 className="mb-2 flex items-center gap-2 text-[15px] font-semibold text-nv-ink">{title}{!!count && <span className="nv-tabular rounded-full bg-nv-ink px-2 text-[12px] font-semibold text-nv-on-ink">{count}</span>}</h3>
-    {children}
-  </section>
-);
-
-const FilterGroup: React.FC<{ compact?: boolean; title: string; options: { id: string; label: string; color?: string }[]; selected: string[]; onChange: (ids: string[]) => void }> = ({ compact, title, options, selected, onChange }) => (
-  <fieldset className="mb-6 last:mb-0">
-    {title && <legend className="mb-2 text-[13px] font-medium text-nv-muted">{title}</legend>}
-    <div className="flex flex-wrap gap-2">
-      {options.map(o => {
-        const on = selected.includes(o.id);
-        return (
-          <button
-            key={o.id}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onChange(on ? selected.filter(x => x !== o.id) : [...selected, o.id])}
-            className={cn('inline-flex items-center gap-2 rounded-full border font-medium', compact ? 'h-9 px-3 text-[13px]' : 'h-11 px-4 text-sm', on ? 'border-nv-ink bg-nv-ink text-nv-on-ink' : 'border-nv-line bg-nv-inset text-nv-ink')}
-          >
-            {o.color && <span className="h-2.5 w-2.5 rounded-full" style={{ background: o.color }} aria-hidden />}
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  </fieldset>
-);

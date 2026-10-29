@@ -11,7 +11,7 @@ import { ToastHostNew } from './toast';
 import { ConfirmHostNew } from './ConfirmDialog';
 import { ErrorBoundaryNew } from './ErrorPanel';
 import { PageSkeletonNew, type SkeletonShape } from './Skeleton';
-import { ShellNewContext, type PageActionConfig, type PageSearchConfig, type PageTabsConfig } from './shellContext';
+import { ShellNewContext, type PageActionConfig, type PageSearchConfig } from './shellContext';
 import { HeaderSearch, type PageTarget } from './HeaderSearch';
 import { QuickAddSheet } from './transactions/sheets';
 import './new.css';
@@ -223,25 +223,21 @@ const PAGE_TARGETS: PageTarget[] = NAV_GROUPS.flatMap(g => g.items.map(i => ({ i
 
 export const ShellNew: React.FC<ShellNewProps> = props => {
   const { page, title, navigate, notificationCount, routeKey, skeleton, children } = props;
-  const [pageTabs, setPageTabsState] = useState<PageTabsConfig | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [pageSearch, setPageSearchState] = useState<PageSearchConfig | null>(null);
   const [pageAction, setPageActionState] = useState<PageActionConfig | null>(null);
-  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
-  const [toolsSlot, setToolsSlot] = useState<HTMLElement | null>(null);
   const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
   const desktopSearchRef = useRef<HTMLInputElement>(null);
   const phoneSearchRef = useRef<HTMLInputElement>(null);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const prefersDark = useMediaQuery('(prefers-color-scheme: dark)');
-  const setPageTabs = useCallback((tabs: PageTabsConfig | null) => setPageTabsState(tabs), []);
   const setPageSearch = useCallback((search: PageSearchConfig | null) => setPageSearchState(search), []);
   const setPageAction = useCallback((action: PageActionConfig | null) => setPageActionState(action), []);
   const openQuickAdd = useCallback(() => setQuickAddOpen(true), []);
   const contextValue = useMemo(
-    () => ({ setPageTabs, setPageSearch, setPageAction, headerSlot, toolsSlot, isDark: props.theme === 'dark' || (props.theme === 'system' && prefersDark), navigate, openQuickAdd }),
-    [setPageTabs, setPageSearch, setPageAction, headerSlot, toolsSlot, props.theme, prefersDark, navigate, openQuickAdd],
+    () => ({ setPageSearch, setPageAction, isDark: props.theme === 'dark' || (props.theme === 'system' && prefersDark), navigate, openQuickAdd }),
+    [setPageSearch, setPageAction, props.theme, prefersDark, navigate, openQuickAdd],
   );
   // The header's violet button (§14 N4): the page's own primary action, else quick add.
   const action: PageActionConfig = pageAction ?? { label: 'Add transaction', icon: 'add', onClick: openQuickAdd };
@@ -283,8 +279,8 @@ export const ShellNew: React.FC<ShellNewProps> = props => {
 
         <Sidebar activeNav={activeNav} go={go} />
 
-        {/* Top band (R2, R4): grey, holds the header row and the page tabs. */}
-        <header className="rounded-b-[32px] bg-nv-tile px-4 pb-4 pt-[max(env(safe-area-inset-top),16px)] lg:mx-4 lg:mt-4 lg:rounded-[32px] lg:px-8 lg:pb-6 lg:pt-6">
+        {/* Top band (R2, R4): one row, the title, search, the page's one action and the account menu (N20). Tabs, filters and tools are the page's, in its content. */}
+        <header className="rounded-b-[28px] bg-nv-tile px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] lg:mx-4 lg:mt-4 lg:rounded-[32px] lg:px-8 lg:pb-6 lg:pt-6">
           <div className="flex items-center gap-3">
             <IconButton icon="menu" label="Menu" tone="chip" className="lg:hidden" onClick={() => setNavOpen(true)} />
             <a href={newPathFor('Dashboard')} onClick={onPlainClick(() => go('Dashboard'))} aria-label="Crystal home" className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full bg-nv-ink text-nv-on-ink sm:flex lg:hidden">
@@ -315,13 +311,6 @@ export const ShellNew: React.FC<ShellNewProps> = props => {
           {phoneSearchOpen && (
             <HeaderSearch ref={phoneSearchRef} config={pageSearch} pages={PAGE_TARGETS} onPickPage={id => { setPhoneSearchOpen(false); go(id as NewPage); }} className="mt-3 lg:hidden" />
           )}
-          {/* Tabs on the left, the page's tools (HeaderTools) on the right of the same row (§15 N6). */}
-          <div className="mt-4 hidden flex-wrap items-center justify-between gap-3 has-[[role=tablist]]:flex has-[[data-nv-tools]>*]:flex lg:mt-6">
-            {pageTabs && <SegmentedTabs label={pageTabs.label} items={pageTabs.items} value={pageTabs.value} onChange={pageTabs.onChange} className="bg-nv-surface" />}
-            <div ref={setToolsSlot} data-nv-tools className="ml-auto flex items-center gap-2" />
-          </div>
-          {/* The page's controls (filters, period, tools) render here through HeaderControls (§14 N5). */}
-          <div ref={setHeaderSlot} className="mt-4 empty:hidden" />
         </header>
 
         <main id="nv-main" tabIndex={-1} className="mx-auto min-w-0 max-w-[1600px] px-4 pb-32 pt-5 focus:outline-none lg:px-8 lg:pb-10 lg:pt-6">

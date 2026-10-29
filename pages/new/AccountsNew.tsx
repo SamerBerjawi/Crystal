@@ -1,37 +1,36 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { cn } from '../../lib/utils';
 import type { Account, AccountType, Currency } from '../../types';
 import { useAccountsData } from '../../hooks/useAccountsData';
 import {
   filterAccountsBySegment,
   filterAndSortAccounts,
-  groupAccountsByType,
   splitAssetsAndLiabilities,
   type AccountsPageSegment,
 } from '../../utils/accountsModel';
 import { newPathFor } from '../../utils/newRoutes';
 import { debtFromBalance, safeAdd } from '../../utils';
+import { usePageAction, usePageSearch, useShellNew } from '../../components/new/shellContext';
 import {
-  HeaderControls,
-  HeaderTools,
-  usePageAction,
-  usePageSearch,
-  usePageTabs,
-  useShellNew,
-} from '../../components/new/shellContext';
-import { FilterChip, PeriodPill } from '../../components/new/tile';
-import { Button, Card, EmptyState, Money, SegmentedTabs } from '../../components/new/ui';
+  ActiveFilters,
+  ChoiceChips,
+  FilterButton,
+  FilterSection,
+  FilterSheet,
+  FilterToggle,
+  PageToolbar,
+  ToolButton,
+  ToolbarSpacer,
+  type ActiveFilter,
+} from '../../components/new/PageToolbar';
+import { FilterList, type FilterOption } from '../../components/new/transactions/filters';
+import { Button, Card, EmptyState, SegmentedTabs, type TabItem } from '../../components/new/ui';
 import { confirmNew } from '../../components/new/ConfirmDialog';
 import { AccountLogo } from '../../components/new/EntityIcon';
 import { NvIcon } from '../../components/new/NvIcon';
 import { toast } from '../../components/new/toast';
 import { AccountFormSheet } from '../../components/new/accounts/AccountFormSheet';
-import { AccountsHeroCard, CardWalletRail } from '../../components/new/accounts/overview';
-import {
-  AccountCardNew,
-  AccountRowNew,
-  BalanceSheetSplitView,
-} from '../../components/new/accounts/parts';
+import { AccountsHeroCard } from '../../components/new/accounts/overview';
+import { AccountRowNew, BalanceSheetSplitView } from '../../components/new/accounts/parts';
 import {
   AccountOverviewSheet,
   BalanceAdjustmentSheet,
@@ -40,9 +39,10 @@ import {
 /*
  * AccountsNew (`/accounts-new`): Balance-Sheet Cockpit (UI_UX_DESIGN_REFERENCE.md §5.2).
  * Built from first principles using pure domain models (`utils/accountsModel.ts`) and `nv-*` tokens.
+ * One layout (the split sheet, assets beside liabilities). The segment tabs, the Filters button and the tools sit
+ * under the hero, above the list they control (§21, N20 to N24); the header keeps only search and New account.
  */
 
-type ViewMode = 'split' | 'list' | 'bento';
 type SortMode = 'manual' | 'balance' | 'name' | 'change30d' | 'apy_apr';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
@@ -59,15 +59,15 @@ export const AccountsNew: React.FC = () => {
 
   // State
   const [segment, setSegment] = useState<AccountsPageSegment>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortMode>(data.defaultSortBy || 'manual');
   const [currencyFilter, setCurrencyFilter] = useState<Currency | 'ALL'>('ALL');
-  const [institutionFilter, setInstitutionFilter] = useState<string>('ALL');
+  const [institutions, setInstitutions] = useState<string[]>([]);
   const [linkedOnly, setLinkedOnly] = useState(false);
   const [analyticsOnly, setAnalyticsOnly] = useState(false);
 
   // Sheet State
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [defaultFormType, setDefaultFormType] = useState<AccountType>('Checking');
@@ -145,7 +145,7 @@ export const AccountsNew: React.FC = () => {
       filterAndSortAccounts(segmentedAccounts, data.displayBalancesById, {
         search: searchQuery,
         currencyFilter,
-        institutionFilter,
+        institutionFilter: institutions,
         linkedOnly,
         linkedAccountIds: data.linkedEnableBankingAccountIds,
         analyticsOnly,
@@ -159,7 +159,7 @@ export const AccountsNew: React.FC = () => {
       data.displayBalancesById,
       searchQuery,
       currencyFilter,
-      institutionFilter,
+      institutions,
       linkedOnly,
       data.linkedEnableBankingAccountIds,
       analyticsOnly,
@@ -173,17 +173,6 @@ export const AccountsNew: React.FC = () => {
   const { assets, liabilities } = useMemo(
     () => splitAssetsAndLiabilities(filteredAccounts),
     [filteredAccounts]
-  );
-
-  const accountGroups = useMemo(
-    () =>
-      groupAccountsByType(
-        filteredAccounts,
-        data.displayBalancesById,
-        data.convert,
-        'all'
-      ),
-    [filteredAccounts, data.displayBalancesById, data.convert]
   );
 
   const totalAssetsConverted = useMemo(
@@ -205,30 +194,7 @@ export const AccountsNew: React.FC = () => {
     [liabilities, data]
   );
 
-  // Header Registration
-  usePageTabs<AccountsPageSegment>({
-    label: 'Account segments',
-    value: segment,
-    onChange: (next) => {
-      setSegment(next);
-      if (next !== 'all' && viewMode === 'split') {
-        setViewMode('list');
-      } else if (next === 'all' && viewMode === 'list') {
-        setViewMode('split');
-      }
-    },
-    items: [
-      { id: 'all', label: `All (${segmentCounts.all})`, icon: 'wallet' },
-      { id: 'cash_cards', label: `Cash & cards (${segmentCounts.cash_cards})`, icon: 'card' },
-      { id: 'savings_yield', label: `Savings & yield (${segmentCounts.savings_yield})`, icon: 'piggy' },
-      { id: 'loans_debt', label: `Loans & debt (${segmentCounts.loans_debt})`, icon: 'invoice' },
-      { id: 'property_vehicles', label: `Property & vehicles (${segmentCounts.property_vehicles})`, icon: 'home' },
-      ...(segmentCounts.archived > 0
-        ? [{ id: 'archived' as const, label: `Archived (${segmentCounts.archived})`, icon: 'archive' as const }]
-        : []),
-    ],
-  });
-
+  // Header: the page's search and its one action.
   usePageSearch({
     value: searchQuery,
     onChange: setSearchQuery,
@@ -298,22 +264,64 @@ export const AccountsNew: React.FC = () => {
     toast.undo(`Updated account order`, res.undo);
   };
 
-  const hasActiveFilters =
-    searchQuery.trim() !== '' ||
-    currencyFilter !== 'ALL' ||
-    institutionFilter !== 'ALL' ||
-    linkedOnly ||
-    analyticsOnly;
+  // Filters: what the Filters sheet holds. Search (the header) and sort are not counted.
+  const activeFilterCount =
+    (currencyFilter !== 'ALL' ? 1 : 0) + institutions.length + (linkedOnly ? 1 : 0) + (analyticsOnly ? 1 : 0);
+  const hasActiveFilters = activeFilterCount > 0 || searchQuery.trim() !== '';
 
   const clearFilters = () => {
     setSearchQuery('');
     setCurrencyFilter('ALL');
-    setInstitutionFilter('ALL');
+    setInstitutions([]);
     setLinkedOnly(false);
     setAnalyticsOnly(false);
   };
 
-  const renderAccountItem = (account: Account, idx: number, list: Account[], asCard = false) => {
+  const activeFilters: ActiveFilter[] = [
+    ...(searchQuery.trim() !== ''
+      ? [{ key: 'search', label: `“${searchQuery.trim()}”`, icon: 'search' as const, onRemove: () => setSearchQuery('') }]
+      : []),
+    ...(currencyFilter !== 'ALL'
+      ? [{ key: 'currency', label: currencyFilter, icon: 'money' as const, onRemove: () => setCurrencyFilter('ALL') }]
+      : []),
+    ...institutions.map((name) => ({
+      key: `institution-${name}`,
+      label: name,
+      icon: 'bank' as const,
+      onRemove: () => setInstitutions((list) => list.filter((x) => x !== name)),
+    })),
+    ...(linkedOnly
+      ? [{ key: 'linked', label: 'Bank synced', icon: 'refresh' as const, onRemove: () => setLinkedOnly(false) }]
+      : []),
+    ...(analyticsOnly
+      ? [{ key: 'analytics', label: 'Analytics included', icon: 'analytics' as const, onRemove: () => setAnalyticsOnly(false) }]
+      : []),
+  ];
+
+  const institutionOptions = useMemo<FilterOption[]>(
+    () =>
+      data.institutions.map((name) => ({
+        id: name,
+        label: name,
+        hint: String(
+          data.visibleAccounts.filter((a) => (a.financialInstitution || '').trim() === name).length
+        ),
+      })),
+    [data.institutions, data.visibleAccounts]
+  );
+
+  const segmentItems: TabItem<AccountsPageSegment>[] = [
+    { id: 'all', label: `All (${segmentCounts.all})`, icon: 'wallet' },
+    { id: 'cash_cards', label: `Cash & cards (${segmentCounts.cash_cards})`, icon: 'card' },
+    { id: 'savings_yield', label: `Savings & yield (${segmentCounts.savings_yield})`, icon: 'piggy' },
+    { id: 'loans_debt', label: `Loans & debt (${segmentCounts.loans_debt})`, icon: 'invoice' },
+    { id: 'property_vehicles', label: `Property & vehicles (${segmentCounts.property_vehicles})`, icon: 'home' },
+    ...(segmentCounts.archived > 0
+      ? [{ id: 'archived' as const, label: `Archived (${segmentCounts.archived})`, icon: 'archive' as const }]
+      : []),
+  ];
+
+  const renderAccountItem = (account: Account, idx: number, list: Account[]) => {
     const dispBal = data.displayBalancesById[account.id] ?? account.balance;
     const convBal = data.convert(dispBal, account.currency);
     const sparkline = data.sparklinesById[account.id];
@@ -344,110 +352,12 @@ export const AccountsNew: React.FC = () => {
       },
     };
 
-    return asCard ? (
-      <AccountCardNew key={account.id} {...itemProps} />
-    ) : (
-      <AccountRowNew key={account.id} {...itemProps} />
-    );
+    return <AccountRowNew key={account.id} {...itemProps} />;
   };
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-5">
-      {/* ── Top Header Tools (Sync, Export, View Switcher) ──────────────── */}
-      <HeaderTools>
-        <div className="flex items-center gap-2">
-          {data.linkedEnableBankingAccountIds.size > 0 && data.syncAllBanks && (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon="refresh"
-              disabled={data.isSyncingBanks}
-              onClick={() => void data.syncAllBanks?.()}
-            >
-              {data.isSyncingBanks ? 'Syncing…' : 'Sync banks'}
-            </Button>
-          )}
-          <Button
-            variant="secondary"
-            size="sm"
-            icon="download"
-            onClick={() => data.exportCsv(filteredAccounts)}
-          >
-            Export CSV
-          </Button>
-        </div>
-      </HeaderTools>
-
-      {/* ── Top Header Filter & Sort Controls ────────────────────────────── */}
-      <HeaderControls>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <PeriodPill<SortMode>
-              label="Sort"
-              value={sortBy}
-              onChange={setSortBy}
-              options={SORT_OPTIONS}
-            />
-
-            {data.currencies.length > 1 && (
-              <PeriodPill<Currency | 'ALL'>
-                label="Currency"
-                value={currencyFilter}
-                onChange={setCurrencyFilter}
-                options={[
-                  { value: 'ALL', label: 'All currencies' },
-                  ...data.currencies.map((c) => ({ value: c, label: c })),
-                ]}
-              />
-            )}
-
-            {data.institutions.length > 1 && (
-              <PeriodPill<string>
-                label="Institution"
-                value={institutionFilter}
-                onChange={setInstitutionFilter}
-                options={[
-                  { value: 'ALL', label: 'All institutions' },
-                  ...data.institutions.map((inst) => ({ value: inst, label: inst })),
-                ]}
-              />
-            )}
-
-            {data.linkedEnableBankingAccountIds.size > 0 && (
-              <FilterChip
-                label="Bank synced"
-                icon="refresh"
-                active={linkedOnly}
-                onClick={() => setLinkedOnly((v) => !v)}
-              />
-            )}
-
-            <FilterChip
-              label="Analytics included"
-              active={analyticsOnly}
-              onClick={() => setAnalyticsOnly((v) => !v)}
-            />
-
-            {hasActiveFilters && (
-              <FilterChip label="Reset filters" onRemove={clearFilters} onClick={clearFilters} />
-            )}
-          </div>
-
-          <SegmentedTabs<ViewMode>
-            label="Layout view"
-            size="sm"
-            value={viewMode}
-            onChange={setViewMode}
-            items={[
-              { id: 'split', label: 'Split sheet', icon: 'columns' },
-              { id: 'list', label: 'List', icon: 'list' },
-              { id: 'bento', label: 'Bento grid', icon: 'grid' },
-            ]}
-          />
-        </div>
-      </HeaderControls>
-
-      {/* ── 1. Balance Sheet Hero Card ──────────────────────────────────── */}
+      {/* ── 1. Balance sheet hero ───────────────────────────────────────── */}
       {segment !== 'archived' && (
         <AccountsHeroCard
           hero={data.heroModel}
@@ -461,19 +371,32 @@ export const AccountsNew: React.FC = () => {
         />
       )}
 
-      {/* ── 2. Card Wallet Rail (Checking, Savings, Credit Cards) ───────── */}
-      {(segment === 'all' || segment === 'cash_cards') && data.cardWalletAccounts.length > 0 && (
-        <CardWalletRail
-          accounts={data.cardWalletAccounts}
-          displayBalancesById={data.displayBalancesById}
-          realTodayBalancesById={data.realTodayBalancesById}
-          linkedEnableBankingIds={data.linkedEnableBankingAccountIds}
-          onOpenAccount={openAccountDetail}
-          onPeekAccount={(acc) => setPeekAccountId(acc.id)}
+      {/* ── 2. Segment tabs, the one Filters button and the tools, above the list they control (N21, N22) ── */}
+      <div className="space-y-3">
+        <SegmentedTabs<AccountsPageSegment>
+          label="Account segments"
+          value={segment}
+          onChange={setSegment}
+          items={segmentItems}
         />
-      )}
+        <PageToolbar>
+          <FilterButton count={activeFilterCount} onClick={() => setFiltersOpen(true)} />
+          <ToolbarSpacer />
+          {data.linkedEnableBankingAccountIds.size > 0 && data.syncAllBanks && (
+            <ToolButton
+              variant="success"
+              icon="refresh"
+              label={data.isSyncingBanks ? 'Syncing…' : 'Sync banks'}
+              disabled={data.isSyncingBanks}
+              onClick={() => void data.syncAllBanks?.()}
+            />
+          )}
+          <ToolButton icon="download" label="Export CSV" onClick={() => data.exportCsv(filteredAccounts)} />
+        </PageToolbar>
+        <ActiveFilters filters={activeFilters} onClearAll={clearFilters} />
+      </div>
 
-      {/* ── 3. Main Balance Sheet Accounts View ─────────────────────────── */}
+      {/* ── 3. Balance sheet: assets beside liabilities ─────────────────── */}
       {filteredAccounts.length === 0 ? (
         <Card>
           <EmptyState
@@ -481,7 +404,7 @@ export const AccountsNew: React.FC = () => {
             title={hasActiveFilters ? 'No matching accounts' : 'No accounts in this segment'}
             body={
               hasActiveFilters
-                ? 'Try clearing your active search or filter pills.'
+                ? 'Try clearing your search or filters.'
                 : 'Create your first account to start tracking balances, net worth, and cashflow.'
             }
             action={
@@ -497,86 +420,68 @@ export const AccountsNew: React.FC = () => {
             }
           />
         </Card>
-      ) : viewMode === 'split' ? (
+      ) : (
         <BalanceSheetSplitView
           assets={assets}
           liabilities={liabilities}
-          renderRow={(acc, idx, list) => renderAccountItem(acc, idx, list, false)}
+          renderRow={(acc, idx, list) => renderAccountItem(acc, idx, list)}
           totalAssetsConverted={totalAssetsConverted}
           totalLiabilitiesConverted={totalLiabilitiesConverted}
           displayCurrency={data.displayCurrency}
           onAddAccount={(defaultType) => openCreateSheet(defaultType || 'Checking')}
           displayBalancesById={data.displayBalancesById}
           convert={data.convert}
+          hideEmptySides={segment !== 'all' || hasActiveFilters}
         />
-      ) : viewMode === 'bento' ? (
-        <div className="space-y-6">
-          {accountGroups.map((group, gIdx) => (
-            <section
-              key={group.key}
-              className={cn('space-y-3', gIdx > 0 && 'border-t border-nv-line/50 pt-5')}
-            >
-              {/* Group Header */}
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-nv-surface text-nv-ink">
-                    <NvIcon name={group.icon} size={15} />
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-semibold text-nv-ink">{group.label}</h3>
-                    <span className="rounded-full bg-nv-surface px-2.5 py-0.5 text-xs font-medium text-nv-muted">
-                      {group.accounts.length}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs uppercase tracking-wider text-nv-muted">Subtotal</p>
-                  <Money amount={group.subtotal} currency={data.displayCurrency} size="md" />
-                </div>
-              </div>
-
-              {/* Bento Grid under this group */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {group.accounts.map((acc, idx) =>
-                  renderAccountItem(acc, idx, group.accounts, true)
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {accountGroups.map((group) => (
-            <Card key={group.key} className="space-y-3">
-              {/* Group Header */}
-              <div className="flex items-center justify-between border-b border-nv-line/50 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-nv-inset text-nv-ink">
-                    <NvIcon name={group.icon} size={15} />
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-nv-ink">{group.label}</h3>
-                    <span className="rounded-full bg-nv-inset px-2 py-0.5 text-[11px] font-medium text-nv-muted">
-                      {group.accounts.length}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs uppercase tracking-wider text-nv-muted">Subtotal</p>
-                  <Money amount={group.subtotal} currency={data.displayCurrency} className="text-sm font-semibold" />
-                </div>
-              </div>
-
-              {/* Rows in this group */}
-              <div className="space-y-2">
-                {group.accounts.map((acc, idx) =>
-                  renderAccountItem(acc, idx, group.accounts, false)
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
       )}
+
+      <FilterSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        resultLabel={`Show ${filteredAccounts.length} ${filteredAccounts.length === 1 ? 'account' : 'accounts'}`}
+        onReset={() => {
+          clearFilters();
+          setSortBy(data.defaultSortBy || 'manual');
+        }}
+      >
+        <FilterSection title="Sort by">
+          <ChoiceChips
+            label="Sort by"
+            options={SORT_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+            selected={[sortBy]}
+            onChange={([id]) => setSortBy(id as SortMode)}
+          />
+        </FilterSection>
+        {data.currencies.length > 1 && (
+          <FilterSection title="Currency" count={currencyFilter !== 'ALL' ? 1 : 0}>
+            <ChoiceChips
+              label="Currency"
+              options={[{ id: 'ALL', label: 'All' }, ...data.currencies.map((c) => ({ id: c, label: c }))]}
+              selected={[currencyFilter]}
+              onChange={([id]) => setCurrencyFilter(id as Currency | 'ALL')}
+            />
+          </FilterSection>
+        )}
+        {data.institutions.length > 1 && (
+          <FilterSection title="Institutions" count={institutions.length}>
+            <FilterList
+              label="Institutions"
+              options={institutionOptions}
+              selected={institutions}
+              onChange={setInstitutions}
+              emptyText="No institutions yet."
+            />
+          </FilterSection>
+        )}
+        <FilterSection title="Show only">
+          <div className="space-y-2">
+            {data.linkedEnableBankingAccountIds.size > 0 && (
+              <FilterToggle icon="refresh" label="Bank synced" checked={linkedOnly} onChange={setLinkedOnly} />
+            )}
+            <FilterToggle icon="analytics" label="Analytics included" checked={analyticsOnly} onChange={setAnalyticsOnly} />
+          </div>
+        </FilterSection>
+      </FilterSheet>
 
       {/* ── Desktop Context Menu ─────────────────────────────────────── */}
       {contextMenu && (
