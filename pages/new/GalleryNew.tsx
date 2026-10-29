@@ -9,7 +9,6 @@ import { XAxis } from '../../components/bklit/charts/x-axis';
 import { ChartTooltip } from '../../components/bklit/charts/tooltip';
 import { Badge, Button, Card, CardTitle, IconButton, MoreButton, Money, ProgressBar, SegmentedTabs, StatTile, Switch } from '../../components/new/ui';
 import { Drawer } from '../../components/new/Drawer';
-import { usePageTabs } from '../../components/new/shellContext';
 import { toast } from '../../components/new/toast';
 import { confirmNew } from '../../components/new/ConfirmDialog';
 import { HoldButton } from '../../components/kokonutui/hold-button';
@@ -39,11 +38,11 @@ export const GalleryNew: React.FC = () => {
   const [range, setRange] = useState<'week' | 'month' | 'year'>('week');
   const [chips, setChips] = useState(['Team', 'Insights', 'Today']);
   const ranges = [{ value: 'week' as const, label: 'Weekly' }, { value: 'month' as const, label: 'Monthly' }, { value: 'year' as const, label: 'Yearly' }];
-  usePageTabs<'tokens' | 'controls'>({ label: 'Gallery sections', value: tab, onChange: setTab, items: [{ id: 'tokens', label: 'Tokens' }, { id: 'controls', label: 'Controls' }] });
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-4 xl:grid-cols-12">
       {crash && <Crash />}
+      <div className="xl:col-span-12"><SegmentedTabs<'tokens' | 'controls'> label="Gallery sections" value={tab} onChange={setTab} items={[{ id: 'tokens', label: 'Tokens' }, { id: 'controls', label: 'Controls' }]} /></div>
       <div className="grid gap-4 sm:grid-cols-3 xl:col-span-12">
         <StatTile accent="violet" icon="wallet" label="Net worth" value={<Money amount={491080} currency="USD" size="lg" />} />
         <StatTile accent="green" icon="arrowUpRight" label="Income" detail="this month" value={<Money amount={8420} currency="USD" size="lg" />} />

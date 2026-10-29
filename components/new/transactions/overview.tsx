@@ -268,22 +268,22 @@ const SparkKpiCard: React.FC<SparkKpiCardProps> = ({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'group min-w-0 rounded-nv-sub border border-nv-line/50 bg-nv-surface p-2.5 sm:p-3 text-left transition-all',
+        'group min-w-0 rounded-nv-sub border border-nv-line/50 bg-nv-surface p-3 text-left transition-all',
         onClick && 'cursor-pointer hover:border-nv-line hover:shadow-nv-thumb',
         active && 'border-nv-ink/70 ring-[1.5px] ring-nv-ink'
       )}
     >
       <div className="flex items-center justify-between gap-1">
-        <span className="flex items-center gap-1.5 text-[11px] font-medium text-nv-muted sm:text-[12px]">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-nv-muted">
           <span className={cn('h-2 w-2 shrink-0 rounded-full', dotColor)} aria-hidden />
           {label}
         </span>
         {isHovered ? (
-          <span className="text-[10px] sm:text-[11px] text-nv-muted font-medium truncate max-w-[70px]">
+          <span className="max-w-[90px] truncate text-xs font-medium text-nv-muted">
             {shown?.day}
           </span>
         ) : (
-          <span className="text-[11px] sm:text-[12px]">
+          <span className="text-xs">
             <Delta pct={delta} good={good} />
           </span>
         )}
@@ -296,7 +296,7 @@ const SparkKpiCard: React.FC<SparkKpiCardProps> = ({
           size="lg"
           signed={signed}
           tone={tone}
-          className="!text-[15px] sm:!text-lg font-semibold"
+          className="font-semibold sm:!text-lg"
         />
       </div>
 
@@ -513,7 +513,7 @@ export const TransactionsHeroCard: React.FC<TransactionsHeroCardProps> = ({
             </div>
 
             {/* Cash Flow Summary Tiles with AreaSparklines */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <SparkKpiCard
                 label="Income"
                 dotColor="bg-nv-green"

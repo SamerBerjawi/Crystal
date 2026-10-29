@@ -1,5 +1,7 @@
 # Accounts & Account Detail — Vanilla First-Principles Redesign Plan (`AccountsNew` & `AccountDetailNew`)
 
+> **Superseded in part (2026-10-29):** the header tabs, `HeaderTools`, `HeaderControls`, the three layouts and the Cards & Passbooks rail described below were replaced; see `UI_UX_DESIGN_REFERENCE.md` §21 (N20 to N24).
+
 **Target Routes:** `/accounts-new` (`AccountsNew`) and `/accounts-new/:id` (`AccountDetailNew`)  
 **Design Authority:** [UI_UX_DESIGN_REFERENCE.md](file:///Users/samerberjawi/Documents/Crystal/UI_UX_DESIGN_REFERENCE.md) (§18/N1–N19 > §17 > §11/R1–R9 > §10/D1–D16 > §7/Q1–Q12)  
 **Reference Benchmark:** [TransactionsNew.tsx](file:///Users/samerberjawi/Documents/Crystal/pages/new/TransactionsNew.tsx) & [overview.tsx](file:///Users/samerberjawi/Documents/Crystal/components/new/transactions/overview.tsx)  

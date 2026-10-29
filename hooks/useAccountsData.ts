@@ -15,7 +15,6 @@ import {
   computeAccountDisplayBalance,
   computeAccountsHeroModel,
   computeBalanceAdjustmentDelta,
-  getCardWalletAccounts,
   getVisibleAccountsForAccountsPage,
   type AccountSparklineResult,
   type AccountsHeroModel,
@@ -118,11 +117,6 @@ export const useAccountsData = () => {
         { conversionRates, bankConsentExpiry }
       ),
     [visibleAccounts, transactions, loanPaymentOverrides, displayCurrency, conversionRates, bankConsentExpiry]
-  );
-
-  const cardWalletAccounts = useMemo(
-    () => getCardWalletAccounts(visibleAccounts, accountOrder),
-    [visibleAccounts, accountOrder]
   );
 
   const linkedLoanByAssetId = useMemo(() => {
@@ -360,7 +354,6 @@ export const useAccountsData = () => {
     realTodayBalancesById,
     sparklinesById,
     heroModel,
-    cardWalletAccounts,
     linkedLoanByAssetId,
     linkedAssetByLoanId,
     institutions,

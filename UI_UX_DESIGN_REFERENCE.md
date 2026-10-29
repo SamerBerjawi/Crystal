@@ -324,7 +324,7 @@ Each answer is recorded here as a decision as it is taken.
 | Icons | `components/new/NvIcon.tsx` | Curated Hugeicons name map |
 | Primitives | `components/new/ui.tsx` | `Card`, `CardTitle`, `Button`, `IconButton`, `SegmentedTabs`, `Money` (split weight, privacy blur), `Badge`, `ProgressBar`, `EmptyState` |
 | Sheet | `components/new/Drawer.tsx` | Vaul: bottom sheet below 768px, right drawer above, sticky footer |
-| Shell | `components/new/ShellNew.tsx`, `shellContext.ts` | Sidebar + top bar (page tabs via `usePageTabs`), phone header + dock with `+` (Q8), account menu, notifications |
+| Shell | `components/new/ShellNew.tsx`, `shellContext.ts`, `PageToolbar.tsx` | Sidebar + a one-row top bar (title, search, the page's action, account menu; N20), phone dock, notifications. A page's tabs, filters and tools are its own, built from `PageToolbar.tsx` (§21) |
 | Charts | `components/bklit/charts/` | Fresh BklitUI copy (Q12). Local edits are marked "Crystal patch" |
 | Placeholders | `pages/new/PlaceholderNew.tsx`, `NotFoundNew.tsx` | Every New URL works now and links to its classic page until it is built |
 | Gallery | `pages/new/GalleryNew.tsx` at `/design-new` | Dev server only |
@@ -494,7 +494,7 @@ Built: `components/new/HeaderSearch.tsx`, `usePageSearch` in `components/new/she
 |---|---|---|---|
 | N3 | Phone dock | **Five named links, no `+`:** Home, Accounts, Activity, Forecast, More | Q8's centre `+`, N1's floating `+` |
 | N4 | Primary action | **Each page's primary action is the header's violet button** (desktop: icon and label, e.g. "+ Add transaction"; phones and tablets: a violet round icon button). A page sets it with `usePageAction({ label, icon, onClick })`; pages without one get **Add transaction** (quick add), so adding a transaction is one tap from anywhere. It is the screen's one call to action (R7); the page body does not repeat it (empty states use the ink button). On phones the bell moves into the account menu ("N bills due soon") to make room | The band's plain `+` (R4), the toolbar's "Add transaction" |
-| N5 | Page controls | **A page's controls live in the header band**, under the tabs: period, filters, type chips, active filter chips and tools (select, export, sync). Pages render them with `<HeaderControls>` (a portal into the band's slot); the slot disappears when a page has none | The toolbar tile at the top of the page body |
+| N5 | Page controls | **Superseded by N20 to N23 (2026-10-29).** ~~A page's controls live in the header band~~ **A page's controls live in the header band**, under the tabs: period, filters, type chips, active filter chips and tools (select, export, sync). Pages render them with `<HeaderControls>` (a portal into the band's slot); the slot disappears when a page has none | The toolbar tile at the top of the page body |
 
 Built in `components/new/shellContext.ts` (`usePageAction`, `HeaderControls`, `headerSlot`) and ShellNew. TransactionsNew moved its toolbar into `HeaderControls` and registers "Add transaction".
 
@@ -504,7 +504,7 @@ Built in `components/new/shellContext.ts` (`usePageAction`, `HeaderControls`, `h
 
 | # | Topic | Decision |
 |---|---|---|
-| N6 | Page tools | **A page's tools sit on the tabs row, right-aligned** (select, export, sync on Transactions), filled through `<HeaderTools>` (a portal into the row's slot, in `shellContext.ts`). The row shows only when a page has tabs or tools. On a 375px phone the tools wrap under the tabs, still right-aligned. Period, filters, sort and chips stay in the band's controls row (§14 N5) |
+| N6 | Page tools | **Superseded by N23 (2026-10-29).** ~~A page's tools sit on the tabs row, right-aligned~~ **A page's tools sit on the tabs row, right-aligned** (select, export, sync on Transactions), filled through `<HeaderTools>` (a portal into the row's slot, in `shellContext.ts`). The row shows only when a page has tabs or tools. On a 375px phone the tools wrap under the tabs, still right-aligned. Period, filters, sort and chips stay in the band's controls row (§14 N5) |
 | N7 | Sync and chips | **Sync is a green button with the word "Sync"** (`Button variant="success"`; "Syncing" and disabled while running). The Expenses / Income / Transfers chips carry icons (`FilterChip icon`), as every status chip does (D12) |
 
 ---
@@ -683,42 +683,17 @@ All account visuals across balance sheet rows, bento cards, wallet carousels, ac
    - Otherwise, renders archetype icon from `accountTypeIcon(account)` (e.g. `bank`, `piggy`, `card`, `invoice`, `home`, `pin`, `investments`, `wallet`, `warning`).
 
 ### 20.6 Card & Account Wallet Priority Hierarchy
-The interactive momentum carousel (`CardWalletRail` in `components/new/accounts/overview.tsx`, populated via `getCardWalletAccounts()` in `utils/accountsModel.ts`) organizes open liquid and card-bearing accounts into a strict priority hierarchy:
-1. **Rank 0 — Primary Account First:**
-   - The user-designated primary account (`account.isPrimary === true`) always anchors the first slot in the wallet, regardless of type.
-   - Carries a prominent violet `Primary` badge.
-2. **Rank 1 — Checking Accounts:**
-   - Active everyday checking and transaction accounts (`account.type === 'Checking'`).
-3. **Rank 2 — Credit Cards:**
-   - Revolving cards and debt facilities (`account.type === 'Credit Card'`).
-   - Features dark card surface (`bg-nv-ink text-nv-on-ink`), credit limit utilization gauge, and statement payment quick-actions.
-4. **Rank 3 — Savings Accounts:**
-   - Yield reserve and emergency funds (`account.type === 'Savings'`).
-   - Features green APY badge (`X% APY`).
-5. **Rank 4 — Meal Vouchers:**
-   - Dedicated benefit payment cards (e.g., Edenred, Pluxee, Sodexo, Monizze, or `otherSubType: 'Meal Voucher'`).
-   - Displays `Voucher Balance` and teal `Voucher` tag badge.
+**Removed 2026-10-29 (N24).** The Card & account wallet rail (`CardWalletRail`, `getCardWalletAccounts`, `MomentumRail`) is gone from every view: it repeated the accounts list. `CardFlip` stays for the credit-card detail page, and `AccountCard` draws the card in the account hero and overview sheet.
 
-### 20.7 Account Type Grouping across Split Sheet, List, and Bento Grid Views
-Accounts on the `/accounts-new` cockpit are grouped by type across all three primary presentation layouts via `groupAccountsByType()` in `utils/accountsModel.ts`:
+### 20.7 Account Type Grouping in the Split Sheet
+The `/accounts-new` list has one layout, the split sheet (N24); the list and bento grid were removed because they look the same on a phone. Accounts are grouped by type with `groupAccountsByType()` in `utils/accountsModel.ts`:
 
-1. **Balance Sheet Split View (`viewMode === 'split'`):**
-   - **Assets Column:** Groups asset accounts under subheaders (Checking Accounts $\rightarrow$ Savings Accounts $\rightarrow$ Meal Vouchers $\rightarrow$ Investments $\rightarrow$ Lending $\rightarrow$ Property & Real Estate $\rightarrow$ Vehicles $\rightarrow$ Other Assets).
-   - **Liabilities Column:** Groups liability accounts under subheaders (Credit Cards $\rightarrow$ Loans & Mortgages $\rightarrow$ Other Liabilities).
-   - Each group subheader displays the archetype icon, type title, count badge (`N`), and dynamic converted subtotal in `displayCurrency`.
-2. **List View (`viewMode === 'list'`):**
-   - Accounts are segmented into individual `<Card>` containers for each account type.
-   - Header bar contains the archetype icon on a subtle chip (`bg-nv-inset`), type label, count pill, and subtotal formatted with `nv-*` tokens.
-   - Intra-group sort order respects the user's active sort setting, including manual drag/reorder within adjacent peers.
-3. **Bento Grid View (`viewMode === 'bento'`):**
-   - Accounts are segmented into sections by account type with a header containing the archetype icon, section title, count badge, and subtotal.
-   - Bento cards are organized underneath in a responsive 3-column grid (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3`).
-4. **Ordering & Filter Rules:**
-   - Standard priority order conforms to: Checking $\rightarrow$ Credit Cards $\rightarrow$ Savings $\rightarrow$ Meal Vouchers $\rightarrow$ Loans & Mortgages $\rightarrow$ Investments $\rightarrow$ Lending $\rightarrow$ Property & Real Estate $\rightarrow$ Vehicles $\rightarrow$ Other Assets $\rightarrow$ Other Liabilities.
-   - Groups with zero matching accounts in the current active filter/search state are cleanly hidden.
+1. **Assets** (Checking $\rightarrow$ Savings $\rightarrow$ Meal Vouchers $\rightarrow$ Investments $\rightarrow$ Lending $\rightarrow$ Property & Real Estate $\rightarrow$ Vehicles $\rightarrow$ Other Assets) and **Liabilities** (Credit Cards $\rightarrow$ Loans & Mortgages $\rightarrow$ Other Liabilities) sit side by side from 1280 px and stack on smaller screens.
+2. Each group subheader shows the archetype icon, type title, count badge and the converted subtotal in `displayCurrency`. Intra-group order follows the sort chosen in the Filters sheet.
+3. A side with no accounts is hidden while a segment tab or a filter is on (`hideEmptySides`); in the unfiltered "All" view it shows its empty state and an Add button.
 
 ### 20.8 Account Type & Segment Selector Icons in the Header Cockpit
-The balance-sheet hero card (`AccountsHeroCard` in `components/new/accounts/overview.tsx`) and header navigation tabs include archetype icons:
+The balance-sheet hero card (`AccountsHeroCard` in `components/new/accounts/overview.tsx`) and the segment tabs include archetype icons:
 1. **Capital & Debt Allocation Selector Buttons (Hero Card):**
    - Each allocation button renders a `5x5` (`20px`) soft badge containing its semantic archetype icon:
      - **Liquid Cash:** `bank` in `bg-nv-violet-soft text-nv-violet-text`
@@ -733,10 +708,30 @@ The balance-sheet hero card (`AccountsHeroCard` in `components/new/accounts/over
      - **Total Liabilities:** `invoice` icon with `text-nv-orange-text`, `var(--nv-orange)` 40px monotone area sparkline, debt obligations subtitle.
      - **Liquid Cash:** `bank` icon with `text-nv-grad-from`, `var(--nv-grad-from)` 40px monotone area sparkline, runway / 30d net flow subtitle.
    - **Hover Interaction:** Moving across the sparkline updates the date badge to the hovered day (`shown.day`) and scrubs the displayed value to that specific point in time. When not hovering, shows the current total and 30-day percentage change delta (`<Delta pct={...} good={...} />`).
-3. **Shell Header Navigation Tabs (`usePageTabs`):**
+3. **Segment Tabs (in the page body above the list, N21):**
    - Segment tabs display archetype icons (`wallet` for All, `card` for Cash & Cards, `piggy` for Savings & Yield, `invoice` for Loans & Debt, `home` for Property & Vehicles, `archive` for Archived).
 
+---
 
+## 21. Header, toolbar and filters on phones (N20 to N24, 2026-10-29)
 
+The first New pages rearranged the same desktop controls on a phone: the header stacked a title row, a tabs row, a tools row and a controls row, which took about 350 px of an 812 px screen, and the Accounts page offered three layouts that look identical at 375 px. This section replaces N5 and N6. The parts are in `components/new/PageToolbar.tsx`.
 
+| # | Topic | Decision | Replaces |
+|---|---|---|---|
+| N20 | Header | **The shell header is one row**: menu (phones), title (with its subtitle from 640 px), search, the page's one violet action (N4), notifications (640 px up) and the account menu. A page gives the header only `usePageSearch` and `usePageAction`. **There are no tab, tool or control slots** (`usePageTabs`, `HeaderTools`, `HeaderControls` are deleted). On a phone the band is about 68 px tall | N5, N6, Q7's tabs in the top bar |
+| N21 | Tabs | **Segment and view tabs live in the page body, directly above what they switch**: on Accounts and Transactions under the hero and above the list; on Budget at the top of the page, because they swap the whole page. `SegmentedTabs` scrolls sideways when it does not fit | Page tabs in the header band |
+| N22 | One Filters button | **Every filter and the sort live in one Filters sheet** (`FilterButton` opens `FilterSheet`; the ink counter is the number of filters on; search and sort are not counted). The footer has Reset and "Show N accounts". Inside: a long list is a multi-select `FilterList` with search (institutions, merchants, categories); a few options are `ChoiceChips`; a yes/no is a `FilterToggle` with an icon. **Filters that are on show as removable chips** under the toolbar (`ActiveFilters`, a scrolling line on a phone) with an icon each (D12) and Clear all. A control that sets the data range (Transactions' period, Budget's month) stays visible beside the button | The Sort, Currency, Institution and status pills and chips in the band |
+| N23 | Tools | **Tools sit right of the Filters button in the same row** (`PageToolbar`, `ToolbarSpacer`, `ToolButton`): a labelled button from 640 px, a 44 px icon button on a phone. Sync is green (N7), also on Accounts. More than two tools collapse into a ⋯ menu (`ToolMenu`: Transactions has Select and Export). The page's violet action stays in the header and is not repeated in the body (N4), so Budget's category card lost its "Add budget" button | N6 |
+| N24 | One layout, no filler | **A view switcher must change what you see on a phone, or it does not ship.** Accounts has only the split sheet; the list and bento grid are gone. The Card & account wallet is gone from every view. Rule for new pages: a section that repeats another, or a switcher whose views look alike at 375 px, is left out | §20.6, §20.7's three layouts |
 
+### 21.1 Migration notes (Accounts, Transactions, Budget)
+
+- **Kept:** every filter (currency, bank synced, analytics included, institution, type, amount, merchants, accounts, categories, locations, tags, status), sort, search, Sync, Export, Select, month navigation, Auto-fill, recommendations and unbudgeted chips.
+- **Moved:** tabs, filters, sort and tools from the header band into the page body (above). Transactions' type chips (Expenses, Income, Transfers) moved into the sheet; Sort moved into the sheet on all three pages.
+- **Changed:** Institutions is multi-select (`institutionFilter: string[]` in `filterAndSortAccounts`; empty means all). Bank synced and Analytics included are toggles with icons in the sheet and chips with icons when on. Sync banks is green. Budget's month navigation and Auto-fill show only on the budgets tab.
+- **Dropped:** Accounts' list and bento layouts (`AccountCardNew`), the Card & account wallet (`CardWalletRail`, `MomentumRail`, `getCardWalletAccounts`), the two helper lines under Assets and Liabilities, Budget's in-card Add budget button.
+- **Where the logic lives:** `components/new/PageToolbar.tsx` (the parts), `utils/accountsModel.ts` (`filterAndSortAccounts`), each page file (its filter state and the sheet's contents).
+- **Keyboard route:** the Filters button, the toggles and the chips are buttons; the sheet traps focus and returns it to the button; the ⋯ menu opens with Enter and arrow keys.
+- **Verified:** lint, unit tests, the three pages at 375 px (light and dark), 768 px and desktop width on demo data: header 68 px on a phone, one toolbar row, no sideways scroll; multi-select, toggles, chips, Clear all and Reset in the sheet.
+- **Not verified:** the Select flow from the ⋯ menu on a phone; Accounts' Currency chips (demo data has one currency).

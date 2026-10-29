@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../../lib/utils';
-import type { Account, Currency } from '../../../types';
+import type { Currency } from '../../../types';
 import {
-  isMealVoucherAccount,
   type AccountAttentionItem,
   type AccountsAllocationItem,
   type AccountsHeroModel,
@@ -22,21 +21,14 @@ import {
   curveNatural,
   useSparklineHover,
 } from '../../bklit/charts';
-import { CardFlip } from '../../kokonutui/card-flip';
-import { MomentumRail } from '../../kokonutui/momentum-rail';
-import { AccountLogo } from '../EntityIcon';
 import { NvIcon, type NvIconName } from '../NvIcon';
+import { useMediaQuery } from '../Drawer';
 import { TwoToneTitle } from '../tile';
-import { toast } from '../toast';
-import { Badge, Button, Card, Money } from '../ui';
+import { Badge, Card, Money } from '../ui';
 
 /*
- * Hero & Card Wallet Rail for `/accounts-new`:
- * - `AccountsHeroCard`: Split balance-sheet cockpit card (`Card top={...}`) with interactive 90-day Net Worth
- *   scrubbing chart, Assets vs Liabilities solvency bar, 30d liquid runway, 5-bucket allocation breakdown,
- *   and ranked Needs Attention alerts.
- * - `CardWalletRail`: Horizontal `MomentumRail` of interactive 2-sided `CardFlip` cards for Checking, Savings,
- *   and Credit Card accounts.
+ * Hero for `/accounts-new`: `AccountsHeroCard`, the split balance-sheet card with the interactive 90-day net worth
+ * chart, the assets / liabilities / liquid cash strip, the 5-bucket allocation and the ranked attention items.
  */
 
 const BUCKET_SEGMENT_MAP: Record<AccountsAllocationItem['id'], AccountsPageSegment> = {
@@ -85,6 +77,8 @@ const NetWorth90dChart: React.FC<{
   series: { date: string | Date; value: number }[];
   currency: Currency;
 }> = ({ series, currency }) => {
+  // The axis labels need about 24px under the plot; a phone also gets a taller chart so the line has room.
+  const compact = !useMediaQuery('(min-width: 640px)');
   const chartData = useMemo(
     () =>
       series.map((pt) => ({
@@ -105,7 +99,7 @@ const NetWorth90dChart: React.FC<{
   const latestPoint = chartData[chartData.length - 1];
 
   return (
-    <div className="flex flex-col justify-between rounded-nv-tile bg-nv-inset p-4">
+    <div className="flex flex-col justify-between rounded-nv-tile bg-nv-inset px-4 pb-2 pt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-nv-muted">
           90-day net worth trajectory
@@ -117,9 +111,9 @@ const NetWorth90dChart: React.FC<{
 
       <div className="w-full select-none">
         <AreaChart
-          margin={{ top: 8, right: 8, bottom: 40, left: 8 }}
+          margin={{ top: 8, right: 8, bottom: 24, left: 8 }}
           data={chartData}
-          aspectRatio="2.8 / 1"
+          aspectRatio={compact ? '2 / 1' : '2.8 / 1'}
           currency={currency}
         >
           <Background pattern="dots" opacity={0.85} />
@@ -513,232 +507,5 @@ export const AccountsHeroCard: React.FC<{
         )}
       </div>
     </Card>
-  );
-};
-
-/* ── 2. CardWalletRail (Interactive Flip Cards for Bank & Credit Cards) ── */
-
-export const CardWalletRail: React.FC<{
-  accounts: Account[];
-  displayBalancesById: Record<string, number>;
-  realTodayBalancesById: Record<string, number>;
-  linkedEnableBankingIds: Set<string>;
-  onOpenAccount: (account: Account) => void;
-  /** Clicking a card opens the quick overview; the cockpit button opens the full page. */
-  onPeekAccount: (account: Account) => void;
-}> = ({
-  accounts,
-  displayBalancesById,
-  realTodayBalancesById,
-  linkedEnableBankingIds,
-  onOpenAccount,
-  onPeekAccount,
-}) => {
-  if (accounts.length === 0) return null;
-
-  const copyIdentifier = (e: React.MouseEvent, text: string, label: string) => {
-    e.stopPropagation();
-    if (navigator?.clipboard) {
-      void navigator.clipboard.writeText(text);
-      toast.success(`Copied ${label} to clipboard`);
-    }
-  };
-
-  return (
-    <MomentumRail
-      icon="card"
-      title="Card & account wallet"
-    >
-      {accounts.map((acc) => {
-        const balance = displayBalancesById[acc.id] ?? acc.balance;
-        const realBal = realTodayBalancesById[acc.id] ?? balance;
-        const isCredit = acc.type === 'Credit Card';
-        const isSavings = acc.type === 'Savings';
-        const isMealVoucher = isMealVoucherAccount(acc);
-        const isSynced = linkedEnableBankingIds.has(acc.id);
-        const owed = isCredit ? Math.max(0, -realBal) : 0;
-        const limit = acc.creditLimit || 0;
-        const utilPct = isCredit && limit > 0 ? Math.min(100, Math.round((owed / limit) * 100)) : 0;
-        const availableCredit = isCredit && limit > 0 ? Math.max(0, limit - owed) : 0;
-
-        const maskedTail = acc.last4
-          ? `•••• ${acc.last4}`
-          : acc.accountNumber
-            ? `•••• ${acc.accountNumber.slice(-4)}`
-            : isMealVoucher
-              ? 'Voucher card'
-              : acc.type;
-
-        return (
-          <CardFlip
-            key={acc.id}
-            heightClassName="h-52"
-            onSelect={() => onPeekAccount(acc)}
-            flipLabel={`Flip ${acc.name} card`}
-            front={
-              <div
-                className={cn(
-                  'flex h-full w-full flex-col justify-between rounded-nv-card p-5',
-                  isCredit
-                    ? 'bg-nv-ink text-nv-on-ink'
-                    : 'border border-nv-line bg-nv-surface text-nv-ink'
-                )}
-              >
-                {/* Top Row: Institution Logo + Name + Type */}
-                <div className="flex items-start justify-between gap-2 pr-10">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <AccountLogo account={acc} size={36} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{acc.name}</p>
-                      <p
-                        className={cn(
-                          'truncate text-xs',
-                          isCredit ? 'opacity-70' : 'text-nv-muted'
-                        )}
-                      >
-                        {acc.financialInstitution ? `${acc.financialInstitution} · ${isMealVoucher ? 'Meal Voucher' : acc.type}` : isMealVoucher ? 'Meal Voucher' : acc.type}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Middle Row: Balance */}
-                <Money
-                  amount={balance}
-                  currency={acc.currency}
-                  size="xl"
-                  tone={isCredit ? 'inherit' : 'ink'}
-                />
-
-                {/* Bottom Row: Masked Number + Network / APY / Utilization */}
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span
-                    className={cn(
-                      'nv-tabular font-medium tracking-wider',
-                      isCredit ? 'opacity-80' : 'text-nv-muted'
-                    )}
-                  >
-                    {maskedTail}
-                  </span>
-
-                  <div className="flex items-center gap-1.5">
-                    {acc.isPrimary && (
-                      <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 text-[11px] font-semibold text-nv-violet-text">
-                        Primary
-                      </span>
-                    )}
-                    {isMealVoucher && !acc.isPrimary && (
-                      <Badge tone="neutral" icon="tag">
-                        Voucher
-                      </Badge>
-                    )}
-                    {isSynced && (
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
-                          isCredit
-                            ? 'bg-nv-surface/15 text-nv-on-ink'
-                            : 'bg-nv-sky-soft text-nv-sky-text'
-                        )}
-                      >
-                        <NvIcon name="refresh" size={11} />
-                        Synced
-                      </span>
-                    )}
-                    {isSavings && acc.apy !== undefined && acc.apy > 0 && (
-                      <span className="rounded-full bg-nv-green-soft px-2.5 py-0.5 text-[11px] font-semibold text-nv-green-text">
-                        {acc.apy}% APY
-                      </span>
-                    )}
-                    {isCredit && limit > 0 && (
-                      <span className="nv-tabular inline-flex items-center gap-1 rounded-full bg-nv-surface/20 px-2.5 py-0.5 text-[11px] font-semibold text-nv-on-ink">
-                        {utilPct >= 30 && <NvIcon name={utilPct >= 80 ? 'alert' : 'warning'} size={12} />}
-                        {utilPct}% used
-                      </span>
-                    )}
-                    {acc.cardNetwork && (
-                      <span
-                        className={cn(
-                          'text-xs font-semibold uppercase',
-                          isCredit ? 'opacity-80' : 'text-nv-muted'
-                        )}
-                      >
-                        {acc.cardNetwork}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            }
-            back={
-              <div className="flex h-full w-full flex-col justify-between rounded-nv-card bg-nv-surface p-5 text-nv-ink">
-                <div className="pr-10">
-                  <p className="truncate text-sm font-semibold text-nv-ink">{acc.name}</p>
-                  <p className="text-xs text-nv-muted">Account specifications</p>
-                </div>
-
-                <div className="space-y-2 text-xs">
-                  {acc.accountNumber ? (
-                    <div className="flex items-center justify-between gap-2 rounded-nv-control bg-nv-inset px-3 py-2">
-                      <div className="min-w-0">
-                        <p className="text-xs text-nv-muted">IBAN / account number</p>
-                        <p className="nv-tabular truncate font-medium text-nv-ink">
-                          {acc.accountNumber}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => copyIdentifier(e, acc.accountNumber!, 'IBAN')}
-                        className="relative inline-flex h-7 w-7 after:absolute after:-inset-2 after:content-[''] shrink-0 items-center justify-center rounded-full bg-nv-surface text-nv-ink hover:bg-nv-line"
-                        title="Copy IBAN"
-                      >
-                        <NvIcon name="copy" size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="rounded-nv-control bg-nv-inset px-3 py-2 text-nv-muted">
-                      No IBAN stored · {acc.currency} account
-                    </div>
-                  )}
-
-                  {isCredit && limit > 0 ? (
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-nv-muted">Available credit</span>
-                      <Money amount={availableCredit} currency={acc.currency} />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-nv-muted">Settled today</span>
-                      <Money amount={realBal} currency={acc.currency} />
-                    </div>
-                  )}
-
-                  {isCredit && (acc.statementStartDate || acc.paymentDate) && (
-                    <div className="flex items-center justify-between px-1 text-xs text-nv-muted">
-                      {acc.statementStartDate && <span>Statement day {acc.statementStartDate}</span>}
-                      {acc.paymentDate && <span>Due day {acc.paymentDate}</span>}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-end">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    icon="arrowUpRight"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenAccount(acc);
-                    }}
-                  >
-                    Open cockpit
-                  </Button>
-                </div>
-              </div>
-            }
-          />
-        );
-      })}
-    </MomentumRail>
   );
 };

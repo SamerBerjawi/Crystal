@@ -38,13 +38,14 @@ test('New UI files use only nv-* colour tokens and the named z-index scale', () 
 });
 
 /**
- * Reference-compliance guardrails for the pages that have had the pass (Accounts, Account detail, Budget;
+ * Reference-compliance guardrails for the pages that have had the pass (Accounts, Account detail, Budget and the shared toolbar;
  * docs/ACCOUNTS_BUDGET_REVIEW_PLAN.md Phase 3). Add a page's files here once it has been through it.
  */
 const COMPLIANT = [
   'pages/new/AccountsNew.tsx',
   'pages/new/AccountDetailNew.tsx',
   'pages/new/BudgetNew.tsx',
+  'components/new/PageToolbar.tsx',
   ...walk('components/new/accounts'),
   ...walk('components/new/budget'),
 ];
