@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { curveNatural } from '@visx/curve';
+import { curveMonotoneX } from '@visx/curve';
 import { AreaChart } from '../../components/bklit/charts/area-chart';
 import { Area } from '../../components/bklit/charts/area';
 import { Background } from '../../components/bklit/charts/background';
@@ -119,8 +119,8 @@ export const GalleryNew: React.FC = () => {
             strokeOpacity={0.5}
             fadeEdges
           />
-          <Area dataKey="income" curve={curveNatural} fill="var(--chart-line-primary)" stroke="var(--chart-line-primary)" fillOpacity={0.2} strokeWidth={3} />
-          <Area dataKey="expenses" curve={curveNatural} fill="var(--chart-line-secondary)" stroke="var(--chart-line-secondary)" fillOpacity={0.2} strokeWidth={3} />
+          <Area dataKey="income" curve={curveMonotoneX} fill="var(--chart-line-primary)" stroke="var(--chart-line-primary)" fillOpacity={0.2} strokeWidth={3} />
+          <Area dataKey="expenses" curve={curveMonotoneX} fill="var(--chart-line-secondary)" stroke="var(--chart-line-secondary)" fillOpacity={0.2} strokeWidth={3} />
           <XAxis />
           <ChartTooltip currency="USD" />
         </AreaChart>

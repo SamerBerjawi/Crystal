@@ -4,7 +4,7 @@ import { cn } from '../../../../lib/utils';
 import type { Account, ScheduledPayment } from '../../../../types';
 import type { AccountDetailData } from '../../../../hooks/useAccountDetailData';
 import { simulateExtraLoanPayment } from '../../../../utils/accountDetailModel';
-import { toLocalISOString } from '../../../../utils';
+import { computeLoanBalanceBreakdown, toLocalISOString } from '../../../../utils';
 import { NvIcon } from '../../NvIcon';
 import { PaymentPlan } from './PaymentPlan';
 import { toast } from '../../toast';
@@ -42,6 +42,11 @@ export const LoanArchetype: React.FC<{
 
   const [extraMonthlyStr, setExtraMonthlyStr] = useState('150');
   const [lumpSumStr, setLumpSumStr] = useState('0');
+
+  const interestSplit = useMemo(
+    () => (account ? computeLoanBalanceBreakdown(account, accountTransactions, loanPaymentOverrides) : null),
+    [account, accountTransactions, loanPaymentOverrides]
+  );
 
   const simulation = useMemo(() => {
     if (!account) return null;
@@ -110,13 +115,16 @@ export const LoanArchetype: React.FC<{
               </div>
             </div>
             <div>
-              <p className="text-nv-muted">Remaining scheduled interest</p>
+              <p className="text-nv-muted">Interest still to pay</p>
               <div className="mt-0.5">
-                <Money
-                  amount={loanMetrics.outstandingInterest}
-                  currency={account.currency}
-                />
+                {/* Q2: the balance is principal + interest built up so far; the rest is shown here, not in it. */}
+                <Money amount={interestSplit?.futureInterest ?? loanMetrics.outstandingInterest} currency={account.currency} />
               </div>
+              {interestSplit && interestSplit.accruedInterest > 0 && (
+                <p className="mt-0.5 text-nv-muted">
+                  + <Money amount={interestSplit.accruedInterest} currency={account.currency} /> owed now
+                </p>
+              )}
             </div>
           </div>
 

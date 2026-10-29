@@ -140,7 +140,7 @@ Crystal fit: Crystal has 25 pages against the reference's 7. The reference's fla
 - **Period dropdown** ("Last Week ▾", "July 2026 ▾"): a pill trigger that opens a small menu.
 - **Chart-type toggle** (bar / line): a two-icon segmented switch. The active one is a filled violet circle.
 - **Overflow menus** (`•••`): on the chart and on every table row.
-- **Chart tooltip & curves**: frosted glassmorphic pill with `backdrop-blur-sm` (`rgb(24 24 27 / 0.82)` in light, `rgb(18 18 18 / 0.85)` in dark, neutral 1px border `rgb(255 255 255 / 0.12)` and `shadow-2xl`), a date heading and a coloured dot per series with series names strictly formatted in **Proper Case** (e.g. `Net Worth`, `Balance`) and split-weight currency figures. Line and area charts draw smooth rounded continuous curves (`curveNatural`) with `strokeLinejoin="round"` and `strokeLinecap="round"` instead of sharp zigzag edges. A dashed vertical crosshair and hollow ring markers sit on each line. The x-axis label for the hovered day turns into an outlined pill or glassmorphic date ticker.
+- **Chart tooltip & curves**: frosted glassmorphic pill with `backdrop-blur-sm` (`rgb(24 24 27 / 0.82)` in light, `rgb(18 18 18 / 0.85)` in dark, neutral 1px border `rgb(255 255 255 / 0.12)` and `shadow-2xl`), a date heading and a coloured dot per series with series names strictly formatted in **Proper Case** (e.g. `Net Worth`, `Balance`) and split-weight currency figures. Line and area charts draw smooth rounded continuous curves (`curveMonotoneX` for money series, see §20.4) with `strokeLinejoin="round"` and `strokeLinecap="round"` instead of sharp zigzag edges. A dashed vertical crosshair and hollow ring markers sit on each line. The x-axis label for the hovered day turns into an outlined pill or glassmorphic date ticker.
 - **Segmented control** (Month / Quarter / Year): a white thumb on a grey track.
 - **Search with filter button**: the table header has a search field plus a square filter-icon button.
 - **Card carousel**: prev/next round arrow buttons around a single centred card.
@@ -659,7 +659,7 @@ Numeric data values in chart tooltips must be rendered with proper currency and 
 
 ### 20.4 Rounded Line & Area Chart Curves
 All line and area charts must feature smooth, rounded continuous curves rather than sharp or angular zigzag edges:
-- **Default Curve Interpolation:** Standardized on `curveNatural` (cubic spline with continuous second derivatives) across `<Area>` and `<Line>`. No sharp corners or angular tangent breaks.
+- **Default Curve Interpolation (amended 2026-10-29, decision Q4):** money series use `curveMonotoneX`, which never overshoots between points, so a balance chart cannot draw a dip or peak that never happened. `curveNatural` stays only for non-money series where smoothness matters more than exact values. Single-series balance charts carry no decorative `TrendLine` or dotted `Background`.
 - **Path Joins & Terminals:** All rendered chart strokes (`<Area>`, `<Line>`, `<TrendLine>`) specify `strokeLinecap="round"` and `strokeLinejoin="round"` to guarantee fully rounded corners, smooth path transitions, and soft stroke terminals.
 - **Visual Feel:** Delivers a fluid, premium financial aesthetic matching modern finance dashboard standards (Ref D / Ref M) across net worth, historical balance, compounding, and cashflow charts.
 

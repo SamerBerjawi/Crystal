@@ -137,6 +137,8 @@ export interface Account {
   leaseEndDate?: string;
   annualMileageAllowance?: number;
   leasePaymentAmount?: number;
+  /** Leased vehicles: the contract's residual (buy-out) value. Only then does the car count in net worth (Q5). */
+  residualValue?: number;
   leasePaymentDay?: number;
   leasePaymentAccountId?: string;
   // Mileage

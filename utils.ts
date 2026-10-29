@@ -543,6 +543,7 @@ export function computeLoanBalanceBreakdown(
  * The balance of one account on `referenceDate` (default today), signed, in the account's currency.
  * - Amortised Loan/Lending: outstanding principal + accrued interest (Loan negative).
  * - Loan/Lending with only a total amount: total minus payments made so far.
+ * - Leased vehicle: its residual value when set, else 0 (Q5).
  * - Everything else: `account.balance` minus transactions dated after the reference date.
  * Every balance figure on Accounts, Dashboard and the account pages should come from here.
  */
@@ -555,6 +556,11 @@ export function resolveAccountBalance(
     const asOf = startOfDay(options.referenceDate ?? new Date());
     const asOfStr = toLocalISOString(asOf);
     const own = accountTransactions.filter(tx => tx.accountId === account.id);
+
+    // Q5: a leased car is not yours. It counts at its residual value when one is set, else not at all.
+    if (account.type === 'Vehicle' && account.ownership === 'Leased') {
+        return safeRound(account.residualValue ?? 0, 2);
+    }
 
     if (account.type === 'Loan' || account.type === 'Lending') {
         const breakdown = computeLoanBalanceBreakdown(account, own, loanPaymentOverrides[account.id] || {}, asOf);
