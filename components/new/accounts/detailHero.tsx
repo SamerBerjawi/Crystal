@@ -14,6 +14,8 @@ import {
 } from '../../bklit/charts';
 import { NvIcon } from '../NvIcon';
 import { Badge, Button, Card, Money, SegmentedTabs } from '../ui';
+import { safeImageSrcAttr } from '../../../utils/safeImageUrl';
+import { AccountCard, accountHasCard, accountPicture } from './AccountCard';
 import { AccountLogo, LicensePlateNew } from './parts';
 
 /*
@@ -44,8 +46,9 @@ export const AccountDetailHero: React.FC<{
   onOpenBankSync,
   onOpenCloseAsset,
 }) => {
-  const { account, archetype, displayBalance, realTodayBalance, sparkline90d, forecastSeries } = data;
+  const { account, archetype, displayBalance, sparkline90d, forecastSeries } = data;
   const [chartMode, setChartMode] = useState<ChartMode>('history');
+  const [failedPicture, setFailedPicture] = useState<string | null>(null);
 
   const chartData = useMemo(() => {
     if (chartMode === 'forecast') {
@@ -67,6 +70,13 @@ export const AccountDetailHero: React.FC<{
   const isPhysicalAsset = account.type === 'Property' || account.type === 'Vehicle';
   const isLeasedVehicle = account.type === 'Vehicle' && account.ownership === 'Leased';
   const latestPoint = chartData[chartData.length - 1];
+  // A picture (car, house) beats the card; a bank account or card shows its card.
+  const pictureSrc = (() => {
+    const url = accountPicture(account);
+    return url && url !== failedPicture ? safeImageSrcAttr(url) : null;
+  })();
+  const showCard = !pictureSrc && accountHasCard(account);
+  const hasMedia = Boolean(pictureSrc) || showCard;
   const strokeColor =
     chartMode === 'forecast' ? 'var(--nv-sky-text)' : 'var(--chart-line-primary)';
 
@@ -109,17 +119,14 @@ export const AccountDetailHero: React.FC<{
           </div>
 
           {/* Main Identity & Interactive Trajectory Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
-            {/* Left 6 Cols: Identity + Headline Balance */}
-            <div className="space-y-4 lg:col-span-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+            {/* Left: title, then the card or picture with the balance beside it */}
+            <div className={cn('min-w-0 space-y-5', hasMedia ? 'lg:col-span-7' : 'lg:col-span-6')}>
               <div className="flex items-start gap-4">
-                <AccountLogo account={account} size={52} />
-
+                {!hasMedia && <AccountLogo account={account} size={52} />}
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-2xl font-semibold text-nv-ink">
-                      {account.name}
-                    </h1>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <h1 className="min-w-0 truncate text-2xl font-semibold text-nv-ink">{account.name}</h1>
                     {account.isPrimary && <Badge tone="violet">Primary</Badge>}
                     {isClosed && (
                       <Badge tone="neutral" icon="archive">
@@ -132,18 +139,14 @@ export const AccountDetailHero: React.FC<{
                       </Badge>
                     )}
                     {account.licensePlate && (
-                      <LicensePlateNew
-                        plate={account.licensePlate}
-                        countryCode={account.registrationCountryCode}
-                      />
+                      <LicensePlateNew plate={account.licensePlate} countryCode={account.registrationCountryCode} />
                     )}
                   </div>
-                  <p className="mt-0.5 text-sm text-nv-muted">
+                  <p className="mt-1 text-sm text-nv-muted">
                     {[
                       account.financialInstitution,
                       typeLabel,
-                      account.accountNumber ||
-                        (account.last4 ? `•••• ${account.last4}` : undefined),
+                      account.accountNumber || (account.last4 ? `•••• ${account.last4}` : undefined),
                       account.address,
                     ]
                       .filter(Boolean)
@@ -152,54 +155,44 @@ export const AccountDetailHero: React.FC<{
                 </div>
               </div>
 
-              {/* Headline Figure */}
-              <div className="pt-1">
-                <p className="text-xs font-medium text-nv-muted">
-                  {isLeasedVehicle
-                    ? 'Monthly Lease Obligation'
-                    : archetype === 'credit_card' || archetype === 'loan'
-                      ? 'Current Balance'
-                      : isPhysicalAsset
-                        ? 'Current Market Valuation'
-                        : 'Current Balance'}
-                </p>
-                <div className="mt-1 flex flex-wrap items-baseline gap-3">
-                  {isLeasedVehicle ? (
-                    <Money
-                      amount={account.leasePaymentAmount || 0}
-                      currency={account.currency}
-                      size="hero"
-                    />
-                  ) : (
-                    <Money
-                      amount={displayBalance}
-                      currency={account.currency}
-                      size="hero"
-                    />
-                  )}
-
-                  {normalizeCurrency(account.currency) !== normalizeCurrency(data.displayCurrency) && !isLeasedVehicle && (
-                    <span className="text-sm text-nv-muted">
-                      ≈{' '}
-                      <Money
-                        amount={data.convertToDisplay(displayBalance)}
-                        currency={data.displayCurrency}
-                      />
-                    </span>
-                  )}
-                </div>
-
-                {Math.abs(displayBalance - realTodayBalance) > 0.01 && !isLeasedVehicle && (
-                  <p className="mt-1.5 text-xs text-nv-muted">
-                    Settled today (excluding future scheduled entries):{' '}
-                    <Money amount={realTodayBalance} currency={account.currency} />
-                  </p>
+              <div className={cn(hasMedia && 'flex flex-wrap items-stretch gap-x-8 gap-y-5')}>
+                {pictureSrc && (
+                  <img
+                    src={pictureSrc}
+                    alt={account.name}
+                    onError={() => setFailedPicture(accountPicture(account))}
+                    className="aspect-[1.586] w-full max-w-[300px] shrink-0 rounded-[22px] object-cover"
+                  />
                 )}
+                {showCard && <AccountCard account={account} className="w-full max-w-[300px] shrink-0" />}
+
+                {/* Label and figure sit on the card's bottom edge */}
+                <div className={cn('min-w-[220px] flex-1', hasMedia && 'flex flex-col justify-end gap-1 self-stretch')}>
+                  <p className="text-xs font-medium text-nv-muted">
+                    {isLeasedVehicle
+                      ? 'Monthly lease payment'
+                      : isPhysicalAsset
+                        ? 'Current market value'
+                        : 'Current balance'}
+                  </p>
+                  <div>
+                    <Money
+                      amount={isLeasedVehicle ? account.leasePaymentAmount || 0 : displayBalance}
+                      currency={account.currency}
+                      size="hero"
+                    />
+                    {normalizeCurrency(account.currency) !== normalizeCurrency(data.displayCurrency) && !isLeasedVehicle && (
+                      <p className="mt-1 text-sm text-nv-muted">
+                        ≈ <Money amount={data.convertToDisplay(displayBalance)} currency={data.displayCurrency} />
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Right 6 Cols: Historical vs Forecast Trajectory Chart */}
-            <div className="rounded-nv-tile bg-nv-inset p-4 lg:col-span-6">
+            <div className={cn('rounded-nv-tile bg-nv-inset p-4', hasMedia ? 'lg:col-span-5' : 'lg:col-span-6')}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <SegmentedTabs<ChartMode>

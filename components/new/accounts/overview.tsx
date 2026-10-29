@@ -158,7 +158,7 @@ const Delta: React.FC<{ pct: number | null; good: 'up' | 'down' }> = ({ pct, goo
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-0.5 text-[11px] font-medium sm:text-xs',
+        'inline-flex items-center gap-0.5 text-xs font-medium',
         fine ? 'text-nv-green-text' : 'text-nv-red-text'
       )}
     >
@@ -240,7 +240,7 @@ const AccountsSparkKpiCard: React.FC<AccountsSparkKpiCardProps> = ({
             <span className="truncate">{label}</span>
           </span>
           {isHovered ? (
-            <span className="truncate text-[11px] font-medium text-nv-muted">
+            <span className="truncate text-xs font-medium text-nv-muted">
               {shown?.day}
             </span>
           ) : (
@@ -276,7 +276,7 @@ const AccountsSparkKpiCard: React.FC<AccountsSparkKpiCardProps> = ({
         )}
       </div>
 
-      <p className="mt-2 truncate text-[11px] text-nv-muted">
+      <p className="mt-2 truncate text-xs text-nv-muted">
         {subtitle}
       </p>
     </div>
@@ -462,11 +462,11 @@ export const AccountsHeroCard: React.FC<{
                       </span>
                       <span className="truncate">{item.label}</span>
                     </span>
-                    <span className="nv-tabular text-[11px] text-nv-muted">{item.pct}%</span>
+                    <span className="nv-tabular text-xs text-nv-muted">{item.pct}%</span>
                   </div>
                   <div className="mt-1 flex items-baseline justify-between gap-1">
                     <Money amount={item.value} currency={displayCurrency} compact />
-                    <span className="text-[10px] text-nv-faint">{item.count} acct</span>
+                    <span className="text-xs text-nv-muted">{item.count} {item.count === 1 ? 'account' : 'accounts'}</span>
                   </div>
                 </button>
               );
@@ -529,12 +529,15 @@ export const CardWalletRail: React.FC<{
   realTodayBalancesById: Record<string, number>;
   linkedEnableBankingIds: Set<string>;
   onOpenAccount: (account: Account) => void;
+  /** Clicking a card opens the quick overview; the cockpit button opens the full page. */
+  onPeekAccount: (account: Account) => void;
 }> = ({
   accounts,
   displayBalancesById,
   realTodayBalancesById,
   linkedEnableBankingIds,
   onOpenAccount,
+  onPeekAccount,
 }) => {
   if (accounts.length === 0) return null;
 
@@ -549,8 +552,7 @@ export const CardWalletRail: React.FC<{
   return (
     <MomentumRail
       icon="card"
-      title="Card & Account Wallet"
-      subtitle="Click any card to open its cockpit, or flip the top-right button for IBAN & statement specs"
+      title="Card & account wallet"
     >
       {accounts.map((acc) => {
         const balance = displayBalancesById[acc.id] ?? acc.balance;
@@ -576,7 +578,7 @@ export const CardWalletRail: React.FC<{
           <CardFlip
             key={acc.id}
             heightClassName="h-52"
-            onSelect={() => onOpenAccount(acc)}
+            onSelect={() => onPeekAccount(acc)}
             flipLabel={`Flip ${acc.name} card`}
             front={
               <div
@@ -606,24 +608,12 @@ export const CardWalletRail: React.FC<{
                 </div>
 
                 {/* Middle Row: Balance */}
-                <div>
-                  <p
-                    className={cn(
-                      'text-[11px] font-medium',
-                      isCredit ? 'opacity-70' : 'text-nv-muted'
-                    )}
-                  >
-                    {isCredit ? 'Current Balance' : isMealVoucher ? 'Voucher Balance' : 'Available Balance'}
-                  </p>
-                  <div className="mt-0.5">
-                    <Money
-                      amount={balance}
-                      currency={acc.currency}
-                      size="xl"
-                      tone={isCredit ? 'inherit' : 'ink'}
-                    />
-                  </div>
-                </div>
+                <Money
+                  amount={balance}
+                  currency={acc.currency}
+                  size="xl"
+                  tone={isCredit ? 'inherit' : 'ink'}
+                />
 
                 {/* Bottom Row: Masked Number + Network / APY / Utilization */}
                 <div className="flex items-center justify-between gap-2 text-xs">
@@ -638,12 +628,12 @@ export const CardWalletRail: React.FC<{
 
                   <div className="flex items-center gap-1.5">
                     {acc.isPrimary && (
-                      <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 text-[10px] font-semibold text-nv-violet-text">
+                      <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 text-[11px] font-semibold text-nv-violet-text">
                         Primary
                       </span>
                     )}
                     {isMealVoucher && !acc.isPrimary && (
-                      <span className="rounded-full bg-nv-teal-soft px-2 py-0.5 text-[10px] font-semibold text-nv-teal-text">
+                      <span className="rounded-full bg-nv-teal-soft px-2 py-0.5 text-[11px] font-semibold text-nv-teal-text">
                         Voucher
                       </span>
                     )}
@@ -682,7 +672,7 @@ export const CardWalletRail: React.FC<{
                     {acc.cardNetwork && (
                       <span
                         className={cn(
-                          'text-[11px] font-semibold uppercase',
+                          'text-xs font-semibold uppercase',
                           isCredit ? 'opacity-80' : 'text-nv-muted'
                         )}
                       >
@@ -704,7 +694,7 @@ export const CardWalletRail: React.FC<{
                   {acc.accountNumber ? (
                     <div className="flex items-center justify-between gap-2 rounded-nv-control bg-nv-inset px-3 py-2">
                       <div className="min-w-0">
-                        <p className="text-[10px] text-nv-muted">IBAN / Account Number</p>
+                        <p className="text-xs text-nv-muted">IBAN / Account Number</p>
                         <p className="nv-tabular truncate font-medium text-nv-ink">
                           {acc.accountNumber}
                         </p>
@@ -737,7 +727,7 @@ export const CardWalletRail: React.FC<{
                   )}
 
                   {isCredit && (
-                    <div className="flex items-center justify-between px-1 text-[11px] text-nv-muted">
+                    <div className="flex items-center justify-between px-1 text-xs text-nv-muted">
                       <span>Statement Day: {acc.statementStartDate || 1}</span>
                       <span>Due Day: {acc.paymentDate || 15}</span>
                     </div>

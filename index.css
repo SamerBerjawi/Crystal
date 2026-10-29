@@ -976,6 +976,7 @@ img {
 /* New pages (UI_UX_DESIGN_REFERENCE.md §1, decisions Q1–Q4): `nv-*` utilities only. The values are set on
    `.crystal-new` in components/new/new.css, which only loads with the New UI, so the classic pages are unaffected. */
 @theme inline {
+  --color-nv-card-from: var(--nv-card-from);
   --color-nv-canvas: var(--nv-canvas);
   --color-nv-tile: var(--nv-tile);
   --color-nv-surface: var(--nv-surface);

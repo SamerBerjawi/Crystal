@@ -34,7 +34,7 @@ export const LicensePlateNew: React.FC<{
       className
     )}
   >
-    <span className="flex h-full items-center justify-center bg-nv-violet px-1.5 text-[9px] font-bold text-nv-on-violet">
+    <span className="flex h-full items-center justify-center bg-nv-violet px-1.5 text-[11px] font-bold text-nv-on-violet">
       {countryCode.slice(0, 3).toUpperCase()}
     </span>
     <span className="px-2">{plate}</span>
@@ -56,7 +56,7 @@ export const AccountSparklineSvg: React.FC<{
     return (
       <div
         style={{ width, height }}
-        className={cn('flex items-center justify-center text-[11px] text-nv-faint', className)}
+        className={cn('flex items-center justify-center text-xs text-nv-faint', className)}
       >
         —
       </div>
@@ -288,7 +288,7 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onOpenDetail(account)}
+      onClick={() => onQuickPeek(account)}
       onContextMenu={(e) => {
         if (onContextMenu) {
           e.preventDefault();
@@ -299,7 +299,7 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpenDetail(account);
+          onQuickPeek(account);
         }
       }}
       className={cn(
@@ -317,23 +317,23 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
               {account.name}
             </span>
             {account.isPrimary && (
-              <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 text-[10px] font-semibold text-nv-violet-text">
+              <span className="rounded-full bg-nv-violet-soft px-2 py-0.5 text-[11px] font-semibold text-nv-violet-text">
                 Primary
               </span>
             )}
             {isLinkedBank && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-nv-sky-soft px-2 py-0.5 text-[10px] font-medium text-nv-sky-text">
+              <span className="inline-flex items-center gap-1 rounded-full bg-nv-sky-soft px-2 py-0.5 text-[11px] font-medium text-nv-sky-text">
                 <NvIcon name="refresh" size={10} />
                 Synced
               </span>
             )}
             {account.apy !== undefined && account.apy > 0 && (
-              <span className="rounded-full bg-nv-green-soft px-2 py-0.5 text-[10px] font-semibold text-nv-green-text">
+              <span className="rounded-full bg-nv-green-soft px-2 py-0.5 text-[11px] font-semibold text-nv-green-text">
                 {account.apy}% APY
               </span>
             )}
             {account.interestRate !== undefined && account.interestRate > 0 && (
-              <span className="rounded-full bg-nv-orange-soft px-2 py-0.5 text-[10px] font-semibold text-nv-orange-text">
+              <span className="rounded-full bg-nv-orange-soft px-2 py-0.5 text-[11px] font-semibold text-nv-orange-text">
                 {account.interestRate}% APR
               </span>
             )}
@@ -392,7 +392,7 @@ export const AccountRowNew: React.FC<AccountItemProps> = ({
             <>
               <Money amount={displayBalance} currency={account.currency} size="md" />
               {normalizeCurrency(account.currency) !== normalizeCurrency(displayCurrency) && (
-                <p className="text-[11px] text-nv-muted">
+                <p className="text-xs text-nv-muted">
                   ≈ <Money amount={convertedBalance} currency={displayCurrency} />
                 </p>
               )}
@@ -465,7 +465,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onOpenDetail(account)}
+      onClick={() => onQuickPeek(account)}
       onContextMenu={(e) => {
         if (onContextMenu) {
           e.preventDefault();
@@ -476,7 +476,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpenDetail(account);
+          onQuickPeek(account);
         }
       }}
       className="flex flex-col justify-between rounded-nv-card bg-nv-tile p-5 transition-colors hover:bg-nv-inset/80 outline-none focus-visible:ring-2 focus-visible:ring-nv-violet cursor-pointer"
@@ -553,7 +553,7 @@ export const AccountCardNew: React.FC<AccountItemProps> = (props) => {
             )}
           </div>
           {normalizeCurrency(account.currency) !== normalizeCurrency(displayCurrency) && !isLeasedVehicle && (
-            <p className="mt-0.5 text-[11px] text-nv-muted">
+            <p className="mt-0.5 text-xs text-nv-muted">
               ≈ <Money amount={convertedBalance} currency={displayCurrency} />
             </p>
           )}
@@ -675,7 +675,7 @@ export const BalanceSheetSplitView: React.FC<{
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] text-nv-muted">Subtotal</p>
+            <p className="text-xs text-nv-muted">Subtotal</p>
             <Money amount={totalAssetsConverted} currency={displayCurrency} size="lg" />
           </div>
         </div>
@@ -697,7 +697,7 @@ export const BalanceSheetSplitView: React.FC<{
                   <div className="flex items-center gap-1.5 font-medium text-nv-ink">
                     <NvIcon name={group.icon} size={14} className="text-nv-muted" />
                     <span>{group.label}</span>
-                    <span className="rounded-full bg-nv-inset px-1.5 py-0.5 text-[10px] font-normal text-nv-muted">
+                    <span className="rounded-full bg-nv-inset px-1.5 py-0.5 text-[11px] font-normal text-nv-muted">
                       {group.accounts.length}
                     </span>
                   </div>
@@ -729,7 +729,7 @@ export const BalanceSheetSplitView: React.FC<{
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] text-nv-muted">Subtotal</p>
+            <p className="text-xs text-nv-muted">Subtotal</p>
             <Money amount={totalLiabilitiesConverted} currency={displayCurrency} size="lg" />
           </div>
         </div>
@@ -761,7 +761,7 @@ export const BalanceSheetSplitView: React.FC<{
                   <div className="flex items-center gap-1.5 font-medium text-nv-ink">
                     <NvIcon name={group.icon} size={14} className="text-nv-muted" />
                     <span>{group.label}</span>
-                    <span className="rounded-full bg-nv-inset px-1.5 py-0.5 text-[10px] font-normal text-nv-muted">
+                    <span className="rounded-full bg-nv-inset px-1.5 py-0.5 text-[11px] font-normal text-nv-muted">
                       {group.accounts.length}
                     </span>
                   </div>

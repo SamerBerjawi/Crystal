@@ -360,21 +360,12 @@ export const BudgetNew: React.FC<BudgetNewProps> = () => {
                     </p>
                   </div>
 
-                  {/* Pace bar and days */}
-                  <div className="max-w-xl space-y-2 pt-1">
-                    <PaceBar pct={summary.pct} elapsedPct={pace.elapsedPct} />
-                    <DayDots pace={pace} className="pt-1" />
-                  </div>
                 </div>
 
-                {/* Right Hero Gauge */}
-                <div className="flex shrink-0 items-center justify-center pt-2 lg:pt-0">
-                  <RingGauge
-                    pct={summary.pct}
-                    elapsedPct={pace.elapsedPct}
-                    label="spent"
-                    size={176}
-                  />
+                {/* Right: pace bar and days */}
+                <div className="w-full space-y-3 lg:w-[46%] lg:max-w-xl lg:shrink-0">
+                  <PaceBar pct={summary.pct} elapsedPct={pace.elapsedPct} />
+                  <DayDots pace={pace} />
                 </div>
               </div>
             }
