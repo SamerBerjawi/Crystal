@@ -91,7 +91,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[9999] flex flex-col justify-end md:hidden font-sans">
+        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[var(--z-overlay)] flex flex-col justify-end md:hidden font-sans">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -99,7 +99,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 scrim"
           />
 
           {/* Sheet Surface */}
@@ -116,7 +116,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
               isDragging.current = true;
             }}
             onDragEnd={handleDragEnd}
-            className={`relative z-10 bg-light-card dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text rounded-t-[32px] border-t border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden ${className}`}
+            className={`relative z-10 bg-surface text-ink shadow-lg rounded-t-[var(--radius-2xl)] flex flex-col overflow-hidden ${className}`}
             style={{
               maxHeight: `min(${maxHeight}vh, ${maxHeight}dvh)`,
               paddingBottom: `env(safe-area-inset-bottom, 0px)`,
@@ -125,7 +125,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             {/* iOS Grab Handle */}
             {showHandle && (
               <div className="flex justify-center pt-2.5 pb-1 cursor-grab active:cursor-grabbing shrink-0" aria-hidden="true">
-                <div className="w-10 h-1.5 rounded-full bg-gray-300/90 dark:bg-gray-600/90 transition-colors" />
+                <div className="w-10 h-1 rounded-full bg-line-strong" />
               </div>
             )}
 
@@ -140,12 +140,12 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 {/* Center Title */}
                 <div className="text-center flex-1 px-2">
                   {title && (
-                    <h3 className="text-base font-bold text-light-text dark:text-dark-text tracking-tight leading-tight">
+                    <h3 className="type-card-title text-ink">
                       {title}
                     </h3>
                   )}
                   {subtitle && (
-                    <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                    <p className="type-caption text-muted">
                       {subtitle}
                     </p>
                   )}

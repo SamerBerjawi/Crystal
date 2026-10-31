@@ -8,11 +8,8 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ children, className = '', onClick }) => {
   return (
-    <div 
-        className={`relative glass-section rounded-3xl p-6 overflow-hidden group transition-all duration-200
-                    before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-black/5 before:dark:via-white/5 before:to-transparent
-                    before:bg-200% before:opacity-0 group-hover:before:opacity-100 group-hover:before:animate-bg-pan 
-                    before:transition-opacity before:duration-500 before:pointer-events-none ${className}`} 
+    <div
+        className={`relative rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5 overflow-hidden ${className}`}
         onClick={onClick}
     >
       {children}

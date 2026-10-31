@@ -2595,7 +2595,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           </div>
 
           {/* 3. Sticky Drawer Footer */}
-          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+          <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -2613,11 +2613,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               Clear Fields
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 max-md:w-full">
               <button
                 type="button"
                 onClick={handleCloseDrawer}
-                className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider cursor-pointer`}
+                className={`${BTN_SECONDARY_STYLE} h-12 px-6 max-md:px-4 text-xs font-bold uppercase tracking-wider cursor-pointer`}
               >
                 Cancel
               </button>
@@ -2625,7 +2625,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               <button
                 type="submit"
                 form="transaction-form"
-                className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer`}
+                className={`${BTN_PRIMARY_STYLE} h-12 px-8 max-md:px-4 max-md:min-w-0 max-md:flex-1 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 cursor-pointer`}
               >
                 <span>{isEditing ? 'Save Changes' : 'Confirm Transaction'}</span>
                 <Icon name="check" className="text-base" />

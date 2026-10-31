@@ -136,6 +136,8 @@ Used to weigh priorities. None of this removes any feature.
 | D-071 | 2026-10-31 | The phone Create button opens Add transaction at once, with a Create something else link | Owner | |
 | D-072 | 2026-10-31 | Tablets keep the tool rail | Owner | |
 | D-073 | 2026-10-31 | The Design System Specification, Component Inventory and Responsive Specification are approved | Owner | Phase 8 complete |
+| D-074 | 2026-10-31 | Proposed: Privacy moves to the profile menu on desktop and tablet, as Hide amounts. It stays in More on phones | Mapping `NAV-10` | The eight rail tools don't include it, and the sidebar that held it is gone. Awaiting the owner |
+| D-075 | 2026-10-31 | Proposed: the logo hides under 900 px, so the seven pills keep their 12 px padding. Overview does the same job | None | Awaiting the owner |
 
 ## Open questions
 

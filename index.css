@@ -1032,11 +1032,12 @@ img {
   --duration-slow: 500ms;
   --duration-count: 700ms;
   --stagger: 40ms;
-  --z-sticky: 10;
-  --z-bar: 20;
-  --z-popover: 30;
-  --z-overlay: 40;
-  --z-toast: 50;
+  /* Spec order, ×10 until module 13 removes the old z-50 to z-500 values */
+  --z-sticky: 110;
+  --z-bar: 200;
+  --z-popover: 300;
+  --z-overlay: 400;
+  --z-toast: 1000;
 
   /* Bridge: old names on the new palette, removed in module 13 */
   --primary-50: #EEF4F1;
@@ -1395,3 +1396,44 @@ img {
   outline-offset: 2px;
 }
 
+/* Overlay motion. React Aria waits for these animations before unmounting. */
+@keyframes crystal-fade-in { from { opacity: 0; } }
+@keyframes crystal-fade-out { to { opacity: 0; } }
+@keyframes crystal-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes crystal-sheet-in { from { transform: translateY(100%); } }
+@keyframes crystal-sheet-out { to { transform: translateY(100%); } }
+@keyframes crystal-side-in { from { transform: translateX(100%); } }
+@keyframes crystal-side-out { to { transform: translateX(100%); } }
+@keyframes crystal-shimmer { 50% { opacity: .55; } }
+
+.crystal-scrim {
+  background: var(--scrim);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.crystal-scrim[data-entering] { animation: crystal-fade-in var(--duration-medium) var(--ease-standard); }
+.crystal-scrim[data-exiting] { animation: crystal-fade-out var(--duration-base) var(--ease-exit) forwards; }
+.crystal-sheet[data-entering] { animation: crystal-sheet-in var(--duration-medium) var(--ease-standard); }
+.crystal-sheet[data-exiting] { animation: crystal-sheet-out var(--duration-base) var(--ease-exit) forwards; }
+.crystal-side[data-entering] { animation: crystal-side-in var(--duration-medium) var(--ease-standard); }
+.crystal-side[data-exiting] { animation: crystal-side-out var(--duration-base) var(--ease-exit) forwards; }
+.crystal-dialog[data-entering] { animation: crystal-rise var(--duration-medium) var(--ease-standard); }
+.crystal-dialog[data-exiting] { animation: crystal-fade-out var(--duration-base) var(--ease-exit) forwards; }
+.crystal-pop[data-entering] { animation: crystal-rise var(--duration-base) var(--ease-standard); }
+.crystal-pop[data-exiting] { animation: crystal-fade-out var(--duration-fast) var(--ease-exit) forwards; }
+.crystal-skeleton { animation: crystal-shimmer 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-transparency: reduce) {
+  .crystal-scrim { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* Short fades remain when motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  .crystal-sheet[data-entering], .crystal-side[data-entering], .crystal-dialog[data-entering], .crystal-pop[data-entering] { animation: crystal-fade-in var(--duration-fast) linear; }
+  .crystal-sheet[data-exiting], .crystal-side[data-exiting], .crystal-dialog[data-exiting], .crystal-pop[data-exiting] { animation: crystal-fade-out var(--duration-fast) linear forwards; }
+  .crystal-skeleton { animation: none; }
+}
+
+/* Toasts sit bottom centre and move above the selection bar and the phone bar (D-066). */
+:root { --toast-bottom: 24px; --toast-phone-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+html[data-selection-bar] { --toast-bottom: 88px; --toast-phone-bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }

@@ -25,31 +25,31 @@ export interface HeaderButtonProps extends React.ButtonHTMLAttributes<HTMLButton
 
 const variantStyles: Record<HeaderButtonVariant, string> = {
   primary:
-    'bg-primary-700 hover:bg-primary-600 text-white font-semibold shadow-md shadow-primary-700/20 border border-primary-600/30 dark:bg-primary-700 dark:hover:bg-primary-600',
+    'bg-primary hover:bg-primary-hover text-on-primary',
   secondary:
-    'bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white font-semibold border border-slate-200/80 dark:border-white/5',
+    'bg-surface hover:bg-inset text-ink border border-line-strong',
   accent:
-    'bg-primary-500/10 hover:bg-primary-500/20 text-primary-700 dark:text-primary-300 font-semibold border border-primary-500/20',
+    'bg-primary-soft text-ink hover:border-primary border border-transparent',
   emerald:
-    'bg-emerald-700 hover:bg-emerald-600 text-white dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-300 font-semibold border border-emerald-500/30 shadow-xs',
+    'bg-primary hover:bg-primary-hover text-on-primary',
   indigo:
-    'bg-indigo-700 hover:bg-indigo-600 text-white dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 dark:text-indigo-300 font-semibold border border-indigo-500/30 shadow-xs',
+    'bg-primary hover:bg-primary-hover text-on-primary',
   amber:
-    'bg-amber-700 hover:bg-amber-600 text-white dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-300 font-semibold border border-amber-500/30 shadow-xs',
+    'bg-amber text-on-amber hover:brightness-95',
   gold:
-    'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-neutral-950 font-bold shadow-md shadow-amber-500/20 border border-amber-400/40 active:scale-[0.98]',
+    'bg-amber text-on-amber hover:brightness-95',
   danger:
-    'bg-rose-700 hover:bg-rose-600 text-white dark:bg-rose-500/20 dark:hover:bg-rose-500/30 dark:text-rose-300 font-semibold border border-rose-500/30 shadow-xs',
+    'bg-money-out text-on-danger hover:brightness-95',
   ghost:
-    'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 font-semibold border border-transparent',
+    'text-ink hover:bg-inset',
 };
 
 const sizeStyles: Record<HeaderButtonSize, string> = {
-  default: 'min-h-[40px] sm:min-h-[44px] h-10 sm:h-11 px-3.5 sm:px-4 text-xs font-semibold rounded-xl gap-2',
-  sm: 'min-h-[36px] h-9 px-3 text-xs font-semibold rounded-lg gap-1.5',
-  lg: 'min-h-[44px] h-12 px-5 text-sm font-semibold rounded-xl gap-2.5',
-  icon: 'min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] h-10 w-10 sm:h-11 sm:w-11 p-0 rounded-xl justify-center text-xs',
-  'icon-sm': 'min-h-[36px] min-w-[36px] h-9 w-9 p-0 rounded-lg justify-center text-xs',
+  default: 'h-10 pointer-coarse:h-11 px-[18px] text-sm rounded-full font-bold gap-2',
+  sm: 'h-8 pointer-coarse:h-11 px-3 text-[.8125rem] rounded-full font-bold gap-1.5',
+  lg: 'h-12 px-6 text-[.9375rem] rounded-full font-bold gap-2.5',
+  icon: 'size-10 pointer-coarse:size-11 p-0 rounded-full justify-center',
+  'icon-sm': 'size-8 pointer-coarse:size-11 p-0 rounded-full justify-center',
 };
 
 const HeaderButton = React.forwardRef<HTMLButtonElement, HeaderButtonProps>(

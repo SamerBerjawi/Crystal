@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState } from 'react';
 import { BillNotificationItem } from '../hooks/useBillNotifications';
 import { formatCurrency } from '../utils';
 import { Page, RecurringTransaction, BillPayment } from '../types';
-import Icon from './ui/Icon';
+import { Button, IconButton } from './ui/Actions';
+import { Badge } from './ui/Display';
+import { EmptyState } from './ui/States';
+import { SidePanel } from './ui/Overlays';
 
 interface NotificationCenterProps {
   notifications: BillNotificationItem[];
@@ -12,7 +14,6 @@ interface NotificationCenterProps {
   onClearAll: () => void;
   onProcessItem?: (item: RecurringTransaction | BillPayment) => void;
   setCurrentPage?: (page: Page) => void;
-  className?: string;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
@@ -22,159 +23,47 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onClearAll,
   onProcessItem,
   setCurrentPage,
-  className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  // Close panel on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
 
   const overdueOrToday = notifications.filter((n) => n.daysUntilDue <= 0);
   const dueSoon = notifications.filter((n) => n.daysUntilDue > 0 && n.daysUntilDue <= 3);
 
+  const group = (title: string, items: BillNotificationItem[]) =>
+    items.length > 0 && (
+      <section className="space-y-2">
+        <h3 className="type-label text-muted">{title} ({items.length})</h3>
+        {items.map((item) => (
+          <NotificationCard key={item.id} item={item} onDismiss={onDismiss} onProcessItem={onProcessItem} />
+        ))}
+      </section>
+    );
+
   return (
-    <div ref={panelRef} className={`relative inline-block ${className}`}>
-      {/* Trigger Notification Bell Button */}
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`relative p-2.5 rounded-2xl transition-all duration-300 flex items-center justify-center ${
-          isOpen
-            ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
-            : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text dark:text-dark-text'
-        }`}
-        title="Recurring Bill Notifications"
-        aria-label="View bill notifications"
+    <>
+      <IconButton icon="notifications" label="Bill alerts" iconSize={24} badge={notificationCount} tooltipPlacement="bottom" onPress={() => setIsOpen(true)} />
+      <SidePanel
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Bill alerts"
+        description="Due in 3 days or less"
+        footer={setCurrentPage && (
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" onPress={() => { setCurrentPage('Schedule & Bills'); setIsOpen(false); }}>Open Calendar</Button>
+            {notificationCount > 0 && <Button variant="secondary" onPress={onClearAll}>Clear all</Button>}
+          </div>
+        )}
       >
-        <Icon name="notifications" className={`text-xl ${notificationCount > 0 ? 'animate-bounce' : ''}`} />
-
-        {/* Animated Counter Badge */}
-        {notificationCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-500/50 animate-pulse border-2 border-white dark:border-dark-card">
-            {notificationCount}
-          </span>
+        {notifications.length === 0 ? (
+          <EmptyState icon="verified" title="No bill alerts" description="Recurring bills for the next 3 days are settled." />
+        ) : (
+          <div className="space-y-5">
+            {group('Needs action', overdueOrToday)}
+            {group('Due in 1 to 3 days', dueSoon)}
+          </div>
         )}
-      </button>
-
-      {/* Popover Notification Drawer */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-neutral-200/80 dark:border-white/10 z-50 overflow-hidden ring-1 ring-black/5"
-          >
-            {/* Ambient Top Subtle Glow */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-neutral-500/5 to-transparent pointer-events-none -z-1" />
-
-            {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/[0.02] dark:bg-white/[0.02]">
-              <div className="flex items-center gap-2.5">
-                <Icon name="event_upcoming" className="text-xl text-amber-500 shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-sm tracking-tight text-light-text dark:text-dark-text leading-none">
-                    Bill Alerts
-                  </h3>
-                  <p className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                    Due in 3 days or less
-                  </p>
-                </div>
-              </div>
-
-              {notificationCount > 0 && (
-                <button
-                  onClick={onClearAll}
-                  className="text-xs font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors uppercase"
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
-
-            {/* Notification List Container */}
-            <div className="max-h-[380px] overflow-y-auto p-3 space-y-3 custom-scrollbar">
-              {notifications.length === 0 ? (
-                <div className="py-12 text-center space-y-2">
-                  <Icon name="verified" className="text-4xl text-emerald-500 block mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-light-text dark:text-dark-text">No Upcoming Bill Alerts</p>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary max-w-[220px] mx-auto opacity-70">
-                    All recurring bills for the next 3 days are settled or clear.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Urgent / Overdue & Today Section */}
-                  {overdueOrToday.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="px-2 text-xs font-semibold text-rose-500 uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                        Action Required ({overdueOrToday.length})
-                      </div>
-                      {overdueOrToday.map((item) => (
-                        <NotificationCard
-                          key={item.id}
-                          item={item}
-                          onDismiss={onDismiss}
-                          onProcessItem={onProcessItem}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Due in 1 to 3 Days Section */}
-                  {dueSoon.length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      <div className="px-2 text-xs font-semibold text-amber-500 uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        Due in 1-3 Days ({dueSoon.length})
-                      </div>
-                      {dueSoon.map((item) => (
-                        <NotificationCard
-                          key={item.id}
-                          item={item}
-                          onDismiss={onDismiss}
-                          onProcessItem={onProcessItem}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Footer Quick Link */}
-            {setCurrentPage && (
-              <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-black/5 dark:border-white/10 text-center">
-                <button
-                  onClick={() => {
-                    setCurrentPage('Schedule & Bills');
-                    setIsOpen(false);
-                  }}
-                  className="text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-600 transition-colors inline-flex items-center gap-1"
-                >
-                  Manage Schedule & Bills
-                  <Icon name="arrow_forward" className="text-sm" />
-                </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      </SidePanel>
+    </>
   );
 };
 
@@ -188,62 +77,21 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ item, onDismiss, on
   const isUrgent = item.daysUntilDue <= 0;
 
   return (
-    <div
-      className={`p-3 rounded-2xl border transition-all duration-200 relative group flex flex-col gap-2 ${
-        isUrgent
-          ? 'bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40'
-          : 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
-      }`}
-    >
-      <div className="flex justify-between items-start gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Icon
-            name={isUrgent ? 'priority_high' : 'schedule'}
-            className={`text-xl shrink-0 ${isUrgent ? 'text-rose-500' : 'text-amber-500'}`}
-          />
-
-          <div className="min-w-0">
-            <h4 className="font-semibold text-xs text-light-text dark:text-dark-text truncate leading-tight">
-              {item.description}
-            </h4>
-            <span
-              className={`inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-semibold ${
-                isUrgent ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
-              }`}
-            >
-              {item.statusText}
-            </span>
-          </div>
+    <article className="rounded-[var(--radius-lg)] border border-line p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h4 className="type-body-strong truncate text-ink">{item.description}</h4>
+          <Badge tone={isUrgent ? 'negative' : 'attention'} className="mt-1">{item.statusText}</Badge>
         </div>
-
-        <button
-          onClick={() => onDismiss(item.id)}
-          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors rounded-lg"
-          title="Dismiss alert"
-        >
-          <Icon name="close" className="text-sm leading-none" />
-        </button>
+        <IconButton icon="close" label={`Dismiss ${item.description}`} onPress={() => onDismiss(item.id)} />
       </div>
-
-      <div className="flex justify-between items-center pt-1 border-t border-black/5 dark:border-white/5 text-xs">
-        <span className="font-bold tracking-tight text-light-text dark:text-dark-text privacy-blur">
-          {formatCurrency(item.amount, item.currency)}
-        </span>
-
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-line pt-2">
+        <span className="type-figure-row privacy-blur text-ink">{formatCurrency(item.amount, item.currency)}</span>
         {onProcessItem && (
-          <button
-            onClick={() => onProcessItem(item.originalItem)}
-            className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all active:scale-95 ${
-              isUrgent
-                ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-md shadow-rose-500/20'
-                : 'bg-primary-500 text-white hover:bg-primary-600 shadow-md shadow-primary-500/20'
-            }`}
-          >
-            Pay / Record
-          </button>
+          <Button size="sm" variant={isUrgent ? 'primary' : 'soft'} onPress={() => onProcessItem(item.originalItem)}>Pay or record</Button>
         )}
       </div>
-    </div>
+    </article>
   );
 };
 
