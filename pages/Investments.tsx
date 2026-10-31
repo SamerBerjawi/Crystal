@@ -6,7 +6,7 @@ import Card from '../components/Card';
 import { formatCurrency, parseLocalDate, toLocalISOString, convertToEur, safeRound } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
-import EditAccountModal from '../components/EditAccountModal';
+import AccountForm from '../components/AccountForm';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area } from 'recharts';
@@ -864,7 +864,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 />
             )}
             {isAccountModalOpen && editingAccount && (
-                <EditAccountModal
+                <AccountForm
                     onClose={() => setAccountModalOpen(false)}
                     onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
                     onDelete={(accountId) => {
@@ -1520,19 +1520,21 @@ const Investments: React.FC<InvestmentsProps> = ({
             {/* Closed Accounts Section */}
             {closedInvestmentAccounts.length > 0 && activeSegment === 'all' && (
                 <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-                    <AccountsListSection 
-                        title="Closed Portfolios"
+                    <AccountsListSection
+                        title="Closed portfolios"
                         accounts={closedInvestmentAccounts}
                         transactionsByAccount={transactionsByAccount}
-                        warrants={warrants}
                         linkedEnableBankingAccountIds={new Set(accounts.filter(a => !!a.linkedAccountId).map(a => a.id))}
                         onAccountClick={handleAccountClick}
+                        menuFor={account => [
+                          { id: 'overview', label: 'Quick overview', icon: 'visibility', onAction: () => openOverviewModal(account) },
+                          { id: 'edit', label: 'Edit', icon: 'edit', onAction: () => handleOpenAccountModal(account) },
+                        ]}
                         onEditClick={handleOpenAccountModal}
                         onAdjustBalanceClick={() => {}}
                         onOverviewClick={openOverviewModal}
                         sortBy="name"
                         accountOrder={[]}
-                        onContextMenu={handleContextMenu}
                         isCollapsible={true}
                         defaultExpanded={false}
                         layoutMode="stacked"

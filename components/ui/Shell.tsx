@@ -5,6 +5,7 @@ import { CrystalLogo } from '../../constants';
 import { APP_VERSION } from '../../version';
 import type { Page, Theme, User } from '../../types';
 import { HUBS, PHONE_BAR_HUBS, hubForPage } from '../../utils/navigation';
+import { setUrlTab, useUrlTab } from '../../hooks/useUrlTab';
 import Icon from './Icon';
 import { IconButton } from './Actions';
 import { Menu } from './Menu';
@@ -86,10 +87,11 @@ const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = (
 export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = ({ currentPage, setCurrentPage }) => {
   const hub = hubForPage(currentPage);
   const activeRef = useRef<HTMLButtonElement>(null);
+  const urlTab = useUrlTab();
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
-  }, [currentPage]);
+  }, [currentPage, urlTab]);
 
   if (!hub.tabs.length) return null;
 
@@ -97,13 +99,13 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
     <nav aria-label={`${hub.label} pages`} className="border-b border-line">
       <ul className="no-scrollbar mx-auto flex max-w-[1488px] gap-5 overflow-x-auto px-4 md:px-6 md:pl-[84px] lg:pl-[96px] lg:pr-8">
         {hub.tabs.map(tab => {
-          const isActive = tab.page === currentPage;
+          const isActive = tab.page === currentPage && (tab.tab ?? null) === urlTab;
           return (
-            <li key={tab.page} className="shrink-0">
+            <li key={tab.label} className="shrink-0">
               <button
                 ref={isActive ? activeRef : undefined}
                 type="button"
-                onClick={() => setCurrentPage(tab.page)}
+                onClick={() => { setCurrentPage(tab.page); setUrlTab(tab.tab ?? null); }}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'relative flex h-11 cursor-pointer items-center whitespace-nowrap text-sm font-bold transition-colors duration-[var(--duration-base)]',

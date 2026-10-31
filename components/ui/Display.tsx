@@ -51,6 +51,20 @@ export const CountPill: React.FC<{ count: number; className?: string }> = ({ cou
   </span>
 );
 
+/** A small inline trend. It's decoration beside a figure, so it's hidden from screen readers. */
+export const Sparkline: React.FC<{ data: { value: number }[]; isPositive: boolean; width?: number; height?: number; className?: string; preserveAspect?: boolean }> = ({ data, isPositive, width = 72, height = 24, className, preserveAspect = true }) => {
+  if (data.length < 2) return null;
+  const values = data.map(point => point.value);
+  const min = Math.min(...values);
+  const range = Math.max(...values) - min || 1;
+  const points = values.map((value, index) => `${((index / (values.length - 1)) * (width - 4) + 2).toFixed(1)},${(height - 2 - ((value - min) / range) * (height - 4)).toFixed(1)}`);
+  return (
+    <svg aria-hidden="true" width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio={preserveAspect ? undefined : 'none'} className={cn('shrink-0', isPositive ? 'text-money-in' : 'text-money-out', className)}>
+      <path d={`M ${points.join(' L ')}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+};
+
 /** Long lists load in batches (D-040). */
 export const ShowMore: React.FC<{ remaining: number; onPress: () => void; className?: string }> = ({ remaining, onPress, className }) =>
   remaining > 0 ? (

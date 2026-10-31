@@ -1,30 +1,31 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
-import AddAccountModal from '../components/AddAccountModal';
-import EditAccountModal from '../components/EditAccountModal';
-import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import AccountForm from '../components/AccountForm';
 import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency } from '../utils';
 import {
+  accountHasCard,
+  accountsInTab,
   computeCashSegmentNetFlow,
-  computePortfolio90dNetWorthTrend,
   getVisibleAccountsForAccountsPage,
+  type AccountsTab,
 } from '../utils/accountsModel';
 import AccountsListSection from '../components/AccountsListSection';
+import AccountPot from '../components/AccountPot';
+import CardsWallet from '../components/CardsWallet';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
-import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import AccountOverviewModal from '../components/AccountOverviewModal';
-import Card from '../components/Card';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
-import HeaderButton from '../components/HeaderButton';
-import { MobileAccountsView } from '../components/MobileAccountsView';
+import { Button, IconButton } from '../components/ui/Actions';
+import { Radio, RadioGroup } from '../components/ui/Fields';
+import { ConfirmDialog, Popover } from '../components/ui/Overlays';
+import { Select } from '../components/ui/Pickers';
+import { EmptyState } from '../components/ui/States';
+import { useUrlTab } from '../hooks/useUrlTab';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
-import { motion, AnimatePresence } from 'motion/react';
-import Icon from '../components/ui/Icon';
 
 interface AccountsProps {
     accounts: Account[];
@@ -46,8 +47,6 @@ interface AccountsProps {
     isSyncingBanks?: boolean;
 }
 
-type AccountSegment = 'all' | 'cash' | 'invested' | 'property' | 'debt';
-
 const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds, onSyncBanks, isSyncingBanks }) => {
   const isMobile = useIsMobile();
   const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -57,11 +56,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
   const [overviewAccount, setOverviewAccount] = useState<Account | null>(null);
   const [isOverviewModalOpen, setIsOverviewModalOpen] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'columns');
-  const [splitAssetsLiabilities, setSplitAssetsLiabilities] = useLocalStorage<boolean>('crystal_split_assets_liabilities', true);
   const [viewStyle, setViewStyle] = useLocalStorage<'detailed' | 'minimal'>('crystal_accounts_view_style', 'detailed');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
@@ -70,21 +65,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides);
   
-  // New State for Segmentation
-  const [activeSegment, setActiveSegment] = useState<AccountSegment>('all');
+  const urlTab = useUrlTab();
+  const activeTab = (['accounts', 'loans', 'assets'].includes(urlTab ?? '') ? urlTab : 'cards') as AccountsTab;
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-            setContextMenu(null);
-        }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-  
   const visibleAccounts = useMemo(
     () => getVisibleAccountsForAccountsPage(accounts),
     [accounts]
@@ -98,135 +82,32 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     [transactions, analyticsAccountIds]
   );
 
-  const globalMetrics = useMemo(() => {
-      const open = visibleAccounts.filter(acc => acc.status !== 'closed');
-      const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open, analyticsTransactions, loanPaymentOverrides);
-      const liquidCash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
-                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-
-      const trendData = computePortfolio90dNetWorthTrend(open, analyticsTransactions, loanPaymentOverrides, {
-          conversionRates,
-      });
-
-      return { totalAssets, totalDebt, netWorth, liquidCash, trendData };
-  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides, conversionRates]);
-
-  // --- Filter Logic ---
-  const filteredAccounts = useMemo(() => {
-      const open = visibleAccounts.filter(acc => acc.status !== 'closed');
-      switch (activeSegment) {
-          case 'cash':
-              return open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type));
-          case 'invested':
-              return open.filter(acc => acc.type === 'Investment');
-          case 'property':
-              return open.filter(acc => acc.type === 'Property' || acc.type === 'Vehicle' || acc.type === 'Other Assets');
-          case 'debt':
-              return open.filter(acc => DEBT_TYPES.includes(acc.type));
-          default:
-              return open;
-      }
-  }, [visibleAccounts, activeSegment]);
-  
+  const openAccounts = useMemo(() => visibleAccounts.filter(acc => acc.status !== 'closed'), [visibleAccounts]);
+  const tabAccounts = useMemo(() => accountsInTab(openAccounts, activeTab), [openAccounts, activeTab]);
   const closedAccounts = useMemo(() => visibleAccounts.filter(acc => acc.status === 'closed'), [visibleAccounts]);
 
-  // --- Segment Metrics ---
-  const segmentMetrics = useMemo(() => {
-      const accountsToSum = filteredAccounts.filter(acc => acc.includeInAnalytics ?? true);
-      let totalValue = 0;
-      let label = 'Total Net Worth';
-      let subLabel = 'All Accounts';
-      let details: { label: string; value: string; icon?: string }[] = [];
-      
-      if (activeSegment === 'all') {
-          totalValue = globalMetrics.netWorth;
-          details = [
-              { label: 'Total Assets', value: formatCurrency(convertCurrency(globalMetrics.totalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'Bank' },
-              { label: 'Total Liabilities', value: formatCurrency(convertCurrency(globalMetrics.totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'receipt' },
-              { label: 'Liquid Cash', value: formatCurrency(convertCurrency(globalMetrics.liquidCash, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'wallet' },
-          ];
-      } else if (activeSegment === 'cash') {
-          totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-          label = 'Total Liquidity';
-          subLabel = 'Cash & Equivalents';
+  const toDisplay = (eur: number) => convertCurrency(eur, 'EUR', preferredCurrency, conversionRates);
 
-          const checking = accountsToSum.filter(a => a.type === 'Checking').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
-          const savings = accountsToSum.filter(a => a.type === 'Savings').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
-          
-          // Calculate 30-day net flow for cash accounts (BUG-05 fix: 30 days instead of 90 days)
-          const netFlow = computeCashSegmentNetFlow(accountsToSum, transactions, 30, { conversionRates });
+  const summary = useMemo(() => {
+    const countable = tabAccounts.filter(acc => acc.includeInAnalytics ?? true);
+    const totals = calculateAccountTotals(countable, analyticsTransactions, loanPaymentOverrides);
+    const money = (eur: number) => formatCurrency(toDisplay(eur), preferredCurrency);
+    const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
-          details = [
-              { label: 'Checking', value: formatCurrency(convertCurrency(checking, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'Bank' },
-              { label: 'Savings', value: formatCurrency(convertCurrency(savings, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'piggy_bank' },
-              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(convertCurrency(netFlow, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'candlestick_chart' },
-          ];
-      } else if (activeSegment === 'invested') {
-          totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-          label = 'Investment Value';
-          subLabel = 'Market Value';
-          
-          const crypto = accountsToSum.filter(a => a.subType === 'Crypto').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
-          const stocks = accountsToSum.filter(a => ['Stock', 'ETF'].includes(a.subType || '')).reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
-
-          details = [
-               { label: 'Stocks & ETFs', value: formatCurrency(convertCurrency(stocks, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'candlestick_chart' },
-               { label: 'Crypto', value: formatCurrency(convertCurrency(crypto, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'zap' },
-               { label: 'Count', value: accountsToSum.length.toString(), icon: 'rows' },
-          ];
-      } else if (activeSegment === 'property') {
-          totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-          label = 'Asset Value';
-          subLabel = 'Current Market Value';
-
-          // Calculate Debt linked to these properties
-          const linkedLoanIds = new Set(accountsToSum.map(a => a.linkedLoanId).filter(Boolean));
-          const linkedLoans = accounts.filter(a => linkedLoanIds.has(a.id));
-          const { totalDebt } = calculateAccountTotals(linkedLoans, analyticsTransactions, loanPaymentOverrides);
-          const equity = totalValue - totalDebt;
-
-          details = [
-              { label: 'Total Equity', value: formatCurrency(convertCurrency(equity, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'scale' },
-              { label: 'Linked Debt', value: formatCurrency(convertCurrency(totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'link' },
-              { label: 'Assets', value: accountsToSum.length.toString(), icon: 'home' },
-          ];
-      } else if (activeSegment === 'debt') {
-           const { totalDebt } = calculateAccountTotals(accountsToSum, analyticsTransactions, loanPaymentOverrides);
-           totalValue = totalDebt; 
-           label = 'Total Liabilities';
-           subLabel = 'Outstanding Balance';
-
-           const ccDebt = accountsToSum.filter(a => a.type === 'Credit Card').reduce((sum, a) => sum - convertToEur(a.balance, a.currency), 0);
-           const loanDebt = totalDebt - ccDebt;
-
-           details = [
-               { label: 'Credit Cards', value: formatCurrency(convertCurrency(ccDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'credit_card' },
-               { label: 'Loans', value: formatCurrency(convertCurrency(loanDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'receipt_check' },
-               { label: 'Count', value: accountsToSum.length.toString(), icon: 'rows' },
-           ];
+    switch (activeTab) {
+      case 'accounts':
+        return `${money(totals.netWorth)} across ${plural(countable.length, 'account')}, with ${money(computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates }))} net flow over 30 days.`;
+      case 'loans':
+        return `${money(Math.abs(totals.totalDebt))} still to pay across ${plural(countable.length, 'loan')}.`;
+      case 'assets':
+        return `${money(totals.totalAssets)} across ${plural(countable.length, 'asset')}.`;
+      default: {
+        const credit = countable.filter(acc => acc.type === 'Credit Card');
+        const owed = calculateAccountTotals(credit, analyticsTransactions, loanPaymentOverrides).totalDebt;
+        return `${plural(countable.length, 'card')}${credit.length ? `, with ${money(Math.abs(owed))} owed on credit` : ''}.`;
       }
-      
-      const finalValue = convertCurrency(totalValue, 'EUR', preferredCurrency, conversionRates);
-      return { totalValue: finalValue, label, subLabel, details };
-  }, [filteredAccounts, activeSegment, globalMetrics, analyticsTransactions, loanPaymentOverrides, accounts, preferredCurrency, conversionRates]);
-
-  const segmentValues = useMemo(() => {
-    const open = visibleAccounts.filter(acc => acc.status !== 'closed');
-    const cash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-    const invested = open.filter(acc => acc.type === 'Investment').reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-    const property = open.filter(acc => acc.type === 'Property' || acc.type === 'Vehicle' || acc.type === 'Other Assets').reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-    
-    const debtAccounts = open.filter(acc => DEBT_TYPES.includes(acc.type));
-    const { totalDebt } = calculateAccountTotals(debtAccounts, analyticsTransactions, loanPaymentOverrides);
-    
-    return {
-      all: convertCurrency(globalMetrics.netWorth, 'EUR', preferredCurrency, conversionRates),
-      cash: convertCurrency(cash, 'EUR', preferredCurrency, conversionRates),
-      invested: convertCurrency(invested, 'EUR', preferredCurrency, conversionRates),
-      property: convertCurrency(property, 'EUR', preferredCurrency, conversionRates),
-      debt: convertCurrency(totalDebt, 'EUR', preferredCurrency, conversionRates)
-    };
-  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides, globalMetrics.netWorth, preferredCurrency, conversionRates]);
+    }
+  }, [tabAccounts, activeTab, analyticsTransactions, loanPaymentOverrides, transactions, conversionRates, preferredCurrency]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
@@ -284,405 +165,149 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     setAdjustModalOpen(false);
   };
 
-  const handleAddAccount = (account: Omit<Account, 'id'>) => { saveAccount(account); setAddModalOpen(false); };
-  const handleUpdateAccount = (updatedAccount: Account) => { saveAccount(updatedAccount); setEditModalOpen(false); setEditingAccount(null); };
   const handleConfirmDelete = () => { if (deletingAccount) { deleteAccount(deletingAccount.id); setDeletingAccount(null); } };
 
-  const handleContextMenu = (event: React.MouseEvent, account: Account) => {
-    event.preventDefault();
-    const menuWidth = 224;
-    const menuHeight = 260;
-    const padding = 12;
-    const x = Math.max(padding, Math.min(event.clientX, window.innerWidth - menuWidth - padding));
-    const y = Math.max(padding, Math.min(event.clientY, window.innerHeight - menuHeight - padding));
-    setContextMenu({ x, y, account });
-  };
-  
-  // Segment Pills config
-  const segments: { id: AccountSegment; label: string; icon: string }[] = [
-      { id: 'all', label: 'Overview', icon: 'layout_alt' },
-      { id: 'cash', label: 'Cash', icon: 'wallet' },
-      { id: 'invested', label: 'Invested', icon: 'candlestick_chart' },
-      { id: 'property', label: 'Assets', icon: 'home' },
-      { id: 'debt', label: 'Liabilities', icon: 'credit_card' },
-  ];
 
-  const heroGradient = activeSegment === 'debt' 
-    ? 'from-rose-500 via-rose-600 to-pink-700' 
-    : activeSegment === 'cash' 
-        ? 'from-sky-500 via-blue-600 to-indigo-700'
-        : activeSegment === 'invested'
-            ? 'from-emerald-500 via-teal-600 to-cyan-700'
-            : activeSegment === 'property'
-                ? 'from-amber-500 via-orange-600 to-yellow-700'
-                : 'from-indigo-600 via-violet-700 to-purple-800'; // Default/All
+  const menuFor = (account: Account) => {
+    const isComputed = account.type === 'Investment' && !!account.symbol && warrants.some(w => w.isin === account.symbol);
+    return [
+      { id: 'overview', label: 'Quick overview', icon: 'visibility', onAction: () => openOverviewModal(account) },
+      { id: 'open', label: 'Open account', icon: 'open_in_new', onAction: () => handleAccountClick(account.id) },
+      { id: 'transactions', label: 'See transactions', icon: 'receipt', onAction: () => onNavigateToTransactions({ accountName: account.name }) },
+      { id: 'edit', label: 'Edit', icon: 'edit', startsGroup: true, onAction: () => openEditModal(account) },
+      { id: 'adjust', label: 'Adjust balance', icon: 'tune', isDisabled: isComputed, onAction: () => openAdjustModal(account) },
+      { id: 'delete', label: 'Delete', icon: 'delete', isDestructive: true, startsGroup: true, onAction: () => setDeletingAccount(account) },
+    ];
+  };
+
+  const section = (title: string, list: Account[], options: { isCollapsible?: boolean; defaultExpanded?: boolean } = {}) => (
+    <AccountsListSection
+      title={title}
+      accounts={list}
+      transactionsByAccount={transactionsByAccount}
+      linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
+      onAccountClick={handleAccountRowCardClick}
+      menuFor={menuFor}
+      onEditClick={openEditModal}
+      onAdjustBalanceClick={openAdjustModal}
+      onOverviewClick={openOverviewModal}
+      sortBy={sortBy}
+      accountOrder={accountOrder}
+      setAccountOrder={setAccountOrder}
+      layoutMode="stacked"
+      viewStyle="minimal"
+      {...options}
+    />
+  );
+
+  const potNote = (account: Account) => {
+    const linked = accounts.filter(acc => acc.settlementAccountId === account.id && acc.status !== 'closed').map(acc => acc.name);
+    if (accountHasCard(account)) linked.unshift(account.name);
+    if (linked.length) return `${linked.length} ${linked.length === 1 ? 'card spends' : 'cards spend'} from here: ${linked.join(', ')}.`;
+    return account.notes;
+  };
+
+  const sortedPots = useMemo(() => {
+    const list = [...tabAccounts];
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === 'balance') return list.sort((a, b) => convertToEur(b.balance, b.currency) - convertToEur(a.balance, a.currency));
+    return list.sort((a, b) => accountOrder.indexOf(a.id) - accountOrder.indexOf(b.id));
+  }, [tabAccounts, sortBy, accountOrder]);
+
+  const viewOptions = (
+    <div className="flex w-64 flex-col gap-4 max-md:w-full">
+      <Select label="Sort by" options={[{ id: 'manual', label: 'Your order' }, { id: 'name', label: 'Name' }, { id: 'balance', label: 'Balance' }]} value={sortBy} onChange={id => setSortBy(id as typeof sortBy)} />
+      {!isMobile && (
+        <RadioGroup label="Show as" value={viewStyle} onChange={value => setViewStyle(value as typeof viewStyle)}>
+          <Radio value="detailed">Pots</Radio>
+          <Radio value="minimal">Rows, to reorder</Radio>
+        </RadioGroup>
+      )}
+    </div>
+  );
+
+  const showPots = !isMobile && viewStyle === 'detailed';
 
   return (
-    <div className="relative">
-      <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
-        {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
-        {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
-        {isAdjustModalOpen && adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
-        {isOverviewModalOpen && overviewAccount && (
-          <AccountOverviewModal
-            isOpen={isOverviewModalOpen}
-            onClose={() => setIsOverviewModalOpen(false)}
-            account={overviewAccount}
-            transactions={transactionsByAccount[overviewAccount.id] || []}
-            accounts={accounts}
-            warrants={warrants}
-            onViewAccount={handleAccountClick}
-            onEditAccount={openEditModal}
-            onAdjustBalance={openAdjustModal}
-            onNavigateToTransactions={onNavigateToTransactions}
-          />
-        )}
-        {deletingAccount && <FinalConfirmationModal isOpen={!!deletingAccount} onClose={() => setDeletingAccount(null)} onConfirm={handleConfirmDelete} title="Delete Account" message={<><p className="text-slate-600 dark:text-slate-400 mb-4 text-xs font-medium">You are about to permanently delete the account <strong className="text-slate-900 dark:text-white font-bold">{deletingAccount.name}</strong>.</p><div className="p-3.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-2xl text-rose-700 dark:text-rose-300 text-xs"><p className="font-bold">This action cannot be undone.</p><p className="mt-0.5 font-medium">All associated transactions will also be permanently deleted.</p></div></>} requiredText="DELETE" confirmButtonText="Delete Account" />}
-        
-        {contextMenu && (
-            <div ref={contextMenuRef} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed z-50 w-56 ios-regular rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up">
-                <ul className="text-sm">
-                    <li><button onClick={() => { openOverviewModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="visibility" className="text-base text-primary-500" /><span>Quick Overview</span></button></li>
-                    <li><button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="account_balance_wallet" className="text-base" /><span>View Full Account</span></button></li>
-                    <li><button onClick={() => { onNavigateToTransactions({ accountName: contextMenu.account.name }); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="filter_list" className="text-base" /><span>Filter Transactions</span></button></li>
-                    <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
-                    <li><button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="edit" className="text-base" /><span>Edit Account</span></button></li>
-                    <li><button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10"><Icon name="tune" className="text-base" /><span>Adjust Balance</span></button></li>
-                    <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
-                    <li><button onClick={() => { setDeletingAccount(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><Icon name="delete" className="text-base" /><span>Delete Account</span></button></li>
-                </ul>
-            </div>
-        )}
+    <div className="space-y-6">
+      {isAddModalOpen && <AccountForm accounts={accounts} onClose={() => setAddModalOpen(false)} onSave={saveAccount} />}
+      {isEditModalOpen && editingAccount && <AccountForm account={editingAccount} accounts={accounts} warrants={warrants} onClose={() => { setEditModalOpen(false); setEditingAccount(null); }} onSave={saveAccount} onDelete={() => setDeletingAccount(editingAccount)} onToggleStatus={onToggleAccountStatus} />}
+      {isAdjustModalOpen && adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
+      {isOverviewModalOpen && overviewAccount && (
+        <AccountOverviewModal
+          isOpen={isOverviewModalOpen}
+          onClose={() => setIsOverviewModalOpen(false)}
+          account={overviewAccount}
+          transactions={transactionsByAccount[overviewAccount.id] || []}
+          accounts={accounts}
+          warrants={warrants}
+          onViewAccount={handleAccountClick}
+          onEditAccount={openEditModal}
+          onAdjustBalance={openAdjustModal}
+          onNavigateToTransactions={onNavigateToTransactions}
+        />
+      )}
+      <ConfirmDialog
+        isOpen={!!deletingAccount}
+        onClose={() => setDeletingAccount(null)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${deletingAccount?.name ?? 'account'}?`}
+        message="This permanently removes the account and all its transactions. You can't undo it."
+        confirmLabel="Delete account"
+        requireText={deletingAccount?.name ?? ''}
+        isDestructive
+      />
 
-        {/* Responsive View Switch */}
-        {isMobile ? (
-          <MobileAccountsView
-            accounts={accounts}
-            transactions={transactions}
-            globalMetrics={globalMetrics}
-            segmentValues={segmentValues}
-            activeSegment={activeSegment}
-            setActiveSegment={setActiveSegment}
-            filteredAccounts={filteredAccounts}
-            closedAccounts={closedAccounts}
-            transactionsByAccount={transactionsByAccount}
-            warrants={warrants}
-            linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
-            onAccountClick={handleAccountRowCardClick}
-            onEditClick={openEditModal}
-            onAdjustBalanceClick={openAdjustModal}
-            onOverviewClick={openOverviewModal}
-            onAddAccountClick={() => setAddModalOpen(true)}
-            preferredCurrency={preferredCurrency}
-            conversionRates={conversionRates}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            accountOrder={accountOrder}
-            setAccountOrder={setAccountOrder}
-            splitAssetsLiabilities={splitAssetsLiabilities}
-            setSplitAssetsLiabilities={setSplitAssetsLiabilities}
-            loanPaymentOverrides={loanPaymentOverrides}
-            brandfetchClientId={brandfetchClientId}
-            merchantLogoOverrides={merchantLogoOverrides}
-          />
-        ) : (
-          <div className="space-y-6">
-          <PageHeader 
-              accentColor="amber"
-              markerIcon="wallet"
-              markerLabel="Portfolio Overview"
-              title="Accounts & Portfolio"
-              subtitle="Track your liquid capital, property valuations, debt obligations and investments in a single place to calculate real-time net worth."
-              actions={
-                <div className="flex items-center gap-2">
-                  <HeaderButton
-                    variant="emerald"
-                    icon="sync"
-                    isLoading={isSyncingBanks}
-                    onClick={() => {
-                      if (onSyncBanks) onSyncBanks();
-                      else {
-                        const syncBtn = document.querySelector('[data-eb-sync-all]');
-                        if (syncBtn) (syncBtn as HTMLElement).click();
-                      }
-                    }}
-                    title="Sync Connected Banking Accounts"
-                  >
-                    {isSyncingBanks ? 'Syncing...' : 'Sync Banks'}
-                  </HeaderButton>
-                  <HeaderButton
-                    variant="primary"
-                    icon="PlusCircle"
-                    onClick={() => setAddModalOpen(true)}
-                  >
-                    Add Account
-                  </HeaderButton>
-                </div>
-              }
-          />
+      <PageHeader
+        title="Accounts"
+        subtitle={summary}
+        actions={
+          <>
+            {activeTab !== 'cards' && (
+              <Popover title="View options" placement="bottom end" trigger={<IconButton icon="tune" label="View options" tooltipPlacement="bottom" />}>
+                {viewOptions}
+              </Popover>
+            )}
+            <Button icon="add" onPress={() => setAddModalOpen(true)}>Add account</Button>
+          </>
+        }
+      />
 
-        {/* --- Consolidated Header & Portfolio --- */}
-        <div className="glass-section rounded-3xl p-4 sm:p-6 border border-slate-200/60 dark:border-white/5 shadow-[4px_6px_12px_rgba(0,0,0,0.06)] dark:shadow-[4px_6px_12px_rgba(0,0,0,0.25)] overflow-hidden relative group">
-
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8">
-                {/* Left Side: Portfolio Display */}
-                <div className="flex flex-col xl:flex-row xl:items-center gap-4 lg:gap-8 flex-1 min-w-0">
-                    <div className="flex items-center justify-between sm:block w-full sm:w-auto">
-                        <div 
-                            onClick={() => setActiveSegment('all')}
-                            className="cursor-pointer group/nw min-w-0"
-                        >
-                            <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                                <div className="w-6 h-6 rounded-lg bg-primary-500/15 border border-primary-500/30 text-primary-500 flex items-center justify-center">
-                                    <Icon name="wallet" className="text-xs" />
-                                </div>
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Portfolio Value</span>
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                                <h2 className="text-xl sm:text-3xl lg:text-4xl font-black font-mono tracking-tight privacy-blur text-slate-900 dark:text-white group-hover/nw:text-primary-500 transition-colors">
-                                    {formatCurrency(segmentValues.all, 'EUR')}
-                                </h2>
-                                {activeSegment === 'all' && (
-                                    <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(250,154,29,0.8)]" />
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Mobile Add Account Button right next to Portfolio Value */}
-                        <div className="sm:hidden shrink-0">
-                            <button 
-                                onClick={() => setAddModalOpen(true)} 
-                                className={`${BTN_PRIMARY_STYLE} !py-1.5 !px-3 !text-xs !rounded-xl flex items-center gap-1`}
-                            >
-                                <Icon name="PlusCircle" className="text-sm" />
-                                <span>Add Account</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Compact Sparkline - hidden on mobile */}
-                    <div className="hidden sm:block h-6 mt-2 sm:mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity max-w-[150px] sm:max-w-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={globalMetrics.trendData}>
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke={activeSegment === 'all' ? "#fa9a1d" : "#94a3b8"} 
-                                    strokeWidth={2} 
-                                    fill="transparent" 
-                                    animationDuration={2000}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div className="hidden xl:block w-px h-16 bg-slate-200/60 dark:bg-white/10" />
-
-                    {/* Segment Grid - High Density Tiles - scrollable on mobile */}
-                    <div className="flex-1 lg:flex-[2] flex overflow-x-auto lg:grid lg:grid-cols-4 gap-2 sm:gap-4 pb-1 lg:pb-0 no-scrollbar snap-x snap-mandatory max-w-full">
-                        {segments.filter(s => s.id !== 'all').map(seg => {
-                            const isActive = activeSegment === seg.id;
-                            const val = segmentValues[seg.id as keyof typeof segmentValues];
-                            return (
-                                <div 
-                                    key={seg.id}
-                                    onClick={() => setActiveSegment(seg.id)}
-                                    className={`group cursor-pointer p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all border shrink-0 sm:shrink lg:shrink-0 w-[120px] sm:w-auto snap-start ${isActive ? 'bg-primary-500/10 border-primary-500/30 dark:bg-primary-500/15' : 'glass-tile border-slate-200/60 dark:border-white/5 hover:border-slate-300'}`}
-                                >
-                                    <div className="flex items-center justify-between mb-1 sm:mb-1.5">
-                                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center border ${isActive ? 'bg-primary-500/20 border-primary-500/40 text-primary-500' : 'bg-slate-100 dark:bg-white/5 border-slate-200/60 dark:border-white/10 text-slate-500 dark:text-slate-400'}`}>
-                                            <Icon name={seg.icon} className="text-base sm:text-lg" />
-                                        </div>
-                                        {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(250,154,29,0.8)]" />}
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className={`text-[11px] font-bold uppercase tracking-wider ${isActive ? 'text-primary-500' : 'text-slate-500 dark:text-slate-400'}`}>{seg.label}</span>
-                                        <span className={`text-sm sm:text-base font-black font-mono tracking-tight privacy-blur ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
-                                            {formatCurrency(val, 'EUR')}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-
-            {/* Integrated Details Tray & Controls */}
-            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-black/5 dark:border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                <AnimatePresence mode="wait">
-                    <motion.div 
-                        key={activeSegment}
-                        initial={{ opacity: 0, x: -1 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 1 }}
-                        className="hidden sm:flex flex-wrap items-center gap-x-8 gap-y-3"
-                    >
-                        {segmentMetrics.details.map((detail, i) => (
-                             <div key={i} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
-                                    <Icon name={detail.icon} className="text-base text-primary-500/70" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{detail.label}</span>
-                                    <span className="text-sm font-bold text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
-                                </div>
-                             </div>
-                        ))}
-                    </motion.div>
-                </AnimatePresence>
-
-                {/* Consolidated Controls */}
-                <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary gap-0.5 overflow-x-auto no-scrollbar max-w-full">
-                        <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
-                            <Icon name="vertical_split" className="text-base" />
-                            <span className="hidden md:inline">Split</span>
-                        </button>
-                        <button onClick={() => setSplitAssetsLiabilities(false)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all shrink-0 ${!splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Combined View">
-                            <Icon name="view_agenda" className="text-base" />
-                            <span className="hidden md:inline">Combined</span>
-                        </button>
-                    </div>
-
-                    <div className={`${SELECT_WRAPPER_STYLE} !w-auto h-9`}>
-                        <select aria-label="Sort accounts" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-xs !font-semibold pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
-                            <option value="manual">Sort: Manual</option>
-                            <option value="name">Sort: Name</option>
-                            <option value="balance">Sort: Balance</option>
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><Icon name="expand_more" className="text-sm" /></div>
-                    </div>
-                    
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
-                        <button onClick={() => setViewStyle('detailed')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'detailed' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Standard Cards">
-                            <Icon name="style" className="text-lg" />
-                        </button>
-                        <button onClick={() => setViewStyle('minimal')} className={`p-1.5 rounded-lg transition-all ${viewStyle === 'minimal' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Minimalist Rows">
-                            <Icon name="density_medium" className="text-lg" />
-                        </button>
-                    </div>
-
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
-                        <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Grid Layout">
-                            <Icon name="grid_view" className="text-lg" />
-                        </button>
-                        <button onClick={() => setLayoutMode('stacked')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="List Layout">
-                            <Icon name="view_list" className="text-lg" />
-                        </button>
-                    </div>
-                </div>
-            </div>
+      {activeTab === 'cards' ? (
+        <CardsWallet
+          cards={tabAccounts}
+          accounts={accounts}
+          transactionsByAccount={transactionsByAccount}
+          selectedId={selectedCardId}
+          onSelect={setSelectedCardId}
+          menuFor={menuFor}
+          onOpen={handleAccountClick}
+          onSeeTransactions={account => onNavigateToTransactions({ accountName: account.name })}
+          onAddCard={() => setAddModalOpen(true)}
+        />
+      ) : tabAccounts.length === 0 ? (
+        <EmptyState icon="wallet" title="Nothing here yet" description="Accounts of this kind appear here." actionLabel="Add account" onAction={() => setAddModalOpen(true)} />
+      ) : showPots ? (
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          {sortedPots.map(account => (
+            <AccountPot
+              key={account.id}
+              account={account}
+              transactions={transactionsByAccount[account.id] || []}
+              context={`${account.type}${account.financialInstitution ? `, ${account.financialInstitution}` : ''}`}
+              note={potNote(account)}
+              menuItems={menuFor(account)}
+              onOpen={() => handleAccountClick(account.id)}
+            />
+          ))}
         </div>
+      ) : section('', tabAccounts)}
 
+      {activeTab === 'assets' && openAccounts.some(acc => acc.type === 'Investment') && (
+        <Button variant="ghost" icon="nav_investments" onPress={() => setCurrentPage('Investments')}>Investments are in their own hub</Button>
+      )}
 
-        {/* --- Multi-Column Accounts View --- */}
-        {splitAssetsLiabilities ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                {/* Assets Column */}
-                <div className="space-y-8">
-                    <AccountsListSection 
-                        title="Assets"
-                        headerIcon={<Icon name="Bank" className="text-2xl text-primary-500 shrink-0" />}
-                        headerSubtitle="Wealth & Resources"
-                        accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
-                        transactionsByAccount={transactionsByAccount} 
-                        warrants={warrants} 
-                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                        onAccountClick={handleAccountRowCardClick} 
-                        onEditClick={openEditModal} 
-                        onAdjustBalanceClick={openAdjustModal} 
-                        onOverviewClick={openOverviewModal}
-                        sortBy={sortBy} 
-                        accountOrder={accountOrder} 
-                        setAccountOrder={setAccountOrder} 
-                        onContextMenu={handleContextMenu} 
-                        isCollapsible={false} 
-                        defaultExpanded={true}
-                        layoutMode={layoutMode} 
-                        showCollapseAll={true}
-                        viewStyle={viewStyle}
-                    />
-                </div>
-
-                {/* Liabilities Column */}
-                <div className="space-y-8">
-                    <AccountsListSection 
-                        title="Liabilities"
-                        headerIcon={<Icon name="receipt" className="text-2xl text-rose-500 shrink-0" />}
-                        headerSubtitle="Debts & Obligations"
-                        accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
-                        transactionsByAccount={transactionsByAccount} 
-                        warrants={warrants} 
-                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                        onAccountClick={handleAccountRowCardClick} 
-                        onEditClick={openEditModal} 
-                        onAdjustBalanceClick={openAdjustModal} 
-                        onOverviewClick={openOverviewModal}
-                        sortBy={sortBy} 
-                        accountOrder={accountOrder} 
-                        setAccountOrder={setAccountOrder} 
-                        onContextMenu={handleContextMenu} 
-                        isCollapsible={false} 
-                        defaultExpanded={true}
-                        layoutMode={layoutMode} 
-                        showCollapseAll={true}
-                        viewStyle={viewStyle}
-                    />
-                </div>
-            </div>
-        ) : (
-            <div className="space-y-8">
-                <AccountsListSection 
-                    title={activeSegment === 'all' ? 'Your Portfolio' : `${segments.find(s => s.id === activeSegment)?.label} Accounts`}
-                    accounts={filteredAccounts} 
-                    transactionsByAccount={transactionsByAccount} 
-                    warrants={warrants} 
-                    linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                    onAccountClick={handleAccountRowCardClick} 
-                    onEditClick={openEditModal} 
-                    onAdjustBalanceClick={openAdjustModal} 
-                    onOverviewClick={openOverviewModal}
-                    sortBy={sortBy} 
-                    accountOrder={accountOrder} 
-                    setAccountOrder={setAccountOrder} 
-                    onContextMenu={handleContextMenu} 
-                    isCollapsible={false} 
-                    defaultExpanded={true}
-                    layoutMode={layoutMode} 
-                    showCollapseAll={true}
-                    viewStyle={viewStyle}
-                />
-            </div>
-        )}
-
-        {/* --- Closed Accounts - Only show if relevant to filter or in All view --- */}
-        {closedAccounts.length > 0 && activeSegment === 'all' && (
-            <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-                <AccountsListSection 
-                    title="Closed Accounts" 
-                    accounts={closedAccounts} 
-                    transactionsByAccount={transactionsByAccount} 
-                    warrants={warrants} 
-                    linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                    onAccountClick={handleAccountRowCardClick} 
-                    onEditClick={openEditModal} 
-                    onAdjustBalanceClick={openAdjustModal} 
-                    onOverviewClick={openOverviewModal}
-                    sortBy={sortBy} 
-                    accountOrder={accountOrder} 
-                    setAccountOrder={setAccountOrder} 
-                    onContextMenu={handleContextMenu} 
-                    isCollapsible={true} 
-                    defaultExpanded={false} 
-                    layoutMode={layoutMode} 
-                    viewStyle={viewStyle}
-                />
-            </div>
-        )}
-        </div>
-        )}
-      </div>
+      {accountsInTab(closedAccounts, activeTab).length > 0 && section('Closed', accountsInTab(closedAccounts, activeTab), { isCollapsible: true, defaultExpanded: false })}
     </div>
   );
 };

@@ -2,7 +2,7 @@
 
 Phase 9 tracker. It records what's built, what was tested and what wasn't. A module is only Done after checks at 1440 × 900, 768 × 1024 and 390 × 844, in light and dark. Anything skipped is written here.
 
-**Base:** this work stacks on `feat/redesign-overview`, then `feat/redesign-primitives-shell`, then `feat/redesign-foundation`, then `refactor/remove-new-ui`. None were merged into `main` when this was written. Nothing is committed until the owner asks.
+**Base:** this work stacks on `feat/redesign-accounts`, then `feat/redesign-overview`, then `feat/redesign-primitives-shell`, then `feat/redesign-foundation`, then `refactor/remove-new-ui`. None were merged into `main` when this was written. Nothing is committed until the owner asks.
 
 **How old pages keep working:** the old colour names are mapped onto the new palette. Every page takes the new look at once and keeps working until its module is rebuilt. This bridge isn't the finished design, and it's removed in the final module.
 
@@ -14,7 +14,7 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 1 | Primitives | Buttons, fields, menus, overlays, table, states | Done |
 | 2 | App shell | Pills, tab row, rail, phone bar, More, top bar | Done, with the gaps listed below |
 | 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
-| 4 | Accounts | Hub tabs, account frame, one account form | Not started |
+| 4 | Accounts | Hub tabs, account frame, one account form | Done |
 | 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Not started |
 | 6 | Rules | Rebuild (`D-009`), with tests first | Not started |
 | 7 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Not started |
@@ -161,3 +161,61 @@ Phase 10 (final QA) follows module 13.
 - Filters on desktop still use the old account and period controls until `FilterBar` in module 5.
 - Pending Matches opens in a full panel until module 5 replaces it.
 - Forecast on phones stacks four cards, which is tall.
+
+### Module 4: Accounts
+
+**Status:** Done, committed on `feat/redesign-accounts`.
+
+**Built**
+- Hub: All, Cash, Cards, Loans and Assets tabs (`D-020`) in the shell's tab row, a summary card per tab, and account cards or rows. Sort, view and layout choices sit in View options.
+- `AccountCard` replaces `AccountRow`. Its menu holds every old context menu action, and right-click opens it. Phones keep swipe actions, and reorder with up and down buttons.
+- `AccountFrame` and `AccountPanels` replace the nine account views (`D-038`): back, hero, chart, tabs. Property and vehicles add Valuations, vehicles add Mileage, loans add Payment plan, cards add Billing.
+- `AccountForm` replaces the Add and Edit forms (`D-023`), both about 1,600 lines. Pick the type, then short sections. It includes the fields the old Add form never showed: insurance, garden, terrace, parking, lease payment day and account. Closing with unsaved changes asks first (`D-068`).
+- `utils/accountForm.ts` holds the form's logic, with 10 tests including a round trip through the draft.
+- "What if you paid extra?" slider on loans (`D-039`), with 2 tests.
+- Removed: `AddAccountModal`, `EditAccountModal`, `MobileAccountsView`, `MobileAccountHeader`, `AccountRow`, the nine views.
+
+**Rebuilt on the owner's request (`D-081`, `D-082`)**
+- Tabs are Cards (default), Accounts, Loans and Assets, after Rivolo's Wallet. This replaces the hub bullet above.
+- Cards: a row of cards to pick from, then the chosen card's details, limit, top merchants this month, and activity by day. Only the last four digits ever show.
+- Accounts, Loans and Assets show two-column pots on desktop: figure, 90-day trend, what's linked, latest three transactions. Phones show rows.
+- Sort stays in View options, with Pots or Rows. Rows is where drag reorder lives. The old split, grid and list options are gone, and so is the summary card.
+- Rivolo's freeze, spending limits, card controls, full card number and CVV aren't included, because Crystal holds no such data.
+
+**Changed behaviour, worth checking**
+- Account pages' Safe to spend now uses the tested 14-day model. The old Checking page really used 7 days. Overview's Safe to spend is different on purpose (`D-076`).
+- Editing a loan now saves its Paid from account. The old Edit form showed the field but dropped the change.
+- Notes now save on every account type, as the form always showed them. They used to save only on Other assets and debts.
+- Adjust balance is on every account type's page apart from loans, cards, property and vehicles. Checking and Savings had lost it there.
+- A loan with no term or rate shows its balance rather than €0, with a note to add them.
+- Removed as duplicates: the Savings 90-day chart (the frame's chart covers it), and the decorative Pension accumulation index and Cash reserve index figure. The Cash burn rate sentence stays.
+- The vehicle page no longer shows a stock Unsplash photo when you haven't added one.
+
+**Tested**
+
+| Check | Result |
+|---|---|
+| Type checks, `npm test`, Vite build | Clean, with 253 tests passed and 0 failed |
+| Five hub tabs, and 10 account types with every tab | 46 views at 768 and 390 px, and every tab at 1440 px: no sideways scroll, no error screens. Light theme |
+| Add a vehicle: type tiles, sections, unsaved guard, save | Worked |
+| Right-click menu, Delete, type to confirm | Button stayed off until the name was typed, then the account went |
+| Add a loan: total reconciled to 12,000 from principal and interest | Worked, and its schedule of 60 payments rendered |
+| Extra payment slider by keyboard | €80 extra showed 15 months sooner and €321.05 saved |
+| Phone View options and Add account sheets, 64 px rows | Worked |
+| New tabs at 1440, 768 and 390 px, and dark at 390 px | No sideways scroll and no error screens. Picking a card changes the detail. Card row is five across, three on tablets, and scrolls on phones |
+
+**Not tested**
+- Dark theme on these pages. They use tokens throughout, except old pieces below.
+- Editing every field type on a real account, image upload, and the mileage editor in the form.
+- Swipe actions, drag reorder and touch reorder.
+- Bank-linked sync from an account page, sale and reopen, valuation and mileage modals, in the new frame.
+- A signed-in account. Demo mode doesn't persist.
+- Checking accounts and meal vouchers in Cards, on screen. Demo data has only credit cards, so unit tests cover those.
+- The look of the Cards page at full size. The browser pane was too small for screenshots, so the layout was checked by measurement.
+
+**Known issues**
+- The hub pill and its first pot tab are both called Accounts.
+- `AccountOverviewModal`, `PaymentPlanTable`, `BalanceAdjustmentModal`, `HistoricalBalanceTrend` and the amortisation and mileage charts keep their old styling on bridge colours.
+- `AccountOverviewModal` should become a side panel (`D-024`). It's a 1,500-line modal, so it's deferred.
+- The full panel on phones scrolls through sections rather than stepping one at a time.
+- Demo loans have no term or rate, so they show no schedule.

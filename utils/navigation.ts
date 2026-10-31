@@ -3,6 +3,8 @@ import type { Page } from '../types';
 export interface HubTab {
   label: string;
   page: Page;
+  /** For tabs that share one page. */
+  tab?: string;
 }
 
 export interface Hub {
@@ -17,12 +19,24 @@ export interface Hub {
 }
 
 /**
- * The seven hubs (D-005, D-017). Tabs list what exists today. Accounts, Investments, Review queue and Goals gain theirs
- * in modules 4, 8, 5 and 7, when those pages are built.
+ * The seven hubs (D-005, D-017). Tabs list what exists today. Investments, Review queue and Goals gain theirs in modules
+ * 8, 5 and 7, when those pages are built.
  */
 export const HUBS: Hub[] = [
   { id: 'overview', label: 'Overview', icon: 'nav_overview', home: 'Dashboard', tabs: [] },
-  { id: 'accounts', label: 'Accounts', icon: 'nav_accounts', home: 'Accounts', tabs: [], otherPages: ['AccountDetail'] },
+  {
+    id: 'accounts',
+    label: 'Accounts',
+    icon: 'nav_accounts',
+    home: 'Accounts',
+    tabs: [
+      { label: 'Cards', page: 'Accounts' },
+      { label: 'Accounts', page: 'Accounts', tab: 'accounts' },
+      { label: 'Loans', page: 'Accounts', tab: 'loans' },
+      { label: 'Assets', page: 'Accounts', tab: 'assets' },
+    ],
+    otherPages: ['AccountDetail'],
+  },
   {
     id: 'transactions',
     label: 'Transactions',

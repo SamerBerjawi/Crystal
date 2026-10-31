@@ -66,7 +66,7 @@ Values are proposed, and checked against WCAG 2.2 AA with computed ratios. Phase
 | Hub | Tabs |
 |---|---|
 | Overview | None |
-| Accounts | All, Cash, Cards, Loans, Assets |
+| Accounts | Cards, Accounts, Loans, Assets (`D-081`) |
 | Transactions | Ledger, Review queue, Rules, Merchants |
 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks |
 | Investments | Portfolio, Holdings, Activity |

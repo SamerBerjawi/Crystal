@@ -13,19 +13,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import EnableBankingSyncModal from '../components/EnableBankingSyncModal';
-import HistoricalBalanceTrend from '../components/HistoricalBalanceTrend';
 import { toast } from 'sonner';
+import PageSkeleton from '../components/PageSkeleton';
 
-// Lazy load view components
-const PropertyAccountView = React.lazy(() => import('../components/PropertyAccountView'));
-const LoanAccountView = React.lazy(() => import('../components/LoanAccountView'));
-const VehicleAccountView = React.lazy(() => import('../components/VehicleAccountView'));
-const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
-const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
-const CashAccountView = React.lazy(() => import('../components/CashAccountView'));
-const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
-const PensionAccountView = React.lazy(() => import('../components/PensionAccountView'));
-const SpareChangeAccountView = React.lazy(() => import('../components/SpareChangeAccountView'));
+const AccountPanels = React.lazy(() => import('../components/AccountPanels'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -322,144 +313,6 @@ const AccountDetail: React.FC<{
         setTransactionToDelete(tx);
     };
 
-    const commonProps = {
-        account,
-        onAddTransaction: () => handleOpenTransactionModal(),
-        setViewingAccountId,
-        onBack: () => { setViewingAccountId(null); setCurrentPage('Accounts'); },
-        onSyncLinkedAccount: enableBankingLink ? handleOpenSyncPrompt : undefined,
-        isLinkedToEnableBanking: Boolean(enableBankingLink),
-        onCloseAsset: handleOpenCloseModal,
-        onRevertClosure: onRevertClosure ? () => onRevertClosure(account.id) : undefined,
-    };
-
-    const renderContent = () => {
-        if (account.type === 'Other Assets' && account.otherSubType === 'Cash') {
-            return (
-                <CashAccountView
-                    {...commonProps}
-                    displayTransactionsList={displayTransactionsList}
-                    transactions={accountTransactions}
-                    allCategories={allCategories}
-                    onTransactionClick={handleTransactionClick}
-                    onAdjustBalance={handleOpenAdjustModal}
-                    showBalanceAdjustments={showBalanceAdjustments}
-                />
-            );
-        }
-
-        switch (account.type) {
-            case 'Property':
-                return (
-                    <PropertyAccountView 
-                        {...commonProps}
-                        onUpdateValuation={handleOpenValuationModal}
-                        accounts={accounts}
-                        transactions={transactions}
-                        loanPaymentOverrides={loanPaymentOverrides}
-                        showBalanceAdjustments={showBalanceAdjustments}
-                    />
-                );
-            case 'Loan':
-            case 'Lending':
-                return (
-                    <LoanAccountView 
-                        {...commonProps}
-                        transactions={transactions}
-                        accounts={accounts}
-                        loanPaymentOverrides={loanPaymentOverrides[account.id] || {}}
-                        onOverridesChange={handleOverridesChange}
-                        onMakePayment={handleMakePayment}
-                        showBalanceAdjustments={showBalanceAdjustments}
-                    />
-                );
-            case 'Vehicle':
-                return (
-                    <VehicleAccountView 
-                        {...commonProps}
-                        onUpdateValuation={handleOpenValuationModal}
-                        accounts={accounts}
-                        transactions={transactions}
-                        loanPaymentOverrides={loanPaymentOverrides}
-                        onAddLog={() => handleOpenMileageModal()}
-                        onEditLog={handleOpenMileageModal}
-                        onDeleteLog={handleDeleteMileageLog}
-                        showBalanceAdjustments={showBalanceAdjustments}
-                    />
-                );
-            case 'Credit Card':
-                return (
-                    <CreditCardAccountView
-                        {...commonProps}
-                        displayTransactionsList={displayTransactionsList}
-                        transactions={accountTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                        showBalanceAdjustments={showBalanceAdjustments}
-                    />
-                );
-            case 'Savings':
-                return (
-                    <SavingsAccountView
-                        {...commonProps}
-                        displayTransactionsList={displayTransactionsList}
-                        transactions={accountTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                        showBalanceAdjustments={showBalanceAdjustments}
-                    />
-                );
-            case 'Investment':
-                if (account.subType === 'Pension Fund') {
-                    return (
-                        <PensionAccountView 
-                            {...commonProps}
-                            displayTransactionsList={displayTransactionsList}
-                            transactions={accountTransactions}
-                            allCategories={allCategories}
-                            onTransactionClick={handleTransactionClick}
-                            onAdjustBalance={handleOpenAdjustModal}
-                            showBalanceAdjustments={showBalanceAdjustments}
-                        />
-                    );
-                }
-                if (account.subType === 'Spare Change') {
-                     return (
-                        <SpareChangeAccountView 
-                            {...commonProps}
-                            displayTransactionsList={displayTransactionsList}
-                            transactions={accountTransactions}
-                            allCategories={allCategories}
-                            onTransactionClick={handleTransactionClick}
-                            onAdjustBalance={handleOpenAdjustModal}
-                            showBalanceAdjustments={showBalanceAdjustments}
-                        />
-                    );
-                }
-                // Fallthrough to General for other investments for now, or you can add more specific ones later
-                return (
-                    <GeneralAccountView 
-                        {...commonProps}
-                        displayTransactionsList={displayTransactionsList}
-                        transactions={accountTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                    />
-                );
-            default:
-                return (
-                    <GeneralAccountView 
-                        {...commonProps}
-                        displayTransactionsList={displayTransactionsList}
-                        transactions={accountTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                        showBalanceAdjustments={showBalanceAdjustments}
-                    />
-                );
-        }
-    };
-
     return (
         <>
              {isTransactionModalOpen && (
@@ -563,15 +416,32 @@ const AccountDetail: React.FC<{
                 confirmButtonText="Delete"
             />
 
-            <Suspense fallback={<div className="flex justify-center p-10"><div className="animate-spin h-8 w-8 border-2 border-primary-500 rounded-full border-t-transparent"></div></div>}>
-                {renderContent()}
+            <Suspense fallback={<PageSkeleton variant="detail" />}>
+                <AccountPanels
+                    account={account}
+                    transactions={transactions}
+                    accountTransactions={accountTransactions}
+                    displayTransactions={displayTransactionsList}
+                    categories={allCategories}
+                    accounts={accounts}
+                    loanOverrides={loanPaymentOverrides}
+                    showBalanceAdjustments={showBalanceAdjustments}
+                    onTransactionClick={handleTransactionClick}
+                    onAddTransaction={() => handleOpenTransactionModal()}
+                    onAdjustBalance={handleOpenAdjustModal}
+                    onBack={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }}
+                    onOpenAccount={setViewingAccountId}
+                    onSync={enableBankingLink ? handleOpenSyncPrompt : undefined}
+                    onUpdateValuation={handleOpenValuationModal}
+                    onCloseAsset={handleOpenCloseModal}
+                    onRevertClosure={onRevertClosure ? () => onRevertClosure(account.id) : undefined}
+                    onOverridesChange={handleOverridesChange}
+                    onMakePayment={handleMakePayment}
+                    onAddLog={() => handleOpenMileageModal()}
+                    onEditLog={handleOpenMileageModal}
+                    onDeleteLog={handleDeleteMileageLog}
+                />
             </Suspense>
-
-            {account.type !== 'Checking' && account.type !== 'Savings' && (
-                <div className="mt-8">
-                    <HistoricalBalanceTrend account={account} transactions={transactions} />
-                </div>
-            )}
         </>
     );
 };

@@ -1,252 +1,196 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
-import { Account, Transaction, Warrant, AccountType } from '../types';
-import AccountRow from './AccountRow';
-import { convertToEur, formatCurrency } from '../utils';
-import { ACCOUNT_TYPE_ACCENT_STYLES, DEBT_TYPES } from '../constants';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Account, AccountType, Transaction } from '../types';
+import AccountCard from './AccountCard';
+import SwipeableRow from './SwipeableRow';
+import { convertToEur } from '../utils';
+import { DEBT_TYPES } from '../constants';
 import Icon from './ui/Icon';
+import { IconButton } from './ui/Actions';
+import { CountPill } from './ui/Display';
+import type { MenuAction } from './ui/Menu';
+import { Amount } from './ui/Money';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { cn } from '../lib/utils';
 
 interface AccountsListSectionProps {
-    title: string;
-    headerIcon?: React.ReactNode;
-    headerSubtitle?: string;
-    accounts: Account[];
-    transactionsByAccount: Record<string, Transaction[]>;
-    warrants: Warrant[];
-    linkedEnableBankingAccountIds: Set<string>;
-    onAccountClick: (id: string) => void;
-    onEditClick: (account: Account) => void;
-    onAdjustBalanceClick: (account: Account) => void;
-    onOverviewClick?: (account: Account) => void;
-    sortBy: 'name' | 'balance' | 'manual';
-    accountOrder?: string[];
-    setAccountOrder?: React.Dispatch<React.SetStateAction<string[]>>;
-    onContextMenu: (event: React.MouseEvent, account: Account) => void;
-    isCollapsible?: boolean;
-    defaultExpanded?: boolean;
-    layoutMode: 'stacked' | 'columns';
-    showCollapseAll?: boolean;
-    viewStyle?: 'detailed' | 'minimal';
+  title: string;
+  accounts: Account[];
+  transactionsByAccount: Record<string, Transaction[]>;
+  linkedEnableBankingAccountIds: Set<string>;
+  onAccountClick: (id: string) => void;
+  menuFor: (account: Account) => MenuAction[];
+  onEditClick: (account: Account) => void;
+  onAdjustBalanceClick: (account: Account) => void;
+  onOverviewClick: (account: Account) => void;
+  sortBy: 'name' | 'balance' | 'manual';
+  accountOrder?: string[];
+  setAccountOrder?: React.Dispatch<React.SetStateAction<string[]>>;
+  isCollapsible?: boolean;
+  defaultExpanded?: boolean;
+  layoutMode: 'stacked' | 'columns';
+  viewStyle?: 'detailed' | 'minimal';
 }
 
-const AccountsListSection: React.FC<AccountsListSectionProps> = ({ 
-    title, 
-    headerIcon,
-    headerSubtitle,
-    accounts, 
-    transactionsByAccount, 
-    warrants, 
-    linkedEnableBankingAccountIds, 
-    onAccountClick, 
-    onEditClick, 
-    onAdjustBalanceClick, 
-    onOverviewClick,
-    sortBy, 
-    accountOrder = [], 
-    setAccountOrder, 
-    onContextMenu, 
-    isCollapsible = true, 
-    defaultExpanded = true, 
-    layoutMode,
-    showCollapseAll = false,
-    viewStyle = 'detailed'
+const AccountsListSection: React.FC<AccountsListSectionProps> = ({
+  title,
+  accounts,
+  transactionsByAccount,
+  linkedEnableBankingAccountIds,
+  onAccountClick,
+  menuFor,
+  onEditClick,
+  onAdjustBalanceClick,
+  onOverviewClick,
+  sortBy,
+  accountOrder = [],
+  setAccountOrder,
+  isCollapsible = false,
+  defaultExpanded = true,
+  layoutMode,
+  viewStyle = 'detailed',
 }) => {
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-    const [draggedId, setDraggedId] = useState<string | null>(null);
-    const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const isPhone = useIsMobile();
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
-    const sortedAccounts = useMemo(() => {
-        const accountsToSort = [...accounts];
-        if (sortBy === 'manual') {
-            return accountsToSort.sort((a,b) => {
-                const aIndex = accountOrder.indexOf(a.id);
-                const bIndex = accountOrder.indexOf(b.id);
-                if (aIndex === -1 && bIndex === -1) return 0;
-                if (aIndex === -1) return 1;
-                if (bIndex === -1) return -1;
-                return aIndex - bIndex;
-            });
-        }
-        if (sortBy === 'name') {
-            return accountsToSort.sort((a,b) => a.name.localeCompare(b.name));
-        }
-        if (sortBy === 'balance') {
-            return accountsToSort.sort((a,b) => convertToEur(b.balance, b.currency) - convertToEur(a.balance, a.currency));
-        }
-        return accountsToSort;
-    }, [accounts, sortBy, accountOrder]);
-
-
-    const groupedAccounts = useMemo(() => sortedAccounts.reduce((acc, account) => {
-        (acc[account.type] = acc[account.type] || []).push(account);
-        return acc;
-    }, {} as Record<AccountType, Account[]>), [sortedAccounts]);
-
-    const groupOrder = useMemo(() => Object.keys(groupedAccounts).sort(), [groupedAccounts]);
-
-    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-
-    useEffect(() => {
-        setExpandedGroups(prev => {
-            const next: Record<string, boolean> = {};
-            groupOrder.forEach(key => {
-                next[key] = prev[key] ?? true;
-            });
-            return next;
-        });
-    }, [groupOrder]);
-
-    const toggleGroup = (groupName: string) => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
-
-    const isAnyExpanded = Object.values(expandedGroups).some(Boolean);
-    const toggleAll = () => {
-        const next: Record<string, boolean> = {};
-        groupOrder.forEach(key => {
-            next[key] = !isAnyExpanded;
-        });
-        setExpandedGroups(next);
-    };
-
-    const handleDragStart = (e: React.DragEvent, accountId: string) => { if (sortBy === 'manual') setDraggedId(accountId); };
-    const handleDragOver = (e: React.DragEvent, accountId: string) => { if (sortBy === 'manual') { e.preventDefault(); if (draggedId && draggedId !== accountId) setDragOverId(accountId); }};
-    const handleDragLeave = () => setDragOverId(null);
-    const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); };
-    const handleDrop = (e: React.DragEvent, targetAccountId: string) => {
-        e.preventDefault();
-        if (sortBy !== 'manual' || !draggedId || draggedId === targetAccountId || !setAccountOrder) return;
-
-        const newOrder = [...accountOrder];
-        const draggedIndex = newOrder.indexOf(draggedId);
-        const targetIndex = newOrder.indexOf(targetAccountId);
-
-        if (draggedIndex > -1 && targetIndex > -1) {
-            const [draggedItem] = newOrder.splice(draggedIndex, 1);
-            newOrder.splice(targetIndex, 0, draggedItem);
-            setAccountOrder(newOrder);
-        }
-        handleDragEnd();
-    };
-
-    if (accounts.length === 0) {
-        return null;
+  const sortedAccounts = useMemo(() => {
+    const list = [...accounts];
+    if (sortBy === 'manual') {
+      return list.sort((a, b) => {
+        const aIndex = accountOrder.indexOf(a.id);
+        const bIndex = accountOrder.indexOf(b.id);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
     }
-    
-    // Updated grid classes to achieve 2-4 columns total when combined with the parent layout in Accounts.tsx
-    const gridClasses = layoutMode === 'columns' 
-        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2' 
-        : 'grid-cols-1';
+    if (sortBy === 'name') return list.sort((a, b) => a.name.localeCompare(b.name));
+    return list.sort((a, b) => convertToEur(b.balance, b.currency) - convertToEur(a.balance, a.currency));
+  }, [accounts, sortBy, accountOrder]);
 
-    return (
-        <section className="animate-fade-in-up h-full flex flex-col">
-            {isCollapsible ? (
-                <div 
-                    onClick={() => setIsExpanded(prev => !prev)} 
-                    className="flex justify-between items-center mb-6 group cursor-pointer py-2 select-none"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg bg-white/50 dark:bg-white/5 flex items-center justify-center transition-colors group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 border border-black/5 dark:border-white/5`}>
-                             <Icon name="expand_more" className={`transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`} />
-                        </div>
-                        <h3 className="text-base font-semibold text-light-text dark:text-dark-text tracking-tight">{title}</h3>
-                        <span className="bg-primary-100 dark:bg-primary-900/30 text-xs font-semibold px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
-                    </div>
-                    <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4 mr-4"></div>
-                    {showCollapseAll && groupOrder.length > 1 && (
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); toggleAll(); }}
-                            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 border border-transparent hover:border-black/5 dark:hover:border-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
-                            title={isAnyExpanded ? 'Collapse All Categories' : 'Expand All Categories'}
-                        >
-                            <Icon name={isAnyExpanded ? 'unfold_less' : 'unfold_more'} className="text-base" />
-                        </button>
-                    )}
-                </div>
-            ) : (headerIcon || title) ? (
-                <div className="flex justify-between items-center mb-6 px-2 select-none">
-                    <div className="flex items-center gap-3">
-                        {headerIcon}
-                        <div>
-                            <h3 className="text-xl font-bold tracking-[0.3em] text-light-text dark:text-dark-text">{title}</h3>
-                            {headerSubtitle && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-black opacity-100 mt-1">{headerSubtitle}</p>}
-                        </div>
-                    </div>
-                    {showCollapseAll && groupOrder.length > 1 && (
-                        <button 
-                            onClick={toggleAll}
-                            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 border border-transparent hover:border-black/5 dark:hover:border-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
-                            title={isAnyExpanded ? 'Collapse All Categories' : 'Expand All Categories'}
-                        >
-                            <Icon name={isAnyExpanded ? 'unfold_less' : 'unfold_more'} className="text-base" />
-                        </button>
-                    )}
-                </div>
-            ) : null}
-            
-            {isExpanded && (
-                <div className="space-y-6 flex-1">
-                    {groupOrder.length > 0 ? groupOrder.map(groupName => {
-                        const accountsInGroup = groupedAccounts[groupName as AccountType];
-                        const isDebt = DEBT_TYPES.includes(groupName as AccountType);
-                        const groupTotal = accountsInGroup
-                            .filter(acc => acc.includeInAnalytics ?? true)
-                            .reduce((sum, acc) => {
-                                const eur = convertToEur(acc.balance, acc.currency);
-                                return sum + (isDebt ? Math.abs(eur) : eur);
-                            }, 0);
-                        return (
-                            <div key={groupName} className="space-y-4">
-                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-2 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-1.5 h-4 rounded-full ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.bar || 'bg-primary-500'} transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
-                                        <h4 className="font-bold text-light-text dark:text-dark-text text-m tracking-tight">{groupName}</h4>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className={`font-mono text-m font-bold privacy-blur px-2 py-0.5 rounded-full transition-colors ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.pill || 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'}`}>
-                                            {formatCurrency(groupTotal, 'EUR')}
-                                        </span>
-                                         <Icon name="expand_more" className={`text-m text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`} />
-                                    </div>
-                                </div>
-                                
-                                {expandedGroups[groupName] && (
-                                    <div className={`grid gap-6 ${gridClasses}`}>
-                                        {accountsInGroup.map(acc => (
-                                            <AccountRow
-                                                key={acc.id}
-                                                account={acc}
-                                                transactions={transactionsByAccount[acc.id] || []}
-                                                warrants={warrants}
-                                                isLinkedToEnableBanking={linkedEnableBankingAccountIds.has(acc.id)}
-                                                onClick={() => onAccountClick(acc.id)}
-                                                onEdit={() => onEditClick(acc)}
-                                                onAdjustBalance={() => onAdjustBalanceClick(acc)}
-                                                onOverview={onOverviewClick ? () => onOverviewClick(acc) : undefined}
-                                                isDraggable={sortBy === 'manual'}
-                                                isBeingDragged={draggedId === acc.id}
-                                                isDragOver={dragOverId === acc.id}
-                                                onDragStart={(e) => handleDragStart(e, acc.id)}
-                                                onDragOver={(e) => handleDragOver(e, acc.id)}
-                                                onDragLeave={handleDragLeave}
-                                                onDrop={(e) => handleDrop(e, acc.id)}
-                                                onDragEnd={handleDragEnd}
-                                                onContextMenu={(e) => onContextMenu(e, acc)}
-                                                viewStyle={viewStyle}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    }) : (
-                        <div className="text-center py-16 bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border-2 border-dashed border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary text-sm">
-                            <Icon name="account_balance_wallet" className="text-4xl mb-2 opacity-30" />
-                            <p className="font-medium">No {title.toLowerCase()} found.</p>
-                        </div>
-                    )}
-                </div>
+  const groupedAccounts = useMemo(() => sortedAccounts.reduce((groups, account) => {
+    (groups[account.type] = groups[account.type] || []).push(account);
+    return groups;
+  }, {} as Record<AccountType, Account[]>), [sortedAccounts]);
+
+  const groupNames = useMemo(() => Object.keys(groupedAccounts).sort(), [groupedAccounts]);
+
+  useEffect(() => {
+    setExpandedGroups(prev => Object.fromEntries(groupNames.map(name => [name, prev[name] ?? true])));
+  }, [groupNames]);
+
+  const moveAccount = (id: string, target: string | undefined) => {
+    if (!setAccountOrder || !target) return;
+    const order = [...accountOrder];
+    [id, target].forEach(item => { if (!order.includes(item)) order.push(item); });
+    const from = order.indexOf(id);
+    order.splice(from, 1);
+    order.splice(order.indexOf(target) + (from > order.indexOf(target) ? 0 : 1), 0, id);
+    setAccountOrder(order);
+  };
+
+  const dragProps = (account: Account): React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean } | undefined => (
+    sortBy === 'manual' && !isPhone ? {
+      draggable: true,
+      onDragStart: () => setDraggedId(account.id),
+      onDragOver: e => { e.preventDefault(); if (draggedId && draggedId !== account.id) setDragOverId(account.id); },
+      onDragLeave: () => setDragOverId(null),
+      onDragEnd: () => { setDraggedId(null); setDragOverId(null); },
+      onDrop: e => {
+        e.preventDefault();
+        if (draggedId && draggedId !== account.id) moveAccount(draggedId, account.id);
+        setDraggedId(null);
+        setDragOverId(null);
+      },
+    } : undefined
+  );
+
+  if (accounts.length === 0) return null;
+
+  const layout = isPhone || viewStyle === 'minimal' ? 'row' : 'card';
+  const grid = layout === 'row' || layoutMode === 'stacked' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2';
+
+  return (
+    <section className="space-y-4">
+      {title && (
+        <div className="flex items-center gap-2">
+          {isCollapsible ? (
+            <button type="button" aria-expanded={isExpanded} onClick={() => setIsExpanded(open => !open)} className="flex min-h-11 cursor-pointer items-center gap-2 text-ink">
+              <Icon name="expand_more" size={20} className={cn('transition-transform duration-[var(--duration-base)]', !isExpanded && '-rotate-90')} />
+              <h2 className="type-section-title">{title}</h2>
+            </button>
+          ) : <h2 className="type-section-title text-ink">{title}</h2>}
+          <CountPill count={accounts.length} />
+        </div>
+      )}
+
+      {isExpanded && groupNames.map(groupName => {
+        const group = groupedAccounts[groupName as AccountType];
+        const isDebt = DEBT_TYPES.includes(groupName as AccountType);
+        const total = group
+          .filter(account => account.includeInAnalytics ?? true)
+          .reduce((sum, account) => sum + convertToEur(account.balance, account.currency) * (isDebt ? -Math.sign(account.balance || 1) : 1), 0);
+
+        return (
+          <div key={groupName} className="space-y-3">
+            <button
+              type="button"
+              aria-expanded={expandedGroups[groupName]}
+              onClick={() => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }))}
+              className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-md)] text-left"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <Icon name="expand_more" size={16} className={cn('shrink-0 text-muted transition-transform duration-[var(--duration-base)]', !expandedGroups[groupName] && '-rotate-90')} />
+                <h3 className="type-label truncate text-muted">{groupName}</h3>
+              </span>
+              <span className="type-figure-row text-ink"><Amount value={isDebt ? -Math.abs(total) : total} currency="EUR" /></span>
+            </button>
+
+            {expandedGroups[groupName] && (
+              <div className={cn('grid gap-3 md:gap-4', grid)}>
+                {group.map((account, index) => {
+                  const canReorder = isPhone && sortBy === 'manual';
+                  const card = (
+                    <AccountCard
+                      account={account}
+                      transactions={transactionsByAccount[account.id] || []}
+                      layout={layout}
+                      isLinked={linkedEnableBankingAccountIds.has(account.id)}
+                      menuItems={menuFor(account)}
+                      onOpen={() => onAccountClick(account.id)}
+                      dragProps={dragProps(account)}
+                      dragState={draggedId === account.id ? 'dragged' : dragOverId === account.id ? 'over' : null}
+                      reorder={canReorder ? (
+                        <>
+                          <IconButton icon="arrow_upward" label={`Move ${account.name} up`} isDisabled={index === 0} onPress={() => moveAccount(account.id, group[index - 1]?.id)} />
+                          <IconButton icon="arrow_downward" label={`Move ${account.name} down`} isDisabled={index === group.length - 1} onPress={() => moveAccount(account.id, group[index + 1]?.id)} />
+                        </>
+                      ) : undefined}
+                    />
+                  );
+                  return isPhone ? (
+                    <SwipeableRow
+                      key={account.id}
+                      leftActions={[
+                        { icon: 'visibility', label: 'Overview', bgClass: 'bg-primary-soft', colorClass: 'text-ink', onAction: () => onOverviewClick(account) },
+                        { icon: 'tune', label: 'Adjust', bgClass: 'bg-inset', colorClass: 'text-ink', onAction: () => onAdjustBalanceClick(account) },
+                      ]}
+                      rightActions={[{ icon: 'edit', label: 'Edit', bgClass: 'bg-inset', colorClass: 'text-ink', onAction: () => onEditClick(account) }]}
+                    >
+                      {card}
+                    </SwipeableRow>
+                  ) : <React.Fragment key={account.id}>{card}</React.Fragment>;
+                })}
+              </div>
             )}
-        </section>
-    );
+          </div>
+        );
+      })}
+    </section>
+  );
 };
 
 export default AccountsListSection;

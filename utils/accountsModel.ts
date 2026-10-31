@@ -329,6 +329,43 @@ export const computeCashSegmentNetFlow = (
     }, 0);
 };
 
+export type AccountsTab = 'cards' | 'accounts' | 'loans' | 'assets';
+
+/** Read from the account itself: any card detail on it, a credit card, or a meal voucher, which is a card by nature. */
+export const accountHasCard = (a: Account): boolean =>
+  a.type === 'Credit Card' || isMealVoucherAccount(a) || !!(a.cardNetwork || a.last4 || a.expirationDate || a.cardholderName);
+
+export const accountCardKind = (a: Account): string =>
+  a.type === 'Credit Card' ? 'Credit' : isMealVoucherAccount(a) ? 'Meal voucher' : 'Debit';
+
+const isCashAccount = (a: Account) => a.type === 'Checking' || a.type === 'Savings' || (a.type === 'Other Assets' && a.otherSubType === 'Cash');
+
+/** Cards comes first. An account with a card also shows as a pot, except credit cards and meal vouchers, which only exist as cards. */
+export const accountsInTab = (accounts: Account[], tab: AccountsTab): Account[] => {
+  switch (tab) {
+    case 'cards': return accounts.filter(accountHasCard);
+    case 'accounts': return accounts.filter(a => isCashAccount(a) && !isMealVoucherAccount(a));
+    case 'loans': return accounts.filter(a => a.type === 'Loan' || a.type === 'Lending' || a.type === 'Other Liabilities');
+    default: return accounts.filter(a => (a.type === 'Property' || a.type === 'Vehicle' || a.type === 'Other Assets') && !isCashAccount(a) && !isMealVoucherAccount(a));
+  }
+};
+
+export const latestTransactions = (transactions: Transaction[], count: number): Transaction[] =>
+  [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, count);
+
+/** The biggest destinations this month, in the account's own currency. */
+export const topMerchantsThisMonth = (transactions: Transaction[], count = 3, today = new Date()) => {
+  const month = toLocalISOString(today).slice(0, 7);
+  const totals = new Map<string, number>();
+  transactions
+    .filter(tx => tx.type === 'expense' && !tx.transferId && tx.date.startsWith(month))
+    .forEach(tx => {
+      const name = tx.merchant || tx.description;
+      totals.set(name, safeAdd(totals.get(name) ?? 0, Math.abs(tx.amount)));
+    });
+  return [...totals.entries()].map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount).slice(0, count);
+};
+
 export type AccountsPageSegment =
   | 'all'
   | 'cash_cards'
