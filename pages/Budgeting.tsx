@@ -216,7 +216,6 @@ const Budgeting: React.FC<BudgetingProps> = ({
       <PageHeader
         title="Budget"
         stats={pageStats}
-        className="!mb-0"
         actions={
           <>
             <Menu

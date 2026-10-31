@@ -63,7 +63,11 @@ export const HUBS: Hub[] = [
       { label: 'Tasks', page: 'Tasks' },
     ],
   },
-  { id: 'investments', label: 'Investments', icon: 'nav_investments', home: 'Investments', tabs: [], otherPages: ['HoldingDetail'] },
+  { id: 'investments', label: 'Investments', icon: 'nav_investments', home: 'Investments', tabs: [
+      { label: 'Portfolio', page: 'Investments' },
+      { label: 'Holdings', page: 'Investments', tab: 'holdings' },
+      { label: 'Activity', page: 'Investments', tab: 'activity' },
+    ], otherPages: ['HoldingDetail'] },
   {
     id: 'reports',
     label: 'Reports',

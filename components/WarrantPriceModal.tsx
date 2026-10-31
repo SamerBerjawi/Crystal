@@ -1,40 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { SmartPriceBinding } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { toLocalISOString } from '../utils';
+import React, { useEffect, useRef, useState } from 'react';
+import type { SmartPriceBinding } from '../types';
+import { CURRENCY_OPTIONS } from '../constants';
+import { convertCurrency, toLocalISOString } from '../utils';
 import { usePreferencesContext, usePreferencesSelector } from '../contexts/DomainProviders';
-import Icon from './ui/Icon';
 import { fetchWithTimeout } from '../utils/fetchWithTimeout';
-import { useDialogA11y, isTopmostDialog } from '../hooks/useDialogA11y';
+import { normalizeDecimalString, parsePriceFromText } from '../utils/smartPrice';
+import { fetchBestQuote } from '../src/services/twelveDataService';
+import { Button, IconButton } from './ui/Actions';
+import { Badge } from './ui/Display';
+import { AmountInput, DateInput, Radio, RadioGroup, Textarea, TextInput } from './ui/Fields';
+import { SidePanel } from './ui/Overlays';
+import SegmentedControl from './ui/SegmentedControl';
 
-const normalizeDecimalString = (str: string): string => {
-    const cleaned = str
-        .replace(/\s+/g, '')
-        .replace(/\u00A0/g, '')
-        .replace(/[^0-9.,-]/g, '');
-
-    const lastDot = cleaned.lastIndexOf('.');
-    const lastComma = cleaned.lastIndexOf(',');
-    const decimalSeparator = lastDot > lastComma ? '.' : (lastComma > lastDot ? ',' : null);
-
-    if (decimalSeparator) {
-        const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
-        const withoutThousands = cleaned.split(thousandsSeparator).join('');
-        return withoutThousands.replace(decimalSeparator, '.');
-    }
-
-    return cleaned.replace(/,/g, '.');
-};
-
-const parsePriceFromText = (text: string): number | null => {
-    const numericPart = text.match(/-?\d[\d.,-]*/);
-    if (!numericPart) return null;
-
-    const normalized = normalizeDecimalString(numericPart[0]);
-    const parsed = parseFloat(normalized);
-    return isNaN(parsed) ? null : parsed;
-};
+const MODES = [{ id: 'single', label: 'One price' }, { id: 'bulk', label: 'Many prices' }];
+const SUPPORTED_CURRENCIES = CURRENCY_OPTIONS.map(option => option.split(' ')[0]);
 
 interface WarrantPriceModalProps {
     onClose: () => void;
@@ -45,8 +24,8 @@ interface WarrantPriceModalProps {
     manualPrice?: number;
 }
 
+/** Logs a holding's price by hand, in bulk, from Twelve Data or from a saved web page. Prices are kept in the holding's currency (D-026). */
 const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
-  const dialogRef = useDialogA11y<HTMLDivElement>();
     const [mode, setMode] = useState<'single' | 'bulk'>('single');
     const [newPrice, setNewPrice] = useState(
         initialEntry 
@@ -66,32 +45,13 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const [smartFetcherStatus, setSmartFetcherStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
     const [smartFetcherError, setSmartFetcherError] = useState<string | null>(null);
     const [smartFetcherBinding, setSmartFetcherBinding] = useState<SmartPriceBinding | null>(null);
-    const [isVisible, setIsVisible] = useState(false);
 
     const { preferences, setPreferences } = usePreferencesContext();
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
     const [twelveDataTicker, setTwelveDataTicker] = useState(preferences.investmentPriceConfigs?.[isin]?.ticker || isin);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setIsVisible(true), 20);
-        return () => clearTimeout(timer);
-    }, []);
-
-    // Handle ESC key
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isTopmostDialog(dialogRef.current)) {
-                handleClose();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
-
-    const handleClose = () => {
-        setIsVisible(false);
-        setTimeout(onClose, 250);
-    };
+    const [exchange, setExchange] = useState(preferences.investmentPriceConfigs?.[isin]?.exchange || '');
+    const currency = preferences.investmentPriceConfigs?.[isin]?.currency ?? 'EUR';
+    const startPrice = useRef(newPrice);
 
     // Hydrate saved binding with priority to synced preferences, fallback to localStorage
     useEffect(() => {
@@ -264,7 +224,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         }
     };
 
-    const persistTwelveDataTicker = (ticker: string) => {
+    const persistTwelveDataTicker = (ticker: string, tickerExchange: string) => {
         const cleaned = ticker.trim().toUpperCase();
         setTwelveDataTicker(cleaned);
         if (cleaned) {
@@ -278,6 +238,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                             ...(currentConfigs[isin] || {}),
                             source: 'twelvedata',
                             ticker: cleaned,
+                            exchange: tickerExchange.trim() || undefined,
                         },
                     },
                 };
@@ -409,7 +370,10 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+        handleSave();
+    };
+
+    const handleSave = () => {
         if (mode === 'single') {
             const normalized = normalizeDecimalString(newPrice);
             const parsedPrice = parseFloat(normalized);
@@ -424,480 +388,117 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                 onSave(isin, bulkPreview);
             }
         }
-        handleClose();
+        onClose();
     };
 
     const handleFetchLatestPrice = async () => {
         if (!twelveDataApiKey) {
-            setFetchError('Add your Twelve Data API key in Preferences to fetch prices automatically.');
+            setFetchError('Add your Twelve Data API key in Preferences to fetch prices.');
             return;
         }
-
         setIsFetching(true);
         setFetchError(null);
-
-        const fetchPrice = async (query: string) => {
-            const response = await fetchWithTimeout(query);
-            const data = await response.json();
-
-            if (data.status === 'error' || data.code) {
-                throw new Error(data.message || 'Unable to fetch price');
-            }
-
-            return data.price;
-        };
-
         try {
             const targetSymbol = (twelveDataTicker.trim() || isin).toUpperCase();
-            const candidates = targetSymbol.includes('/')
-                ? [targetSymbol]
-                : [
-                    `${targetSymbol}/EUR`, // direct EUR quote for crypto pairs
-                    `${targetSymbol}/USD`, // USD quote with conversion to EUR
-                    targetSymbol // fallback to raw symbol
-                ];
-
-            let fetchedPrice: number | null = null;
-
-            for (const candidate of candidates) {
-                const queryParams = new URLSearchParams({
-                    symbol: candidate,
-                    apikey: twelveDataApiKey,
-                });
-
-                // Only request conversion when the quote currency is not already EUR to avoid unusable crypto prices.
-                if (!candidate.toUpperCase().endsWith('/EUR')) {
-                    queryParams.set('currency', 'EUR');
-                }
-
-                try {
-                    fetchedPrice = await fetchPrice(`https://api.twelvedata.com/price?${queryParams.toString()}`);
-                    break;
-                } catch (err) {
-                    // try next candidate
-                    continue;
-                }
-            }
-
-            if (fetchedPrice) {
-                setNewPrice(String(fetchedPrice));
-                setDate(toLocalISOString(new Date()));
-                if (twelveDataTicker.trim() && twelveDataTicker.trim().toUpperCase() !== isin.toUpperCase()) {
-                    persistTwelveDataTicker(twelveDataTicker);
-                }
-            } else {
-                setFetchError(`Price not available from Twelve Data for "${targetSymbol}".`);
-            }
+            const quote = await fetchBestQuote(targetSymbol, twelveDataApiKey, exchange.trim() || undefined, SUPPORTED_CURRENCIES);
+            setNewPrice(String(convertCurrency(quote.price, quote.currency, currency, preferences.conversionRates)));
+            setDate(toLocalISOString(new Date()));
+            persistTwelveDataTicker(targetSymbol, exchange);
         } catch (error) {
             console.error('Failed to fetch Twelve Data price', error);
-            setFetchError(error instanceof Error ? error.message : 'Unable to connect to Twelve Data. Please try again.');
+            setFetchError(error instanceof Error ? error.message : "Couldn't reach Twelve Data. Try again.");
         } finally {
             setIsFetching(false);
         }
     };
-    
+
     const handleClear = () => {
         if (mode === 'single') {
             onSave(isin, null, date);
-            handleClose();
+            onClose();
         } else {
             setBulkData('');
         }
     };
 
-    const labelStyle = "block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5";
-    const title = initialEntry ? `Edit Valuation Entry` : `Log Valuation`;
+    const isDirty = mode === 'bulk' ? bulkData.trim() !== '' : newPrice !== startPrice.current;
 
-    const content = (
-        <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden font-sans">
-            {/* Backdrop */}
-            <div 
-                className={`fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
-                    isVisible ? 'opacity-100' : 'opacity-0'
-                }`}
-                onClick={handleClose}
-            />
-
-            {/* Sidebar Drawer */}
-            <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-                <div 
-                    className={`w-screen max-w-lg bg-white dark:bg-dark-card backdrop-blur-2xl dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.1)] text-light-text dark:text-dark-text shadow-2xl border-l border-black/10 dark:border-white/10 flex flex-col transform transition-transform duration-300 ease-out ${
-                        isVisible ? 'translate-x-0' : 'translate-x-full'
-                    }`}
-                >
-                    {/* Header */}
-                    <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-indigo-500/5 via-primary-500/5 to-transparent">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20 shadow-xs">
-                                <Icon name="price_change" className="text-xl" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight truncate">
-                                        {title}
-                                    </h2>
-                                    <span className="px-2 py-0.5 rounded-full text-2xs font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0 font-mono">
-                                        {isin}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate mt-0.5 font-medium">
-                                    {name}
-                                </p>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={handleClose}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
-                            aria-label="Close drawer"
-                        >
-                            <Icon name="close" className="text-lg" />
-                        </button>
+    return (
+        <SidePanel
+            isOpen
+            onClose={onClose}
+            title={initialEntry ? 'Edit price' : 'Log a price'}
+            description={`${name}, ${isin}`}
+            isDirty={isDirty}
+            footer={close => (
+                <div className="flex items-center justify-between gap-2">
+                    <Button variant="ghost" onPress={handleClear}>{mode === 'bulk' ? 'Clear' : initialEntry ? 'Delete' : 'Reset'}</Button>
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onPress={close}>Cancel</Button>
+                        <Button isDisabled={mode === 'bulk' && bulkPreview.length === 0} onPress={handleSave}>Save</Button>
                     </div>
-
-                    {/* Mode Segment Switcher */}
-                    {!initialEntry && (
-                        <div className="px-6 pt-5 pb-2">
-                            <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
-                                <button
-                                    type="button"
-                                    onClick={() => setMode('single')}
-                                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
-                                        mode === 'single'
-                                            ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
-                                    }`}
-                                >
-                                    Single Entry
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setMode('bulk')}
-                                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
-                                        mode === 'bulk'
-                                            ? 'bg-white dark:bg-dark-card text-indigo-600 dark:text-indigo-400 shadow-sm'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary opacity-80 hover:opacity-100'
-                                    }`}
-                                >
-                                    Bulk Manifest (CSV)
-                                </button>
-                            </div>
+                </div>
+            )}
+        >
+            <form className="space-y-4" onSubmit={handleSubmit}>
+                {!initialEntry && <SegmentedControl className="w-full" items={MODES} activeId={mode} onChange={id => setMode(id as 'single' | 'bulk')} />}
+                {mode === 'single' ? (
+                    <>
+                        <div className="grid grid-cols-2 gap-3">
+                            <DateInput label="Date" value={date} onChange={setDate} isDisabled={!!initialEntry} />
+                            <AmountInput label="Price" currency={currency} value={newPrice} onChange={value => setNewPrice(normalizeDecimalString(value))} autoFocus />
                         </div>
-                    )}
 
-                    {/* Form / Scrollable Content */}
-                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                        <section aria-label="Twelve Data" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
+                            <h3 className="type-label text-ink">From Twelve Data</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <TextInput label="Ticker" value={twelveDataTicker} onChange={setTwelveDataTicker} />
+                                <TextInput label="Exchange" value={exchange} onChange={setExchange} help="Optional." />
+                            </div>
+                            <Button variant="secondary" icon="refresh" isBusy={isFetching} onPress={handleFetchLatestPrice}>Fetch price</Button>
+                            {fetchError && <p role="alert" className="type-caption text-money-out">{fetchError}</p>}
+                        </section>
 
-                            {mode === 'single' ? (
-                                <div className="space-y-6 animate-fade-in">
-                                    
-                                    {/* Observation Date & Unit Price Grid */}
-                                    <div className="space-y-4 p-5 rounded-3xl bg-light-fill dark:bg-dark-fill/50 border border-black/5 dark:border-white/5">
-                                        <div>
-                                            <label htmlFor="price-date" className={labelStyle}>
-                                                Observation Date <span className="text-rose-500">*</span>
-                                            </label>
-                                            <input
-                                                id="price-date"
-                                                type="date"
-                                                value={date}
-                                                onChange={(e) => setDate(e.target.value)}
-                                                className={`${INPUT_BASE_STYLE} h-12 font-semibold tracking-wide`}
-                                                required
-                                                disabled={!!initialEntry}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="manual-price" className={labelStyle}>
-                                                Unit Price (€) <span className="text-rose-500">*</span>
-                                            </label>
-                                            <div className="relative group">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-400 group-focus-within:text-indigo-500 transition-colors">
-                                                    €
-                                                </span>
-                                                <input
-                                                    id="manual-price"
-                                                    type="number"
-                                                    step="any"
-                                                    value={newPrice}
-                                                    onChange={(e) => setNewPrice(normalizeDecimalString(e.target.value))}
-                                                    className={`${INPUT_BASE_STYLE} pl-10 h-14 !text-2xl font-black tabular-nums`}
-                                                    placeholder="0.00"
-                                                    autoFocus
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Autonomous Retrieval Section */}
-                                    <div className="p-5 rounded-3xl bg-gradient-to-br from-indigo-50/40 via-indigo-50/20 to-transparent dark:from-indigo-950/20 dark:via-indigo-950/10 dark:to-transparent border border-indigo-200/40 dark:border-indigo-800/30 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                                                    <Icon name="auto_fix" className="text-base" />
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block leading-tight">
-                                                        Autonomous Retrieval
-                                                    </span>
-                                                    <span className="text-2xs text-light-text-secondary dark:text-dark-text-secondary opacity-80">
-                                                        Synced across all devices
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center bg-gray-100 dark:bg-white/10 p-1 rounded-xl gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFetchLatestPrice}
-                                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${!isFetching ? 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card' : 'opacity-50'}`}
-                                                    disabled={isFetching}
-                                                    title="Fetch current market price via Twelve Data"
-                                                >
-                                                    {isFetching ? 'Syncing...' : 'Twelve Data'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsSmartFetcherOpen(prev => !prev)}
-                                                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${isSmartFetcherOpen ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-600 hover:bg-white dark:hover:bg-dark-card'}`}
-                                                    title="Configure custom webpage scraping selector"
-                                                >
-                                                    Smart Fetch
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {smartFetcherBinding && !isSmartFetcherOpen && (
-                                            <div className="p-3.5 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 flex items-center justify-between gap-3 animate-fade-in">
-                                                <div className="flex items-center gap-2.5 min-w-0">
-                                                    <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                                                        <Icon name="cloud_done" className="text-base" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200 truncate">
-                                                                Web Fetching Configured
-                                                            </p>
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                                                                <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                                                Cloud Synced
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-2xs text-indigo-900/60 dark:text-indigo-300/60 truncate font-mono mt-0.5" title={smartFetcherBinding.url}>
-                                                            {smartFetcherBinding.url}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleSmartFetcher({ useSavedSelector: true })}
-                                                        disabled={smartFetcherStatus === 'loading'}
-                                                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-dark-card border border-indigo-200 dark:border-indigo-800 text-indigo-600 hover:bg-indigo-50 transition-all flex items-center gap-1"
-                                                        title="Test Fetch Price"
-                                                    >
-                                                        <Icon name="refresh" className={`text-xs ${smartFetcherStatus === 'loading' ? 'animate-spin' : ''}`} />
-                                                        <span>Fetch</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={removeSmartBinding}
-                                                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
-                                                        title="Remove Web Binding"
-                                                    >
-                                                        <Icon name="delete" className="text-xs" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {fetchError && (
-                                            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 dark:border-rose-800/40 text-xs text-rose-700 dark:text-rose-400 flex items-center gap-2">
-                                                <Icon name="error" className="text-sm shrink-0" />
-                                                <span>{fetchError}</span>
-                                            </div>
-                                        )}
-
-                                        {isSmartFetcherOpen && (
-                                            <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-200/30 dark:border-indigo-800/20 space-y-4 animate-fade-in">
-                                                <div className="space-y-3">
-                                                    <div className="space-y-1">
-                                                        <label className="text-2xs font-bold uppercase tracking-wider text-indigo-900/60 dark:text-indigo-300/60">Source Webpage URL</label>
-                                                        <input
-                                                            type="url"
-                                                            value={smartFetcherUrl}
-                                                            onChange={(e) => setSmartFetcherUrl(e.target.value)}
-                                                            placeholder="https://finance.example.com/asset..."
-                                                            className={`${INPUT_BASE_STYLE} h-10 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-2xs font-bold uppercase tracking-wider text-indigo-900/60 dark:text-indigo-300/60">Session Data / Cookies (Optional)</label>
-                                                        <input
-                                                            type="text"
-                                                            value={smartFetcherCookies}
-                                                            onChange={(e) => setSmartFetcherCookies(e.target.value)}
-                                                            placeholder="session_id=xyz; auth=abc..."
-                                                            className={`${INPUT_BASE_STYLE} h-10 !text-xs border-indigo-200/50 dark:border-indigo-800/50`}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleSmartFetcher()}
-                                                        className="flex-1 h-11 bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                                                        disabled={smartFetcherStatus === 'loading'}
-                                                    >
-                                                        <Icon name={smartFetcherStatus === 'loading' ? 'sync' : 'radar'} className={`text-base ${smartFetcherStatus === 'loading' ? 'animate-spin' : ''}`} />
-                                                        {smartFetcherStatus === 'loading' ? 'Scanning Webpage...' : 'Scan Webpage for Prices'}
-                                                    </button>
-                                                    {smartFetcherBinding && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleSmartFetcher({ useSavedSelector: true })}
-                                                            className="w-11 h-11 flex items-center justify-center bg-white dark:bg-dark-card text-indigo-600 rounded-xl hover:shadow-md transition-all border border-indigo-200/50 dark:border-indigo-800/50 shadow-xs"
-                                                            title="Refresh from saved binding"
-                                                            disabled={smartFetcherStatus === 'loading'}
-                                                        >
-                                                            <Icon name="refresh" className="text-base" />
-                                                        </button>
-                                                    )}
-                                                </div>
-
-                                                {smartFetcherError && (
-                                                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
-                                                        <Icon name="error" className="text-sm shrink-0" />
-                                                        <span>{smartFetcherError}</span>
-                                                    </div>
-                                                )}
-
-                                                {smartFetcherCandidates.length > 0 && (
-                                                    <div className="space-y-3 pt-2">
-                                                        <div className="flex items-center justify-between px-1">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <Icon name="center_focus_strong" className="text-sm text-indigo-600" />
-                                                                <span className="text-2xs font-bold uppercase tracking-wider text-indigo-950/60 dark:text-indigo-300/60">Extracted Values</span>
-                                                            </div>
-                                                            <span className="text-2xs font-semibold text-indigo-600/70 px-2 py-0.5 rounded-full bg-indigo-600/5">Select Best Match</span>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-auto pr-1 custom-scrollbar">
-                                                            {smartFetcherCandidates.map(candidate => (
-                                                                <label key={candidate.id} className={`flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer relative group ${smartFetcherSelection === candidate.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 text-light-text dark:text-dark-text hover:border-indigo-300/50'}`}>
-                                                                    <input
-                                                                        type="radio"
-                                                                        name="smart-fetcher-price"
-                                                                        checked={smartFetcherSelection === candidate.id}
-                                                                        onChange={() => setSmartFetcherSelection(candidate.id)}
-                                                                        className="sr-only"
-                                                                    />
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="font-black text-lg tabular-nums tracking-tight">€{candidate.value}</p>
-                                                                        <p className="text-2xs font-medium opacity-60 truncate tracking-tight">{candidate.context}</p>
-                                                                    </div>
-                                                                    {smartFetcherSelection === candidate.id && <Icon name="check_circle" className="text-sm absolute top-2.5 right-2.5 text-white/70" />}
-                                                                </label>
-                                                            ))}
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={applySmartSelection}
-                                                            className="w-full h-11 bg-white dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider rounded-xl border border-indigo-600/20 hover:bg-indigo-50 transition-all shadow-xs active:scale-95"
-                                                            disabled={!smartFetcherSelection}
-                                                        >
-                                                            Finalize & Bind Selector
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-4 animate-fade-in">
-                                    <div className="p-5 bg-light-fill dark:bg-dark-fill/50 rounded-3xl border border-black/5 dark:border-white/5 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                                <Icon name="description" className="text-primary-500 text-base" />
-                                                TSV / CSV Batch Input
-                                            </h4>
-                                            <span className="text-2xs font-bold text-primary-500/80 px-2 py-0.5 rounded-full bg-primary-500/10 uppercase tracking-wider">
-                                                YYYY-MM-DD VALUE
-                                            </span>
-                                        </div>
-                                        <textarea
-                                            id="bulk-data"
-                                            value={bulkData}
-                                            onChange={(e) => setBulkData(e.target.value)}
-                                            className={`${INPUT_BASE_STYLE} font-mono !text-xs h-56 p-4 leading-relaxed bg-white dark:bg-black/20 border-black/5 dark:border-white/5`}
-                                            placeholder={`2024-05-10 128.50\n2024-05-11 129.10\n2024-05-12 130.00`}
-                                            autoFocus
-                                        />
-                                        {bulkPreview.length > 0 && (
-                                            <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-between">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                                        <Icon name="task_alt" className="text-emerald-500 text-sm" />
-                                                    </div>
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                                                        {bulkPreview.length} Historical Points Validated
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                        <section aria-label="From a web page" className="space-y-3 rounded-[var(--radius-lg)] bg-inset p-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <h3 className="type-label text-ink">From a web page</h3>
+                                {smartFetcherBinding && <Badge tone="positive">Saved</Badge>}
+                            </div>
+                            {smartFetcherBinding && !isSmartFetcherOpen && (
+                                <div className="flex items-center gap-2">
+                                    <p className="type-caption min-w-0 flex-1 truncate text-muted" title={smartFetcherBinding.url}>{smartFetcherBinding.url}</p>
+                                    <Button variant="secondary" size="sm" isBusy={smartFetcherStatus === 'loading'} onPress={() => handleSmartFetcher({ useSavedSelector: true })}>Fetch</Button>
+                                    <IconButton icon="delete" label="Remove the saved page" tooltipPlacement="left" onPress={removeSmartBinding} />
                                 </div>
                             )}
-
-                        </div>
-
-                        {/* Sticky Bottom Actions */}
-                        <div className="p-6 border-t border-black/5 dark:border-white/5 bg-white/90 dark:bg-dark-card/80 backdrop-blur-md flex items-center justify-between gap-3">
-                            <div>
-                                {mode === 'single' ? (
-                                    <button 
-                                        type="button" 
-                                        onClick={handleClear} 
-                                        className="h-12 px-4 text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all"
-                                    >
-                                        {initialEntry ? 'Purge Record' : 'Reset'}
-                                    </button>
-                                ) : (
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setBulkData('')} 
-                                        className="h-12 px-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all"
-                                    >
-                                        Clear All
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    type="button" 
-                                    onClick={handleClose} 
-                                    className={`${BTN_SECONDARY_STYLE} h-12 px-6 text-xs font-bold uppercase tracking-wider`}
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    className={`${BTN_PRIMARY_STYLE} h-12 px-8 text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 disabled:opacity-50`}
-                                    disabled={mode === 'bulk' && bulkPreview.length === 0}
-                                >
-                                    <span>{mode === 'bulk' ? 'Commit Batch' : 'Log Valuation'}</span>
-                                    <Icon name="save" className="text-base" />
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+                            {!isSmartFetcherOpen && <Button variant="secondary" onPress={() => setIsSmartFetcherOpen(true)}>{smartFetcherBinding ? 'Choose another page' : 'Set up a page'}</Button>}
+                            {isSmartFetcherOpen && (
+                                <>
+                                    <TextInput label="Page address" type="url" value={smartFetcherUrl} onChange={setSmartFetcherUrl} />
+                                    <TextInput label="Cookies" value={smartFetcherCookies} onChange={setSmartFetcherCookies} help="Optional, for pages behind a sign-in." />
+                                    <Button variant="secondary" isBusy={smartFetcherStatus === 'loading'} onPress={() => handleSmartFetcher()}>Scan the page</Button>
+                                    {smartFetcherCandidates.length > 0 && (
+                                        <>
+                                            <RadioGroup label="Which one is the price?" value={smartFetcherSelection ?? ''} onChange={setSmartFetcherSelection}>
+                                                {smartFetcherCandidates.map(candidate => <Radio key={candidate.id} value={candidate.id}>{candidate.value} — {candidate.context}</Radio>)}
+                                            </RadioGroup>
+                                            <Button isDisabled={!smartFetcherSelection} onPress={applySmartSelection}>Use this price</Button>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                            {smartFetcherError && <p role="alert" className="type-caption text-money-out">{smartFetcherError}</p>}
+                        </section>
+                    </>
+                ) : (
+                    <>
+                        <Textarea label="Prices" rows={8} value={bulkData} onChange={setBulkData} help="One per line: date, then price. For example 2026-05-10 128.50." autoFocus />
+                        {bulkPreview.length > 0 && <p className="type-caption text-muted">{bulkPreview.length} prices ready to save.</p>}
+                    </>
+                )}
+            </form>
+        </SidePanel>
     );
-
-    return createPortal(content, document.body);
 };
 
 export default WarrantPriceModal;

@@ -16,8 +16,8 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
 | 4 | Accounts | Hub tabs, account frame, one account form | Done |
 | 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done, with the detail panel left |
-| 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, on `feat/redesign-rapport-look`, uncommitted |
-| 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Not started |
+| 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Done, committed on `feat/redesign-planning` |
+| 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Done, uncommitted |
 | 8 | Reports | Reports, Invoices, Challenges | Not started |
 | 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Not started |
 | 10 | Rules | Rebuild (`D-009`), with tests first | Not started |
@@ -108,7 +108,7 @@ Phase 10 (final QA) follows module 13.
 
 **Known issues**
 - Forecast overflows inside the main area by 8 px at 768 px, and Merchants by 13 px at 390 px. Their modules (6 and 5) rebuild those layouts. The six overflows from module 0 are otherwise gone.
-- Tabs exist only for pages that exist. Accounts and Investments have none yet, and Review queue and Goals aren't listed. They arrive in modules 4, 8, 5 and 7.
+- Tabs exist only for pages that exist. Accounts and Investments had none then, and Review queue and Goals aren't listed. They arrive in modules 4, 8, 5 and 7.
 - Rail Review queue opens the Ledger until module 5. Rail Today opens Calendar.
 - Lock isn't in the rail or More until module 11, so the rail has seven tools.
 - Create opens Add transaction everywhere. The Create menu (`NAV-08`) and "Create something else" (`D-071`) wait for the forms to be reachable from anywhere, in modules 4 and 6.
@@ -334,3 +334,18 @@ Tasks is rebuilt as one responsive page, on a new `utils/tasksModel.ts` with tes
 - Checked at 1440×900 in dark: tick and untick, add, delete, filter and board. Phone and tablet have no overflow. Drag reorder, editing and light theme weren't run in the browser.
 
 Module 6 is complete. Tasks, Forecast and Calendar were seen in light at 1440×900. Budget, Goals and Subscriptions weren't. Overview's forecast widget still uses the old engine, and `FinancialGoalCard`, `CalendarView`, `ScheduleHeatmap` and `ForecastOverview` stay for Overview until Module 13 or an Overview pass.
+
+### Module 7: Investments
+
+**Status:** Done, uncommitted, with the gaps under Not tested.
+
+- One responsive page with Portfolio, Holdings and Activity tabs (`D-025`). `MobileInvestmentsView`, `HoldingDetail` and `AddInvestmentTransactionModal` are gone, and the page went from 1,606 lines to 525.
+- A holding opens in a side panel. `/investments/SYMBOL` still works and opens the same panel.
+- The header, chips, chart, allocation and holdings all read one overview, so segments add up to All. Checked in the demo: the six segments sum to €75,355.90, the same as All. This closes `DEF-01` and `DEF-02`.
+- `DEF-03`: the line is the default, and candles appear only with 20 or more logged prices, labelled as built from logs (`D-011`).
+- `DEF-04`: trades carry a currency and a holding carries its exchange. Quotes come from `/quote` with their real currency, and a quote with no known currency is refused. A $200 trade showed as €186 in the demo (`D-095`).
+- `DEF-05`: history deducts sold grants. The mock trend is gone.
+- Both price sources stay: Twelve Data and a saved web page. The price form is now a side panel, with ticker and exchange fields it never had.
+- Removing `!mb-0` from the Planning pages and Investments restored the gap under the header, which `space-y` had lost.
+
+**Not tested:** a live Twelve Data quote or web page scan, because the demo has no key. Saving a grant and its instalments. Trade edit. Account rows in the Holdings tab were rendered but their menus weren't run. Light theme was seen at 1440×900 on Portfolio and the holding panel only.

@@ -157,6 +157,7 @@ Used to weigh priorities. None of this removes any feature.
 | D-092 | 2026-10-31 | Dragging a recurring item on the Forecast asks every time: this one, this and future, or the whole series | Owner | Uses `EditRecurrenceModal` (`FCT-06`) |
 | D-093 | 2026-10-31 | Paused subscriptions leave totals, Safe to spend and the Forecast until resumed. Crystal only records the pause and cancels nothing with the provider | Owner | Refines `D-028`. Adds a saved field to recurring items |
 | D-094 | 2026-10-31 | Goal status comes from each goal's own saved amount and contributions, never an account balance. Goals with no contribution show No plan yet. Bucket status is its items' worst | Owner | Changes statuses from the old page. Uses `goalsModel.ts` |
+| D-095 | 2026-10-31 | A holding's price currency is set once, by its first trade. Later trades keep their own currency, and quotes in another currency are converted to the holding's. Existing holdings stay EUR | Claude | Refines `D-026`. Changing it later would misread the whole price log. Any currency in Module 12 can revisit this |
 
 ## Open questions
 

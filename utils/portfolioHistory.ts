@@ -19,6 +19,8 @@ export interface PortfolioHistoryArgs {
     nonSymbolAccounts: Account[];
     transactionsByAccount: Record<string, Transaction[]>;
     toEur: (amount: number, currency: Account['currency']) => number;
+    /** The currency a symbol's prices are in. EUR when left out. */
+    currencyOf?: (symbol: string) => Account['currency'];
     currentValuation: number;
     /** YYYY-MM-DD */
     today: string;
@@ -38,6 +40,7 @@ export function buildPortfolioHistory(args: PortfolioHistoryArgs): { date: strin
         holdings, warrants, investmentTransactions, allSegments, priceHistoryFor, prices,
         nonSymbolAccounts, transactionsByAccount, toEur, currentValuation, today,
     } = args;
+    const currencyOf = args.currencyOf ?? (() => 'EUR' as Account['currency']);
 
     const matchingSymbols = new Set(holdings.map(h => h.symbol));
     const dateSet = new Set<string>();
@@ -84,17 +87,26 @@ export function buildPortfolioHistory(args: PortfolioHistoryArgs): { date: strin
                 }, 0);
             }
             if (qtyOnDate <= 0.000001) return;
-            total += qtyOnDate * priceOnDate;
+            total += toEur(qtyOnDate * priceOnDate, currencyOf(h.symbol));
         });
 
-        warrants.forEach(w => {
-            // A grant is worth nothing to the portfolio before it was granted.
-            if (w.grantDate && dayOf(w.grantDate) > date) return;
-            const log = priceHistoryFor(w.isin);
-            const latest = log.length > 0 ? log[log.length - 1].price : w.grantPrice;
-            const current = prices[w.isin] && prices[w.isin]! > 0 ? prices[w.isin]! : latest;
+        // Grants by ISIN, so units sold up to this date come off once however many grants there are (DEF-05).
+        new Set(warrants.map(w => w.isin)).forEach(isin => {
+            const granted = warrants
+                // A grant is worth nothing to the portfolio before it was granted.
+                .filter(w => w.isin === isin && !(w.grantDate && dayOf(w.grantDate) > date))
+                .reduce((sum, w) => sum + (Number(w.quantity) || 0), 0);
+            const sold = investmentTransactions
+                .filter(t => t.symbol === isin && t.type?.toLowerCase() === 'sell' && dayOf(t.date) <= date)
+                .reduce((sum, t) => sum + (Number(t.quantity) || 0), 0);
+            const held = Math.max(0, granted - sold);
+            if (held <= 0) return;
+            const log = priceHistoryFor(isin);
+            const first = warrants.find(w => w.isin === isin)!;
+            const latest = log.length > 0 ? log[log.length - 1].price : first.grantPrice;
+            const current = prices[isin] && prices[isin]! > 0 ? prices[isin]! : latest;
             const past = log.filter(e => dayOf(e.date) <= date);
-            total += (w.quantity || 0) * (past.length > 0 ? past[past.length - 1].price : current);
+            total += toEur(held * (past.length > 0 ? past[past.length - 1].price : current), currencyOf(isin));
         });
 
         nonSymbolAccounts.forEach(acc => {

@@ -53,7 +53,7 @@ const pageRegistry = {
   EnableBankingCallback: { path: '/enable-banking/callback', loader: () => import('./pages/EnableBankingCallback') },
   AccountDetail: { path: '/accounts', loader: () => import('./pages/AccountDetail') },
   Investments: { path: '/investments', loader: () => import('./pages/Investments') },
-  HoldingDetail: { path: '/investments', loader: () => import('./pages/HoldingDetail') },
+  HoldingDetail: { path: '/investments', loader: () => import('./pages/Investments') },
   Documentation: { path: '/documentation', loader: () => import('./pages/Documentation') },
   Subscriptions: { path: '/subscriptions', loader: () => import('./pages/Subscriptions') },
   'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
@@ -81,7 +81,6 @@ const AccountDetail = lazyWithRetry(pageRegistry.AccountDetail.loader);
 const UiKit = import.meta.env.DEV ? lazyWithRetry(() => import('./pages/dev/UiKit')) : null;
 const EnableBankingCallbackPage = lazyWithRetry(pageRegistry.EnableBankingCallback.loader);
 const InvestmentsPage = lazyWithRetry(pageRegistry.Investments.loader);
-const HoldingDetail = lazyWithRetry(pageRegistry.HoldingDetail.loader);
 const TasksPage = lazyWithRetry(pageRegistry.Tasks.loader);
 const Documentation = lazyWithRetry(pageRegistry.Documentation.loader);
 const SubscriptionsPage = lazyWithRetry(pageRegistry.Subscriptions.loader);
@@ -582,7 +581,10 @@ const App: React.FC = () => {
   ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '') && a.status !== 'closed'), [accounts]);
 
   const holdingsOverview = useMemo(() => {
-    const overview = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, assetPrices);
+    const overview = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, assetPrices, {
+      currencyOf: symbol => preferences.investmentPriceConfigs?.[symbol]?.currency ?? 'EUR',
+      toEur: (amount, currency) => convertToEur(amount, currency, preferences.conversionRates),
+    });
     return {
       ...overview,
       holdings: overview.holdings.map(h => ({
@@ -590,7 +592,7 @@ const App: React.FC = () => {
         remainingQuantity: h.quantity
       }))
     };
-  }, [investmentAccounts, investmentTransactions, warrants, assetPrices]);
+  }, [investmentAccounts, investmentTransactions, warrants, assetPrices, preferences.investmentPriceConfigs, preferences.conversionRates]);
 
   const warrantPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
@@ -2913,10 +2915,12 @@ const App: React.FC = () => {
     }
   }, [isDataLoaded, viewingAccount, viewingAccountId, viewingHolding, viewingHoldingSymbol, setCurrentPage]);
 
+  const renderInvestments = (linkedSymbol?: string) => <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} priceHistory={priceHistory} linkedSymbol={linkedSymbol} onCloseLinkedHolding={() => setCurrentPage('Investments')} />;
+
   const renderPage = () => {
     if (UiKit && window.location.search.includes('ui-kit')) return <UiKit />;
     if (viewingHoldingSymbol) {
-      if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} />;
+      if (viewingHolding) return renderInvestments(viewingHoldingSymbol);
       return <PageLoader label="Loading holding..." />;
     }
     if (viewingAccountId) {
@@ -2941,7 +2945,7 @@ const App: React.FC = () => {
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
-      case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} priceHistory={priceHistory} />;
+      case 'Investments': return renderInvestments();
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
       case 'Subscriptions': return <SubscriptionsPage />;

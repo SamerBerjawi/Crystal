@@ -76,7 +76,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
 
   return (
     <div className="space-y-6 pb-8 max-md:space-y-4">
-      <PageHeader title="Tasks" stats={pageStats} className="!mb-0" actions={<Button icon="add" onPress={() => openForm()}>New task</Button>} />
+      <PageHeader title="Tasks" stats={pageStats} actions={<Button icon="add" onPress={() => openForm()}>New task</Button>} />
 
       {tasks.length === 0 ? (
         <EmptyState icon="task" title="No tasks yet" description="Keep financial to-dos, tax deadlines and reminders in one place." actionLabel="New task" onAction={() => openForm()} />
