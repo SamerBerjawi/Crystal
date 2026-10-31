@@ -1,8 +1,10 @@
 import { type FC, type ReactNode, useState } from "react";
-import { User } from "@phosphor-icons/react";
 import { cx } from "@/lib/utils/cx";
 import { AvatarOnlineIndicator, VerifiedTick } from "./base-components";
 import { AvatarCount } from "./base-components/avatar-count";
+import { createIcon } from "@/components/ui/Icon";
+
+const User = createIcon("User");
 
 export interface AvatarProps {
     size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";

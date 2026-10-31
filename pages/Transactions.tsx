@@ -29,7 +29,6 @@ import FilterBar from '../components/ui/FilterBar';
 import Icon from '../components/ui/Icon';
 import { MobileTransactionsView } from '../components/MobileTransactionsView';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { DotsThreeVertical as DotsVertical } from '@phosphor-icons/react';
 import type { SortDescriptor } from 'react-aria-components';
 import { PaginationPageMinimalCenter } from '@/components/application/pagination/pagination';
 import { Table, TableCard } from '@/components/application/table/table';
@@ -40,6 +39,9 @@ import { DropdownIconSimple } from '@/components/base/dropdown/dropdown-icon-sim
 import { formatTransactionLocation } from '../utils/locationFormat';
 import { Checkbox, CheckboxBase } from '@/components/base/checkbox/checkbox';
 import { cx } from '@/lib/utils/cx';
+import { createIcon } from '@/components/ui/Icon';
+
+const DotsVertical = createIcon('DotsThreeVertical');
 
 interface TransactionsProps {
   user?: User;

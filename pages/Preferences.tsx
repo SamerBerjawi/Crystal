@@ -36,7 +36,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
   const [selectedFontCategory, setSelectedFontCategory] = useState<'all' | AppFontCategory>('all');
   const [customSpecimenText, setCustomSpecimenText] = useState('€125,480.00 • Crystal Wealth');
 
-  const currentFont: AppFont = preferences.appFont || 'plus-jakarta';
+  const currentFont: AppFont = preferences.appFont || 'manrope';
 
   const handleFontChange = (newFont: AppFont) => {
     setPreferences({ ...preferences, appFont: newFont });
@@ -75,7 +75,7 @@ export const Preferences: React.FC<PreferencesProps> = ({
     return (
       Object.values(FONT_DEFINITIONS).find(
         (f) => normalizeFontKey(f.id) === normalizeFontKey(currentFont)
-      ) || FONT_DEFINITIONS['plus-jakarta']
+      ) || FONT_DEFINITIONS['manrope']
     );
   }, [currentFont]);
 

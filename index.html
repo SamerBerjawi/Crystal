@@ -241,18 +241,18 @@
       document.documentElement.classList.toggle('dark', !shouldUseLight);
 
       // Apply initial font preference from localStorage to prevent font flashing
-      let initialFont = 'plus-jakarta';
+      let initialFont = 'manrope';
       try {
         const storedFont = localStorage.getItem('crystal_font');
         if (storedFont) {
-          initialFont = storedFont === 'plus-jakarta-sans' ? 'plus-jakarta' : storedFont;
+          initialFont = storedFont === 'plus-jakarta-sans' ? 'manrope' : storedFont;
         } else {
           const financialDataRaw = localStorage.getItem('financialData');
           if (financialDataRaw) {
             const parsed = JSON.parse(financialDataRaw);
             if (parsed?.preferences?.appFont) {
               const pf = parsed.preferences.appFont;
-              initialFont = pf === 'plus-jakarta-sans' ? 'plus-jakarta' : pf;
+              initialFont = pf === 'plus-jakarta-sans' ? 'manrope' : pf;
             }
           }
         }
@@ -269,10 +269,11 @@
         'noto-serif': '"Noto Serif", Georgia, serif',
         'crete-round': '"Crete Round", Georgia, serif',
         'inter': '"Inter", sans-serif',
+        'manrope': '"Manrope Variable", "Manrope", sans-serif',
         'plus-jakarta': '"Plus Jakarta Sans", sans-serif',
         'plus-jakarta-sans': '"Plus Jakarta Sans", sans-serif',
       };
-      const activeFamily = FONT_MAP[initialFont] || '"Plus Jakarta Sans", sans-serif';
+      const activeFamily = FONT_MAP[initialFont] || '"Manrope Variable", "Manrope", sans-serif';
       document.documentElement.setAttribute('data-font', initialFont);
       document.documentElement.style.setProperty('--app-font-family', activeFamily);
       document.documentElement.style.setProperty('--app-font', activeFamily);

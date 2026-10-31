@@ -16,6 +16,17 @@ export interface FontDefinition {
 }
 
 export const FONT_DEFINITIONS: Record<string, FontDefinition> = {
+  'manrope': {
+    id: 'manrope',
+    label: 'Manrope',
+    fontName: '"Manrope Variable"',
+    fontFamily: '"Manrope Variable", "Manrope", sans-serif',
+    category: 'sans',
+    categoryLabel: 'Sans-Serif',
+    description: 'Warm geometric sans-serif with clear figures, the Crystal default',
+    previewClass: 'font-["Manrope_Variable",sans-serif]',
+    sampleText: 'The quick brown fox jumps over the lazy dog. 1234567890',
+  },
   'plus-jakarta': {
     id: 'plus-jakarta',
     label: 'Plus Jakarta Sans',
@@ -157,7 +168,7 @@ export const FONT_CATEGORIES: { id: 'all' | AppFontCategory; label: string; icon
 /**
  * Normalizes any font key to a valid AppFont key
  */
-// Plus Jakarta Sans (the default) is bundled through @fontsource. Every other face is fetched from Google Fonts only
+// Manrope (the default) and Plus Jakarta Sans are bundled through @fontsource. Every other face is fetched from Google Fonts only
 // when it is selected or previewed, so a first visit makes no third-party font request.
 const GOOGLE_FONT_FAMILIES: Record<string, string> = {
   'inter': 'Inter',
@@ -186,10 +197,11 @@ export function ensureFontLoaded(font: AppFont | string) {
 }
 
 export function normalizeFontKey(font: string | undefined): AppFont {
-  if (!font) return 'plus-jakarta';
-  if (font === 'plus-jakarta-sans') return 'plus-jakarta';
+  if (!font) return 'manrope';
+  // 'plus-jakarta-sans' was the old unset default; an explicit pick is saved as 'plus-jakarta'.
+  if (font === 'plus-jakarta-sans') return 'manrope';
   if (FONT_DEFINITIONS[font]) return font as AppFont;
-  return 'plus-jakarta';
+  return 'manrope';
 }
 
 /**
@@ -198,7 +210,7 @@ export function normalizeFontKey(font: string | undefined): AppFont {
 export function applyAppFont(font: AppFont | string) {
   if (typeof document === 'undefined') return;
   const canonicalKey = normalizeFontKey(font);
-  const def = FONT_DEFINITIONS[canonicalKey] || FONT_DEFINITIONS['plus-jakarta'];
+  const def = FONT_DEFINITIONS[canonicalKey] || FONT_DEFINITIONS['manrope'];
   
   const root = document.documentElement;
   root.setAttribute('data-font', canonicalKey);
@@ -208,10 +220,10 @@ export function applyAppFont(font: AppFont | string) {
 }
 
 /**
- * Retrieves the currently active font from localStorage or defaults to Plus Jakarta Sans
+ * Retrieves the currently active font from localStorage or defaults to Manrope
  */
 export function getStoredAppFont(): AppFont {
-  if (typeof window === 'undefined') return 'plus-jakarta';
+  if (typeof window === 'undefined') return 'manrope';
   try {
     const saved = localStorage.getItem(FONT_STORAGE_KEY);
     if (saved && (FONT_DEFINITIONS[saved] || saved === 'plus-jakarta-sans')) {
@@ -220,7 +232,7 @@ export function getStoredAppFont(): AppFont {
   } catch (e) {
     console.warn('Failed to read font preference from localStorage', e);
   }
-  return 'plus-jakarta';
+  return 'manrope';
 }
 
 /**

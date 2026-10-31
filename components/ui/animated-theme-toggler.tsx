@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Moon as Moon01, Sun } from "@phosphor-icons/react"
 import { flushSync } from "react-dom"
 
 import { cn } from "@/lib/utils"
+import { createIcon } from "@/components/ui/Icon";
+
+const Moon01 = createIcon("Moon");
+const Sun = createIcon("Sun");
 
 export type TransitionVariant =
   | "circle"

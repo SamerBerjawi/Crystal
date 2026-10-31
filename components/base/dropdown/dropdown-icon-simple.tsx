@@ -1,6 +1,8 @@
 import type { FC, ReactNode } from "react";
-import { DotsThreeVertical as DotsVertical } from "@phosphor-icons/react";
 import { Dropdown } from "./dropdown";
+import { createIcon } from "@/components/ui/Icon";
+
+const DotsVertical = createIcon("DotsThreeVertical");
 
 export interface DropdownIconSimpleProps {
     icon?: FC<{ className?: string }>;

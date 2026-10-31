@@ -1,6 +1,9 @@
 import React from "react";
-import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { cx } from "@/lib/utils/cx";
+import { createIcon } from "@/components/ui/Icon";
+
+const ArrowLeft = createIcon("ArrowLeft");
+const ArrowRight = createIcon("ArrowRight");
 
 export interface PaginationPageMinimalCenterProps {
     page: number;

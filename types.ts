@@ -595,6 +595,7 @@ export interface RuleRunBackup {
 export type AppFontCategory = 'sans' | 'serif' | 'display';
 
 export type AppFont =
+  | 'manrope'
   | 'plus-jakarta'
   | 'plus-jakarta-sans'
   | 'inter'
