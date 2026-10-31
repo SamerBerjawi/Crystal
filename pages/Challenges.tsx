@@ -958,8 +958,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         markerIcon="emoji_events"
         markerLabel="Gamification"
         markerClassName="bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 border border-amber-400/50 text-amber-700 dark:text-amber-300 font-black shadow-[0_0_20px_rgba(245,158,11,0.4)]"
-        title="Financial Health"
-        subtitle="Level up your finances by completing challenges, unlocking badges, and beating your personal bests."
+        title="Challenges"
+        stats={[
+          { label: 'Current streak', icon: 'local_fire_department', value: currentStreak },
+          { label: 'Longest streak', icon: 'emoji_events', value: longestStreak },
+          { label: 'Savings rate', icon: 'savings', value: savingsRate * 100, format: 'percent' },
+        ]}
         actions={
           activeSection === 'prediction' ? (
             <HeaderButton

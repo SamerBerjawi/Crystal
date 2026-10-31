@@ -1,4 +1,5 @@
 import React from 'react';
+import PageHeader, { type PageStat } from './PageHeader';
 import { RecurringTransaction, Currency, Membership } from '../types';
 import { formatCurrency } from '../utils';
 import Icon from './ui/Icon';
@@ -7,6 +8,7 @@ import PullToRefresh from './PullToRefresh';
 import FloatingActionButton from './FloatingActionButton';
 
 interface MobileSubscriptionsViewProps {
+  stats?: PageStat[];
   subscriptions: RecurringTransaction[];
   totalMonthlyCost: number;
   totalAnnualCost: number;
@@ -22,7 +24,7 @@ interface MobileSubscriptionsViewProps {
   onRefreshData?: () => Promise<void>;
 }
 
-export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = ({
+export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = ({ stats,
   subscriptions,
   totalMonthlyCost,
   totalAnnualCost,
@@ -50,24 +52,13 @@ export const MobileSubscriptionsView: React.FC<MobileSubscriptionsViewProps> = (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="space-y-5 pb-24 animate-fade-in md:hidden relative">
         {/* Header */}
-        <div className="flex items-center justify-between pt-1">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-              Recurring Outflows
-            </p>
-            <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight">
-              Subscriptions
-            </h1>
-          </div>
-
-          <button
+        <PageHeader title="Subscriptions" stats={stats} className="!mb-0" actions={<button
             onClick={onAddSubscription}
             className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/25 flex items-center justify-center active:scale-95 touch-feedback transition-all"
             aria-label="Add Subscription"
           >
             <Icon name="add" className="text-2xl" />
-          </button>
-        </div>
+          </button>} />
 
         {/* Hero Card */}
         <div className="relative overflow-hidden rounded-[2.2rem] bg-gradient-to-br from-rose-950 via-slate-900 to-indigo-950 p-6 text-white shadow-xl border border-rose-500/20">

@@ -116,7 +116,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
               isDragging.current = true;
             }}
             onDragEnd={handleDragEnd}
-            className={`relative z-10 bg-surface text-ink shadow-lg rounded-t-[var(--radius-2xl)] flex flex-col overflow-hidden ${className}`}
+            className={`relative z-10 bg-solid text-ink shadow-lg rounded-t-[var(--radius-2xl)] flex flex-col overflow-hidden ${className}`}
             style={{
               maxHeight: `min(${maxHeight}vh, ${maxHeight}dvh)`,
               paddingBottom: `env(safe-area-inset-bottom, 0px)`,

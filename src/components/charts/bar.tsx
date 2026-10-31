@@ -12,6 +12,7 @@ import {
   useYScale,
 } from "./chart-context";
 import { useChartLegendHover } from "./chart-legend-hover";
+import { BAR_ENTER_TRANSITION, BAR_STAGGER_SECONDS } from "./animation";
 import { transitionWithDelay } from "./motion-utils";
 
 type ScaleBand<Domain extends { toString(): string }> = ReturnType<
@@ -130,7 +131,7 @@ function AnimatedBar({
   revealEpoch,
   isHorizontal,
 }: AnimatedBarProps) {
-  const enterAnim = transitionWithDelay(enterTransition, index * staggerDelay);
+  const enterAnim = transitionWithDelay(enterTransition, index * staggerDelay, BAR_ENTER_TRANSITION);
 
   if (animationType === "fade") {
     return (
@@ -212,12 +213,7 @@ const BarInner = memo(function BarInner({
     revealEpoch = 0,
   } = useChart();
 
-  // Calculate stagger delay automatically if not provided
-  // Total animation duration is ~1200ms, with 40% for stagger spread and 60% for bar animation
-  const totalAnimDuration = animationDuration || 1100;
-  const staggerSpread = totalAnimDuration * 0.4; // 40% of time for stagger spread
-  const calculatedStaggerDelay =
-    staggerDelay ?? (data.length > 1 ? staggerSpread / 1000 / data.length : 0);
+  const calculatedStaggerDelay = staggerDelay ?? BAR_STAGGER_SECONDS;
   const uniqueId = useId();
 
   const isHorizontal = orientation === "horizontal";

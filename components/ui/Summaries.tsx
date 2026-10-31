@@ -50,7 +50,7 @@ export const NetWorthHero: React.FC<{
   const shades = ['opacity-100', 'opacity-60', 'opacity-30'];
 
   return (
-    <section aria-label="Net worth" className="flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-primary p-6 text-on-primary max-md:p-5 [--focus:var(--on-primary)]">
+    <section aria-label="Net worth" className="flex h-full flex-col justify-between gap-6 rounded-[var(--radius-xl)] bg-pine p-6 text-on-pine max-md:p-5 [--focus:var(--on-pine)]">
       <div>
         <button type="button" onClick={onOpen} className="type-label inline-flex cursor-pointer items-center gap-1">
           Net worth
@@ -63,7 +63,7 @@ export const NetWorthHero: React.FC<{
         {total > 0 && (
           <div aria-hidden="true" className="mb-3 flex h-2 gap-0.5 overflow-hidden rounded-full">
             {parts.map((part, index) => part.value > 0 && (
-              <span key={part.label} className={cn('h-full bg-on-primary', shades[index])} style={{ width: `${(part.value / total) * 100}%` }} />
+              <span key={part.label} className={cn('h-full bg-on-pine', shades[index])} style={{ width: `${(part.value / total) * 100}%` }} />
             ))}
           </div>
         )}
@@ -71,7 +71,7 @@ export const NetWorthHero: React.FC<{
           {parts.map((part, index) => (
             <div key={part.label} className="min-w-0">
               <dt className="type-caption flex items-center gap-1.5">
-                <span aria-hidden="true" className={cn('size-2 rounded-full bg-on-primary', shades[index])} />
+                <span aria-hidden="true" className={cn('size-2 rounded-full bg-on-pine', shades[index])} />
                 {part.label}
               </dt>
               <dd className="type-figure-row"><Amount value={part.value} currency={currency} /></dd>
@@ -98,7 +98,7 @@ export interface NeedsYouItem {
 export const NeedsYou: React.FC<{ items: NeedsYouItem[]; footer?: React.ReactNode }> = ({ items, footer }) => {
   const waiting = items.filter(item => item.count > 0);
   return (
-    <section aria-labelledby="needs-you" className="flex h-full flex-col rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+    <section aria-labelledby="needs-you" className="flex h-full flex-col rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
       <h2 id="needs-you" className="type-card-title mb-2 text-ink">Needs you</h2>
       {waiting.length === 0 ? (
         <p className="type-body flex flex-1 items-center text-muted">All clear. Nothing is waiting.</p>

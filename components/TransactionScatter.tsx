@@ -69,9 +69,9 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
   const label = `${points.length} transactions plotted by date and size. The list below has the same transactions.`;
 
   return (
-    <section aria-label="Transactions by date and size" className="rounded-[var(--radius-xl)] border border-line bg-surface p-5">
+    <section aria-label="Transactions by date and size" className="rounded-[var(--radius-xl)] surface-card p-5">
       <div className="mb-2 flex items-center justify-end gap-4">
-        <span className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2 rounded-full bg-[var(--chart-3)]" />Spending</span>
+        <span className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2 rounded-full bg-[var(--chart-1)]" />Spending</span>
         {hasIncome && <span className="type-caption flex items-center gap-1.5 text-muted"><span aria-hidden="true" className="size-2 rounded-full bg-money-in" />Income</span>}
       </div>
       <div ref={box} className="relative" onPointerLeave={() => setHovered(null)}>
@@ -85,7 +85,7 @@ const TransactionScatter: React.FC<{ transactions: DisplayTransaction[]; onOpen:
           {months.map(([name, x]) => <text key={name} x={x} y={HEIGHT - 6} fontSize={12} fontWeight={600} fill="var(--muted)">{name}</text>)}
           {points.map(point => (
             <g key={point.tx.id}>
-              <circle cx={point.x} cy={point.y} r={RADIUS} fill={point.isIncome ? 'var(--money-in)' : 'var(--chart-3)'} fillOpacity={hovered && hovered !== point ? 0.3 : 0.8} stroke="var(--surface)" strokeWidth={1} />
+              <circle cx={point.x} cy={point.y} r={RADIUS} fill={point.isIncome ? 'var(--money-in)' : 'var(--chart-1)'} fillOpacity={hovered && hovered !== point ? 0.3 : 0.8} stroke="var(--solid)" strokeWidth={1} />
               <circle cx={point.x} cy={point.y} r={12} fill="transparent" className="cursor-pointer" onPointerEnter={() => setHovered(point)} onClick={() => onOpen(point.tx)} />
             </g>
           ))}

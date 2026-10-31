@@ -1193,8 +1193,12 @@ const Rules: React.FC<RulesProps> = ({
         accentColor="indigo"
         markerIcon="smart_toy"
         markerLabel="Rules & Automation"
-        title="Rule Engine"
-        subtitle="Automate your workflow with custom IF-WHEN-THEN rules for transaction processing."
+        title="Rules"
+        stats={[
+          { label: 'Your rules', icon: 'bolt', value: existingRules.length },
+          { label: 'Merchant rules', icon: 'store', value: Object.keys(merchantRules).length },
+          { label: 'Suggestions', icon: 'magic_wand', value: smartRuleSuggestions.length },
+        ]}
         setCurrentPage={setCurrentPage}
         actions={
           <div className="flex items-center gap-2 flex-wrap">

@@ -483,7 +483,7 @@ function WidgetCell({
       style={{ gridColumn: `span ${shownSpan}`, gridRow: `span ${item.rows ?? 3}` } as CSSProperties}
     >
       {/* Surface: scaled by the engine while a resize settles. */}
-      <div className="pointer-events-none absolute inset-0 origin-top-left rounded-[var(--radius-xl)] border border-line bg-surface">
+      <div className="pointer-events-none absolute inset-0 origin-top-left rounded-[var(--radius-xl)] surface-card">
         {/* Lift shadow, faded in by the engine. */}
         <div className="absolute inset-0 rounded-[var(--radius-xl)] opacity-0 shadow-lg" />
       </div>

@@ -6,6 +6,7 @@ import Card from '../components/Card';
 import TagModal from '../components/TagModal';
 import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { LINE_MOTION } from '../src/components/charts/animation';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import SettingsSubpageHeader from '../components/SettingsSubpageHeader';
 import HeaderButton from '../components/HeaderButton';
@@ -169,7 +170,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
          markerIcon="tag"
          markerLabel="Semantic Overlays"
          title="Tags"
-         subtitle="Apply multi-dimensional labels to transactions. Cluster data by project, event, or specific lifestyle markers."
+         stats={[{ label: 'Tags', icon: 'label', value: tags.length }]}
          setCurrentPage={setCurrentPage}
          actions={
            <HeaderButton
@@ -309,7 +310,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
                                                <stop offset="95%" stopColor={tag.color} stopOpacity={0}/>
                                            </linearGradient>
                                        </defs>
-                                       <Area 
+                                       <Area {...LINE_MOTION} 
                                            type="monotone" 
                                            dataKey="value" 
                                            stroke={tag.color} 

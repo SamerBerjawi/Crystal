@@ -18,7 +18,7 @@ import AccountOverviewModal from '../components/AccountOverviewModal';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import PageHeader from '../components/PageHeader';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import { Button, IconButton } from '../components/ui/Actions';
 import { Radio, RadioGroup } from '../components/ui/Fields';
 import { ConfirmDialog, Popover } from '../components/ui/Overlays';
@@ -88,23 +88,23 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
   const toDisplay = (eur: number) => convertCurrency(eur, 'EUR', preferredCurrency, conversionRates);
 
-  const summary = useMemo(() => {
+  const stats = useMemo<PageStat[]>(() => {
     const countable = tabAccounts.filter(acc => acc.includeInAnalytics ?? true);
     const totals = calculateAccountTotals(countable, analyticsTransactions, loanPaymentOverrides);
-    const money = (eur: number) => formatCurrency(toDisplay(eur), preferredCurrency);
-    const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+    const money = (label: string, icon: string, eur: number): PageStat => ({ label, icon, value: toDisplay(eur), format: 'money', currency: preferredCurrency });
+    const count = (label: string, icon: string): PageStat => ({ label, icon, value: countable.length });
 
     switch (activeTab) {
       case 'accounts':
-        return `${money(totals.netWorth)} across ${plural(countable.length, 'account')}, with ${money(computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates }))} net flow over 30 days.`;
+        return [money('Total balance', 'account_balance_wallet', totals.netWorth), money('Net this month', 'trending_up', computeCashSegmentNetFlow(countable, transactions, 30, { conversionRates })), count('Accounts', 'account_balance')];
       case 'loans':
-        return `${money(Math.abs(totals.totalDebt))} still to pay across ${plural(countable.length, 'loan')}.`;
+        return [money('Still to pay', 'payments', Math.abs(totals.totalDebt)), count('Loans', 'account_balance')];
       case 'assets':
-        return `${money(totals.totalAssets)} across ${plural(countable.length, 'asset')}.`;
+        return [money('Total value', 'home', totals.totalAssets), count('Assets', 'layers')];
       default: {
         const credit = countable.filter(acc => acc.type === 'Credit Card');
         const owed = calculateAccountTotals(credit, analyticsTransactions, loanPaymentOverrides).totalDebt;
-        return `${plural(countable.length, 'card')}${credit.length ? `, with ${money(Math.abs(owed))} owed on credit` : ''}.`;
+        return [count('Cards', 'credit_card'), money('Owed on credit', 'payments', Math.abs(owed))];
       }
     }
   }, [tabAccounts, activeTab, analyticsTransactions, loanPaymentOverrides, transactions, conversionRates, preferredCurrency]);
@@ -260,7 +260,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
       <PageHeader
         title="Accounts"
-        subtitle={summary}
+        stats={stats}
         actions={
           <>
             {activeTab !== 'cards' && (

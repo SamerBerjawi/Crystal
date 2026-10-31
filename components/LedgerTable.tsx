@@ -95,7 +95,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const marks = (tx: DisplayTransaction) => (
     <>
       {tx.isSplitParent && <Badge tone="attention">Split, {tx.subItemCount || 0}</Badge>}
-      {tx.isCombinedParent && <Badge tone="indigo">Combined, {tx.subItemCount || 0}</Badge>}
+      {tx.isCombinedParent && <Badge tone="teal">Combined, {tx.subItemCount || 0}</Badge>}
       {tx.recurringSourceId && <Icon name="repeat" size={16} className="shrink-0 text-muted" aria-label="Recurring" />}
       {tx.notes && <Icon name="notes" size={16} className="shrink-0 text-muted" aria-label="Has notes" />}
     </>
@@ -136,10 +136,10 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
                           if (isSelecting) onToggle(tx.id);
                           else onOpen(tx);
                         }}
-                        className={cn('flex min-h-16 w-full cursor-pointer items-center gap-3 bg-canvas py-2 text-left', isSelected && 'bg-primary-soft')}
+                        className={cn('flex min-h-16 w-full cursor-pointer items-center gap-3 py-2 text-left', isSelected && 'bg-primary-soft')}
                       >
                         {isSelecting
-                          ? <span className={cn('ml-1 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong text-on-primary', isSelected && 'border-primary bg-primary')}>{isSelected && <Icon name="check" size={16} weight="bold" />}</span>
+                          ? <span className={cn('ml-1 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-line-strong text-on-pill', isSelected && 'border-pill bg-pill')}>{isSelected && <Icon name="check" size={16} weight="bold" />}</span>
                           : <Logo tx={tx} url={logoOf(tx)} icon={details(tx).icon} />}
                         <span className="min-w-0 flex-1">
                           <span className="type-body-strong block truncate text-ink">{tx.merchant || tx.description}</span>
@@ -164,7 +164,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
   const rowHeight = isCompact ? 'h-10' : 'h-14';
 
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-surface">
+    <div className="overflow-x-auto rounded-[var(--radius-xl)] surface-card">
       <table className="w-full border-separate border-spacing-0">
         <caption className="sr-only">Transactions</caption>
         <thead className="sticky top-0 z-[var(--z-sticky)] bg-inset">
@@ -185,7 +185,7 @@ const LedgerTable: React.FC<LedgerTableProps> = props => {
               const isAll = item.groupTxIds.every(id => selectedIds.has(id));
               const isSome = !isAll && item.groupTxIds.some(id => selectedIds.has(id));
               return (
-                <tr key={item.id} className="bg-canvas">
+                <tr key={item.id} className="bg-inset">
                   <td className="h-9 border-t border-line pl-3"><Checkbox aria-label={`Select all from ${item.formattedDate}`} isSelected={isAll} isIndeterminate={isSome} onChange={() => onToggleGroup(item.groupTxIds)}>{null}</Checkbox></td>
                   <th scope="rowgroup" colSpan={5} className="type-label border-t border-line px-3 text-left text-muted">{item.formattedDate}, {item.count}</th>
                   <td className="type-figure-row border-t border-line px-3 text-right text-ink"><Amount value={item.totalEur} currency="EUR" tone="flow" /></td>

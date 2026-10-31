@@ -19,7 +19,7 @@ const cardMoney = (account: Account) => (
 
 /** A card drawn from what the account stores. Only ever the last four digits. */
 const BankCard: React.FC<{ account: Account; size?: 'small' | 'large' }> = ({ account, size = 'small' }) => (
-  <div className={cn('flex aspect-[1.586] w-full flex-col justify-between rounded-[var(--radius-lg)] bg-primary text-on-primary', size === 'large' ? 'p-5' : 'p-3', account.status === 'closed' && 'opacity-60')}>
+  <div className={cn('flex aspect-[1.586] w-full flex-col justify-between rounded-[var(--radius-lg)] bg-pine text-on-pine', size === 'large' ? 'p-5' : 'p-3', account.status === 'closed' && 'opacity-60')}>
     <div className="flex items-start justify-between gap-2">
       <span className="type-label truncate">{account.financialInstitution || account.name}</span>
       <span className="type-caption shrink-0">{accountCardKind(account)}</span>
@@ -104,7 +104,7 @@ const CardsWallet: React.FC<CardsWalletProps> = ({ cards, accounts, transactions
       </RadioGroup>
 
       <div className="grid items-start gap-4 lg:grid-cols-12">
-        <section aria-label={selected.name} className="min-w-0 space-y-4 rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5 lg:col-span-5">
+        <section aria-label={selected.name} className="min-w-0 space-y-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5 lg:col-span-5">
           <header className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
               <h2 className="type-section-title truncate text-ink">{selected.name}</h2>

@@ -187,8 +187,12 @@ const Tasks: React.FC<TasksProps & { setCurrentPage?: (page: any) => void }> = (
                 accentColor="indigo"
                 markerIcon="check_circle"
                 markerLabel="Operational Protocols"
-                title="Action Board"
-                subtitle="Track follow-ups, recursive obligations, and semantic chores tied to system nodes."
+                title="Tasks"
+                stats={[
+                  { label: 'Open tasks', icon: 'task', value: stats.total - stats.completed },
+                  { label: 'Due in 7 days', icon: 'schedule', value: stats.dueSoon },
+                  { label: 'Completed', icon: 'check_circle', value: stats.rate, format: 'percent' },
+                ]}
                 setCurrentPage={setCurrentPage}
                 actions={
                     <HeaderButton

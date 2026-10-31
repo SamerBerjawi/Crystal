@@ -10,7 +10,7 @@ import LoyaltyCard from '../components/LoyaltyCard';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
-import PageHeader from '../components/PageHeader';
+import PageHeader, { type PageStat } from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { motion, AnimatePresence } from 'motion/react';
@@ -433,6 +433,12 @@ const Subscriptions: React.FC = () => {
             ? 'text-amber-500'
             : 'text-primary-500';
 
+    const pageStats: PageStat[] = [
+      { label: 'A month', icon: 'payments', value: monthlySpend, format: 'money' },
+      { label: 'A year', icon: 'calendar_today', value: yearlySpend, format: 'money' },
+      { label: 'Active', icon: 'refresh', value: totalCount, ...(dueSoonCount ? { badge: `${dueSoonCount} due soon`, badgeTone: 'butter' as const } : {}) },
+    ];
+
     return (
         <div className="relative">
             {/* Shared Modals for Mobile & Desktop */}
@@ -457,6 +463,7 @@ const Subscriptions: React.FC = () => {
             {/* Responsive View Switch */}
             {isMobile ? (
                 <MobileSubscriptionsView
+          stats={pageStats}
                     subscriptions={activeSubscriptions}
                     totalMonthlyCost={monthlySpend}
                     totalAnnualCost={yearlySpend}
@@ -474,8 +481,8 @@ const Subscriptions: React.FC = () => {
                 <PageHeader 
                     markerIcon="refresh"
                     markerLabel="Subscriptions & Memberships"
-                    title="Active Commitments"
-                    subtitle="Track active digital products, recurring user contracts, gym memberships, and loyalty cards in a unified panel."
+                    title="Subscriptions"
+                    stats={pageStats}
                     actions={
                         <div className="flex items-center gap-2">
                             {activeSegment === 'loyalty' ? (

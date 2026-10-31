@@ -119,7 +119,7 @@ const AccountCard: React.FC<AccountCardProps> = ({ account, transactions, layout
     ...dragProps,
     onContextMenu: openMenu,
     className: cn(
-      'group relative rounded-[var(--radius-xl)] border border-line bg-surface transition-colors duration-[var(--duration-fast)] hover:border-line-strong',
+      'group relative rounded-[var(--radius-xl)] surface-card transition-colors duration-[var(--duration-fast)] hover:border-line-strong',
       dragState === 'dragged' && 'opacity-50',
       dragState === 'over' && 'border-primary',
       dragProps?.draggable && 'cursor-grab'

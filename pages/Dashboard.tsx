@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { Page, User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency, ScheduledItem } from '../types';
+import PageHeader from '../components/PageHeader';
 import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey, safeRound } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { DURATION_OPTIONS, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
@@ -270,6 +271,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
   }, [aggregateCacheMax]);
 
   // Combine all recurring items (user-defined + synthetic)
+  const monthFlow = useMemo(() => {
+    const monthPrefix = toLocalISOString(new Date()).slice(0, 7);
+    return transactions.reduce((flow, tx) => {
+      if (tx.transferId || !tx.date.startsWith(monthPrefix)) return flow;
+      const eur = convertToEur(tx.amount, tx.currency);
+      if (tx.type === 'income') flow.income += eur;
+      else flow.spending += Math.abs(eur);
+      return flow;
+    }, { income: 0, spending: 0 });
+  }, [transactions]);
+
   const { allRecurringItems } = useMemo(() => {
     const syntheticLoanPayments = generateSyntheticLoanPayments(analyticsAccounts, analyticsTransactions, loanPaymentOverrides);
     const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(analyticsAccounts, analyticsTransactions);
@@ -1208,7 +1220,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
       defaultW: 2,
       defaultH: 3,
       component: SafeToSpendWidget,
-      props: { data: safeToSpend, currency: preferredCurrency, toDisplay: eurToDisplay, countUp: isFirstVisit, onCushionChange: setCushion }
+      props: { data: safeToSpend, currency: preferredCurrency, toDisplay: eurToDisplay, countUp: true, onCushionChange: setCushion }
     },
     {
       id: 'accountsSummary',
@@ -1514,7 +1526,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
 
         const page = (
           <div className="space-y-6">
-            <h1 className="sr-only">Overview</h1>
+            <PageHeader
+              title="Overview"
+              stats={[
+                { label: 'Money in this month', icon: 'arrow_downward', value: eurToDisplay(monthFlow.income), format: 'money', currency: preferredCurrency },
+                { label: 'Money out this month', icon: 'arrow_upward', value: eurToDisplay(monthFlow.spending), format: 'money', currency: preferredCurrency },
+                { label: 'Saved this month', icon: 'savings', value: monthFlow.income > 0 ? ((monthFlow.income - monthFlow.spending) / monthFlow.income) * 100 : 0, format: 'percent' },
+              ]}
+              className="!mb-0"
+            />
             <WrittenSummary
               facts={summaryFacts}
               isPrivate={isPrivate}
@@ -1535,7 +1555,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
                   parts={heroParts}
                   debts={eurToDisplay(Math.abs(totalDebt))}
                   currency={preferredCurrency}
-                  countUp={isFirstVisit}
+                  countUp
                   onOpen={() => setCurrentPage('Accounts')}
                 />
               </div>
@@ -1595,7 +1615,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onSyncBank
                 {gridItems.map(item => {
                   const height = OVERVIEW_WIDGETS[item.id].phoneHeight;
                   return (
-                    <section key={item.id} aria-label={item.title} className="flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-line bg-surface p-5" style={{ height }}>
+                    <section key={item.id} aria-label={item.title} className="flex flex-col overflow-hidden rounded-[var(--radius-xl)] surface-card p-5" style={{ height }}>
                       <h2 className="type-card-title mb-3 shrink-0 text-ink">{item.title}</h2>
                       <div className="min-h-0 flex-1">{item.render('m')}</div>
                     </section>

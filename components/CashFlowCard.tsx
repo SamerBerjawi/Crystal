@@ -2,6 +2,7 @@
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
+import { LINE_MOTION } from '../src/components/charts/animation';
 import { AreaChart, Area, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Currency } from '../types';
 
@@ -77,7 +78,7 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
             <div className="h-10 w-full mt-2 opacity-60">
                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <LineChart data={data}>
-                        <Line 
+                        <Line {...LINE_MOTION} 
                             type="monotone" 
                             dataKey="value" 
                             stroke={strokeColor} 

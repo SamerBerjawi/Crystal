@@ -3,6 +3,8 @@ import { Page, User } from '../types';
 import PageHeader from '../components/PageHeader';
 import HeaderButton from '../components/HeaderButton';
 import Icon from '../components/ui/Icon';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { useCategoryContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 interface SettingsProps {
   setCurrentPage: (page: Page) => void;
@@ -66,6 +68,9 @@ const SettingCard: React.FC<SettingCardProps> = ({
 
 const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
   const [profileImageError, setProfileImageError] = useState(false);
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const { tags } = useTagsContext();
+  const ruleCount = usePreferencesSelector(p => (p.transactionRules || []).length + Object.keys(p.merchantRules || {}).length);
 
   const handleNavigation = (page: Page) => {
     if (window.innerWidth < 768) {
@@ -81,8 +86,12 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       <PageHeader
         markerIcon="sliders"
         markerLabel="Control Center"
-        title="Settings & Governance"
-        subtitle="Configure system preferences, security parameters, taxonomy blueprints, and telemetry integrations."
+        title="Settings"
+        stats={[
+          { label: 'Categories', icon: 'category', value: incomeCategories.length + expenseCategories.length },
+          { label: 'Tags', icon: 'label', value: tags.length },
+          { label: 'Rules', icon: 'bolt', value: ruleCount },
+        ]}
       />
 
       {/* User Profile Banner Card */}

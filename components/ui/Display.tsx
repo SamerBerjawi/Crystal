@@ -20,10 +20,10 @@ const BADGE_TONES = {
   positive: 'bg-money-in-soft',
   attention: 'bg-amber-soft',
   negative: 'bg-money-out-soft',
-  ocean: 'bg-ocean-soft',
-  terracotta: 'bg-terracotta-soft',
-  purple: 'bg-purple-soft',
-  indigo: 'bg-indigo-soft',
+  blue: 'bg-blue-soft',
+  tomato: 'bg-tomato-soft',
+  rose: 'bg-rose-soft',
+  teal: 'bg-teal-soft',
 } as const;
 
 const BADGE_DOTS: Record<keyof typeof BADGE_TONES, string> = {
@@ -31,10 +31,10 @@ const BADGE_DOTS: Record<keyof typeof BADGE_TONES, string> = {
   positive: 'bg-money-in',
   attention: 'bg-amber',
   negative: 'bg-money-out',
-  ocean: 'bg-ocean',
-  terracotta: 'bg-terracotta',
-  purple: 'bg-purple',
-  indigo: 'bg-indigo',
+  blue: 'bg-blue',
+  tomato: 'bg-tomato',
+  rose: 'bg-rose',
+  teal: 'bg-teal',
 };
 
 /** Soft tints hold ink text with a coloured icon or dot, never coloured text. */
@@ -46,7 +46,7 @@ export const Badge: React.FC<{ tone?: keyof typeof BADGE_TONES; icon?: string; c
 );
 
 export const CountPill: React.FC<{ count: number; className?: string }> = ({ count, className }) => (
-  <span className={cn('inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 type-caption text-on-primary tabular-nums', className)}>
+  <span className={cn('inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pill px-1.5 type-caption text-on-pill tabular-nums', className)}>
     {count}
   </span>
 );
@@ -100,7 +100,7 @@ export const Row: React.FC<{
 /** A sticky day heading in a phone list, or a subheader above a table section. */
 export const DayGroup: React.FC<{ label: React.ReactNode; total?: React.ReactNode; children: React.ReactNode }> = ({ label, total, children }) => (
   <section>
-    <h3 className="type-label sticky top-0 z-[var(--z-sticky)] flex justify-between bg-canvas py-1.5 text-muted">
+    <h3 className="type-label sticky top-0 z-[var(--z-sticky)] flex justify-between bg-glass backdrop-blur-md py-1.5 text-muted">
       <span>{label}</span>
       {total && <span className="tabular-nums">{total}</span>}
     </h3>
@@ -153,7 +153,7 @@ export function DataTable<T extends { id: string }>({ label, columns, rows, dens
   const secondary = 'max-lg:hidden';
 
   return (
-    <div className={cn('overflow-x-auto rounded-[var(--radius-xl)] border border-line bg-surface', className)}>
+    <div className={cn('overflow-x-auto rounded-[var(--radius-xl)] surface-card', className)}>
       <Table
         aria-label={label}
         sortDescriptor={sort}

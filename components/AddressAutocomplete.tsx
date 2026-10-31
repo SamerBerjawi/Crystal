@@ -207,7 +207,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 mt-1.5 w-full bg-surface rounded-[var(--radius-lg)] shadow-sm border border-line z-[80] max-h-60 overflow-y-auto py-1.5 custom-scrollbar divide-y divide-black/5 dark:divide-white/5">
+        <div className="absolute top-full left-0 mt-1.5 w-full bg-solid rounded-[var(--radius-lg)] shadow-sm border border-line z-[80] max-h-60 overflow-y-auto py-1.5 custom-scrollbar divide-y divide-black/5 dark:divide-white/5">
           {suggestions.map((item, index) => {
             const isSelected = highlightedIndex === index;
             return (

@@ -16,11 +16,11 @@ Phase 9 tracker. It records what's built, what was tested and what wasn't. A mod
 | 3 | Overview | Summary, hero, Needs you, Safe to spend, grid | Done |
 | 4 | Accounts | Hub tabs, account frame, one account form | Done |
 | 5 | Transactions | Ledger, Review queue, Merchants, `DEF-06` | Done, with the detail panel left |
-| 6 | Rules | Rebuild (`D-009`), with tests first | Not started |
-| 7 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Not started |
-| 8 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Not started |
-| 9 | Reports | Reports, Invoices, Challenges | Not started |
-| 10 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Not started |
+| 6 | Planning | Budget, Forecast, Goals, Calendar, Subscriptions, Tasks | Not started |
+| 7 | Investments | Portfolio, Holdings, Activity, `DEF-01`, `DEF-02`, `DEF-03`, `DEF-04`, `DEF-05` | Not started |
+| 8 | Reports | Reports, Invoices, Challenges | Not started |
+| 9 | Settings and data | Hub, Connections, Data, synced choices (`S-002`) | Not started |
+| 10 | Rules | Rebuild (`D-009`), with tests first | Not started |
 | 11 | PIN lock | Idle lock, server-side design (`D-013`) | Not started |
 | 12 | Any currency | Support across the app (`S-010`) | Not started |
 | 13 | Clean-up | Remove bridge, `@base-ui/react`, `DESIGN.md` | Not started |
@@ -107,14 +107,14 @@ Phase 10 (final QA) follows module 13.
 - A signed-in account. Everything ran in demo mode.
 
 **Known issues**
-- Forecast overflows inside the main area by 8 px at 768 px, and Merchants by 13 px at 390 px. Their modules (7 and 5) rebuild those layouts. The six overflows from module 0 are otherwise gone.
+- Forecast overflows inside the main area by 8 px at 768 px, and Merchants by 13 px at 390 px. Their modules (6 and 5) rebuild those layouts. The six overflows from module 0 are otherwise gone.
 - Tabs exist only for pages that exist. Accounts and Investments have none yet, and Review queue and Goals aren't listed. They arrive in modules 4, 8, 5 and 7.
 - Rail Review queue opens the Ledger until module 5. Rail Today opens Calendar.
 - Lock isn't in the rail or More until module 11, so the rail has seven tools.
-- Create opens Add transaction everywhere. The Create menu (`NAV-08`) and "Create something else" (`D-071`) wait for the forms to be reachable from anywhere, in modules 4 and 7.
+- Create opens Add transaction everywhere. The Create menu (`NAV-08`) and "Create something else" (`D-071`) wait for the forms to be reachable from anywhere, in modules 4 and 6.
 - On phones the tab row sits under the top bar, above the page title, because the shell can't reach inside old pages.
 - Phone page actions still sit under the title until each page is rebuilt.
-- Subscriptions on phones keeps its floating button until module 7.
+- Subscriptions on phones keeps its floating button until module 6.
 - `Popover`'s phone sheet, `DateRangeInput`, and the context menu have had little or no use. The context menu isn't built yet, and arrives with the Transactions table.
 - `IconPicker`, `ColorPicker` and `CategoryPicker` are built with their modules (10 and 5).
 - Layer values are the approved order times ten, until module 13 removes the old `z-50` to `z-500` values.
@@ -256,6 +256,25 @@ Phase 10 (final QA) follows module 13.
 **Known issues**
 - `AddTransactionModal` is rebuilt to `D-022` (a side panel, full-height on phones). Its logic moved to `utils/transactionForm.ts`, with tests. Save, edit, transfer, the unsaved-changes prompt and suggestions were tested in the browser at 1440×900, and layout at 768×1024 and 390×844, in light and dark. Merchant rules, loan split, round-up and branch saving have unit tests only, because the demo data has no merchant rules, loans payments or spare-change link to try them on. Live address search wasn't tested.
 - `TransactionDetailModal` isn't a side panel yet (`D-024`), and `MerchantDetailModal` keeps its old look.
-- Merchants still has the old map in Map and details, and the keyword and regex rules in Auto-categorise until module 6.
+- Merchants still has the old map in Map and details, and the keyword and regex rules in Auto-categorise until module 10.
 - Past bank transactions aren't reprocessed by the `DEF-06` fix.
 - Saving a transaction with no category still files it as Transfer, as it always has.
+
+### UI adjustment: background tint and translucent surfaces (`D-086`)
+
+- Added `--solid`, `--rim`, `--card-shadow` and the `--mesh-*` tints, plus the `.surface-card` class. `--surface`, `--inset` and `--line` are now translucent, so use `bg-solid` for anything that floats.
+- Screens not yet rebuilt keep their own colours and pick up the tint only where they use the shared tokens.
+- Checked in the browser: Overview at 1440×900 in both themes, Transactions at 1440×900 and 390×844 in both themes, the transaction form at 1440×900 in light, and Accounts at 390×844 in light. No page overflowed sideways at 390×844. 768×1024 wasn't rechecked. Text contrast was calculated at the strongest part of the tint. The reduced-transparency fallback wasn't tried in a browser.
+
+### UI adjustment: Rapport and Tilvo accents (`D-087`)
+
+- Added `--pill`, `--on-pill`, `--pine`, `--on-pine`, `--blue`, `--tomato`, `--rose` and `--teal`, with soft tints. These replace `--ocean`, `--terracotta`, `--purple` and `--indigo`. Chart series run blue, tomato, teal, amber, rose.
+- Tilvo's exact chart colours keep the owner's look but trip two palette checks: light teal is just under the chroma floor, and the dark set is lighter than the validator's band. Light amber is under 3:1 on its own, so its charts need labels. Colour-blind separation passes in both themes.
+- Old screens still use the green bridge colours (`primary-500` and similar) until they're rebuilt.
+- Checked in the browser at 1440×900: Overview in light and dark, Accounts in dark. Not rechecked at phone or tablet size.
+
+### UI adjustment: Rapport headers, KPIs and animation (`D-088`)
+
+- `PageHeader` takes `stats` and owns the title and figure animation. `CountUp` in `Money.tsx` handles non-currency figures. Chart timing lives in `src/components/charts/animation.ts`, with `LINE_MOTION`, `BAR_MOTION` and `ARC_MOTION` for the Recharts charts.
+- Pages without figures: the settings subpages keep title only. Old screens can repeat a figure in their own cards until they're rebuilt. Account detail keeps its own hero (`D-038`).
+- Recharts can't copy Rapport's bar stagger or exact easing curves, so those charts use the nearest built-in easing.

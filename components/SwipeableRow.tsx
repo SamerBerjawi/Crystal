@@ -152,7 +152,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onTap={handleTap}
-        className="relative z-10 w-full bg-white dark:bg-[#18181b]"
+        className={`relative z-10 w-full ${isSwiping || revealedSide ? 'bg-solid' : ''}`}
         style={{ touchAction: 'pan-y' }}
       >
         {children}

@@ -19,7 +19,7 @@ export interface Hub {
 }
 
 /**
- * The seven hubs (D-005, D-017). Tabs list what exists today. Investments and Goals gain theirs in modules 8 and 7, when
+ * The seven hubs (D-005, D-017). Tabs list what exists today. Investments and Goals gain theirs in modules 7 and 6, when
  * those pages are built.
  */
 export const HUBS: Hub[] = [

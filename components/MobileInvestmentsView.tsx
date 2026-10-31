@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import PageHeader, { type PageStat } from './PageHeader';
 import {
   Account,
   InvestmentTransaction,
@@ -25,6 +26,7 @@ import {
   PieCenter,
   type PieData,
 } from '../src/components/charts';
+import { BAR_MOTION, LINE_MOTION } from '../src/components/charts/animation';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -49,6 +51,7 @@ export type InvestmentSegment =
   | 'Other';
 
 export interface MobileInvestmentsViewProps {
+  stats?: PageStat[];
   accounts: Account[];
   cashAccounts: Account[];
   investmentTransactions: InvestmentTransaction[];
@@ -107,7 +110,7 @@ const ASSET_TYPE_COLORS: Record<string, string> = {
   Other: '#64748b',
 };
 
-export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
+export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({ stats,
   accounts,
   cashAccounts,
   investmentTransactions,
@@ -244,23 +247,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
         {/* ================================================================= */}
         {/* 1. iOS Top Navigation Header */}
         {/* ================================================================= */}
-        <div className="pt-2 px-1 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
-              Portfolio & Wealth
-            </p>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
-                Investments
-              </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                Live Tracking
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <PageHeader title="Investments" stats={stats} className="!mb-0" actions={<div className="flex items-center gap-2">
             {/* Update Prices Trigger */}
             <button
               type="button"
@@ -289,8 +276,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
             >
               <Icon name="add" className="text-xl" />
             </button>
-          </div>
-        </div>
+          </div>} />
 
         {/* ================================================================= */}
         {/* 2. iOS Segmented Asset Class Filter */}
@@ -371,7 +357,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                       <stop offset="100%" stopColor="#14b8a6" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <Area
+                  <Area {...LINE_MOTION}
                     type="monotone"
                     dataKey="value"
                     stroke="#14b8a6"
@@ -855,7 +841,7 @@ export const MobileInvestmentsView: React.FC<MobileInvestmentsViewProps> = ({
                           fontSize: '12px',
                         }}
                       />
-                      <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                      <Bar {...BAR_MOTION} dataKey="value" radius={[0, 8, 8, 0]}>
                         {topHoldingsChartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}

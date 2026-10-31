@@ -518,7 +518,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           onAction={searchTerm ? () => setSearchTerm('') : undefined}
         />
       ) : (
-        <ul className="max-h-[calc(100dvh-280px)] divide-y divide-line overflow-y-auto rounded-[var(--radius-xl)] border border-line bg-surface max-md:max-h-none">
+        <ul className="max-h-[calc(100dvh-280px)] divide-y divide-line overflow-y-auto rounded-[var(--radius-xl)] surface-card max-md:max-h-none">
           {filteredEntities.map(entity => (
             <li key={entity.id}>
               <button
@@ -543,7 +543,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
   const profile = selected && (
     <section aria-label={selected.name} className="min-w-0 space-y-4">
-      <div className="space-y-4 rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+      <div className="space-y-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
         <header className="flex items-center gap-3">
           {isPhone && <IconButton icon="ArrowLeft" label="Back to the list" onPress={() => setSelectedId(null)} />}
           {entityLogo(selected, 48)}
@@ -570,13 +570,13 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         </dl>
       </div>
       {spendTrendsMap[selected.id]?.some(value => value > 0) && (
-        <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+        <section className="rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
           <h3 className="type-card-title mb-3 text-ink">Last six months</h3>
           <Sparkline data={spendTrendsMap[selected.id].map(value => ({ value }))} isPositive width={520} height={72} className="h-[72px] w-full" preserveAspect={false} />
         </section>
       )}
       {(selected.rule?.locations?.length ?? 0) > 0 && (
-        <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+        <section className="rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
           <h3 className="type-card-title mb-2 text-ink">Branches</h3>
           <ul className="divide-y divide-line">
             {selected.rule!.locations!.map(location => (
@@ -589,7 +589,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         </section>
       )}
       {entityTransactions.length > 0 && (
-        <section className="rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+        <section className="rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
           <h3 className="type-card-title mb-1 text-ink">Latest</h3>
           <ul className="divide-y divide-line">
             {entityTransactions.slice(0, 8).map(tx => (
@@ -648,7 +648,11 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       {!(isPhone && selected) && (
         <PageHeader
           title="Merchants"
-          subtitle={`${stats.totalMerchants} merchants and ${stats.totalInstitutions} institutions${stats.missingCount ? `, ${stats.missingCount} without a logo or rule` : ''}.`}
+          stats={[
+            { label: 'Merchants', icon: 'store', value: stats.totalMerchants, ...(stats.missingCount ? { badge: `${stats.missingCount} no logo`, badgeTone: 'butter' as const } : {}) },
+            { label: 'Institutions', icon: 'account_balance', value: stats.totalInstitutions },
+            { label: 'Total volume', icon: 'payments', value: stats.totalVolume, format: 'money' },
+          ]}
           actions={
             <>
               <Button variant="secondary" icon="bolt" onPress={() => setIsRegexModalOpen(true)}>Auto-categorise{regexRules.length ? `, ${regexRules.length}` : ''}</Button>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import PageHeader, { type PageStat } from './PageHeader';
 import {
   Budget,
   Category,
@@ -20,6 +21,7 @@ import {
   PieCenter,
   type PieData,
 } from '../src/components/charts';
+import { BAR_MOTION, LINE_MOTION } from '../src/components/charts/animation';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -39,6 +41,7 @@ export type BudgetMobileTab = 'envelopes' | 'allocation' | 'assistant';
 export type BudgetFilter = 'all' | 'warning' | 'over' | 'healthy';
 
 export interface MobileBudgetViewProps {
+  stats?: PageStat[];
   budgets: Budget[];
   transactions: Transaction[];
   expenseCategories: Category[];
@@ -56,7 +59,7 @@ export interface MobileBudgetViewProps {
   onRefreshData?: () => Promise<void>;
 }
 
-export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
+export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({ stats,
   budgets,
   transactions,
   expenseCategories,
@@ -235,25 +238,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
         {/* ================================================================= */}
         {/* 1. iOS Top Navigation Header */}
         {/* ================================================================= */}
-        <div className="pt-2 px-1 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-80 leading-none mb-1">
-              Monthly Guardrails
-            </p>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-light-text dark:text-white tracking-tight leading-tight">
-                Budgeting
-              </h1>
-              {overCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                  {overCount} Over Limit
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <PageHeader title="Budget" stats={stats} className="!mb-0" actions={<div className="flex items-center gap-2">
             {/* Quick Auto-Budget Trigger */}
             <button
               type="button"
@@ -273,8 +258,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
             >
               <Icon name="add" className="text-xl" />
             </button>
-          </div>
-        </div>
+          </div>} />
 
         {/* ================================================================= */}
         {/* 2. iOS Month Navigation Pills */}
@@ -689,7 +673,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                         fontSize: '11px',
                       }}
                     />
-                    <Area
+                    <Area {...LINE_MOTION}
                       type="monotone"
                       dataKey="ideal"
                       stroke="#94a3b8"
@@ -699,7 +683,7 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                       dot={false}
                       name="Ideal Linear"
                     />
-                    <Area
+                    <Area {...LINE_MOTION}
                       type="monotone"
                       dataKey="actual"
                       stroke="#a855f7"
@@ -750,8 +734,8 @@ export const MobileBudgetView: React.FC<MobileBudgetViewProps> = ({
                           fontSize: '11px',
                         }}
                       />
-                      <Bar dataKey="Budget" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Spent" fill="#a855f7" radius={[4, 4, 0, 0]} />
+                      <Bar {...BAR_MOTION} dataKey="Budget" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
+                      <Bar {...BAR_MOTION} dataKey="Spent" fill="#a855f7" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

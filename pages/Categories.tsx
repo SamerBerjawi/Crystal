@@ -242,7 +242,10 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
          markerIcon="folder"
          markerLabel="Taxonomy Blueprint"
          title="Categories"
-         subtitle="Define the logical structure of your ledger. Map telemetry objects into specific spending and earning protocols."
+         stats={[
+           { label: 'Income categories', icon: 'arrow_downward', value: incomeCategories.length },
+           { label: 'Expense categories', icon: 'arrow_upward', value: expenseCategories.length },
+         ]}
          setCurrentPage={setCurrentPage}
          actions={
            <HeaderButton

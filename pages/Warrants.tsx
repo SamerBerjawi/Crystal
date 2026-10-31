@@ -111,7 +111,11 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 markerIcon="verified"
                 markerLabel="Equity Extras"
                 title="Warrants"
-                subtitle="Track coverage, strike prices, and vesting details alongside your broader equity picture."
+                stats={[
+                  { label: 'Current value', icon: 'verified', value: totalCurrentValue, format: 'money' },
+                  { label: 'Grant value', icon: 'redeem', value: totalGrantValue, format: 'money' },
+                  { label: 'Grants', icon: 'receipt', value: warrants.length },
+                ]}
                 actions={
                     <HeaderButton
                         variant="primary"

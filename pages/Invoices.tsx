@@ -138,8 +138,12 @@ const InvoicesPage: React.FC = () => {
                 accentColor="indigo"
                 markerIcon="ReceiptCheck"
                 markerLabel="Ledger & Receivables"
-                title="Invoices & Quotes"
-                subtitle="Financial Document Lifecycle Management"
+                title="Invoices"
+                stats={[
+                  { label: 'Paid this month', icon: 'check_circle', value: metrics.paidMonth, format: 'money' },
+                  { label: 'Outstanding', icon: 'schedule', value: metrics.outstanding, format: 'money' },
+                  { label: 'Overdue', icon: 'warning', value: metrics.overdue, format: 'money' },
+                ]}
                 actions={
                     <div className="flex items-center gap-2">
                         <HeaderButton

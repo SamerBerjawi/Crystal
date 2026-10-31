@@ -50,7 +50,7 @@ const AccountPot: React.FC<AccountPotProps> = ({ account, transactions, note, co
   const isForeign = normalizeCurrency(account.currency) !== 'EUR';
 
   return (
-    <section aria-label={account.name} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-xl)] border border-line bg-surface p-6 max-md:p-5">
+    <section aria-label={account.name} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-xl)] surface-card p-6 max-md:p-5">
       <header className="flex items-start gap-3">
         <AccountLogo account={account} />
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 cursor-pointer text-left">

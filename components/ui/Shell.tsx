@@ -38,7 +38,7 @@ export const SkipLink: React.FC = () => (
   <a
     href="#main-content"
     onClick={e => { e.preventDefault(); document.getElementById('main-content')?.focus(); }}
-    className="fixed left-4 top-2 z-[var(--z-toast)] -translate-y-20 rounded-full bg-primary px-4 py-2 text-sm font-bold text-on-primary focus:translate-y-0"
+    className="fixed left-4 top-2 z-[var(--z-toast)] -translate-y-20 rounded-full bg-pill px-4 py-2 text-sm font-bold text-on-pill focus:translate-y-0"
   >
     Skip to content
   </a>
@@ -58,7 +58,7 @@ const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = (
   const activeHub = hubForPage(currentPage);
   return (
     <nav aria-label="Main">
-      <ul className="flex items-center gap-0.5 rounded-[22px] border border-line bg-surface p-1">
+      <ul className="flex items-center gap-0.5 rounded-[22px] surface-card p-1">
         {HUBS.map(hub => {
           const isActive = hub.id === activeHub.id;
           return (
@@ -69,10 +69,10 @@ const TopPills: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>> = (
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'relative flex h-[38px] cursor-pointer items-center whitespace-nowrap rounded-full px-3 text-[.8125rem] font-bold transition-colors duration-[var(--duration-base)] pointer-coarse:h-11 lg:px-[15px] lg:text-sm',
-                  isActive ? 'text-on-primary' : 'text-ink hover:bg-inset'
+                  isActive ? 'text-on-pill' : 'text-ink hover:bg-inset'
                 )}
               >
-                {isActive && <motion.span layoutId="hub-pill" transition={HIGHLIGHT} className="absolute inset-0 rounded-full bg-primary" />}
+                {isActive && <motion.span layoutId="hub-pill" transition={HIGHLIGHT} className="absolute inset-0 rounded-full bg-pill" />}
                 <span className="relative">{hub.label}</span>
               </button>
             </li>
@@ -113,7 +113,7 @@ export const TabRow: React.FC<Pick<ShellProps, 'currentPage' | 'setCurrentPage'>
                 )}
               >
                 {tab.label}
-                {isActive && <motion.span layoutId="tab-line" transition={HIGHLIGHT} className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
+                {isActive && <motion.span layoutId="tab-line" transition={HIGHLIGHT} className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-pill" />}
               </button>
             </li>
           );

@@ -2,6 +2,7 @@
 import React from 'react';
 import { formatCurrency } from '../utils';
 import { Currency } from '../types';
+import { LINE_MOTION } from '../src/components/charts/animation';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
 import Icon from './ui/Icon';
 
@@ -77,7 +78,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={incomeSparkline.length > 0 ? incomeSparkline : [{value:10}, {value:15}, {value:12}, {value:20}, {value:18}]}>
-                                <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={false} />
+                                <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -92,7 +93,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     <div className="h-5 w-full mt-2 opacity-60 group-hover/stat:opacity-100 transition-opacity">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={expenseSparkline.length > 0 ? expenseSparkline : [{value:20}, {value:12}, {value:25}, {value:15}, {value:22}]}>
-                                <Line type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={2} dot={false} />
+                                <Line {...LINE_MOTION} type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={2} dot={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
