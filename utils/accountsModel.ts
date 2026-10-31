@@ -346,7 +346,7 @@ export type AccountSegmentId =
   | 'closed';
 
 /**
- * Filters visible accounts into the primary segments of the `/accounts-new` workspace.
+ * Filters visible accounts into the primary segments of the accounts workspace.
  */
 export const filterAccountsBySegment = (
   visibleAccounts: Account[],
@@ -435,7 +435,7 @@ export interface AccountsHeroModel {
 }
 
 /**
- * Computes the complete Balance-Sheet Hero model for `/accounts-new`:
+ * Computes the complete Balance-Sheet Hero model:
  *  - Net Worth, Total Assets, Total Liabilities, and Solvency Ratio % in `preferredCurrency`
  *  - 90-day Net Worth trajectory and delta
  *  - Liquid Cash, 30d Net Flow, and Liquid Runway (months of expenses covered)

@@ -84,7 +84,6 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@bklitui/ui/charts': path.resolve(process.cwd(), './components/bklit/charts'),
         '@': path.resolve(process.cwd(), '.'),
       },
     },
